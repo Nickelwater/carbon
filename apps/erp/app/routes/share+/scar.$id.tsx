@@ -1,6 +1,10 @@
-import { assertIsPost, getCarbonServiceRole, success } from "@carbon/auth";
-import type {
-  JSONContent} from "@carbon/react";
+import {
+  assertIsPost,
+  error,
+  getCarbonServiceRole,
+  success,
+} from "@carbon/auth";
+import type { JSONContent } from "@carbon/react";
 import {
   Button,
   Card,
@@ -16,14 +20,27 @@ import {
   VStack,
 } from "@carbon/react";
 
+import { flash } from "@carbon/auth/session.server";
+import { validationError, validator } from "@carbon/form";
+import { Editor } from "@carbon/react/Editor";
 import { useMode } from "@carbon/remix";
-import { useLoaderData, useParams, useSubmit } from "@remix-run/react";
+import {
+  useFetcher,
+  useLoaderData,
+  useParams,
+  useSubmit,
+} from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@vercel/remix";
-import { json, redirect } from "@vercel/remix";
+import { json } from "@vercel/remix";
+import { useCallback, useRef, useState } from "react";
+import { LuChevronRight } from "react-icons/lu";
+import z from "zod";
+import { zfd } from "zod-form-data";
 import { getSupplier } from "~/modules/purchasing";
 import type {
   IssueActionTask,
-  IssueInvestigationTask} from "~/modules/quality";
+  IssueInvestigationTask,
+} from "~/modules/quality";
 import {
   getIssueActionTasks,
   getIssueFromExternalLink,
@@ -32,18 +49,12 @@ import {
   updateIssueTaskContent,
   updateIssueTaskStatus,
 } from "~/modules/quality";
+import { statusActions, TaskProgress } from "~/modules/quality/ui/Issue";
+import IssueStatus from "~/modules/quality/ui/Issue/IssueStatus";
 import { getCompany } from "~/modules/settings";
 import { getExternalLink } from "~/modules/shared";
-import { ErrorMessage } from "./quote.$id";
-import { statusActions, TaskProgress } from "~/modules/quality/ui/Issue";
-import { Editor } from "@carbon/react/Editor";
-import { LuChevronRight } from "react-icons/lu";
-import { useCallback, useRef, useState } from "react";
 import { path } from "~/utils/path";
-import { validationError, validator } from "@carbon/form";
-import z from "zod";
-import { zfd } from "zod-form-data";
-import { flash } from "@carbon/auth/session.server";
+import { ErrorMessage } from "./quote.$id";
 
 export const meta = () => {
   return [{ title: "Digital Quote" }];
@@ -59,16 +70,22 @@ const translations = {
     "Issue not found": "Issue not found",
     "Oops! The link you're trying to access is not valid.":
       "Oops! The link you're trying to access is not valid.",
+    Actions: "Actions",
+    Investigations: "Investigations",
   },
   es: {
     "Issue not found": "No se encontró el problema",
     "Oops! The link you're trying to access is not valid.":
       "¡Ups! El enlace al que intenta acceder no es válido.",
+    Actions: "Acciones",
+    Investigations: "Investigaciones",
   },
   de: {
     "Issue not found": "Problem nicht gefunden",
     "Oops! The link you're trying to access is not valid.":
       "Ups! Der Link, den Sie aufrufen möchten, ist nicht gültig.",
+    Actions: "Aktionen",
+    Investigations: "Untersuchungen",
   },
 };
 
@@ -213,25 +230,57 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   if (validation.data.status) {
-    await updateIssueTaskStatus(serviceRole, {
+    const statusUpdate = await updateIssueTaskStatus(serviceRole, {
       id: validation.data.taskId,
       status: validation.data.status,
       type: validation.data.type,
     });
+
+    if (statusUpdate.error) {
+      return json(
+        {
+          success: false,
+        },
+        await flash(
+          request,
+          error(statusUpdate.error, "Failed to update task status")
+        )
+      );
+    }
+
+    return json(
+      {
+        success: true,
+      },
+      await flash(request, success("Updated task status"))
+    );
   }
 
   if (validation.data.content) {
-    await updateIssueTaskContent(serviceRole, {
+    const contentUpdate = await updateIssueTaskContent(serviceRole, {
       id: validation.data.taskId,
       content: validation.data.content,
       type: validation.data.type,
     });
+
+    if (contentUpdate.error) {
+      return json(
+        {
+          success: false,
+        },
+        await flash(
+          request,
+          error(contentUpdate.error, "Failed to update content")
+        )
+      );
+    }
+
+    return json({ succes: true });
   }
 
-  throw redirect(
-    path.to.externalScar(id),
-    await flash(request, success("Updated issue"))
-  );
+  return json({
+    success: true,
+  });
 }
 
 const Header = ({
@@ -243,22 +292,27 @@ const Header = ({
   issue: IssueData["issue"];
   supplier: IssueData["supplier"];
 }) => (
-  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-start justify-between space-y-4 sm:space-y-2 pb-7">
-    <div className="flex items-center space-x-4">
-      <div>
-        <CardTitle className="text-3xl">{company?.name ?? ""}</CardTitle>
-        {issue?.nonConformanceId && (
-          <p className="text-lg text-muted-foreground">
-            {issue.nonConformanceId}
-          </p>
-        )}
-        {issue?.name && (
-          <p className="text-lg text-muted-foreground">{issue.name}</p>
-        )}
-      </div>
+  <CardHeader className="flex flex-col gap-4">
+    <div className="flex items-center justify-center w-full">
+      <IssueStatus status={issue.status} />
     </div>
-    <div className="flex flex-col gap-2 items-end justify-start">
-      <p className="text-xl font-medium">{supplier?.name ?? ""}</p>
+    <div className="flex sm:flex-row items-start sm:items-start justify-between space-y-4 sm:space-y-2">
+      <div className="flex items-center space-x-4">
+        <div>
+          <CardTitle className="text-3xl">{company?.name ?? ""}</CardTitle>
+          {issue?.nonConformanceId && (
+            <p className="text-lg text-muted-foreground">
+              {issue.nonConformanceId}
+            </p>
+          )}
+          {issue?.name && (
+            <p className="text-lg text-muted-foreground">{issue.name}</p>
+          )}
+        </div>
+      </div>
+      <div className="flex flex-col gap-2 items-end justify-start">
+        <p className="text-xl font-medium">{supplier?.name ?? ""}</p>
+      </div>
     </div>
   </CardHeader>
 );
@@ -324,7 +378,7 @@ function useTaskNotes({
   const { id } = useParams();
   if (!id) throw new Error("Could not find external quote id");
 
-  const submit = useSubmit();
+  const fetcher = useFetcher<typeof action>();
   const [content, setContent] = useState(initialContent ?? {});
 
   const onUploadImage = async (file: File) => {
@@ -350,22 +404,12 @@ function useTaskNotes({
 
   const onUpdateContent = useDebounce(
     async (content: JSONContent) => {
-      await submit(
-        {
-          taskId,
-          type,
-          supplierId,
-          content: JSON.stringify(content),
-        },
-        {
-          method: "post",
-          action: path.to.externalScar(id),
-          navigate: false,
-          fetcherKey: `externalScar:${taskId}`,
-        }
+      fetcher.submit(
+        { taskId, type, supplierId, content: JSON.stringify(content) },
+        { method: "post", action: path.to.externalScar(id) }
       );
     },
-    2500,
+    1000,
     true
   );
 
@@ -481,10 +525,12 @@ export function TaskList({
   tasks,
   isDisabled,
   type,
+  strings,
 }: {
   tasks: IssueActionTask[] | IssueInvestigationTask[];
   isDisabled: boolean;
   type: "action" | "investigation";
+  strings: (typeof translations)["en"];
 }) {
   if (tasks.length === 0) return null;
 
@@ -493,7 +539,7 @@ export function TaskList({
       <HStack className="justify-between w-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            {type === "action" ? "Actions" : "Investigations"}
+            {type === "action" ? strings["Actions"] : strings["Investigations"]}
           </CardTitle>
         </CardHeader>
         <TaskProgress tasks={tasks} />
@@ -548,6 +594,7 @@ const Issue = ({
               tasks={investigationTasks}
               type="investigation"
               isDisabled={issue.status === "Closed"}
+              strings={strings}
             />
           ) : null}
           {actionTasks?.length ? (
@@ -555,6 +602,7 @@ const Issue = ({
               tasks={actionTasks}
               type="action"
               isDisabled={issue.status === "Closed"}
+              strings={strings}
             />
           ) : null}
         </CardContent>
