@@ -17,7 +17,7 @@ import { path } from "~/utils/path";
 
 const qualityRoutes: AuthenticatedRouteGroup[] = [
   {
-    name: "History",
+    name: "Issues",
     routes: [
       {
         name: "Actions",
@@ -56,6 +56,17 @@ const qualityRoutes: AuthenticatedRouteGroup[] = [
     ],
   },
   {
+    name: "Documents",
+    routes: [
+      {
+        name: "Documents",
+        to: path.to.qualityDocuments,
+        icon: <LuFileText />,
+        table: "qualityDocument",
+      },
+    ],
+  },
+  {
     name: "Configure",
     routes: [
       {
@@ -63,12 +74,7 @@ const qualityRoutes: AuthenticatedRouteGroup[] = [
         to: path.to.requiredActions,
         icon: <LuSquareCheck />,
       },
-      {
-        name: "Documents",
-        to: path.to.qualityDocuments,
-        icon: <LuFileText />,
-        table: "qualityDocument",
-      },
+
       {
         name: "Gauge Types",
         to: path.to.gaugeTypes,

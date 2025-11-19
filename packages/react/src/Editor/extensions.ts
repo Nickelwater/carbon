@@ -7,6 +7,7 @@ import {
   TaskList,
   TiptapImage,
   TiptapLink,
+  TiptapUnderline,
   UpdatedImage,
   UploadImagesPlugin,
 } from "@carbon/tiptap";
@@ -228,6 +229,7 @@ export const defaultExtensions = [
   taskItem,
   horizontalRule,
   aiHighlight,
+  TiptapUnderline,
   VideoEmbed,
   HTMLContent,
   Table,

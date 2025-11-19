@@ -47,7 +47,7 @@ Features:
 
 - [x] ERP
 - [x] MES
-- [X] QMS
+- [x] QMS
 - [x] Custom Fields
 - [x] Nested BoM
 - [x] Traceability
@@ -273,6 +273,20 @@ For example, to run test command in the `@carbon/react` package you can run:
 ```
 $ npm run test -w @carbon/react
 ```
+
+To restore a production database locally:
+
+1. Download the production database as a .backup file
+2. Rename the `migrations` folder to `_migrations`
+3. Restore the database with the following command:
+
+```bash
+$ npm run db:build # this should error out at the seed step
+$ PGPASSWORD=postgres psql -h localhost -p 54322 -U supabase_admin -d postgres < ~/Downloads/db_cluster-17-11-2025@09-03-36.backup
+$ npm run dev
+```
+
+4. Rename the `_migraitons` folder back to `migrations`
 
 ## API
 
