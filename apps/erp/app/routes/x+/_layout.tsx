@@ -7,7 +7,9 @@ import {
 import {
   destroyAuthSession,
   requireAuthSession,
+  updateCompanySession,
 } from "@carbon/auth/session.server";
+import { setCompanyId } from "@carbon/auth/company.server";
 import { TooltipProvider, useMount } from "@carbon/react";
 import {
   AcademyBanner,
@@ -102,7 +104,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
     await destroyAuthSession(request);
   }
 
-  const company = companies.data?.find((c) => c.companyId === companyId);
+  let company = companies.data?.find((c) => c.companyId === companyId);
+
+  if (!company && companies.data?.length) {
+    company = companies.data[0];
+    const sessionCookie = await updateCompanySession(request, company.id!);
+    const companyIdCookie = setCompanyId(company.id!);
+    throw redirect(path.to.authenticatedRoot, {
+      headers: [
+        ["Set-Cookie", sessionCookie],
+        ["Set-Cookie", companyIdCookie],
+      ],
+    });
+  }
 
   const requiresOnboarding =
     !company?.name || (CarbonEdition === Edition.Cloud && !stripeCustomer);
