@@ -13,6 +13,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Separator,
   Spinner,
   Switch,
   useLocalStorage,
@@ -182,6 +183,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       (job) =>
         job.jobId.toLowerCase().includes(search.toLowerCase()) ||
         job.itemReadableId?.toLowerCase().includes(search.toLowerCase()) ||
+        job.customerName?.toLowerCase().includes(search.toLowerCase()) ||
         job.itemDescription?.toLowerCase().includes(search.toLowerCase())
     );
   }
@@ -513,56 +515,67 @@ function DateKanbanSchedule() {
               aria-label="Next Date"
             />
           </HStack>
-          <Combobox
-            asButton
-            size="sm"
-            value={locationId ?? undefined}
-            options={locations}
-            onChange={(selected) => {
-              const newParams = new URLSearchParams(searchParams);
-              newParams.set("location", selected);
-              window.location.href = `${
-                path.to.scheduleDates
-              }?${newParams.toString()}`;
-            }}
-          />
+
           <Popover>
             <PopoverTrigger asChild>
-              <Button
-                leftIcon={<LuSettings2 />}
+              <IconButton
+                aria-label="Settings"
+                icon={<LuSettings2 />}
                 variant="secondary"
                 className="border-dashed border-border"
-              >
-                Display
-              </Button>
+              />
             </PopoverTrigger>
-            <PopoverContent className="w-48">
-              <VStack>
-                {[
-                  { key: "showCustomer", label: "Customer" },
-                  { key: "showDueDate", label: "Due Date" },
-                  { key: "showDuration", label: "Duration" },
-                  { key: "showProgress", label: "Progress" },
-                  { key: "showQuantity", label: "Quantity" },
-                  { key: "showStatus", label: "Status" },
-                  { key: "showSalesOrder", label: "Sales Order" },
-                  { key: "showThumbnail", label: "Thumbnail" },
-                ].map(({ key, label }) => (
-                  <Switch
-                    key={key}
-                    variant="small"
-                    label={label}
-                    checked={
-                      displaySettings[key as keyof typeof displaySettings]
-                    }
-                    onCheckedChange={(checked) =>
-                      setDisplaySettings((prev) => ({
-                        ...prev,
-                        [key]: checked,
-                      }))
-                    }
+            <PopoverContent className="w-64">
+              <VStack spacing={3}>
+                <span className="text-xs font-medium text-muted-foreground">
+                  Location
+                </span>
+                <div className="w-full">
+                  <Combobox
+                    asButton
+                    size="sm"
+                    value={locationId ?? undefined}
+                    options={locations}
+                    onChange={(selected) => {
+                      const newParams = new URLSearchParams(searchParams);
+                      newParams.set("location", selected);
+                      window.location.href = `${
+                        path.to.scheduleDates
+                      }?${newParams.toString()}`;
+                    }}
                   />
-                ))}
+                </div>
+                <Separator />
+                <span className="text-xs font-medium text-muted-foreground">
+                  Display Settings
+                </span>
+                <VStack>
+                  {[
+                    { key: "showCustomer", label: "Customer" },
+                    { key: "showDueDate", label: "Due Date" },
+                    { key: "showDuration", label: "Duration" },
+                    { key: "showProgress", label: "Progress" },
+                    { key: "showQuantity", label: "Quantity" },
+                    { key: "showStatus", label: "Status" },
+                    { key: "showSalesOrder", label: "Sales Order" },
+                    { key: "showThumbnail", label: "Thumbnail" },
+                  ].map(({ key, label }) => (
+                    <Switch
+                      key={key}
+                      variant="small"
+                      label={label}
+                      checked={
+                        displaySettings[key as keyof typeof displaySettings]
+                      }
+                      onCheckedChange={(checked) =>
+                        setDisplaySettings((prev) => ({
+                          ...prev,
+                          [key]: checked,
+                        }))
+                      }
+                    />
+                  ))}
+                </VStack>
               </VStack>
             </PopoverContent>
           </Popover>

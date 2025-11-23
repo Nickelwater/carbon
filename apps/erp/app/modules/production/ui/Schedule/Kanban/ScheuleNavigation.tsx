@@ -26,16 +26,13 @@ export function ScheduleNavigation() {
   const getCurrentView = () => {
     if (location.pathname.includes(path.to.scheduleOperation))
       return "operations";
-    if (
-      location.pathname.includes(path.to.scheduleDates) &&
-      location.search.includes("view=week")
-    )
+    if (location.pathname.includes(path.to.scheduleDates)) {
+      if (location.search.includes("view=month")) {
+        return "month";
+      }
+      // Default to week for scheduleDates path (whether view=week or no view param)
       return "week";
-    if (
-      location.pathname.includes(path.to.scheduleDates) &&
-      location.search.includes("view=month")
-    )
-      return "month";
+    }
     return "operations";
   };
 

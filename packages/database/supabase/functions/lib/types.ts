@@ -48814,16 +48814,14 @@ export type Database = {
       get_active_job_operations_by_location: {
         Args: { location_id: string; work_center_ids: string[] }
         Returns: {
-          assignee: string
+          customerName: string
           description: string
           id: string
-          itemDescription: string
           itemReadableId: string
           jobCustomerId: string
           jobDeadlineType: Database["public"]["Enums"]["deadlineType"]
           jobDueDate: string
           jobId: string
-          jobMakeMethodId: string
           jobReadableId: string
           jobStatus: Database["public"]["Enums"]["jobStatus"]
           laborTime: number
@@ -48839,13 +48837,8 @@ export type Database = {
           processId: string
           quantityComplete: number
           quantityScrapped: number
-          salesOrderId: string
-          salesOrderLineId: string
-          salesOrderReadableId: string
           setupTime: number
           setupUnit: Database["public"]["Enums"]["factor"]
-          tags: string[]
-          thumbnailPath: string
           workCenterId: string
         }[]
       }

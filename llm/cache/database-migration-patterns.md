@@ -8,7 +8,6 @@ To create a database migration use `npm run db:migrate:new <name>`.
 - Named with timestamps and descriptive names
 - Applied automatically via Supabase CLI
 
-
 ## 1. Table Creation Patterns
 
 ### Basic Table Structure
@@ -176,7 +175,7 @@ FOR SELECT USING (
 
 ### Financial Columns
 
-- `NUMERIC(10,2)` or `DECIMAL(10,2)` for monetary values
+- `NUMERIC` or `DECIMAL(10,2)` for monetary values
 - `INTEGER` for quantities
 - `REAL` for percentages
 
