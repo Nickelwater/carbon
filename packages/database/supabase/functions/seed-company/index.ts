@@ -12,7 +12,6 @@ import {
   gaugeTypes,
   groupCompanyTemplate,
   groups,
-  nonConformanceInvestigationTypes,
   nonConformanceRequiredActions,
   nonConformanceTypes,
   paymentTerms,
@@ -208,13 +207,6 @@ serve(async (req: Request) => {
       await trx
         .insertInto("nonConformanceType")
         .values(nonConformanceTypes.map((nc) => ({ ...nc, companyId })))
-        .execute();
-
-      await trx
-        .insertInto("nonConformanceInvestigationType")
-        .values(
-          nonConformanceInvestigationTypes.map((nc) => ({ ...nc, companyId }))
-        )
         .execute();
 
       await trx
