@@ -2253,6 +2253,7 @@ export type Database = {
           kanbanOutput: Database["public"]["Enums"]["kanbanOutput"]
           materialGeneratedIds: boolean
           productLabelSize: string | null
+          purchasePriceUpdateTiming: Database["public"]["Enums"]["purchasePriceUpdateTiming"]
           rfqReadyNotificationGroup: string[]
           salesJobCompletedNotificationGroup: string[]
           shelfLabelSize: string | null
@@ -2268,6 +2269,7 @@ export type Database = {
           kanbanOutput?: Database["public"]["Enums"]["kanbanOutput"]
           materialGeneratedIds?: boolean
           productLabelSize?: string | null
+          purchasePriceUpdateTiming?: Database["public"]["Enums"]["purchasePriceUpdateTiming"]
           rfqReadyNotificationGroup?: string[]
           salesJobCompletedNotificationGroup?: string[]
           shelfLabelSize?: string | null
@@ -2283,6 +2285,7 @@ export type Database = {
           kanbanOutput?: Database["public"]["Enums"]["kanbanOutput"]
           materialGeneratedIds?: boolean
           productLabelSize?: string | null
+          purchasePriceUpdateTiming?: Database["public"]["Enums"]["purchasePriceUpdateTiming"]
           rfqReadyNotificationGroup?: string[]
           salesJobCompletedNotificationGroup?: string[]
           shelfLabelSize?: string | null
@@ -19636,7 +19639,6 @@ export type Database = {
           name: string
           processId: string | null
           status: Database["public"]["Enums"]["procedureStatus"]
-          tags: string[] | null
           updatedAt: string | null
           updatedBy: string | null
           version: number
@@ -19652,7 +19654,6 @@ export type Database = {
           name: string
           processId?: string | null
           status?: Database["public"]["Enums"]["procedureStatus"]
-          tags?: string[] | null
           updatedAt?: string | null
           updatedBy?: string | null
           version?: number
@@ -19668,7 +19669,6 @@ export type Database = {
           name?: string
           processId?: string | null
           status?: Database["public"]["Enums"]["procedureStatus"]
-          tags?: string[] | null
           updatedAt?: string | null
           updatedBy?: string | null
           version?: number
@@ -42052,7 +42052,6 @@ export type Database = {
           name: string | null
           processId: string | null
           status: Database["public"]["Enums"]["procedureStatus"] | null
-          tags: string[] | null
           version: number | null
           versions: Json | null
         }
@@ -50208,6 +50207,7 @@ export type Database = {
         | "Job Consumption"
         | "Job Receipt"
         | "Batch Split"
+        | "Purchase Order"
       itemLedgerType:
         | "Purchase"
         | "Sale"
@@ -50368,6 +50368,7 @@ export type Database = {
         | "Reject"
         | "Request Approval"
       purchaseOrderType: "Purchase" | "Return" | "Outside Processing"
+      purchasePriceUpdateTiming: "Invoice Post" | "Purchase Order Finalize"
       qualityDocumentStatus: "Draft" | "Active" | "Archived"
       quoteLineStatus: "Not Started" | "In Progress" | "Complete" | "No Quote"
       quoteStatus:
@@ -51293,6 +51294,7 @@ export const Constants = {
         "Job Consumption",
         "Job Receipt",
         "Batch Split",
+        "Purchase Order",
       ],
       itemLedgerType: [
         "Purchase",
@@ -51470,6 +51472,7 @@ export const Constants = {
         "Request Approval",
       ],
       purchaseOrderType: ["Purchase", "Return", "Outside Processing"],
+      purchasePriceUpdateTiming: ["Invoice Post", "Purchase Order Finalize"],
       qualityDocumentStatus: ["Draft", "Active", "Archived"],
       quoteLineStatus: ["Not Started", "In Progress", "Complete", "No Quote"],
       quoteStatus: [

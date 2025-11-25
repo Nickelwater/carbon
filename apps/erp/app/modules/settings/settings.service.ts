@@ -12,6 +12,7 @@ import type {
   apiKeyValidator,
   companyValidator,
   kanbanOutputTypes,
+  purchasePriceUpdateTimingTypes,
   sequenceValidator,
   webhookValidator,
 } from "./settings.models";
@@ -573,6 +574,17 @@ export async function updateRfqReadySetting(
   return client
     .from("companySettings")
     .update(sanitize({ rfqReadyNotificationGroup }))
+    .eq("id", companyId);
+}
+
+export async function updatePurchasePriceUpdateTimingSetting(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  purchasePriceUpdateTiming: (typeof purchasePriceUpdateTimingTypes)[number]
+) {
+  return client
+    .from("companySettings")
+    .update(sanitize({ purchasePriceUpdateTiming }))
     .eq("id", companyId);
 }
 

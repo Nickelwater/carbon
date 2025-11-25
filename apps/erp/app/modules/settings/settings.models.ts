@@ -1,6 +1,6 @@
 import { labelSizes } from "@carbon/utils";
-import { z } from 'zod/v3';
 import { zfd } from "zod-form-data";
+import { z } from "zod/v3";
 import { DataType } from "~/modules/shared";
 
 export const modulesType = [
@@ -18,6 +18,11 @@ export const modulesType = [
 ] as const;
 
 export const kanbanOutputTypes = ["label", "qrcode", "url"] as const;
+
+export const purchasePriceUpdateTimingTypes = [
+  "Purchase Invoice Post",
+  "Purchase Order Finalize",
+] as const;
 
 export const apiKeyValidator = z.object({
   id: zfd.text(z.string().optional()),
@@ -80,6 +85,10 @@ export const digitalQuoteValidator = z.object({
 
 export const kanbanOutputValidator = z.object({
   kanbanOutput: z.enum(kanbanOutputTypes),
+});
+
+export const purchasePriceUpdateTimingValidator = z.object({
+  purchasePriceUpdateTiming: z.enum(purchasePriceUpdateTimingTypes),
 });
 
 export const materialIdsValidator = z.object({

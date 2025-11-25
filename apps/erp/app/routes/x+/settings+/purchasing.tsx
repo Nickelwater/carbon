@@ -1,4 +1,7 @@
 import { error, useCarbon } from "@carbon/auth";
+import { requirePermissions } from "@carbon/auth/auth.server";
+import { flash } from "@carbon/auth/session.server";
+import { Select, Submit, ValidatedForm, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import {
   Badge,
@@ -6,26 +9,32 @@ import {
   CardAction,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
   generateHTML,
   Heading,
   HStack,
   ScrollArea,
+  toast,
   useDebounce,
   VStack,
 } from "@carbon/react";
 import { Editor } from "@carbon/react/Editor";
 import { getLocalTimeZone, today } from "@internationalized/date";
-import { json, redirect, useLoaderData } from "@remix-run/react";
-import type { LoaderFunctionArgs } from "@vercel/remix";
-import { useState } from "react";
+import { useFetcher, useLoaderData } from "@remix-run/react";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "@vercel/remix";
+import { json, redirect } from "@vercel/remix";
+import { useEffect, useState } from "react";
 import { LuCircleCheck } from "react-icons/lu";
 import { usePermissions, useUser } from "~/hooks";
-import { getTerms } from "~/modules/settings";
-
-import { requirePermissions } from "@carbon/auth/auth.server";
-import { flash } from "@carbon/auth/session.server";
+import {
+  getCompanySettings,
+  getTerms,
+  purchasePriceUpdateTimingTypes,
+  purchasePriceUpdateTimingValidator,
+  updatePurchasePriceUpdateTimingSetting,
+} from "~/modules/settings";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
@@ -39,7 +48,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
     view: "settings",
   });
 
-  const terms = await getTerms(client, companyId);
+  const [companySettings, terms] = await Promise.all([
+    getCompanySettings(client, companyId),
+    getTerms(client, companyId),
+  ]);
+
+  if (companySettings.error) {
+    throw redirect(
+      path.to.settings,
+      await flash(
+        request,
+        error(companySettings.error, "Failed to get company settings")
+      )
+    );
+  }
+
   if (terms.error) {
     throw redirect(
       path.to.settings,
@@ -48,18 +71,67 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   return json({
+    companySettings: companySettings.data,
     terms: terms.data,
   });
 }
 
-export default function Terms() {
-  const { terms } = useLoaderData<typeof loader>();
+export async function action({ request }: ActionFunctionArgs) {
+  const { client, companyId } = await requirePermissions(request, {
+    update: "settings",
+  });
+
+  const formData = await request.formData();
+  const intent = formData.get("intent");
+
+  switch (intent) {
+    case "purchasePriceUpdateTiming":
+      const validation = await validator(
+        purchasePriceUpdateTimingValidator
+      ).validate(formData);
+
+      if (validation.error) {
+        return json({ success: false, message: "Invalid form data" });
+      }
+
+      const result = await updatePurchasePriceUpdateTimingSetting(
+        client,
+        companyId,
+        validation.data.purchasePriceUpdateTiming
+      );
+
+      if (result.error) {
+        return json({ success: false, message: result.error.message });
+      }
+
+      return json({
+        success: true,
+        message: "Purchase price update timing updated",
+      });
+  }
+
+  return json({ success: false, message: "Unknown intent" });
+}
+
+export default function PurchasingSettingsRoute() {
+  const { companySettings, terms } = useLoaderData<typeof loader>();
+  const fetcher = useFetcher<typeof action>();
   const permissions = usePermissions();
   const { carbon } = useCarbon();
   const {
     id: userId,
     company: { id: companyId },
   } = useUser();
+
+  useEffect(() => {
+    if (fetcher.data?.success === true && fetcher?.data?.message) {
+      toast.success(fetcher.data.message);
+    }
+
+    if (fetcher.data?.success === false && fetcher?.data?.message) {
+      toast.error(fetcher.data.message);
+    }
+  }, [fetcher.data?.message, fetcher.data?.success]);
 
   const [purchasingTermsStatus, setPurchasingTermsStatus] = useState<
     "saved" | "draft"
@@ -100,6 +172,46 @@ export default function Terms() {
         className="py-12 px-4 max-w-[60rem] h-full mx-auto gap-4"
       >
         <Heading size="h3">Purchasing</Heading>
+        <Card>
+          <ValidatedForm
+            method="post"
+            validator={purchasePriceUpdateTimingValidator}
+            defaultValues={{
+              purchasePriceUpdateTiming:
+                companySettings.purchasePriceUpdateTiming ??
+                "Purchase Invoice Post",
+            }}
+            fetcher={fetcher}
+          >
+            <input
+              type="hidden"
+              name="intent"
+              value="purchasePriceUpdateTiming"
+            />
+            <CardHeader>
+              <CardTitle>Purchase Price Updates</CardTitle>
+              <CardDescription>
+                Configure when purchased item prices should be updated from
+                supplier transactions.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-8 max-w-[400px]">
+                <Select
+                  name="purchasePriceUpdateTiming"
+                  label="Update prices on"
+                  options={purchasePriceUpdateTimingTypes.map((type) => ({
+                    label: type,
+                    value: type,
+                  }))}
+                />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Submit>Save</Submit>
+            </CardFooter>
+          </ValidatedForm>
+        </Card>
         <Card>
           <HStack className="justify-between items-start">
             <CardHeader>

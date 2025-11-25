@@ -10,6 +10,7 @@ import {
   ModalTitle,
   VStack,
 } from "@carbon/react";
+import type { FetcherWithComponents } from "@remix-run/react";
 import { useParams } from "@remix-run/react";
 import { useState } from "react";
 import { SelectControlled, SupplierContact } from "~/components/Form";
@@ -19,13 +20,15 @@ import { purchaseOrderFinalizeValidator } from "../../purchasing.models";
 import type { PurchaseOrder } from "../../types";
 
 type PurchaseOrderFinalizeModalProps = {
-  onClose: () => void;
   purchaseOrder?: PurchaseOrder;
+  fetcher: FetcherWithComponents<unknown>;
+  onClose: () => void;
 };
 
 const PurchaseOrderFinalizeModal = ({
   purchaseOrder,
   onClose,
+  fetcher,
 }: PurchaseOrderFinalizeModalProps) => {
   const { orderId } = useParams();
   if (!orderId) throw new Error("orderId not found");
@@ -56,6 +59,7 @@ const PurchaseOrderFinalizeModal = ({
             notification: notificationType as "Email" | "None",
             supplierContact: purchaseOrder?.supplierContactId ?? undefined,
           }}
+          fetcher={fetcher}
         >
           <ModalHeader>
             <ModalTitle>{`Finalize ${purchaseOrder?.purchaseOrderId}`}</ModalTitle>

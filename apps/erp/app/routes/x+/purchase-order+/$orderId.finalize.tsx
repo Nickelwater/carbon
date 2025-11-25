@@ -13,6 +13,7 @@ import { renderAsync } from "@react-email/components";
 import { tasks } from "@trigger.dev/sdk";
 import { redirect, type ActionFunctionArgs } from "@vercel/remix";
 import { parseAcceptLanguage } from "intl-parse-accept-language";
+import { FunctionRegion } from "@supabase/supabase-js";
 import { getPaymentTermsList } from "~/modules/accounting";
 import { upsertDocument } from "~/modules/documents";
 import { runMRP } from "~/modules/production/production.service";
@@ -24,7 +25,7 @@ import {
   getSupplierContact,
   purchaseOrderFinalizeValidator,
 } from "~/modules/purchasing";
-import { getCompany } from "~/modules/settings";
+import { getCompany, getCompanySettings } from "~/modules/settings";
 import { getUser } from "~/modules/users/users.server";
 import { loader as pdfLoader } from "~/routes/file+/purchase-order+/$orderId[.]pdf";
 import { path, requestReferrer } from "~/utils/path";
@@ -85,6 +86,29 @@ export async function action(args: ActionFunctionArgs) {
         error("You are not authorized to finalize this purchase order")
       )
     );
+  }
+
+  // Check if we should update prices on purchase order finalize
+  const companySettings = await getCompanySettings(serviceRole, companyId);
+  if (
+    companySettings.data?.purchasePriceUpdateTiming === "Purchase Order Finalize"
+  ) {
+    const priceUpdate = await serviceRole.functions.invoke(
+      "update-purchased-prices",
+      {
+        body: {
+          purchaseOrderId: orderId,
+          companyId,
+          source: "purchaseOrder",
+        },
+        region: FunctionRegion.UsEast1,
+      }
+    );
+
+    if (priceUpdate.error) {
+      console.error("Failed to update purchased prices:", priceUpdate.error);
+      // Don't fail the entire finalization, just log the error
+    }
   }
 
   const acceptLanguage = request.headers.get("accept-language");

@@ -3,6 +3,7 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { FunctionRegion } from "@supabase/supabase-js";
 import type { ActionFunctionArgs } from "@vercel/remix";
 import { json } from "@vercel/remix";
+import { getCompanySettings } from "~/modules/settings";
 
 export async function action({ request, params }: ActionFunctionArgs) {
   const { client, companyId, userId } = await requirePermissions(request, {
@@ -54,29 +55,37 @@ export async function action({ request, params }: ActionFunctionArgs) {
       });
     }
 
-    const priceUpdate = await serviceRole.functions.invoke(
-      "update-purchased-prices",
-      {
-        body: {
-          invoiceId: invoiceId,
-          companyId: companyId,
-        },
-        region: FunctionRegion.UsEast1,
+    // Check if we should update prices on invoice post
+    const companySettings = await getCompanySettings(serviceRole, companyId);
+    if (
+      !companySettings.data?.purchasePriceUpdateTiming ||
+      companySettings.data.purchasePriceUpdateTiming === "Purchase Invoice Post"
+    ) {
+      const priceUpdate = await serviceRole.functions.invoke(
+        "update-purchased-prices",
+        {
+          body: {
+            invoiceId: invoiceId,
+            companyId: companyId,
+            source: "purchaseInvoice",
+          },
+          region: FunctionRegion.UsEast1,
+        }
+      );
+
+      if (priceUpdate.error) {
+        await client
+          .from("purchaseInvoice")
+          .update({
+            status: "Draft",
+          })
+          .eq("id", invoiceId);
+
+        return json({
+          success: false,
+          message: "Failed to update prices",
+        });
       }
-    );
-
-    if (priceUpdate.error) {
-      await client
-        .from("purchaseInvoice")
-        .update({
-          status: "Draft",
-        })
-        .eq("id", invoiceId);
-
-      return json({
-        success: false,
-        message: "Failed to update prices",
-      });
     }
   } catch (error) {
     await client

@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.175.0/http/server.ts";
 
 import { format } from "https://deno.land/std@0.160.0/datetime/mod.ts";
+import z from "npm:zod@^3.24.1";
 import { DB, getConnectionPool, getDatabaseClient } from "../lib/database.ts";
 import { corsHeaders } from "../lib/headers.ts";
 import { getSupabaseServiceRole } from "../lib/supabase.ts";
@@ -9,41 +10,172 @@ import { Database } from "../lib/types.ts";
 const pool = getConnectionPool(1);
 const db = getDatabaseClient<DB>(pool);
 
+const payloadValidator = z.discriminatedUnion("source", [
+  z.object({
+    source: z.literal("purchaseOrder"),
+    purchaseOrderId: z.string(),
+    companyId: z.string(),
+  }),
+  z.object({
+    source: z.literal("purchaseInvoice"),
+    invoiceId: z.string(),
+    companyId: z.string(),
+  }),
+]);
+
+interface PurchaseLineData {
+  itemId: string | null;
+  jobOperationId: string | null;
+  unitPrice: number;
+  quantity: number;
+  conversionFactor: number | null;
+  purchaseUnitOfMeasureCode: string | null;
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
-  const { invoiceId, companyId } = await req.json();
+  const payload = await req.json();
+  const { source, companyId } = payloadValidator.parse(payload);
 
   console.log({
     function: "update-purchased-prices",
-    invoiceId,
+    source,
     companyId,
   });
 
   try {
-    if (!invoiceId) throw new Error("Payload is missing invoiceId");
-
     const client = await getSupabaseServiceRole(
       req.headers.get("Authorization"),
       req.headers.get("carbon-key"),
       companyId
     );
 
-    const [purchaseInvoice, purchaseInvoiceLines] = await Promise.all([
-      client.from("purchaseInvoice").select("*").eq("id", invoiceId).single(),
-      client.from("purchaseInvoiceLine").select("*").eq("invoiceId", invoiceId),
-    ]);
+    let supplierId: string;
+    let lines: PurchaseLineData[];
 
-    if (purchaseInvoice.error)
-      throw new Error("Failed to fetch purchaseInvoice");
-    if (purchaseInvoiceLines.error)
-      throw new Error("Failed to fetch receipt lines");
+    switch (source) {
+      case "purchaseOrder": {
+        const { purchaseOrderId } = payload;
 
-    const itemIds = purchaseInvoiceLines.data
+        console.log({
+          function: "update-purchased-prices",
+          source,
+          purchaseOrderId,
+          companyId,
+        });
+
+        const [purchaseOrder, purchaseOrderLines] = await Promise.all([
+          client
+            .from("purchaseOrder")
+            .select("*")
+            .eq("id", purchaseOrderId)
+            .single(),
+          client
+            .from("purchaseOrderLine")
+            .select("*")
+            .eq("purchaseOrderId", purchaseOrderId),
+        ]);
+
+        if (purchaseOrder.error)
+          throw new Error("Failed to fetch purchaseOrder");
+        if (purchaseOrderLines.error)
+          throw new Error("Failed to fetch purchase order lines");
+        if (!purchaseOrder.data.supplierId)
+          throw new Error("Purchase order has no supplier");
+
+        supplierId = purchaseOrder.data.supplierId;
+        lines = purchaseOrderLines.data
+          .map((line) => ({
+            itemId: line.itemId,
+            jobOperationId: null,
+            unitPrice: line.unitPrice ?? 0,
+            quantity: (line.purchaseQuantity ?? 0) * (line.conversionFactor ?? 1),
+            conversionFactor: line.conversionFactor,
+            purchaseUnitOfMeasureCode: line.purchaseUnitOfMeasureCode,
+          }))
+          .filter((line) => line.unitPrice !== 0 && line.quantity > 0);
+
+        // Delete any existing cost ledger entries for this PO (handles re-finalization)
+        await db
+          .deleteFrom("costLedger")
+          .where("documentType", "=", "Purchase Order")
+          .where("documentId", "=", purchaseOrderId)
+          .where("companyId", "=", companyId)
+          .execute();
+
+        // Create new cost ledger entries for each line item
+        const costLedgerInserts = lines
+          .filter((line) => line.itemId)
+          .map((line) => ({
+            itemLedgerType: "Purchase" as const,
+            costLedgerType: "Direct Cost" as const,
+            adjustment: false,
+            documentType: "Purchase Order" as const,
+            documentId: purchaseOrderId,
+            itemId: line.itemId!,
+            quantity: line.quantity,
+            cost: line.quantity * line.unitPrice,
+            supplierId,
+            companyId,
+          }));
+
+        if (costLedgerInserts.length > 0) {
+          await db.insertInto("costLedger").values(costLedgerInserts).execute();
+        }
+
+        break;
+      }
+
+      case "purchaseInvoice": {
+        const { invoiceId } = payload;
+
+        console.log({
+          function: "update-purchased-prices",
+          source,
+          invoiceId,
+          companyId,
+        });
+
+        const [purchaseInvoice, purchaseInvoiceLines] = await Promise.all([
+          client
+            .from("purchaseInvoice")
+            .select("*")
+            .eq("id", invoiceId)
+            .single(),
+          client
+            .from("purchaseInvoiceLine")
+            .select("*")
+            .eq("invoiceId", invoiceId),
+        ]);
+
+        if (purchaseInvoice.error)
+          throw new Error("Failed to fetch purchaseInvoice");
+        if (purchaseInvoiceLines.error)
+          throw new Error("Failed to fetch invoice lines");
+        if (!purchaseInvoice.data.supplierId)
+          throw new Error("Purchase invoice has no supplier");
+
+        supplierId = purchaseInvoice.data.supplierId;
+        lines = purchaseInvoiceLines.data
+          .map((line) => ({
+            itemId: line.itemId,
+            jobOperationId: line.jobOperationId,
+            unitPrice: line.unitPrice ?? 0,
+            quantity: (line.quantity ?? 0) * (line.conversionFactor ?? 1),
+            conversionFactor: line.conversionFactor,
+            purchaseUnitOfMeasureCode: line.purchaseUnitOfMeasureCode,
+          }))
+          .filter((line) => line.unitPrice !== 0);
+        break;
+      }
+    }
+
+    const itemIds = lines
       .filter((line) => Boolean(line.itemId))
-      .map((line) => line.itemId);
+      .map((line) => line.itemId) as string[];
 
     const dateOneYearAgo = format(
       new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
@@ -60,8 +192,7 @@ serve(async (req: Request) => {
       client
         .from("supplierPart")
         .select("*")
-
-        .eq("supplierId", purchaseInvoice.data?.supplierId ?? "")
+        .eq("supplierId", supplierId)
         .in("itemId", itemIds)
         .eq("companyId", companyId),
     ]);
@@ -97,7 +228,7 @@ serve(async (req: Request) => {
       }
     });
 
-    purchaseInvoiceLines.data.forEach((line) => {
+    lines.forEach((line) => {
       if (
         line.itemId &&
         !line.jobOperationId &&
@@ -112,9 +243,7 @@ serve(async (req: Request) => {
         });
 
         const supplierPart = supplierParts.data?.find(
-          (supplierPart) =>
-            supplierPart.itemId === line.itemId &&
-            supplierPart.supplierId === purchaseInvoice.data?.supplierId
+          (sp) => sp.itemId === line.itemId && sp.supplierId === supplierId
         );
 
         if (supplierPart && supplierPart.id) {
@@ -128,7 +257,7 @@ serve(async (req: Request) => {
         } else {
           supplierPartInserts.push({
             itemId: line.itemId,
-            supplierId: purchaseInvoice.data?.supplierId!,
+            supplierId: supplierId,
             unitPrice: line.unitPrice,
             conversionFactor: line.conversionFactor ?? 1,
             supplierUnitOfMeasureCode: line.purchaseUnitOfMeasureCode,
@@ -139,7 +268,7 @@ serve(async (req: Request) => {
 
         itemReplenishmentUpdates.push({
           itemId: line.itemId,
-          preferredSupplierId: purchaseInvoice.data?.supplierId!,
+          preferredSupplierId: supplierId,
           purchasingUnitOfMeasureCode: line.purchaseUnitOfMeasureCode,
           conversionFactor: line.conversionFactor ?? 1,
           updatedBy: "system",

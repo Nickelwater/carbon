@@ -59,24 +59,38 @@ export const postTransactionTask = task({
         };
 
         if (result.success) {
-          console.info(
-            `💵 Updating pricing from invoice ${payload.documentId}`
-          );
+          // Check if we should update prices on invoice post
+          const companySettings = await serviceRole
+            .from("companySettings")
+            .select("purchasePriceUpdateTiming")
+            .eq("id", payload.companyId)
+            .single();
 
-          const priceUpdate = await serviceRole.functions.invoke(
-            "update-purchased-prices",
-            {
-              body: {
-                invoiceId: payload.documentId,
-                companyId: payload.companyId,
-              },
-            }
-          );
+          if (
+            !companySettings.data?.purchasePriceUpdateTiming ||
+            companySettings.data.purchasePriceUpdateTiming ===
+              "Purchase Invoice Post"
+          ) {
+            console.info(
+              `💵 Updating pricing from invoice ${payload.documentId}`
+            );
 
-          result = {
-            success: priceUpdate.error === null,
-            message: priceUpdate.error?.message,
-          };
+            const priceUpdate = await serviceRole.functions.invoke(
+              "update-purchased-prices",
+              {
+                body: {
+                  invoiceId: payload.documentId,
+                  companyId: payload.companyId,
+                  source: "purchaseInvoice",
+                },
+              }
+            );
+
+            result = {
+              success: priceUpdate.error === null,
+              message: priceUpdate.error?.message,
+            };
+          }
         }
 
         break;

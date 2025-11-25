@@ -161,6 +161,12 @@ const PurchaseOrderHeader = () => {
 
             <SplitButton
               leftIcon={<LuCheckCheck />}
+              isLoading={
+                statusFetcher.state !== "idle" &&
+                ["Planned", "To Receive and Invoice"].includes(
+                  routeData?.purchaseOrder?.status ?? ""
+                )
+              }
               variant={
                 ["Draft", "Planned"].includes(
                   routeData?.purchaseOrder?.status ?? ""
@@ -170,9 +176,8 @@ const PurchaseOrderHeader = () => {
               }
               onClick={finalizeDisclosure.onOpen}
               isDisabled={
-                !["Draft", "Planned"].includes(
-                  routeData?.purchaseOrder?.status ?? ""
-                ) || routeData?.lines.length === 0
+                !["Draft"].includes(routeData?.purchaseOrder?.status ?? "") ||
+                routeData?.lines.length === 0
               }
               dropdownItems={[
                 {
@@ -445,6 +450,7 @@ const PurchaseOrderHeader = () => {
 
       {finalizeDisclosure.isOpen && (
         <PurchaseOrderFinalizeModal
+          fetcher={statusFetcher}
           purchaseOrder={routeData?.purchaseOrder}
           onClose={finalizeDisclosure.onClose}
         />

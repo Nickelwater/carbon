@@ -2253,6 +2253,7 @@ export type Database = {
           kanbanOutput: Database["public"]["Enums"]["kanbanOutput"]
           materialGeneratedIds: boolean
           productLabelSize: string | null
+          purchasePriceUpdateTiming: Database["public"]["Enums"]["purchasePriceUpdateTiming"]
           rfqReadyNotificationGroup: string[]
           salesJobCompletedNotificationGroup: string[]
           shelfLabelSize: string | null
@@ -2268,6 +2269,7 @@ export type Database = {
           kanbanOutput?: Database["public"]["Enums"]["kanbanOutput"]
           materialGeneratedIds?: boolean
           productLabelSize?: string | null
+          purchasePriceUpdateTiming?: Database["public"]["Enums"]["purchasePriceUpdateTiming"]
           rfqReadyNotificationGroup?: string[]
           salesJobCompletedNotificationGroup?: string[]
           shelfLabelSize?: string | null
@@ -2283,6 +2285,7 @@ export type Database = {
           kanbanOutput?: Database["public"]["Enums"]["kanbanOutput"]
           materialGeneratedIds?: boolean
           productLabelSize?: string | null
+          purchasePriceUpdateTiming?: Database["public"]["Enums"]["purchasePriceUpdateTiming"]
           rfqReadyNotificationGroup?: string[]
           salesJobCompletedNotificationGroup?: string[]
           shelfLabelSize?: string | null
@@ -50204,6 +50207,7 @@ export type Database = {
         | "Job Consumption"
         | "Job Receipt"
         | "Batch Split"
+        | "Purchase Order"
       itemLedgerType:
         | "Purchase"
         | "Sale"
@@ -50364,6 +50368,7 @@ export type Database = {
         | "Reject"
         | "Request Approval"
       purchaseOrderType: "Purchase" | "Return" | "Outside Processing"
+      purchasePriceUpdateTiming: "Invoice Post" | "Purchase Order Finalize"
       qualityDocumentStatus: "Draft" | "Active" | "Archived"
       quoteLineStatus: "Not Started" | "In Progress" | "Complete" | "No Quote"
       quoteStatus:
@@ -51289,6 +51294,7 @@ export const Constants = {
         "Job Consumption",
         "Job Receipt",
         "Batch Split",
+        "Purchase Order",
       ],
       itemLedgerType: [
         "Purchase",
@@ -51466,6 +51472,7 @@ export const Constants = {
         "Request Approval",
       ],
       purchaseOrderType: ["Purchase", "Return", "Outside Processing"],
+      purchasePriceUpdateTiming: ["Invoice Post", "Purchase Order Finalize"],
       qualityDocumentStatus: ["Draft", "Active", "Archived"],
       quoteLineStatus: ["Not Started", "In Progress", "Complete", "No Quote"],
       quoteStatus: [
