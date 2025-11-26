@@ -159,20 +159,6 @@ export default function MakeMethodRoute() {
         />
       )}
 
-      <BillOfProcess
-        key={`bop:${itemId}`}
-        makeMethod={manufacturingRouteData?.makeMethod}
-        // @ts-ignore
-        operations={manufacturingRouteData?.methodOperations ?? []}
-        configurable={
-          manufacturingRouteData?.partManufacturing.requiresConfiguration
-        }
-        configurationRules={manufacturingRouteData?.configurationRules}
-        parameters={
-          manufacturingRouteData?.configurationParametersAndGroups.parameters
-        }
-        tags={tags}
-      />
       <BillOfMaterial
         key={`bom:${itemId}`}
         makeMethod={manufacturingRouteData?.makeMethod}
@@ -187,6 +173,20 @@ export default function MakeMethodRoute() {
         parameters={
           manufacturingRouteData?.configurationParametersAndGroups.parameters
         }
+      />
+      <BillOfProcess
+        key={`bop:${itemId}`}
+        makeMethod={manufacturingRouteData?.makeMethod}
+        // @ts-ignore
+        operations={manufacturingRouteData?.methodOperations ?? []}
+        configurable={
+          manufacturingRouteData?.partManufacturing.requiresConfiguration
+        }
+        configurationRules={manufacturingRouteData?.configurationRules}
+        parameters={
+          manufacturingRouteData?.configurationParametersAndGroups.parameters
+        }
+        tags={tags}
       />
 
       <CadModel

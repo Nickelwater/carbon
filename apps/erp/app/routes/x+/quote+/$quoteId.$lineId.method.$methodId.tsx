@@ -110,19 +110,19 @@ export default function QuoteMakeMethodRoute() {
   return (
     <VStack spacing={2}>
       <QuoteMakeMethodTools />
-      <QuoteBillOfProcess
-        key={`bop:${methodId}`}
-        quoteMakeMethodId={methodId}
-        // @ts-expect-error
-        operations={operations}
-        tags={tags ?? []}
-      />
       <QuoteBillOfMaterial
         key={`bom:${methodId}`}
         quoteMakeMethodId={methodId}
         materials={materials}
         // @ts-expect-error
         operations={operations}
+      />
+      <QuoteBillOfProcess
+        key={`bop:${methodId}`}
+        quoteMakeMethodId={methodId}
+        // @ts-expect-error
+        operations={operations}
+        tags={tags ?? []}
       />
 
       <Suspense fallback={null}>

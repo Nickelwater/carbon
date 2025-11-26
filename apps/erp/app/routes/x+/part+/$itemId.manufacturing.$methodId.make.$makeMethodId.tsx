@@ -155,6 +155,15 @@ export default function MethodMaterialMakePage() {
         </Await>
       </Suspense>
 
+      <BillOfMaterial
+        key={`bom:${itemId}`}
+        makeMethod={makeMethod}
+        materials={methodMaterials}
+        operations={methodOperations}
+        configurable={routeData?.partManufacturing.requiresConfiguration}
+        configurationRules={routeData?.configurationRules}
+        parameters={routeData?.configurationParametersAndGroups.parameters}
+      />
       <BillOfProcess
         key={`bop:${itemId}`}
         makeMethod={makeMethod}
@@ -164,15 +173,6 @@ export default function MethodMaterialMakePage() {
         configurationRules={routeData?.configurationRules}
         parameters={routeData?.configurationParametersAndGroups.parameters}
         tags={tags}
-      />
-      <BillOfMaterial
-        key={`bom:${itemId}`}
-        makeMethod={makeMethod}
-        materials={methodMaterials}
-        operations={methodOperations}
-        configurable={routeData?.partManufacturing.requiresConfiguration}
-        configurationRules={routeData?.configurationRules}
-        parameters={routeData?.configurationParametersAndGroups.parameters}
       />
       <Suspense fallback={null}>
         <Await resolve={loaderData.model}>
