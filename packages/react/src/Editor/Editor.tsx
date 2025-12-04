@@ -1,8 +1,9 @@
 "use client";
 
-import type { JSONContent } from "@carbon/tiptap";
+import type { JSONContent, MentionSuggestion } from "@carbon/tiptap";
 import {
   Command,
+  createMentionExtension,
   EditorBubble,
   EditorCommand,
   EditorCommandEmpty,
@@ -18,7 +19,7 @@ import {
   renderItems,
 } from "@carbon/tiptap";
 import TextStyle from "@tiptap/extension-text-style";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Separator } from "../Separator";
 import { cn } from "../utils/cn";
@@ -29,12 +30,32 @@ import { TextButtons } from "./components/TextButton";
 import { defaultExtensions } from "./extensions";
 import { getSuggestionItems } from "./slash";
 
+interface MentionConfig {
+  /**
+   * Trigger character for this mention type (e.g., "@" for items)
+   */
+  char: string;
+  /**
+   * List of suggestions to show
+   */
+  items: MentionSuggestion[];
+}
+
 interface EditorProp {
   className?: string;
   initialValue?: JSONContent;
   onChange: (value: JSONContent) => void;
   onUpload?: (file: File) => Promise<string>;
   disableFileUpload?: boolean;
+  /**
+   * Optional mention configurations. Each config creates a mention extension
+   * with a unique trigger character.
+   * @example
+   * mentions={[
+   *   { char: "@", items: [{ id: "1", label: "Widget A" }] }
+   * ]}
+   */
+  mentions?: MentionConfig[];
 }
 
 const defaultOnUpload = async (file: File) => {
@@ -50,10 +71,18 @@ const Editor = ({
   onChange,
   onUpload,
   disableFileUpload,
+  mentions,
 }: EditorProp) => {
   const [openNode, setOpenNode] = useState(false);
   const [openColor, setOpenColor] = useState(false);
   const [openLink, setOpenLink] = useState(false);
+
+  // Use a ref to hold the current mention items so the extension can access
+  // the latest items without needing to be recreated
+  const mentionItemsRef = useRef<MentionSuggestion[]>([]);
+  if (mentions && mentions.length > 0) {
+    mentionItemsRef.current = mentions[0].items;
+  }
 
   const uploadFn = useMemo(() => {
     const uploadHandler = onUpload ? onUpload : defaultOnUpload;
@@ -81,6 +110,21 @@ const Editor = ({
     [uploadFn]
   );
 
+  const mentionExtension = useMemo(() => {
+    if (!mentions || mentions.length === 0) return null;
+    // Use the first mention config - if multiple are needed with different
+    // trigger characters, this would need to be extended
+    const config = mentions[0];
+    return createMentionExtension({
+      name: "mention",
+      char: config.char,
+      // Pass a getter function so the extension always gets the latest items
+      items: () => mentionItemsRef.current,
+    });
+    // Only depend on mentions existence and char, not items content
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mentions?.[0]?.char]);
+
   const extensions = useMemo(
     () => [
       ...defaultExtensions,
@@ -91,8 +135,9 @@ const Editor = ({
           render: renderItems,
         },
       }),
+      ...(mentionExtension ? [mentionExtension] : []),
     ],
-    [suggestionItems]
+    [suggestionItems, mentionExtension]
   );
 
   return (

@@ -68,13 +68,15 @@ export function StepsListItem({
   onRecord: (step: JobOperationStep) => void;
   onDelete: (step: JobOperationStep) => void;
 }) {
-  const disclosure = useDisclosure();
   const fetcher = useFetcher<{ success: boolean }>();
   const user = useUser();
   const { name, description, type, unitOfMeasureCode, minValue, maxValue } =
     step;
 
   const hasDescription = description && Object.keys(description).length > 0;
+  const disclosure = useDisclosure({
+    defaultIsOpen: !!hasDescription,
+  });
 
   if (!operationId) return null;
   const record = step.jobOperationStepRecord.find(
@@ -201,6 +203,7 @@ export function StepsListItem({
                 disclosure.isOpen ? "Hide description" : "Show description"
               }
               variant="ghost"
+              isDisabled={!hasDescription}
               icon={disclosure.isOpen ? <LuChevronDown /> : <LuChevronRight />}
               onClick={disclosure.onToggle}
             />

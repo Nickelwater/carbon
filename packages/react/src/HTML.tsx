@@ -1,3 +1,4 @@
+import { Mention } from "@carbon/tiptap";
 import TextStyle from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
 import type { JSONContent } from "@tiptap/react";
@@ -20,6 +21,11 @@ const generateHTML = (content: JSONContent) => {
     TextStyle,
     StarterKit,
     Underline,
+    Mention.configure({
+      HTMLAttributes: {
+        class: "mention",
+      },
+    }),
   ]);
 };
 

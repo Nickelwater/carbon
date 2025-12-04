@@ -123,6 +123,7 @@ export default function QuoteMakeMethodRoute() {
       <QuoteBillOfProcess
         key={`bop:${methodId}`}
         quoteMakeMethodId={methodId}
+        materials={materials}
         // @ts-ignore
         operations={operations}
         tags={tags}

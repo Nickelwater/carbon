@@ -62,6 +62,7 @@ const Horizontal = HorizontalRule.extend({
 });
 
 export * from "./ai-highlight";
+export * from "./mention";
 export * from "./slash-command";
 export {
   CharacterCount,

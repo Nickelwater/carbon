@@ -137,7 +137,7 @@ import UnitOfMeasure, {
   useUnitOfMeasure,
 } from "~/components/Form/UnitOfMeasure";
 import { ProcedureStepTypeIcon } from "~/components/Icons";
-import { usePeople, useTools } from "~/stores";
+import { useItems, usePeople, useTools } from "~/stores";
 import { getPrivateUrl, path } from "~/utils/path";
 import {
   jobOperationValidator,
@@ -165,9 +165,14 @@ type JobOperationStep = OperationStep & {
     | null;
 };
 
+type JobMaterial = {
+  itemId: string;
+};
+
 type JobBillOfProcessProps = {
   jobMakeMethodId: string;
   locationId: string;
+  materials: JobMaterial[];
   operations: (Operation & {
     jobOperationTool: OperationTool[];
     jobOperationParameter: OperationParameter[];
@@ -359,6 +364,7 @@ const usePendingOperations = () => {
 const JobBillOfProcess = ({
   jobMakeMethodId,
   locationId,
+  materials,
   operations: initialOperations,
   tags,
   itemId,
@@ -598,6 +604,7 @@ const JobBillOfProcess = ({
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const channelRef = useRef<RealtimeChannel | null>(null);
+  const addOperationButtonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     if (
@@ -749,6 +756,14 @@ const JobBillOfProcess = ({
                 setTemporaryItems={setTemporaryItems}
                 setSelectedItemId={setSelectedItemId}
                 temporaryItems={temporaryItems}
+                onSubmit={() => {
+                  setSelectedItemId(null);
+                  addOperationButtonRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                    inline: "center",
+                  });
+                }}
               />
             </motion.div>
           </div>
@@ -834,6 +849,7 @@ const JobBillOfProcess = ({
                 selectedItemId === null || !!temporaryItems[selectedItemId]
               }
               temporaryItems={temporaryItems}
+              materials={materials}
             />
           </div>
         ),
@@ -1003,6 +1019,7 @@ const JobBillOfProcess = ({
 
         <CardAction>
           <Button
+            ref={addOperationButtonRef}
             variant="secondary"
             isDisabled={
               !permissions.can("update", "production") ||
@@ -1035,11 +1052,13 @@ function StepsForm({
   isDisabled,
   steps,
   temporaryItems,
+  materials,
 }: {
   operationId: string;
   isDisabled: boolean;
   steps: JobOperationStep[];
   temporaryItems: TemporaryItems;
+  materials: JobMaterial[];
 }) {
   const fetcher = useFetcher<typeof newJobOperationParameterAction>();
   const sortOrderFetcher = useFetcher<{ success: boolean }>();
@@ -1108,6 +1127,24 @@ function StepsForm({
   const {
     company: { id: companyId },
   } = useUser();
+  const [allItems] = useItems();
+
+  const materialItemIds = useMemo(
+    () => new Set((materials ?? []).map((m) => m.itemId)),
+    [materials]
+  );
+
+  const itemMentions = useMemo(
+    () =>
+      allItems
+        .filter((item) => materialItemIds.has(item.id))
+        .map((item) => ({
+          id: item.id,
+          label: item.name ?? item.readableIdWithRevision,
+          helper: item.name ? item.readableIdWithRevision : undefined,
+        })),
+    [allItems, materialItemIds]
+  );
 
   const onUploadImage = async (file: File) => {
     const fileType = file.name.split(".").pop();
@@ -1198,6 +1235,7 @@ function StepsForm({
                   onChange={(value) => {
                     setDescription(value);
                   }}
+                  mentions={[{ char: "@", items: itemMentions }]}
                   className="[&_.is-empty]:text-muted-foreground min-h-[120px] p-4 rounded-lg border w-full"
                 />
               </VStack>
@@ -1292,6 +1330,7 @@ function StepsForm({
                     operationId={operationId}
                     typeOptions={typeOptions}
                     isDisabled={isDisabled}
+                    itemMentions={itemMentions}
                     className={
                       index === sortOrder.length - 1 ? "border-none" : ""
                     }
@@ -1311,12 +1350,14 @@ function StepsListItem({
   operationId,
   typeOptions,
   isDisabled = false,
+  itemMentions,
   className,
 }: {
   attribute: JobOperationStep;
   operationId: string;
   typeOptions: { label: JSX.Element; value: string }[];
   isDisabled?: boolean;
+  itemMentions: { id: string; label: string }[];
   className?: string;
 }) {
   const {
@@ -1438,6 +1479,7 @@ function StepsListItem({
                 onChange={(value) => {
                   setDescription(value);
                 }}
+                mentions={[{ char: "@", items: itemMentions }]}
                 className="[&_.is-empty]:text-muted-foreground min-h-[120px] p-4 rounded-lg border w-full"
               />
             </VStack>
@@ -1976,6 +2018,7 @@ function OperationForm({
   setTemporaryItems,
   setSelectedItemId,
   temporaryItems,
+  onSubmit,
 }: {
   item: ItemWithData;
   isDisabled: boolean;
@@ -1985,25 +2028,34 @@ function OperationForm({
   setWorkInstructions: Dispatch<SetStateAction<PendingWorkInstructions>>;
   setTemporaryItems: Dispatch<SetStateAction<TemporaryItems>>;
   setSelectedItemId: Dispatch<SetStateAction<string | null>>;
+  onSubmit: () => void;
   temporaryItems: TemporaryItems;
 }) {
   const { jobId } = useParams();
   const { company } = useUser();
   if (!jobId) throw new Error("jobId not found");
 
-  const fetcher = useFetcher<{ id: string }>();
+  const fetcher = useFetcher<{
+    id: string;
+    success: boolean;
+    message: string;
+  }>();
   const { carbon } = useCarbon();
   const baseCurrency = company?.baseCurrencyCode ?? "USD";
 
   useEffect(() => {
-    if (fetcher.data && fetcher.data.id) {
+    if (fetcher.data?.id) {
       // Clear temporary item after successful save
       setTemporaryItems((prev) => {
         const { [item.id]: _, ...rest } = prev;
         return rest;
       });
+      if (fetcher.data?.success) {
+        toast.success(fetcher.data.message);
+      }
+      onSubmit();
     }
-  }, [item.id, fetcher.data, setTemporaryItems]);
+  }, [item.id, fetcher.data, onSubmit, setTemporaryItems]);
 
   const machineDisclosure = useDisclosure();
   const laborDisclosure = useDisclosure();

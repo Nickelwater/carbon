@@ -148,5 +148,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
   }
 
-  return json({ id: jobMaterialId });
+  return json({
+    id: jobMaterialId,
+    success: true,
+    message: "Material created",
+  });
 }

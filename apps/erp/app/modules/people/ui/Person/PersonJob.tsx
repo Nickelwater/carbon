@@ -5,10 +5,9 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  VStack,
 } from "@carbon/react";
 import { useState } from "react";
-import type { z } from 'zod/v3';
+import type { z } from "zod/v3";
 import {
   CustomFormFields,
   DatePicker,
@@ -40,7 +39,7 @@ const PersonJob = ({ initialValues }: PersonJobProps) => {
           <CardTitle>Job</CardTitle>
         </CardHeader>
         <CardContent>
-          <VStack spacing={4}>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Input name="title" label="Title" />
             <DatePicker name="startDate" label="Start Date" />
             <Location
@@ -56,7 +55,7 @@ const PersonJob = ({ initialValues }: PersonJobProps) => {
             <Employee name="managerId" label="Manager" />
             <Hidden name="intent" value="job" />
             <CustomFormFields table="employeeJob" />
-          </VStack>
+          </div>
         </CardContent>
         <CardFooter>
           <Submit>Save</Submit>

@@ -55,5 +55,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     );
   }
 
-  return json({ id: methodOperationId });
+  return json({
+    id: methodOperationId,
+    success: true,
+    message: "Operation created",
+  });
 }

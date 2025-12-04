@@ -182,6 +182,8 @@ export default function MakeMethodRoute() {
         configurable={
           manufacturingRouteData?.partManufacturing.requiresConfiguration
         }
+        // @ts-ignore
+        materials={manufacturingRouteData?.methodMaterials ?? []}
         configurationRules={manufacturingRouteData?.configurationRules}
         parameters={
           manufacturingRouteData?.configurationParametersAndGroups.parameters

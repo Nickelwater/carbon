@@ -40,7 +40,7 @@ export default function EditAttributeRoute() {
   if (Number.isNaN(categoryId)) throw new Error("categoryId is not a number");
 
   const navigate = useNavigate();
-  const onClose = () => navigate(path.to.attributeCategoryList(categoryId));
+  const onClose = () => navigate(-1);
   const attributesRouteData = useRouteData<{
     dataTypes: AttributeDataType[];
   }>(path.to.attributes);

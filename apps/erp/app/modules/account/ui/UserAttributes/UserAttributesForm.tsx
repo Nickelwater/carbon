@@ -4,9 +4,10 @@ import { parseDate } from "@internationalized/date";
 import { useLocale } from "@react-aria/i18n";
 import { useFetcher, useParams } from "@remix-run/react";
 import { useState } from "react";
-import type { ZodSchema } from 'zod/v3';
+import type { ZodSchema } from "zod/v3";
 import {
   Boolean as BooleanInput,
+  Customer,
   DatePicker,
   Employee,
   Hidden,
@@ -14,14 +15,19 @@ import {
   Number as NumberInput,
   Select,
   Submit,
+  Supplier,
 } from "~/components/Form";
 import { UserSelect } from "~/components/Selectors";
+import CustomerAvatar from "~/components/CustomerAvatar";
+import SupplierAvatar from "~/components/SupplierAvatar";
 import { usePermissions, useUser } from "~/hooks";
 import { DataType } from "~/modules/shared";
 import { path } from "~/utils/path";
 import {
   attributeBooleanValidator,
+  attributeCustomerValidator,
   attributeNumericValidator,
+  attributeSupplierValidator,
   attributeTextValidator,
   attributeUserValidator,
   deleteUserAttributeValueValidator,
@@ -100,7 +106,6 @@ type GenericAttributeRowProps = {
   displayValue: string | number | boolean;
   isAuthorized: boolean;
   type: DataType;
-  // @ts-expect-error
   updateFetcher: ReturnType<typeof useFetcher>;
   userAttributeId: string;
   userAttributeValueId?: string;
@@ -111,6 +116,7 @@ type GenericAttributeRowProps = {
 
 const GenericAttributeRow = (props: GenericAttributeRowProps) => {
   const editing = useDisclosure();
+  const { locale } = useLocale();
   const onSubmit = (value: string | boolean | number) => {
     props.setOptimisticUpdate(value);
     editing.onClose();
@@ -120,7 +126,7 @@ const GenericAttributeRow = (props: GenericAttributeRowProps) => {
     <div key={props.attribute.id} className="w-full">
       {editing.isOpen
         ? TypedForm({ ...props, onSubmit, onClose: editing.onClose })
-        : TypedDisplay({ ...props, onOpen: editing.onOpen })}
+        : TypedDisplay({ ...props, locale, onOpen: editing.onOpen })}
     </div>
   );
 };
@@ -165,7 +171,9 @@ function TypedForm(
               <Hidden name="type" value="boolean" />
               <Hidden name="userAttributeId" />
               <Hidden name="userAttributeValueId" />
-              <BooleanInput name="value" />
+              <div>
+                <BooleanInput name="value" />
+              </div>
             </div>
             <HStack className="justify-end w-full self-center">
               <Submit type="submit">Save</Submit>
@@ -349,6 +357,72 @@ function TypedForm(
           </div>
         </ValidatedForm>
       );
+    case DataType.Customer:
+      return (
+        <ValidatedForm
+          method="post"
+          action={path.to.userAttribute(userId)}
+          validator={attributeCustomerValidator}
+          defaultValues={{
+            userAttributeId,
+            userAttributeValueId,
+            value: value?.toString(),
+          }}
+          fetcher={updateFetcher}
+          onSubmit={(data) => onSubmit(data.value)}
+        >
+          <div className="grid grid-cols-[1fr_2fr_1fr] border-t border-border gap-x-2 pt-3 w-full items-center">
+            <p className="text-muted-foreground self-center">
+              {attribute.name}
+            </p>
+            <div>
+              <Hidden name="type" value="customer" />
+              <Hidden name="userAttributeId" />
+              <Hidden name="userAttributeValueId" />
+              <Customer label="" name="value" />
+            </div>
+            <HStack className="justify-end w-full self-center">
+              <Submit type="submit">Save</Submit>
+              <Button variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+            </HStack>
+          </div>
+        </ValidatedForm>
+      );
+    case DataType.Supplier:
+      return (
+        <ValidatedForm
+          method="post"
+          action={path.to.userAttribute(userId)}
+          validator={attributeSupplierValidator}
+          defaultValues={{
+            userAttributeId,
+            userAttributeValueId,
+            value: value?.toString(),
+          }}
+          fetcher={updateFetcher}
+          onSubmit={(data) => onSubmit(data.value)}
+        >
+          <div className="grid grid-cols-[1fr_2fr_1fr] border-t border-border gap-x-2 pt-3 w-full items-center">
+            <p className="text-muted-foreground self-center">
+              {attribute.name}
+            </p>
+            <div>
+              <Hidden name="type" value="supplier" />
+              <Hidden name="userAttributeId" />
+              <Hidden name="userAttributeValueId" />
+              <Supplier label="" name="value" />
+            </div>
+            <HStack className="justify-end w-full self-center">
+              <Submit type="submit">Save</Submit>
+              <Button variant="ghost" onClick={onClose}>
+                Cancel
+              </Button>
+            </HStack>
+          </div>
+        </ValidatedForm>
+      );
     default:
       return (
         <div className="text-destructive bg-destructive-foreground p-4 w-full">
@@ -360,14 +434,15 @@ function TypedForm(
 
 function TypedDisplay(
   props: GenericAttributeRowProps & {
+    locale: string;
     onOpen: () => void;
   }
 ) {
-  const { locale } = useLocale();
   const {
     attribute,
     displayValue,
     isAuthorized,
+    locale,
     type,
     userAttributeValueId,
     value,
@@ -382,11 +457,13 @@ function TypedDisplay(
           {displayValue === "N/A" ? (
             <p className="self-center">{displayValue}</p>
           ) : (
-            <Switch disabled checked={displayValue === true} />
+            <div>
+              <Switch disabled checked={displayValue === true} />
+            </div>
           )}
           <HStack className="justify-end w-full self-center">
             <Button
-              isDisabled={!isAuthorized || !attribute.canSelfManage}
+              isDisabled={isAuthorized && !attribute.canSelfManage}
               variant="ghost"
               onClick={onOpen}
             >
@@ -436,6 +513,46 @@ function TypedDisplay(
           <p className="text-muted-foreground self-center">{attribute.name}</p>
           {value ? (
             <UserSelect disabled value={value.toString()} />
+          ) : (
+            <p className="self-center">{displayValue}</p>
+          )}
+
+          <UpdateRemoveButtons
+            canRemove={
+              !isAuthorized || (attribute.canSelfManage === true && !!value)
+            }
+            canUpdate={!isAuthorized || (attribute.canSelfManage ?? false)}
+            {...props}
+            onSubmit={setOptimisticUpdate}
+          />
+        </div>
+      );
+    case DataType.Customer:
+      return (
+        <div className="grid grid-cols-[1fr_2fr_1fr] border-t border-border gap-x-2 pt-3 w-full items-center">
+          <p className="text-muted-foreground self-center">{attribute.name}</p>
+          {value ? (
+            <CustomerAvatar customerId={value.toString()} />
+          ) : (
+            <p className="self-center">{displayValue}</p>
+          )}
+
+          <UpdateRemoveButtons
+            canRemove={
+              !isAuthorized || (attribute.canSelfManage === true && !!value)
+            }
+            canUpdate={!isAuthorized || (attribute.canSelfManage ?? false)}
+            {...props}
+            onSubmit={setOptimisticUpdate}
+          />
+        </div>
+      );
+    case DataType.Supplier:
+      return (
+        <div className="grid grid-cols-[1fr_2fr_1fr] border-t border-border gap-x-2 pt-3 w-full items-center">
+          <p className="text-muted-foreground self-center">{attribute.name}</p>
+          {value ? (
+            <SupplierAvatar supplierId={value.toString()} />
           ) : (
             <p className="self-center">{displayValue}</p>
           )}
@@ -514,6 +631,16 @@ function getGenericProps(
         value = userAttributeValue.valueUser;
         if (userAttributeValue.valueUser)
           displayValue = userAttributeValue.valueUser;
+        break;
+      case DataType.Customer:
+        value = userAttributeValue.valueText;
+        if (userAttributeValue.valueText)
+          displayValue = userAttributeValue.valueText;
+        break;
+      case DataType.Supplier:
+        value = userAttributeValue.valueText;
+        if (userAttributeValue.valueText)
+          displayValue = userAttributeValue.valueText;
     }
   }
 

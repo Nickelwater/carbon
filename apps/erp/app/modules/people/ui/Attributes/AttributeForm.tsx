@@ -12,7 +12,7 @@ import {
 
 import { ValidatedForm } from "@carbon/form";
 import { useState } from "react";
-import type { z } from 'zod/v3';
+import type { z } from "zod/v3";
 import {
   Array,
   Boolean,
@@ -65,7 +65,7 @@ const AttributeForm = ({
   const onChangeCheckForListType = (
     selected: {
       value: string;
-      label: string;
+      label: string | JSX.Element;
     } | null
   ) => {
     setIsList(
@@ -121,10 +121,12 @@ const AttributeForm = ({
           </DrawerBody>
           <DrawerFooter>
             <HStack>
-              <Submit isDisabled={isDisabled}>Save</Submit>
               <Button size="md" variant="solid" onClick={onClose}>
                 Cancel
               </Button>
+              <Submit withBlocker={false} isDisabled={isDisabled}>
+                Save
+              </Submit>
             </HStack>
           </DrawerFooter>
         </ValidatedForm>

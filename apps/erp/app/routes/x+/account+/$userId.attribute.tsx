@@ -4,10 +4,12 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs } from "@vercel/remix";
 import { json } from "@vercel/remix";
-import type { ZodSchema } from 'zod/v3';
+import type { ZodSchema } from "zod/v3";
 import {
   attributeBooleanValidator,
+  attributeCustomerValidator,
   attributeNumericValidator,
+  attributeSupplierValidator,
   attributeTextValidator,
   attributeUserValidator,
   upsertUserAttributeValue,
@@ -110,6 +112,10 @@ function getValidatorByType(type: string) {
       return attributeTextValidator;
     case "user":
       return attributeUserValidator;
+    case "supplier":
+      return attributeSupplierValidator;
+    case "customer":
+      return attributeCustomerValidator;
     default:
       throw new Error("Invalid type provided");
   }

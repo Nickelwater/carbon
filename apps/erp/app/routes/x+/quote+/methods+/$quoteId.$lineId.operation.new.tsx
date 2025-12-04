@@ -62,5 +62,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     );
   }
 
-  return json({ id: quoteOperationId });
+  return json({
+    id: quoteOperationId,
+    success: true,
+    message: "Operation created",
+  });
 }

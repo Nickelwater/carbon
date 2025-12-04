@@ -26,10 +26,11 @@ export async function action({ request }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const { name, isPublic } = validation.data;
+  const { name, emoji, isPublic } = validation.data;
 
   const createAttributeCategory = await insertAttributeCategory(client, {
     name,
+    emoji,
     public: isPublic,
     companyId,
     createdBy: userId,
@@ -56,6 +57,7 @@ export default function NewAttributeCategoryRoute() {
 
   const initialValues = {
     name: "",
+    emoji: "",
     isPublic: false,
   };
 

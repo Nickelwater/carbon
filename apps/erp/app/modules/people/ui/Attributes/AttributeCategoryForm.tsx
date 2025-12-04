@@ -10,8 +10,8 @@ import {
   HStack,
   VStack,
 } from "@carbon/react";
-import type { z } from 'zod/v3';
-import { Boolean, Hidden, Input, Submit } from "~/components/Form";
+import type { z } from "zod/v3";
+import { Boolean, EmojiPicker, Hidden, Input, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 
 import { path } from "~/utils/path";
@@ -59,7 +59,10 @@ const AttributeCategoryForm = ({
           <DrawerBody>
             <Hidden name="id" />
             <VStack spacing={4}>
+              <EmojiPicker name="emoji" />
+
               <Input name="name" label="Category Name" />
+
               <Boolean
                 name="isPublic"
                 label="Public"

@@ -121,6 +121,10 @@ p.is-editor-empty:first-child:before {
   @apply ring-2 ring-primary cursor-move p-2 rounded-lg;
 }
 
+.mention {
+  @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border border-blue-200;
+}
+
 .hexagon-loader-container {
   @apply relative w-full py-4;
 }

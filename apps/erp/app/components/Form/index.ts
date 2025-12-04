@@ -44,6 +44,7 @@ import DefaultMethodType from "./DefaultMethodType";
 import Department from "./Department";
 import Employee from "./Employee";
 import Employees from "./Employees";
+import EmojiPicker from "./EmojiPicker";
 import Item from "./Item";
 import ItemPostingGroup from "./ItemPostingGroup";
 import Location from "./Location";
@@ -104,6 +105,7 @@ export {
   Department,
   Employee,
   Employees,
+  EmojiPicker,
   Hidden,
   Input,
   InputControlled,

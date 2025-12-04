@@ -10,7 +10,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useCallback, useMemo, useState } from "react";
 import { BiAddToQueue } from "react-icons/bi";
 import { BsListUl } from "react-icons/bs";
-import { LuPencil, LuTrash } from "react-icons/lu";
+import { LuPencil, LuTrash, LuListChecks } from "react-icons/lu";
 import { Hyperlink, New, Table } from "~/components";
 import { ConfirmDelete } from "~/components/Modals";
 import { usePermissions, useUrlParams } from "~/hooks";
@@ -49,7 +49,14 @@ const AttributeCategoriesTable = memo(
           accessorKey: "name",
           header: "Category",
           cell: ({ row }) => (
-            <Hyperlink to={row.original.id}>{row.original.name}</Hyperlink>
+            <Hyperlink to={row.original.id} className="flex items-center gap-2">
+              {row.original.emoji ? (
+                <span className="text-base">{row.original.emoji}</span>
+              ) : (
+                <LuListChecks />
+              )}{" "}
+              <span>{row.original.name}</span>
+            </Hyperlink>
           ),
         },
         {
@@ -131,7 +138,7 @@ const AttributeCategoriesTable = memo(
               }}
             >
               <MenuIcon icon={<LuPencil />} />
-              Edit Attribute Category
+              Edit Category
             </MenuItem>
             <MenuItem
               destructive
@@ -156,11 +163,11 @@ const AttributeCategoriesTable = memo(
           count={count ?? 0}
           primaryAction={
             permissions.can("update", "people") && (
-              <New label="Attribute Category" to={`new?${params.toString()}`} />
+              <New label="Category" to={`new?${params.toString()}`} />
             )
           }
           renderContextMenu={renderContextMenu}
-          title="Attribute Categories"
+          title="Attributes"
         />
         {selectedCategory && selectedCategory.id && (
           <ConfirmDelete

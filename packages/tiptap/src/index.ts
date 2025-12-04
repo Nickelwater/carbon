@@ -8,10 +8,13 @@ export {
   EditorCommandList,
   EditorContent,
   EditorRoot,
+  MentionList,
   useEditor,
   type EditorContentProps,
   type EditorInstance,
   type JSONContent,
+  type MentionListProps,
+  type MentionListRef,
 } from "./components";
 
 // Extensions
@@ -22,6 +25,8 @@ export {
   CodeBlockLowlight,
   Color,
   Command,
+  createMentionExtension,
+  createMentionSuggestion,
   createSuggestionItems,
   CustomKeymap,
   GlobalDragHandle,
@@ -31,6 +36,7 @@ export {
   ImageResizer,
   InputRule,
   MarkdownExtension,
+  Mention,
   Placeholder,
   removeAIHighlight,
   renderItems,
@@ -43,6 +49,9 @@ export {
   TiptapUnderline,
   UpdatedImage,
   Youtube,
+  type CreateMentionExtensionOptions,
+  type CreateMentionSuggestionOptions,
+  type MentionSuggestion,
   type SuggestionItem,
 } from "./extensions";
 

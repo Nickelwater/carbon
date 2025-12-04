@@ -68,5 +68,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   return json({
     id: quoteMaterialId,
     methodType: updateQuoteMaterial.data.methodType,
+    success: true,
+    message: "Material updated",
   });
 }

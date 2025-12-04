@@ -2,11 +2,12 @@ import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
-import { Outlet } from "@remix-run/react";
+import { Outlet, useLoaderData } from "@remix-run/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "@vercel/remix";
 import { json, redirect } from "@vercel/remix";
 import {
   accountProfileValidator,
+  getAllAttributeCategories,
   updatePublicAccount,
 } from "~/modules/account";
 import { getEmployeeSummary } from "~/modules/people";
@@ -27,8 +28,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { personId } = params;
   if (!personId) throw new Error("Could not find personId");
 
-  const [employeeSummary] = await Promise.all([
+  const [employeeSummary, attributeCategories] = await Promise.all([
     getEmployeeSummary(client, personId, companyId),
+    getAllAttributeCategories(client, personId, companyId),
   ]);
 
   if (employeeSummary.error) {
@@ -43,6 +45,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   return json({
     employeeSummary: employeeSummary.data,
+    attributeCategories: attributeCategories.data ?? [],
   });
 }
 
@@ -83,11 +86,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function PersonRoute() {
+  const { attributeCategories } = useLoaderData<typeof loader>();
+
   return (
     <>
       <PersonPreview />
       <div className="grid grid-cols-1 md:grid-cols-[1fr_4fr] h-full w-full gap-4">
-        <PersonSidebar />
+        <PersonSidebar attributeCategories={attributeCategories} />
         <Outlet />
       </div>
     </>

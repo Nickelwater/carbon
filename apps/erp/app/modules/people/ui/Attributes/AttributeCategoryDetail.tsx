@@ -1,5 +1,6 @@
 import {
   ActionMenu,
+  Badge,
   Button,
   Drawer,
   DrawerBody,
@@ -144,9 +145,18 @@ const AttributeCategoryDetail = ({
       >
         <DrawerContent>
           <DrawerHeader>
-            <DrawerTitle>{attributeCategory.name}</DrawerTitle>
+            <DrawerTitle>
+              {attributeCategory.emoji ? (
+                <span>{attributeCategory.emoji}</span>
+              ) : null}{" "}
+              {attributeCategory.name}
+            </DrawerTitle>
             <DrawerDescription>
-              {attributeCategory.public ? "Public" : "Private"}
+              <Badge
+                variant={attributeCategory.public ? "default" : "secondary"}
+              >
+                {attributeCategory.public ? "Public" : "Private"}
+              </Badge>
             </DrawerDescription>
           </DrawerHeader>
           <DrawerBody>

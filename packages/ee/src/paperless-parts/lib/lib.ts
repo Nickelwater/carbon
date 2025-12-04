@@ -1811,6 +1811,7 @@ export async function createPartFromComponent(
     >;
     defaultMethodType: "Buy" | "Pick";
     defaultTrackingType: "Inventory" | "Non-Inventory" | "Batch";
+    billOfProcessBlackList?: string[];
   }
 ): Promise<{ itemId: string; partId: string }> {
   const {
@@ -1819,6 +1820,7 @@ export async function createPartFromComponent(
     component,
     defaultMethodType,
     defaultTrackingType,
+    billOfProcessBlackList = [],
   } = args;
 
   const operations: Omit<
@@ -1858,6 +1860,19 @@ export async function createPartFromComponent(
       operation,
     ] of component.shop_operations.entries()) {
       if (operation.category === "operation") {
+        // Check if operation is blacklisted
+        const operationName =
+          operation.operation_definition_name ?? operation.name;
+        if (billOfProcessBlackList.length > 0 && operationName) {
+          const isBlacklisted = billOfProcessBlackList.some((blacklistedName) =>
+            operationName.toLowerCase().includes(blacklistedName.toLowerCase())
+          );
+          if (isBlacklisted) {
+            console.log(`Skipping blacklisted operation: ${operationName}`);
+            continue;
+          }
+        }
+
         const process = await getOrCreateProcess(
           carbon,
           operation,
@@ -1923,6 +1938,7 @@ export async function createPartFromComponent(
           componentsIndex: index,
           defaultMethodType,
           defaultTrackingType,
+          billOfProcessBlackList,
         });
 
         const childIsPurchased =
@@ -2227,9 +2243,16 @@ export async function getOrCreatePart(
     >;
     defaultMethodType: "Buy" | "Pick";
     defaultTrackingType: "Inventory" | "Non-Inventory" | "Batch";
+    billOfProcessBlackList?: string[];
   }
 ): Promise<{ itemId: string; partId: string }> {
-  const { companyId, component, defaultMethodType, defaultTrackingType } = args;
+  const {
+    companyId,
+    component,
+    defaultMethodType,
+    defaultTrackingType,
+    billOfProcessBlackList = [],
+  } = args;
 
   if (!component.part_uuid) {
     throw new Error("Component part_uuid is required");
@@ -2344,6 +2367,7 @@ export async function insertOrderLines(
     orderItems: z.infer<typeof OrderSchema>["order_items"];
     defaultMethodType: "Buy" | "Pick";
     defaultTrackingType: "Inventory" | "Non-Inventory" | "Batch";
+    billOfProcessBlackList?: string[];
   }
 ): Promise<void> {
   const {
@@ -2354,6 +2378,7 @@ export async function insertOrderLines(
     orderItems,
     defaultMethodType,
     defaultTrackingType,
+    billOfProcessBlackList = [],
   } = args;
 
   if (!orderItems?.length) {
@@ -2426,6 +2451,7 @@ export async function insertOrderLines(
           componentsIndex,
           defaultMethodType,
           defaultTrackingType,
+          billOfProcessBlackList,
         });
 
         const leadTime = orderItem.lead_days ?? 7;

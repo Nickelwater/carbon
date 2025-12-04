@@ -1,4 +1,4 @@
-import { z } from 'zod/v3';
+import { z } from "zod/v3";
 import { zfd } from "zod-form-data";
 import { DataType } from "~/modules/shared";
 
@@ -27,6 +27,7 @@ export const attributeValidator = z
 export const attributeCategoryValidator = z.object({
   id: zfd.text(z.string().optional()),
   name: z.string().min(1, { message: "Name is required" }),
+  emoji: zfd.text(z.string().optional()),
   isPublic: zfd.checkbox(),
 });
 

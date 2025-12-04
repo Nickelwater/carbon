@@ -101,5 +101,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     );
   }
 
-  return json({ id: jobOperationId });
+  return json({
+    id: jobOperationId,
+    success: true,
+    message: "Operation created",
+  });
 }

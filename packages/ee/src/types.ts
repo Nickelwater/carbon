@@ -1,4 +1,4 @@
-import { ZodType } from 'zod/v3';
+import type { ZodType } from "zod/v3";
 
 export type IntegrationConfig = {
   name: string;
@@ -13,7 +13,7 @@ export type IntegrationConfig = {
   settings: {
     name: string;
     label: string;
-    type: "text" | "switch" | "processes" | "options";
+    type: "text" | "switch" | "processes" | "options" | "array";
     listOptions?: string[];
     required: boolean;
     value: unknown;

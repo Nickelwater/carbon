@@ -50,12 +50,13 @@ export async function action({ request }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const { id, name, isPublic } = validation.data;
+  const { id, name, emoji, isPublic } = validation.data;
   if (!id) throw new Error("ID is was not found");
 
   const updateCategory = await updateAttributeCategory(client, {
     id,
     name,
+    emoji,
     public: isPublic,
     updatedBy: userId,
   });
@@ -83,6 +84,7 @@ export default function EditAttributeCategoryRoute() {
   const initialValues = {
     id: attributeCategory?.id,
     name: attributeCategory?.name ?? "",
+    emoji: attributeCategory?.emoji ?? "",
     isPublic: attributeCategory?.public ?? false,
   };
 

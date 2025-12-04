@@ -429,6 +429,7 @@ export async function insertAttributeCategory(
   client: SupabaseClient<Database>,
   attributeCategory: {
     name: string;
+    emoji?: string;
     public: boolean;
     companyId: string;
     createdBy: string;
@@ -481,6 +482,7 @@ export async function updateAttributeCategory(
   attributeCategory: {
     id: string;
     name: string;
+    emoji?: string;
     public: boolean;
     updatedBy: string;
   }

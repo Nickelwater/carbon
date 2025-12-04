@@ -108,7 +108,7 @@ import UnitOfMeasure, {
   useUnitOfMeasure,
 } from "~/components/Form/UnitOfMeasure";
 import { ProcedureStepTypeIcon } from "~/components/Icons";
-import { useTools } from "~/stores";
+import { useItems, useTools } from "~/stores";
 import { getPrivateUrl, path } from "~/utils/path";
 import { quoteOperationValidator } from "../../sales.models";
 import type { Quotation } from "../../types";
@@ -122,8 +122,13 @@ type ItemWithData = Item & {
   data: Operation;
 };
 
+type QuoteMaterial = {
+  itemId: string;
+};
+
 type QuoteBillOfProcessProps = {
   quoteMakeMethodId: string;
+  materials: QuoteMaterial[];
   operations: (Operation & {
     quoteOperationTool: OperationTool[];
     quoteOperationParameter: OperationParameter[];
@@ -266,6 +271,7 @@ const usePendingOperations = () => {
 
 const QuoteBillOfProcess = ({
   quoteMakeMethodId,
+  materials,
   operations: initialOperations,
   tags,
 }: QuoteBillOfProcessProps) => {
@@ -277,6 +283,27 @@ const QuoteBillOfProcess = ({
     id: userId,
     company: { id: companyId },
   } = useUser();
+
+  const [allItems] = useItems();
+
+  const materialItemIds = useMemo(
+    () => new Set((materials ?? []).map((m) => m.itemId)),
+    [materials]
+  );
+
+  const itemMentions = useMemo(
+    () =>
+      allItems
+        .filter((item) => materialItemIds.has(item.id))
+        .map((item) => ({
+          id: item.id,
+          label: item.name ?? item.readableIdWithRevision,
+          helper: item.name ? item.readableIdWithRevision : undefined,
+        })),
+    [allItems, materialItemIds]
+  );
+
+  const addOperationButtonRef = useRef<HTMLButtonElement>(null);
 
   const { quoteId } = useParams();
   if (!quoteId) throw new Error("quoteId not found");
@@ -526,6 +553,14 @@ const QuoteBillOfProcess = ({
                 setSelectedItemId={setSelectedItemId}
                 setTemporaryItems={setTemporaryItems}
                 temporaryItems={temporaryItems}
+                onSubmit={() => {
+                  setSelectedItemId(null);
+                  addOperationButtonRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "nearest",
+                    inline: "center",
+                  });
+                }}
               />
             </motion.div>
           </div>
@@ -571,6 +606,7 @@ const QuoteBillOfProcess = ({
                     }));
                     onUpdateWorkInstruction(content);
                   }}
+                  mentions={[{ char: "@", items: itemMentions }]}
                   className="py-8"
                 />
               ) : (
@@ -662,6 +698,7 @@ const QuoteBillOfProcess = ({
                 selectedItemId === null || !!temporaryItems[selectedItemId!]
               }
               temporaryItems={temporaryItems}
+              itemMentions={itemMentions}
             />
           </div>
         ),
@@ -797,6 +834,7 @@ const QuoteBillOfProcess = ({
 
         <CardAction>
           <Button
+            ref={addOperationButtonRef}
             variant="secondary"
             isDisabled={
               !permissions.can("update", "sales") ||
@@ -829,11 +867,13 @@ function AttributesForm({
   isDisabled,
   steps,
   temporaryItems,
+  itemMentions,
 }: {
   operationId: string;
   isDisabled: boolean;
   steps: OperationStep[];
   temporaryItems: TemporaryItems;
+  itemMentions: { id: string; label: string }[];
 }) {
   const fetcher = useFetcher<typeof newQuoteOperationParameterAction>();
   const sortOrderFetcher = useFetcher<{ success: boolean }>();
@@ -991,6 +1031,7 @@ function AttributesForm({
                 onChange={(value) => {
                   setDescription(value);
                 }}
+                mentions={[{ char: "@", items: itemMentions }]}
                 className="[&_.is-empty]:text-muted-foreground min-h-[120px] p-4 rounded-lg border w-full"
               />
             </VStack>
@@ -1078,6 +1119,7 @@ function AttributesForm({
                     operationId={operationId}
                     typeOptions={typeOptions}
                     isDisabled={isDisabled}
+                    itemMentions={itemMentions}
                     className={
                       index === sortOrder.length - 1 ? "border-none" : ""
                     }
@@ -1097,12 +1139,14 @@ function AttributesListItem({
   operationId,
   typeOptions,
   isDisabled = false,
+  itemMentions,
   className,
 }: {
   attribute: OperationStep;
   operationId: string;
   typeOptions: { label: JSX.Element; value: string }[];
   isDisabled?: boolean;
+  itemMentions: { id: string; label: string }[];
   className?: string;
 }) {
   const {
@@ -1225,6 +1269,7 @@ function AttributesListItem({
                 onChange={(value) => {
                   setDescription(value);
                 }}
+                mentions={[{ char: "@", items: itemMentions }]}
                 className="[&_.is-empty]:text-muted-foreground min-h-[120px] p-4 rounded-lg border w-full"
               />
             </VStack>
@@ -1639,6 +1684,7 @@ function OperationForm({
   setTemporaryItems,
   setSelectedItemId,
   temporaryItems,
+  onSubmit,
 }: {
   item: ItemWithData;
   isDisabled: boolean;
@@ -1647,13 +1693,18 @@ function OperationForm({
   setTemporaryItems: Dispatch<SetStateAction<TemporaryItems>>;
   setSelectedItemId: Dispatch<SetStateAction<string | null>>;
   temporaryItems: TemporaryItems;
+  onSubmit: () => void;
 }) {
   const { quoteId, lineId } = useParams();
   const { company } = useUser();
   if (!quoteId) throw new Error("quoteId not found");
   if (!lineId) throw new Error("lineId not found");
 
-  const fetcher = useFetcher<{ id: string }>();
+  const fetcher = useFetcher<{
+    id: string;
+    success: boolean;
+    message: string;
+  }>();
   const { carbon } = useCarbon();
 
   const baseCurrency = company?.baseCurrencyCode ?? "USD";
@@ -1665,8 +1716,13 @@ function OperationForm({
         const { [item.id]: _, ...rest } = prev;
         return rest;
       });
+
+      if (fetcher.data?.success) {
+        toast.success(fetcher.data.message);
+      }
+      onSubmit();
     }
-  }, [item.id, fetcher.data, setTemporaryItems]);
+  }, [item.id, fetcher.data, setTemporaryItems, onSubmit]);
 
   const machineDisclosure = useDisclosure();
   const laborDisclosure = useDisclosure();
@@ -2351,7 +2407,12 @@ function OperationForm({
         }}
       >
         <motion.div layout className="ml-auto mr-1 pt-2">
-          <Submit isDisabled={isDisabled}>Save</Submit>
+          <Submit
+            isDisabled={isDisabled || fetcher.state !== "idle"}
+            isLoading={fetcher.state === "submitting"}
+          >
+            Save
+          </Submit>
         </motion.div>
       </motion.div>
     </ValidatedForm>

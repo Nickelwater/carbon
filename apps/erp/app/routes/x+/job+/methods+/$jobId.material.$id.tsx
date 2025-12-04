@@ -142,5 +142,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   return json({
     id: jobMaterialId,
     methodType: updateJobMaterial.data.methodType,
+    success: true,
+    message: "Material updated",
   });
 }

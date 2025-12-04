@@ -1083,6 +1083,8 @@ export const path = {
     person: (id: string) => generatePath(`${x}/person/${id}`),
     personDetails: (id: string) => generatePath(`${x}/person/${id}/details`),
     personJob: (id: string) => generatePath(`${x}/person/${id}/job`),
+    personAttributeCategory: (personId: string, categoryId: string) =>
+      generatePath(`${x}/person/${personId}/attributes/${categoryId}`),
     stockTransfer: (id: string) => generatePath(`${x}/stock-transfer/${id}`),
     stockTransferComplete: (id: string) =>
       generatePath(`${x}/stock-transfer/${id}/complete`),

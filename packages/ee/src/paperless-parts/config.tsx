@@ -49,6 +49,13 @@ export const PaperlessParts: IntegrationConfig = {
       value: "Inventory",
     },
     {
+      name: "billOfProcessBlackList",
+      label: "Bill of Process Black List",
+      type: "array",
+      required: false,
+      value: [],
+    },
+    {
       name: "usePaperlessOrderNumber",
       label: "Use Paperless Order Number",
       type: "switch",
@@ -63,6 +70,7 @@ export const PaperlessParts: IntegrationConfig = {
       .min(1, { message: "Webhook Signing Secret is required" }),
     methodType: z.enum(["Buy", "Pick"]),
     trackingType: z.enum(["Inventory", "Non-Inventory", "Batch"]),
+    billOfProcessBlackList: z.array(z.string()),
     usePaperlessOrderNumber: zfd.checkbox(),
   }),
 };

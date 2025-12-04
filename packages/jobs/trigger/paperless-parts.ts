@@ -107,6 +107,7 @@ const integrationSchema = z.object({
   methodType: z.enum(["Buy", "Pick"]).optional(),
   trackingType: z.enum(["Inventory", "Non-Inventory", "Batch"]).optional(),
   usePaperlessOrderNumber: z.boolean().optional(),
+  billOfProcessBlackList: z.array(z.string()).optional(),
 });
 
 export const paperlessPartsTask = task({
@@ -150,11 +151,15 @@ export const paperlessPartsTask = task({
     let usePaperlessOrderNumber = false;
     let methodType: "Buy" | "Pick" = "Pick";
     let trackingType: "Inventory" | "Non-Inventory" | "Batch" = "Inventory";
+    let billOfProcessBlackList: string[] = [];
     if (integrationData.success) {
-      methodType = integrationData.data.methodType;
-      trackingType = integrationData.data.trackingType;
+      methodType = integrationData.data.methodType ?? "Pick";
+      trackingType = integrationData.data.trackingType ?? "Inventory";
       if (integrationData.data.usePaperlessOrderNumber) {
         usePaperlessOrderNumber = true;
+      }
+      if (integrationData.data.billOfProcessBlackList) {
+        billOfProcessBlackList = integrationData.data.billOfProcessBlackList;
       }
     }
 
@@ -642,6 +647,7 @@ export const paperlessPartsTask = task({
             orderItems: orderData.order_items || [],
             defaultMethodType: methodType,
             defaultTrackingType: trackingType,
+            billOfProcessBlackList,
           });
           console.log("✅ Order lines successfully created");
         } catch (error) {

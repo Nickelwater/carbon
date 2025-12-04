@@ -58,5 +58,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     );
   }
 
-  return json({ id: methodMaterialId });
+  return json({
+    id: methodMaterialId,
+    success: true,
+    message: "Material updated",
+  });
 }

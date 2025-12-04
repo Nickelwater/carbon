@@ -31,7 +31,7 @@ export async function getAttributes(
   return client
     .from("userAttributeCategory")
     .select(
-      `id, name, companyId, 
+      `id, name, emoji, companyId,
       userAttribute(id, name, listOptions, canSelfManage,
         attributeDataType(id, isBoolean, isDate, isNumeric, isText, isUser),
         userAttributeValue(
@@ -61,6 +61,55 @@ export async function getPublicAttributes(
   companyId: string
 ) {
   return getAttributes(client, userId, companyId, true);
+}
+
+export async function getAllAttributeCategories(
+  client: SupabaseClient<Database>,
+  userId: string,
+  companyId: string
+) {
+  return client
+    .from("userAttributeCategory")
+    .select(
+      `id, name, emoji, companyId,
+      userAttribute(id, name, listOptions, canSelfManage,
+        attributeDataType(id, isBoolean, isDate, isNumeric, isText, isUser),
+        userAttributeValue(
+          id, valueBoolean, valueDate, valueNumeric, valueText, valueUser
+        )
+      )`
+    )
+    .eq("companyId", companyId)
+    .eq("active", true)
+    .eq("userAttribute.active", true)
+    .eq("userAttribute.userAttributeValue.userId", userId)
+    .order("sortOrder", { foreignTable: "userAttribute", ascending: true });
+}
+
+export async function getAttributeCategoryWithValues(
+  client: SupabaseClient<Database>,
+  categoryId: string,
+  userId: string,
+  companyId: string
+) {
+  return client
+    .from("userAttributeCategory")
+    .select(
+      `id, name, emoji, companyId, public,
+      userAttribute(id, name, listOptions, canSelfManage,
+        attributeDataType(id, isBoolean, isDate, isNumeric, isText, isUser),
+        userAttributeValue(
+          id, valueBoolean, valueDate, valueNumeric, valueText, valueUser
+        )
+      )`
+    )
+    .eq("id", categoryId)
+    .eq("companyId", companyId)
+    .eq("active", true)
+    .eq("userAttribute.active", true)
+    .eq("userAttribute.userAttributeValue.userId", userId)
+    .order("sortOrder", { foreignTable: "userAttribute", ascending: true })
+    .single();
 }
 
 export async function updateAvatar(
@@ -134,6 +183,14 @@ export async function upsertUserAttributeValue(
 
   if (type === "user" && typeof value === "string") {
     valueUpdate = { valueUser: value };
+  }
+
+  if (type === "customer" && typeof value === "string") {
+    valueUpdate = { valueText: value };
+  }
+
+  if (type === "supplier" && typeof value === "string") {
+    valueUpdate = { valueText: value };
   }
 
   if (userAttributeValueId) {

@@ -158,6 +158,7 @@ export default function MethodMaterialMakePage() {
       <BillOfMaterial
         key={`bom:${itemId}`}
         makeMethod={makeMethod}
+        // @ts-ignore
         materials={methodMaterials}
         operations={methodOperations}
         configurable={routeData?.partManufacturing.requiresConfiguration}
@@ -167,6 +168,7 @@ export default function MethodMaterialMakePage() {
       <BillOfProcess
         key={`bop:${itemId}`}
         makeMethod={makeMethod}
+        materials={methodMaterials}
         // @ts-ignore
         operations={methodOperations}
         configurable={routeData?.partManufacturing.requiresConfiguration}

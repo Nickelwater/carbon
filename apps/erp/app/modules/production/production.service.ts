@@ -321,7 +321,7 @@ export async function calculateJobPriority(
 
   // Define deadline type priority order (lower number = higher priority)
   const deadlineTypePriority: Record<string, number> = {
-    "ASAP": 0,
+    ASAP: 0,
     "Hard Deadline": 1,
     "Soft Deadline": 2,
     "No Deadline": 3,
@@ -359,7 +359,8 @@ export async function calculateJobPriority(
   let insertBeforeIndex = existingJobs.length; // Default to end of list
 
   for (let i = 0; i < existingJobs.length; i++) {
-    const existingJobPriority = deadlineTypePriority[existingJobs[i].deadlineType];
+    const existingJobPriority =
+      deadlineTypePriority[existingJobs[i].deadlineType];
 
     // If the current job has higher priority (lower number) than this existing job,
     // we should insert before this job
@@ -2488,9 +2489,7 @@ export async function triggerJobSchedule(
   mode: "initial" | "reschedule" = "reschedule",
   direction: "backward" | "forward" = "backward"
 ) {
-  const { scheduleJob } = await import(
-    "@carbon/jobs/trigger/reschedule-job"
-  );
+  const { scheduleJob } = await import("@carbon/jobs/trigger/reschedule-job");
 
   const handle = await scheduleJob.trigger({
     jobId,
