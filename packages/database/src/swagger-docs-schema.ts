@@ -31311,6 +31311,294 @@ export default {
         tags: ["quotes"],
       },
     },
+    "/riskRegister": {
+      get: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.id",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.companyId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.title",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.description",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.source",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.severity",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.likelihood",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.score",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.status",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.assigneeUserId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.createdByUserId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.createdAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.updatedAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.itemId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.itemMasterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.quoteLineId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.jobId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.workCenterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.supplierId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.supplierMasterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.customerId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.customerMasterId",
+          },
+          {
+            $ref: "#/parameters/select",
+          },
+          {
+            $ref: "#/parameters/order",
+          },
+          {
+            $ref: "#/parameters/range",
+          },
+          {
+            $ref: "#/parameters/rangeUnit",
+          },
+          {
+            $ref: "#/parameters/offset",
+          },
+          {
+            $ref: "#/parameters/limit",
+          },
+          {
+            $ref: "#/parameters/preferCount",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+            schema: {
+              items: {
+                $ref: "#/definitions/riskRegister",
+              },
+              type: "array",
+            },
+          },
+          "206": {
+            description: "Partial Content",
+          },
+        },
+        tags: ["riskRegister"],
+      },
+      post: {
+        parameters: [
+          {
+            $ref: "#/parameters/body.riskRegister",
+          },
+          {
+            $ref: "#/parameters/select",
+          },
+          {
+            $ref: "#/parameters/preferPost",
+          },
+        ],
+        responses: {
+          "201": {
+            description: "Created",
+          },
+        },
+        tags: ["riskRegister"],
+      },
+      delete: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.id",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.companyId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.title",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.description",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.source",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.severity",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.likelihood",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.score",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.status",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.assigneeUserId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.createdByUserId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.createdAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.updatedAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.itemId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.itemMasterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.quoteLineId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.jobId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.workCenterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.supplierId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.supplierMasterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.customerId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.customerMasterId",
+          },
+          {
+            $ref: "#/parameters/preferReturn",
+          },
+        ],
+        responses: {
+          "204": {
+            description: "No Content",
+          },
+        },
+        tags: ["riskRegister"],
+      },
+      patch: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.id",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.companyId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.title",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.description",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.source",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.severity",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.likelihood",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.score",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.status",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.assigneeUserId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.createdByUserId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.createdAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.updatedAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.itemId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.itemMasterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.quoteLineId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.jobId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.workCenterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.supplierId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.supplierMasterId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.customerId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.customerMasterId",
+          },
+          {
+            $ref: "#/parameters/body.riskRegister",
+          },
+          {
+            $ref: "#/parameters/preferReturn",
+          },
+        ],
+        responses: {
+          "204": {
+            description: "No Content",
+          },
+        },
+        tags: ["riskRegister"],
+      },
+    },
     "/shipment": {
       get: {
         parameters: [
@@ -76626,6 +76914,135 @@ export default {
       },
       type: "object",
     },
+    riskRegister: {
+      required: ["id", "companyId", "title", "source", "status", "createdAt"],
+      properties: {
+        id: {
+          default: "gen_random_uuid()",
+          description: "Note:\nThis is a Primary Key.<pk/>",
+          format: "uuid",
+          type: "string",
+        },
+        companyId: {
+          description:
+            "Note:\nThis is a Foreign Key to `company.id`.<fk table='company' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        title: {
+          format: "text",
+          type: "string",
+        },
+        description: {
+          format: "text",
+          type: "string",
+        },
+        source: {
+          enum: [
+            "GENERAL",
+            "ITEM",
+            "ITEM_MASTER",
+            "QUOTE_LINE",
+            "JOB",
+            "WORK_CENTER",
+            "SUPPLIER",
+            "SUPPLIER_MASTER",
+            "CUSTOMER",
+            "CUSTOMER_MASTER",
+          ],
+          format: 'public."riskSource"',
+          type: "string",
+        },
+        severity: {
+          format: "integer",
+          type: "integer",
+        },
+        likelihood: {
+          format: "integer",
+          type: "integer",
+        },
+        score: {
+          format: "integer",
+          type: "integer",
+        },
+        status: {
+          default: "OPEN",
+          enum: ["OPEN", "IN_REVIEW", "MITIGATING", "CLOSED", "ACCEPTED"],
+          format: 'public."riskStatus"',
+          type: "string",
+        },
+        assigneeUserId: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        createdByUserId: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        createdAt: {
+          default: "now()",
+          format: "timestamp with time zone",
+          type: "string",
+        },
+        updatedAt: {
+          format: "timestamp with time zone",
+          type: "string",
+        },
+        itemId: {
+          description:
+            "Note:\nThis is a Foreign Key to `item.id`.<fk table='item' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        itemMasterId: {
+          format: "text",
+          type: "string",
+        },
+        quoteLineId: {
+          description:
+            "Note:\nThis is a Foreign Key to `quoteLine.id`.<fk table='quoteLine' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        jobId: {
+          description:
+            "Note:\nThis is a Foreign Key to `job.id`.<fk table='job' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        workCenterId: {
+          description:
+            "Note:\nThis is a Foreign Key to `workCenter.id`.<fk table='workCenter' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        supplierId: {
+          description:
+            "Note:\nThis is a Foreign Key to `supplier.id`.<fk table='supplier' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        supplierMasterId: {
+          format: "text",
+          type: "string",
+        },
+        customerId: {
+          description:
+            "Note:\nThis is a Foreign Key to `customer.id`.<fk table='customer' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        customerMasterId: {
+          format: "text",
+          type: "string",
+        },
+      },
+      type: "object",
+    },
     shipment: {
       required: [
         "id",
@@ -105949,6 +106366,147 @@ export default {
     },
     "rowFilter.quotes.shippingCost": {
       name: "shippingCost",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "body.riskRegister": {
+      name: "riskRegister",
+      description: "riskRegister",
+      required: false,
+      in: "body",
+      schema: {
+        $ref: "#/definitions/riskRegister",
+      },
+    },
+    "rowFilter.riskRegister.id": {
+      name: "id",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.companyId": {
+      name: "companyId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.title": {
+      name: "title",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.description": {
+      name: "description",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.source": {
+      name: "source",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.severity": {
+      name: "severity",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.likelihood": {
+      name: "likelihood",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.score": {
+      name: "score",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.status": {
+      name: "status",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.assigneeUserId": {
+      name: "assigneeUserId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.createdByUserId": {
+      name: "createdByUserId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.createdAt": {
+      name: "createdAt",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.updatedAt": {
+      name: "updatedAt",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.itemId": {
+      name: "itemId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.itemMasterId": {
+      name: "itemMasterId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.quoteLineId": {
+      name: "quoteLineId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.jobId": {
+      name: "jobId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.workCenterId": {
+      name: "workCenterId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.supplierId": {
+      name: "supplierId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.supplierMasterId": {
+      name: "supplierMasterId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.customerId": {
+      name: "customerId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.customerMasterId": {
+      name: "customerMasterId",
       required: false,
       in: "query",
       type: "string",

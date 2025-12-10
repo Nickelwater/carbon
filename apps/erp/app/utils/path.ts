@@ -590,6 +590,7 @@ export const path = {
       generatePath(`${x}/quality/investigation-types/delete/${id}`),
     deleteRequiredAction: (id: string) =>
       generatePath(`${x}/quality/required-actions/delete/${id}`),
+    deleteRisk: (id: string) => generatePath(`${x}/quality/risks/delete/${id}`),
     deleteIssueType: (id: string) =>
       generatePath(`${x}/quality/issue-types/delete/${id}`),
     deleteKanban: (id: string) =>
@@ -1020,6 +1021,7 @@ export const path = {
     newReceipt: `${x}/receipt/new`,
     newRequiredAction: `${x}/quality/required-actions/new`,
     newRevision: `${x}/items/revisions/new`,
+    newRisk: `${x}/quality/risks/new`,
     newSalesInvoice: `${x}/sales-invoice/new`,
     newSalesInvoiceLine: (id: string) =>
       generatePath(`${x}/sales-invoice/${id}/new`),
@@ -1056,6 +1058,7 @@ export const path = {
     newToolSupplier: (id: string) =>
       generatePath(`${x}/tool/${id}/view/purchasing/new`),
     newTraining: `${x}/resources/training/new`,
+    newTrainingAssignment: `${x}/resources/assignments/new`,
     newTrainingQuestion: (id: string) =>
       generatePath(`${x}/training/${id}/questions/new`),
     newUom: `${x}/items/uom/new`,
@@ -1192,22 +1195,7 @@ export const path = {
       generatePath(`${x}/quality-document/${id}/steps/${attributeId}`),
     qualityDocumentStepOrder: (id: string) =>
       generatePath(`${x}/quality-document/${id}/steps/order`),
-
-    training: (id: string) => generatePath(`${x}/training/${id}`),
-    trainings: `${x}/resources/training`,
-    trainingQuestion: (id: string, questionId: string) =>
-      generatePath(`${x}/training/${id}/questions/${questionId}`),
-    trainingQuestionOrder: (id: string) =>
-      generatePath(`${x}/training/${id}/questions/order`),
-    trainingAssignments: `${x}/resources/assignments`,
-    trainingAssignmentDetail: (trainingId: string) =>
-      generatePath(`${x}/resources/assignments/${trainingId}`),
-    newTrainingAssignment: `${x}/resources/assignments/new`,
-    trainingAssignment: (assignmentId: string) =>
-      generatePath(`${x}/resources/assignments/assignment/${assignmentId}`),
-
     qualitySettings: `${x}/settings/quality`,
-
     quote: (id: string) => generatePath(`${x}/quote/${id}`),
     quoteAssembly: (quoteId: string, lineId: string, assemblyId: string) =>
       generatePath(
@@ -1280,6 +1268,8 @@ export const path = {
     resources: `${x}/resources`,
     revision: (id: string) => generatePath(`${x}/items/revisions/${id}`),
     revokeInvite: `${x}/users/revoke-invite`,
+    risks: `${x}/quality/risks`,
+    risk: (id: string) => generatePath(`${x}/quality/risks/${id}`),
     root: "/",
     routings: `${x}/items/routing`,
     sales: `${x}/sales`,
@@ -1484,6 +1474,18 @@ export const path = {
     traceability: `${x}/traceability`,
     traceabilityGraph: `${x}/traceability/graph`,
     trackedEntities: `${x}/inventory/tracked-entities`,
+    training: (id: string) => generatePath(`${x}/training/${id}`),
+    trainings: `${x}/resources/training`,
+    trainingQuestion: (id: string, questionId: string) =>
+      generatePath(`${x}/training/${id}/questions/${questionId}`),
+    trainingQuestionOrder: (id: string) =>
+      generatePath(`${x}/training/${id}/questions/order`),
+    trainingAssignments: `${x}/resources/assignments`,
+    trainingAssignmentDetail: (trainingId: string) =>
+      generatePath(`${x}/resources/assignments/${trainingId}`),
+
+    trainingAssignment: (assignmentId: string) =>
+      generatePath(`${x}/resources/assignments/assignment/${assignmentId}`),
     uom: (id: string) => generatePath(`${x}/items/uom/${id}`),
     uoms: `${x}/items/uom`,
     userAttribute: (id: string) => generatePath(`${x}/account/${id}/attribute`),

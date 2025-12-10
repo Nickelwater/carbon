@@ -26510,6 +26510,327 @@ export type Database = {
           },
         ]
       }
+      riskRegister: {
+        Row: {
+          assigneeUserId: string | null
+          companyId: string
+          createdAt: string
+          createdByUserId: string | null
+          customerId: string | null
+          customerMasterId: string | null
+          description: string | null
+          id: string
+          itemId: string | null
+          itemMasterId: string | null
+          jobId: string | null
+          likelihood: number | null
+          quoteLineId: string | null
+          score: number | null
+          severity: number | null
+          source: Database["public"]["Enums"]["riskSource"]
+          status: Database["public"]["Enums"]["riskStatus"]
+          supplierId: string | null
+          supplierMasterId: string | null
+          title: string
+          updatedAt: string | null
+          workCenterId: string | null
+        }
+        Insert: {
+          assigneeUserId?: string | null
+          companyId: string
+          createdAt?: string
+          createdByUserId?: string | null
+          customerId?: string | null
+          customerMasterId?: string | null
+          description?: string | null
+          id?: string
+          itemId?: string | null
+          itemMasterId?: string | null
+          jobId?: string | null
+          likelihood?: number | null
+          quoteLineId?: string | null
+          score?: number | null
+          severity?: number | null
+          source: Database["public"]["Enums"]["riskSource"]
+          status?: Database["public"]["Enums"]["riskStatus"]
+          supplierId?: string | null
+          supplierMasterId?: string | null
+          title: string
+          updatedAt?: string | null
+          workCenterId?: string | null
+        }
+        Update: {
+          assigneeUserId?: string | null
+          companyId?: string
+          createdAt?: string
+          createdByUserId?: string | null
+          customerId?: string | null
+          customerMasterId?: string | null
+          description?: string | null
+          id?: string
+          itemId?: string | null
+          itemMasterId?: string | null
+          jobId?: string | null
+          likelihood?: number | null
+          quoteLineId?: string | null
+          score?: number | null
+          severity?: number | null
+          source?: Database["public"]["Enums"]["riskSource"]
+          status?: Database["public"]["Enums"]["riskStatus"]
+          supplierId?: string | null
+          supplierMasterId?: string | null
+          title?: string
+          updatedAt?: string | null
+          workCenterId?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "riskRegister_assigneeUserId_fkey"
+            columns: ["assigneeUserId"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_assigneeUserId_fkey"
+            columns: ["assigneeUserId"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_assigneeUserId_fkey"
+            columns: ["assigneeUserId"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_assigneeUserId_fkey"
+            columns: ["assigneeUserId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_assigneeUserId_fkey"
+            columns: ["assigneeUserId"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "riskRegister_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "riskRegister_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdByUserId_fkey"
+            columns: ["createdByUserId"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdByUserId_fkey"
+            columns: ["createdByUserId"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdByUserId_fkey"
+            columns: ["createdByUserId"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdByUserId_fkey"
+            columns: ["createdByUserId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdByUserId_fkey"
+            columns: ["createdByUserId"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "riskRegister_customerId_fkey"
+            columns: ["customerId"]
+            isOneToOne: false
+            referencedRelation: "customer"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_customerId_fkey"
+            columns: ["customerId"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_customerId_fkey"
+            columns: ["customerId"]
+            isOneToOne: false
+            referencedRelation: "salesOrderCustomers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "consumables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_jobId_fkey"
+            columns: ["jobId"]
+            isOneToOne: false
+            referencedRelation: "job"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_jobId_fkey"
+            columns: ["jobId"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_jobId_fkey"
+            columns: ["jobId"]
+            isOneToOne: false
+            referencedRelation: "openProductionOrders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_quoteLineId_fkey"
+            columns: ["quoteLineId"]
+            isOneToOne: false
+            referencedRelation: "quoteLine"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_quoteLineId_fkey"
+            columns: ["quoteLineId"]
+            isOneToOne: false
+            referencedRelation: "quoteLinePrices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_quoteLineId_fkey"
+            columns: ["quoteLineId"]
+            isOneToOne: false
+            referencedRelation: "quoteLines"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["supplierId"]
+          },
+          {
+            foreignKeyName: "riskRegister_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["supplierId"]
+          },
+          {
+            foreignKeyName: "riskRegister_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "purchaseOrderSuppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "supplier"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "workCenter"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "workCenters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salesInvoice: {
         Row: {
           assignee: string | null
@@ -44034,14 +44355,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["supplierCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["supplierCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -51475,6 +51796,18 @@ export type Database = {
         | "Manufacturing Consumption"
         | "Manufacturing Output"
       receiptStatus: "Draft" | "Pending" | "Posted"
+      riskSource:
+        | "GENERAL"
+        | "ITEM"
+        | "ITEM_MASTER"
+        | "QUOTE_LINE"
+        | "JOB"
+        | "WORK_CENTER"
+        | "SUPPLIER"
+        | "SUPPLIER_MASTER"
+        | "CUSTOMER"
+        | "CUSTOMER_MASTER"
+      riskStatus: "OPEN" | "IN_REVIEW" | "MITIGATING" | "CLOSED" | "ACCEPTED"
       role: "customer" | "employee" | "supplier"
       salesInvoiceLineType:
         | "Comment"
@@ -52598,6 +52931,19 @@ export const Constants = {
         "Manufacturing Output",
       ],
       receiptStatus: ["Draft", "Pending", "Posted"],
+      riskSource: [
+        "GENERAL",
+        "ITEM",
+        "ITEM_MASTER",
+        "QUOTE_LINE",
+        "JOB",
+        "WORK_CENTER",
+        "SUPPLIER",
+        "SUPPLIER_MASTER",
+        "CUSTOMER",
+        "CUSTOMER_MASTER",
+      ],
+      riskStatus: ["OPEN", "IN_REVIEW", "MITIGATING", "CLOSED", "ACCEPTED"],
       role: ["customer", "employee", "supplier"],
       salesInvoiceLineType: [
         "Comment",

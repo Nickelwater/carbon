@@ -19,7 +19,8 @@ import type {
   getQualityDocument,
   getQualityDocumentSteps,
   getQualityDocuments,
-  getRequiredActions
+  getRequiredActions,
+  getRisk
 } from "./quality.service";
 
 export type Gauge = NonNullable<
@@ -121,3 +122,5 @@ export type QualityDocument = NonNullable<
 export type QualityDocumentStep = NonNullable<
   Awaited<ReturnType<typeof getQualityDocumentSteps>>["data"]
 >[number];
+
+export type Risk = NonNullable<Awaited<ReturnType<typeof getRisk>>["data"]>;

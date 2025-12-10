@@ -60,6 +60,27 @@ export const nonConformanceAssociationType = [
   "trackedEntities"
 ] as const;
 
+export const riskSource = [
+  "GENERAL",
+  "ITEM",
+  "ITEM_MASTER",
+  "QUOTE_LINE",
+  "JOB",
+  "WORK_CENTER",
+  "SUPPLIER",
+  "SUPPLIER_MASTER",
+  "CUSTOMER",
+  "CUSTOMER_MASTER",
+] as const;
+
+export const riskStatus = [
+  "OPEN",
+  "IN_REVIEW",
+  "MITIGATING",
+  "CLOSED",
+  "ACCEPTED",
+] as const;
+
 export const qualityDocumentStatus = ["Draft", "Active", "Archived"] as const;
 
 export const gaugeValidator = z.object({
@@ -287,4 +308,22 @@ export const requiredActionValidator = z.object({
   id: zfd.text(z.string().optional()),
   name: z.string().min(1, { message: "Name is required" }),
   active: zfd.checkbox()
+});
+
+
+export const riskRegisterValidator = z.object({
+  id: zfd.text(z.string().optional()),
+  title: z.string().min(1, { message: "Title is required" }),
+  description: zfd.text(z.string().optional()),
+  source: z.enum(riskSource),
+  severity: zfd.numeric(z.number().min(1).max(5).optional()),
+  likelihood: zfd.numeric(z.number().min(1).max(5).optional()),
+  status: z.enum(riskStatus),
+  assigneeUserId: zfd.text(z.string().optional()),
+  itemId: zfd.text(z.string().optional()),
+  workCenterId: zfd.text(z.string().optional()),
+  supplierId: zfd.text(z.string().optional()),
+  customerId: zfd.text(z.string().optional()),
+  quoteLineId: zfd.text(z.string().optional()),
+  jobId: zfd.text(z.string().optional()),
 });
