@@ -4,17 +4,21 @@ import { isBrowser } from "@carbon/utils";
 import { useFetcher } from "@remix-run/react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { PropsWithChildren } from "react";
-import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
-
+import { createContext, useContext, useEffect, useRef, useState } from "react";
+import type { StoreApi } from "zustand";
+import { createStore, useStore } from "zustand";
 import type { AuthSession } from "../../types";
 import { path } from "../../utils/path";
 import { getCarbon } from "./client";
 
-const CarbonContext = createContext<{
-  carbon: SupabaseClient<Database> | undefined;
-  accessToken: string | undefined;
-  realtimeAuthSet: boolean;
-}>({ carbon: undefined, accessToken: undefined, realtimeAuthSet: false });
+interface ICarbonStore {
+  carbon: SupabaseClient<Database>;
+  accessToken: string;
+  isRealtimeAuthSet: boolean;
+  setAuthToken: (accessToken: string, refreshToken: string) => Promise<void>;
+}
+
+const CarbonContext = createContext<StoreApi<ICarbonStore>>(null);
 
 export const CarbonProvider = ({
   children,
@@ -22,24 +26,34 @@ export const CarbonProvider = ({
 }: PropsWithChildren<{
   session: Partial<AuthSession>;
 }>) => {
-  const { accessToken, expiresAt } = session;
-  const initialLoad = useRef(true);
+  const [store] = useState(() =>
+    createStore<ICarbonStore>((set, get) => ({
+      accessToken: session.accessToken || "",
+      isRealtimeAuthSet: false,
+      carbon: getCarbon(session.accessToken),
+      setAuthToken: async (accessToken, refreshToken) => {
+        const { carbon } = get();
 
-  const carbon = useMemo(() => getCarbon(accessToken), [accessToken]);
-  const [realtimeAuthSet, setRealtimeAuthSet] = useState(false);
+        await carbon.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+
+        await carbon.realtime.setAuth(accessToken);
+
+        set({ accessToken, isRealtimeAuthSet: true });
+      },
+    }))
+  );
+
+  const { carbon, setAuthToken } = useStore(store);
+
+  const initialLoad = useRef(true);
   const refresh = useFetcher<{}>();
 
   useEffect(() => {
-    const updateRealtimeAuth = async () => {
-      if (carbon && accessToken && !realtimeAuthSet) {
-        await carbon.realtime.setAuth(accessToken);
-        setRealtimeAuthSet(true);
-      }
-    };
-    updateRealtimeAuth();
-  }, [carbon, accessToken, realtimeAuthSet]);
-
- 
+    setAuthToken(session.accessToken, session.refreshToken);
+  }, [carbon, session.refreshToken, setAuthToken, session.accessToken]);
 
   useEffect(() => {
     const handleVisibilityChange = () => {
@@ -67,8 +81,8 @@ export const CarbonProvider = ({
 
   useInterval(() => {
     // refresh ten minutes before expiry
-    const shouldRefresh = expiresAt - 60 * 10 < Date.now() / 1000;
-    const shouldReload = expiresAt < Date.now() / 1000;
+    const shouldRefresh = session.expiresAt - 60 * 10 < Date.now() / 1000;
+    const shouldReload = session.expiresAt < Date.now() / 1000;
 
     if (shouldReload) {
       window.location.reload();
@@ -84,19 +98,17 @@ export const CarbonProvider = ({
     initialLoad.current = false;
   }, 60000); // Check every minute
 
-  const value = useMemo(() => ({ carbon, accessToken, realtimeAuthSet }), [carbon, accessToken, realtimeAuthSet]);
-
   return (
-    <CarbonContext.Provider value={value}>{children}</CarbonContext.Provider>
+    <CarbonContext.Provider value={store}>{children}</CarbonContext.Provider>
   );
 };
 
 export const useCarbon = () => {
-  const context = useContext(CarbonContext);
+  const store = useContext(CarbonContext);
 
-  if (isBrowser && context === undefined) {
-    throw new Error(`useCarbon must be used within a CarbonProvider.`);
+  if (!store) {
+    throw new Error("useCarbon must be used within a CarbonProvider");
   }
 
-  return context;
+  return useStore(store);
 };

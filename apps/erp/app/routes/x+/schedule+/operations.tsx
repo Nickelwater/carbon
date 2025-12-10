@@ -20,6 +20,7 @@ import {
   useInterval,
   useLocalStorage,
   useMount,
+  useRealtimeChannel,
   VStack,
 } from "@carbon/react";
 import {
@@ -29,9 +30,8 @@ import {
   toZoned,
 } from "@internationalized/date";
 import { Link, useLoaderData } from "@remix-run/react";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 import { json, redirect, type LoaderFunctionArgs } from "@vercel/remix";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuCirclePlus, LuSettings2, LuTriangleAlert } from "react-icons/lu";
 import { SearchFilter } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
@@ -559,7 +559,7 @@ function useProgressByOperation(
   const {
     company: { id: companyId },
   } = useUser();
-  const { carbon, accessToken } = useCarbon();
+  const { carbon } = useCarbon();
 
   const [productionEventsByOperation, setProductionEventsByOperation] =
     useState<Record<string, Event[]>>({});
@@ -666,12 +666,10 @@ function useProgressByOperation(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productionEventsByOperation]);
 
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  useMount(() => {
-    if (!channelRef.current && carbon && accessToken) {
-      carbon.realtime.setAuth(accessToken);
-      channelRef.current = carbon
-        .channel(`kanban-schedule:${companyId}`)
+  useRealtimeChannel({
+    topic: `kanban-schedule:${companyId}`,
+    setup(channel) {
+      return channel
         .on(
           "postgres_changes",
           {
@@ -756,24 +754,9 @@ function useProgressByOperation(
               }
             }
           }
-        )
-        .subscribe();
-    }
-
-    return () => {
-      if (channelRef.current) {
-        channelRef.current.unsubscribe();
-        carbon?.removeChannel(channelRef.current);
-        channelRef.current = null;
-      }
-    };
+        );
+    },
   });
-
-  useEffect(() => {
-    if (carbon && accessToken && channelRef.current)
-      carbon.realtime.setAuth(accessToken);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [accessToken]);
 
   return { progressByOperation };
 }

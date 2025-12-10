@@ -9,6 +9,7 @@ import { useCurrencyFormatter } from "./useCurrencyFormatter";
 import { useModules } from "./useModules";
 import { useMovingCellRef } from "./useMovingCellRef";
 
+import { useGooglePlaces } from "./useGooglePlaces";
 import { useNextItemId } from "./useNextItemId";
 import { useNotifications } from "./useNotifications";
 import { useOnboarding } from "./useOnboarding";
@@ -17,10 +18,10 @@ import { usePermissions } from "./usePermissions";
 import { useRealtime } from "./useRealtime";
 import { useScrollPosition } from "./useScrollPosition";
 import { useUser } from "./useUser";
-import { useGooglePlaces } from "./useGooglePlaces";
 
 export {
   useCurrencyFormatter,
+  useGooglePlaces,
   useModules,
   useMovingCellRef,
   useNanoStore,
@@ -35,5 +36,4 @@ export {
   useScrollPosition,
   useUrlParams,
   useUser,
-  useGooglePlaces,
 };
