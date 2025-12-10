@@ -24,6 +24,7 @@ import {
 import { getCompany } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
 import { getLocale } from "~/utils/request";
+import { getCarbonServiceRole } from "@carbon/auth";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -33,11 +34,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { id } = params;
   if (!id) throw new Error("Could not find id");
 
-  const [company, shipment, shipmentLines, terms] = await Promise.all([
+  const [company, shipment, shipmentLines] = await Promise.all([
     getCompany(client, companyId),
     getShipment(client, id),
     getShipmentLinesWithDetails(client, id),
-    getSalesTerms(client, companyId),
   ]);
 
   if (company.error) {
@@ -51,6 +51,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (shipmentLines.error) {
     console.error(shipmentLines.error);
   }
+
+  const serviceRole = getCarbonServiceRole();
+  const terms = await getSalesTerms(serviceRole, companyId);
 
   if (terms.error) {
     console.error(terms.error);
@@ -71,8 +74,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   switch (shipment.data.sourceDocument) {
     case "Sales Order": {
       const [salesOrder, salesOrderShipment] = await Promise.all([
-        getSalesOrder(client, shipment.data.sourceDocumentId),
-        getSalesOrderShipment(client, shipment.data.sourceDocumentId),
+        getSalesOrder(serviceRole, shipment.data.sourceDocumentId),
+        getSalesOrderShipment(serviceRole, shipment.data.sourceDocumentId),
       ]);
 
       const [
@@ -82,20 +85,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         shippingMethod,
         shipmentTracking,
       ] = await Promise.all([
-        client
+        serviceRole
           .from("customer")
           .select("*")
           .eq("id", salesOrder.data?.customerId ?? "")
           .single(),
-        getCustomerLocation(client, salesOrder.data?.customerLocationId ?? ""),
-        getPaymentTerm(client, salesOrder.data?.paymentTermId ?? ""),
+        getCustomerLocation(
+          serviceRole,
+          salesOrder.data?.customerLocationId ?? ""
+        ),
+        getPaymentTerm(serviceRole, salesOrder.data?.paymentTermId ?? ""),
         getShippingMethod(
-          client,
+          serviceRole,
           shipment.data.shippingMethodId ??
             salesOrderShipment.data?.shippingMethodId ??
             ""
         ),
-        getShipmentTracking(client, shipment.data.id, companyId),
+        getShipmentTracking(serviceRole, shipment.data.id, companyId),
       ]);
 
       if (customer.error) {
@@ -119,7 +125,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 if (!path) {
                   return null;
                 }
-                return getBase64ImageFromSupabase(client, path).then(
+                return getBase64ImageFromSupabase(serviceRole, path).then(
                   (data) => ({
                     id,
                     data,
@@ -176,7 +182,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       return new Response(body, { status: 200, headers });
     }
     case "Sales Invoice": {
-      const salesInvoice = await client
+      const salesInvoice = await serviceRole
         .from("salesInvoice")
         .select("*, salesInvoiceShipment(*)")
         .eq("id", shipment.data.sourceDocumentId ?? "")
@@ -194,20 +200,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         shippingMethod,
         shipmentTracking,
       ] = await Promise.all([
-        client
+        serviceRole
           .from("customer")
           .select("*")
           .eq("id", salesInvoice.data?.customerId ?? "")
           .single(),
-        getCustomerLocation(client, salesInvoice.data?.locationId ?? ""),
-        getPaymentTerm(client, salesInvoice.data?.paymentTermId ?? ""),
+        getCustomerLocation(serviceRole, salesInvoice.data?.locationId ?? ""),
+        getPaymentTerm(serviceRole, salesInvoice.data?.paymentTermId ?? ""),
         getShippingMethod(
-          client,
+          serviceRole,
           shipment.data.shippingMethodId ??
             salesInvoice.data?.salesInvoiceShipment?.shippingMethodId ??
             ""
         ),
-        getShipmentTracking(client, shipment.data.id, companyId),
+        getShipmentTracking(serviceRole, shipment.data.id, companyId),
       ]);
 
       if (customer.error) {
@@ -231,7 +237,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
                 if (!path) {
                   return null;
                 }
-                return getBase64ImageFromSupabase(client, path).then(
+                return getBase64ImageFromSupabase(serviceRole, path).then(
                   (data) => ({
                     id,
                     data,
