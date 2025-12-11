@@ -29,6 +29,7 @@ export enum NotificationEvent {
   SalesRfqReady = "sales-rfq-ready",
   StockTransferAssignment = "stock-transfer-assignment",
   SupplierQuoteAssignment = "supplier-quote-assignment",
+  TrainingAssignment = "training-assignment",
 }
 
 export enum NotificationType {

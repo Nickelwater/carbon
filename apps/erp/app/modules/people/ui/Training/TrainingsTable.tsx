@@ -1,0 +1,243 @@
+import {
+  Badge,
+  HStack,
+  MenuIcon,
+  MenuItem,
+  useDisclosure,
+} from "@carbon/react";
+import { useNavigate } from "@remix-run/react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { memo, useCallback, useMemo, useState } from "react";
+import { flushSync } from "react-dom";
+import {
+  LuBookOpen,
+  LuClock,
+  LuPencil,
+  LuRepeat,
+  LuTag,
+  LuShapes,
+  LuStar,
+  LuTrash,
+  LuUser,
+} from "react-icons/lu";
+import { EmployeeAvatar, Hyperlink, New, Table } from "~/components";
+import { ConfirmDelete } from "~/components/Modals";
+import { usePermissions } from "~/hooks";
+import type { TrainingListItem } from "~/modules/people";
+import { path } from "~/utils/path";
+import TrainingStatus from "./TrainingStatus";
+
+type TrainingsTableProps = {
+  data: TrainingListItem[];
+  count: number;
+  tags: Array<{ name: string }>;
+};
+
+const TrainingsTable = memo(({ data, count, tags }: TrainingsTableProps) => {
+  const navigate = useNavigate();
+  const permissions = usePermissions();
+
+  const deleteDisclosure = useDisclosure();
+  const [selectedTraining, setSelectedTraining] =
+    useState<TrainingListItem | null>(null);
+
+  const columns = useMemo<ColumnDef<TrainingListItem>[]>(() => {
+    const defaultColumns: ColumnDef<TrainingListItem>[] = [
+      {
+        accessorKey: "name",
+        header: "Name",
+        cell: ({ row }) => (
+          <Hyperlink to={path.to.training(row.original.id!)}>
+            {row.original.name}
+          </Hyperlink>
+        ),
+        meta: {
+          icon: <LuBookOpen />,
+        },
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => <TrainingStatus status={row.original.status} />,
+        meta: {
+          filter: {
+            type: "static",
+            options: [
+              { value: "Draft", label: <TrainingStatus status="Draft" /> },
+              { value: "Active", label: <TrainingStatus status="Active" /> },
+              {
+                value: "Archived",
+                label: <TrainingStatus status="Archived" />,
+              },
+            ],
+          },
+          icon: <LuStar />,
+        },
+      },
+      {
+        accessorKey: "type",
+        header: "Type",
+        cell: ({ row }) => (
+          <Badge
+            variant={
+              row.original.type === "Mandatory" ? "default" : "secondary"
+            }
+          >
+            {row.original.type}
+          </Badge>
+        ),
+        meta: {
+          filter: {
+            type: "static",
+            options: [
+              { value: "Mandatory", label: "Mandatory" },
+              { value: "Optional", label: "Optional" },
+            ],
+          },
+          icon: <LuShapes />,
+        },
+      },
+      {
+        accessorKey: "frequency",
+        header: "Frequency",
+        cell: ({ row }) => (
+          <Badge variant="secondary">{row.original.frequency}</Badge>
+        ),
+        meta: {
+          icon: <LuRepeat />,
+          filter: {
+            type: "static",
+            options: [
+              { value: "Once", label: "Once" },
+              { value: "Quarterly", label: "Quarterly" },
+              { value: "Annual", label: "Annual" },
+            ],
+          },
+        },
+      },
+      {
+        accessorKey: "estimatedDuration",
+        header: "Duration",
+        cell: ({ row }) =>
+          row.original.estimatedDuration ? (
+            <div className="flex items-center gap-1">
+              <LuClock />{" "}
+              <span className="text-xs text-muted-foreground">
+                {row.original.estimatedDuration}
+              </span>
+            </div>
+          ) : (
+            "-"
+          ),
+        meta: {
+          icon: <LuClock />,
+        },
+      },
+      {
+        accessorKey: "assignee",
+        header: "Assignee",
+        cell: ({ row }) => (
+          <EmployeeAvatar employeeId={row.original.assignee} />
+        ),
+        meta: {
+          icon: <LuUser />,
+        },
+      },
+      {
+        accessorKey: "tags",
+        header: "Tags",
+        cell: ({ row }) => (
+          <HStack spacing={0} className="gap-1">
+            {row.original.tags?.map((tag) => (
+              <Badge key={tag} variant="secondary">
+                {tag}
+              </Badge>
+            ))}
+          </HStack>
+        ),
+        meta: {
+          filter: {
+            type: "static",
+            options: tags.map((tag) => ({
+              value: tag.name,
+              label: <Badge variant="secondary">{tag.name}</Badge>,
+            })),
+            isArray: true,
+          },
+          icon: <LuTag />,
+        },
+      },
+    ];
+    return [...defaultColumns];
+  }, [tags]);
+
+  const renderContextMenu = useCallback(
+    (row: TrainingListItem) => {
+      return (
+        <>
+          <MenuItem
+            disabled={!permissions.can("update", "people")}
+            onClick={() => {
+              navigate(`${path.to.training(row.id!)}`);
+            }}
+          >
+            <MenuIcon icon={<LuPencil />} />
+            Edit Training
+          </MenuItem>
+          <MenuItem
+            destructive
+            disabled={!permissions.can("delete", "people")}
+            onClick={() => {
+              flushSync(() => {
+                setSelectedTraining(row);
+              });
+              deleteDisclosure.onOpen();
+            }}
+          >
+            <MenuIcon icon={<LuTrash />} />
+            Delete Training
+          </MenuItem>
+        </>
+      );
+    },
+    [navigate, permissions, deleteDisclosure]
+  );
+
+  return (
+    <>
+      <Table<TrainingListItem>
+        data={data}
+        columns={columns}
+        count={count}
+        primaryAction={
+          permissions.can("create", "people") && (
+            <New label="Training" to={path.to.newTraining} />
+          )
+        }
+        renderContextMenu={renderContextMenu}
+        title="Training"
+        table="training"
+        withSavedView
+      />
+      {deleteDisclosure.isOpen && selectedTraining && (
+        <ConfirmDelete
+          action={path.to.deleteTraining(selectedTraining.id!)}
+          isOpen
+          onCancel={() => {
+            setSelectedTraining(null);
+            deleteDisclosure.onClose();
+          }}
+          onSubmit={() => {
+            setSelectedTraining(null);
+            deleteDisclosure.onClose();
+          }}
+          name={selectedTraining.name ?? "training"}
+          text="Are you sure you want to delete this training?"
+        />
+      )}
+    </>
+  );
+});
+
+TrainingsTable.displayName = "TrainingsTable";
+export default TrainingsTable;

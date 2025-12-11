@@ -11,6 +11,7 @@ import { useMode } from "@carbon/remix";
 import { Outlet, useFetcher, useRevalidator } from "@remix-run/react";
 import { LuMoon, LuRefreshCw, LuSun } from "react-icons/lu";
 import type { action } from "~/root";
+
 export default function ExternalLayout() {
   const fetcher = useFetcher<typeof action>();
   const mode = useMode();

@@ -43,7 +43,7 @@ const Status = ({
   return (
     <Badge
       variant={color}
-      className={cn("items-center gap-1", className)}
+      className={cn("inline-flex items-center gap-1", className)}
       {...props}
     >
       {getStatusIcon(color)}

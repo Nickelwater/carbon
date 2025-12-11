@@ -1,6 +1,8 @@
 import { getCarbonServiceRole } from "@carbon/auth";
+import { NotificationEvent } from "@carbon/notifications";
 import { schedules } from "@trigger.dev/sdk";
 import { Edition } from "../../utils/src/types.ts";
+import { notifyTask } from "./notify.ts";
 
 const serviceRole = getCarbonServiceRole();
 
@@ -107,6 +109,97 @@ export const weekly = schedules.task({
             console.log(`Deleted company ${company.name}`);
           }
         }
+      }
+
+      // Notify employees with outstanding trainings (Pending or Overdue)
+      console.log(`📚 Checking for outstanding training assignments...`);
+
+      // Get all companies with training assignments
+      const { data: companiesWithTrainings, error: companiesError } =
+        await serviceRole
+          .from("trainingAssignment")
+          .select("companyId")
+          .limit(1000);
+
+      if (companiesError) {
+        console.error(
+          `Failed to fetch companies with trainings: ${companiesError.message}`
+        );
+      } else {
+        const uniqueCompanyIds = [
+          ...new Set(companiesWithTrainings?.map((c) => c.companyId) ?? []),
+        ];
+
+        console.log(
+          `Found ${uniqueCompanyIds.length} companies with training assignments`
+        );
+
+        let totalNotifications = 0;
+
+        for (const companyId of uniqueCompanyIds) {
+          const { data: trainingStatus, error: trainingsError } =
+            await serviceRole.rpc("get_training_assignment_status", {
+              p_company_id: companyId,
+            });
+
+          if (trainingsError) {
+            console.error(
+              `Failed to fetch trainings for company ${companyId}: ${trainingsError.message}`
+            );
+            continue;
+          }
+
+          // Filter to pending/overdue and dedupe by employee+assignment
+          const outstandingTrainings = (trainingStatus ?? []).filter(
+            (t) => t.status === "Pending" || t.status === "Overdue"
+          );
+
+          // Group by trainingAssignmentId to send one notification per assignment per employee
+          const assignmentsByEmployee = new Map<
+            string,
+            {
+              trainingAssignmentId: string;
+              employeeId: string;
+              companyId: string;
+              trainingName: string;
+              status: string;
+            }
+          >();
+
+          for (const training of outstandingTrainings) {
+            const key = `${training.companyId}:${training.employeeId}:${training.trainingAssignmentId}`;
+            if (!assignmentsByEmployee.has(key)) {
+              assignmentsByEmployee.set(key, training);
+            }
+          }
+
+          // Send notifications for each unique employee-assignment combination
+          for (const [, assignment] of assignmentsByEmployee) {
+            try {
+              await notifyTask.triggerAndWait({
+                companyId: assignment.companyId,
+                documentId: assignment.trainingAssignmentId,
+                event: NotificationEvent.TrainingAssignment,
+                recipient: {
+                  type: "user",
+                  userId: assignment.employeeId,
+                },
+              });
+              console.log(
+                `Sent reminder for training "${assignment.trainingName}" to employee ${assignment.employeeId}`
+              );
+              totalNotifications++;
+            } catch (err) {
+              console.error(
+                `Failed to send training reminder: ${
+                  err instanceof Error ? err.message : String(err)
+                }`
+              );
+            }
+          }
+        }
+
+        console.log(`Sent ${totalNotifications} training reminder notifications`);
       }
 
       console.log(`📅 Weekly tasks completed: ${new Date().toISOString()}`);

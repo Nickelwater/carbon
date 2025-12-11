@@ -27,6 +27,7 @@ const payloadSchema = z.object({
     NotificationEvent.SalesRfqReady,
     NotificationEvent.StockTransferAssignment,
     NotificationEvent.SupplierQuoteAssignment,
+    NotificationEvent.TrainingAssignment,
   ]),
   from: z.string().optional(),
 });

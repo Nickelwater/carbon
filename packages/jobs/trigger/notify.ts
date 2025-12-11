@@ -69,6 +69,7 @@ export const notifyTask = task({
         case NotificationEvent.SalesRfqReady:
         case NotificationEvent.StockTransferAssignment:
         case NotificationEvent.SupplierQuoteAssignment:
+        case NotificationEvent.TrainingAssignment:
           return NotificationWorkflow.Assignment;
         case NotificationEvent.JobCompleted:
           return NotificationWorkflow.JobCompleted;
@@ -253,6 +254,23 @@ export const notifyTask = task({
           }
 
           return `Stock Transfer ${stockTransfer?.data?.stockTransferId} assigned to you`;
+
+        case NotificationEvent.TrainingAssignment:
+          const trainingAssignment = await client
+            .from("trainingAssignment")
+            .select("*, training(id, name)")
+            .eq("id", documentId)
+            .single();
+
+          if (trainingAssignment.error) {
+            console.error(
+              "Failed to get trainingAssignment",
+              trainingAssignment.error
+            );
+            throw trainingAssignment.error;
+          }
+
+          return `Training "${trainingAssignment?.data?.training?.name}" assigned to you`;
 
         default:
           return null;

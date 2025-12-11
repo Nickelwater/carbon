@@ -35377,6 +35377,716 @@ export type Database = {
           },
         ]
       }
+      training: {
+        Row: {
+          assignee: string | null
+          companyId: string | null
+          content: Json | null
+          createdAt: string
+          createdBy: string
+          description: string | null
+          estimatedDuration: string | null
+          frequency: Database["public"]["Enums"]["trainingFrequency"]
+          id: string
+          name: string
+          processId: string | null
+          status: Database["public"]["Enums"]["trainingStatus"]
+          tags: string[] | null
+          type: Database["public"]["Enums"]["trainingType"]
+          updatedAt: string | null
+          updatedBy: string | null
+          version: number
+        }
+        Insert: {
+          assignee?: string | null
+          companyId?: string | null
+          content?: Json | null
+          createdAt?: string
+          createdBy: string
+          description?: string | null
+          estimatedDuration?: string | null
+          frequency?: Database["public"]["Enums"]["trainingFrequency"]
+          id?: string
+          name: string
+          processId?: string | null
+          status?: Database["public"]["Enums"]["trainingStatus"]
+          tags?: string[] | null
+          type?: Database["public"]["Enums"]["trainingType"]
+          updatedAt?: string | null
+          updatedBy?: string | null
+          version?: number
+        }
+        Update: {
+          assignee?: string | null
+          companyId?: string | null
+          content?: Json | null
+          createdAt?: string
+          createdBy?: string
+          description?: string | null
+          estimatedDuration?: string | null
+          frequency?: Database["public"]["Enums"]["trainingFrequency"]
+          id?: string
+          name?: string
+          processId?: string | null
+          status?: Database["public"]["Enums"]["trainingStatus"]
+          tags?: string[] | null
+          type?: Database["public"]["Enums"]["trainingType"]
+          updatedAt?: string | null
+          updatedBy?: string | null
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "training_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "training_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "training_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "training_processId_fkey"
+            columns: ["processId"]
+            isOneToOne: false
+            referencedRelation: "process"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_processId_fkey"
+            columns: ["processId"]
+            isOneToOne: false
+            referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
+      trainingAssignment: {
+        Row: {
+          companyId: string
+          createdAt: string
+          createdBy: string
+          groupIds: string[] | null
+          id: string
+          trainingId: string
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          companyId: string
+          createdAt?: string
+          createdBy: string
+          groupIds?: string[] | null
+          id?: string
+          trainingId: string
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          companyId?: string
+          createdAt?: string
+          createdBy?: string
+          groupIds?: string[] | null
+          id?: string
+          trainingId?: string
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainingAssignment_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_trainingId_fkey"
+            columns: ["trainingId"]
+            isOneToOne: false
+            referencedRelation: "training"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_trainingId_fkey"
+            columns: ["trainingId"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingAssignment_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
+      trainingCompletion: {
+        Row: {
+          companyId: string
+          completedAt: string
+          completedBy: string
+          createdAt: string
+          createdBy: string
+          employeeId: string
+          id: number
+          period: string | null
+          trainingAssignmentId: string
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          companyId: string
+          completedAt?: string
+          completedBy: string
+          createdAt?: string
+          createdBy: string
+          employeeId: string
+          id?: number
+          period?: string | null
+          trainingAssignmentId: string
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          companyId?: string
+          completedAt?: string
+          completedBy?: string
+          createdAt?: string
+          createdBy?: string
+          employeeId?: string
+          id?: number
+          period?: string | null
+          trainingAssignmentId?: string
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainingCompletion_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_trainingAssignmentId_fkey"
+            columns: ["trainingAssignmentId"]
+            isOneToOne: false
+            referencedRelation: "trainingAssignment"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingCompletion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
+      trainingQuestion: {
+        Row: {
+          companyId: string
+          correctAnswers: string[] | null
+          correctBoolean: boolean | null
+          correctNumber: number | null
+          createdAt: string
+          createdBy: string
+          id: string
+          matchingPairs: Json | null
+          options: string[] | null
+          question: string
+          required: boolean | null
+          sortOrder: number
+          tolerance: number | null
+          trainingId: string
+          type: Database["public"]["Enums"]["trainingQuestionType"]
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          companyId: string
+          correctAnswers?: string[] | null
+          correctBoolean?: boolean | null
+          correctNumber?: number | null
+          createdAt?: string
+          createdBy: string
+          id?: string
+          matchingPairs?: Json | null
+          options?: string[] | null
+          question: string
+          required?: boolean | null
+          sortOrder?: number
+          tolerance?: number | null
+          trainingId: string
+          type: Database["public"]["Enums"]["trainingQuestionType"]
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          companyId?: string
+          correctAnswers?: string[] | null
+          correctBoolean?: boolean | null
+          correctNumber?: number | null
+          createdAt?: string
+          createdBy?: string
+          id?: string
+          matchingPairs?: Json | null
+          options?: string[] | null
+          question?: string
+          required?: boolean | null
+          sortOrder?: number
+          tolerance?: number | null
+          trainingId?: string
+          type?: Database["public"]["Enums"]["trainingQuestionType"]
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trainingQuestion_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_trainingId_fkey"
+            columns: ["trainingId"]
+            isOneToOne: false
+            referencedRelation: "training"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_trainingId_fkey"
+            columns: ["trainingId"]
+            isOneToOne: false
+            referencedRelation: "trainings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trainingQuestion_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
       unitOfMeasure: {
         Row: {
           active: boolean
@@ -45735,14 +46445,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["invoiceCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["invoiceCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -48576,6 +49286,87 @@ export type Database = {
           },
         ]
       }
+      trainings: {
+        Row: {
+          assignee: string | null
+          companyId: string | null
+          description: string | null
+          estimatedDuration: string | null
+          frequency: Database["public"]["Enums"]["trainingFrequency"] | null
+          id: string | null
+          name: string | null
+          status: Database["public"]["Enums"]["trainingStatus"] | null
+          tags: string[] | null
+          type: Database["public"]["Enums"]["trainingType"] | null
+          version: number | null
+          versions: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "training_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "training_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "training_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+        ]
+      }
       userDefaults: {
         Row: {
           companyId: string | null
@@ -48806,6 +49597,10 @@ export type Database = {
           rfq_readable_id: string
         }[]
       }
+      employee_requires_period: {
+        Args: { employee_start_date: string; period: string }
+        Returns: boolean
+      }
       get_action_tasks_by_item_and_process: {
         Args: { p_company_id: string; p_item_id: string; p_process_id: string }
         Returns: {
@@ -48979,6 +49774,10 @@ export type Database = {
           updatedAt: string
           updatedBy: string
         }[]
+      }
+      get_current_training_period: {
+        Args: { frequency: Database["public"]["Enums"]["trainingFrequency"] }
+        Returns: string
       }
       get_custom_field_unique_values: {
         Args: { company_id: string; field_key: string; table_name: string }
@@ -49485,6 +50284,8 @@ export type Database = {
           updatedBy: string
         }[]
       }
+      get_period_end_date: { Args: { period: string }; Returns: string }
+      get_period_start_date: { Args: { period: string }; Returns: string }
       get_permission_companies: { Args: { claim: string }; Returns: string[] }
       get_production_planning: {
         Args: { company_id: string; location_id: string; periods: string[] }
@@ -49937,6 +50738,60 @@ export type Database = {
           unitOfMeasureCode: string
           updatedAt: string
           updatedBy: string
+        }[]
+      }
+      get_training_assignment_status: {
+        Args: { p_company_id: string }
+        Returns: {
+          avatarUrl: string
+          companyId: string
+          completedAt: string
+          completionId: number
+          currentPeriod: string
+          employeeId: string
+          employeeName: string
+          employeeStartDate: string
+          frequency: Database["public"]["Enums"]["trainingFrequency"]
+          status: string
+          trainingAssignmentId: string
+          trainingId: string
+          trainingName: string
+          trainingType: Database["public"]["Enums"]["trainingType"]
+        }[]
+      }
+      get_training_assignment_summary: {
+        Args: { p_company_id: string }
+        Returns: {
+          completed: number
+          completionPercent: number
+          currentPeriod: string
+          frequency: Database["public"]["Enums"]["trainingFrequency"]
+          overdue: number
+          pending: number
+          totalAssigned: number
+          trainingId: string
+          trainingName: string
+        }[]
+      }
+      get_training_assignments_by_user: {
+        Args: { user_id: string }
+        Returns: {
+          assignee: string
+          companyId: string
+          content: Json
+          createdAt: string
+          createdBy: string
+          description: string
+          estimatedDuration: string
+          frequency: Database["public"]["Enums"]["trainingFrequency"]
+          name: string
+          status: Database["public"]["Enums"]["trainingStatus"]
+          tags: string[]
+          trainingAssignmentId: number
+          type: Database["public"]["Enums"]["trainingType"]
+          updatedAt: string
+          updatedBy: string
+          version: number
         }[]
       }
       get_unscheduled_jobs: {
@@ -50531,6 +51386,15 @@ export type Database = {
       tableViewType: "Public" | "Private"
       trackedEntityStatus: "Available" | "Reserved" | "On Hold" | "Consumed"
       trackingSource: "Purchased" | "Manufactured"
+      trainingFrequency: "Once" | "Quarterly" | "Annual"
+      trainingQuestionType:
+        | "MultipleChoice"
+        | "TrueFalse"
+        | "MultipleAnswers"
+        | "MatchingPairs"
+        | "Numerical"
+      trainingStatus: "Draft" | "Active" | "Archived"
+      trainingType: "Mandatory" | "Optional"
       warehouseTransferStatus:
         | "Draft"
         | "To Ship and Receive"
@@ -51654,6 +52518,16 @@ export const Constants = {
       tableViewType: ["Public", "Private"],
       trackedEntityStatus: ["Available", "Reserved", "On Hold", "Consumed"],
       trackingSource: ["Purchased", "Manufactured"],
+      trainingFrequency: ["Once", "Quarterly", "Annual"],
+      trainingQuestionType: [
+        "MultipleChoice",
+        "TrueFalse",
+        "MultipleAnswers",
+        "MatchingPairs",
+        "Numerical",
+      ],
+      trainingStatus: ["Draft", "Active", "Archived"],
+      trainingType: ["Mandatory", "Optional"],
       warehouseTransferStatus: [
         "Draft",
         "To Ship and Receive",

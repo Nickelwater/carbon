@@ -2,25 +2,28 @@
 
 import { NotificationEvent } from "@carbon/notifications";
 import {
+  Badge,
   Button,
   IconButton,
   Popover,
   PopoverContent,
   PopoverTrigger,
   ScrollArea,
+  Spinner,
   Tabs,
   TabsContent,
   TabsList,
   TabsTrigger,
 } from "@carbon/react";
 import { formatTimeAgo } from "@carbon/utils";
-import { Link } from "@remix-run/react";
+import { Link, useFetcher } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import {
   LuBell,
   LuCalendarX,
   LuCircleGauge,
   LuDollarSign,
+  LuGraduationCap,
   LuHammer,
   LuHardHat,
   LuInbox,
@@ -39,6 +42,16 @@ import { useNotifications, useUser } from "~/hooks";
 import { usePeople } from "~/stores";
 import { path } from "~/utils/path";
 
+type OutstandingTraining = {
+  trainingAssignmentId: string;
+  trainingId: string;
+  trainingName: string;
+  frequency: string;
+  trainingType: string;
+  status: "Pending" | "Overdue";
+  currentPeriod: string | null;
+};
+
 function EmptyState({ description }: { description: string }) {
   return (
     <div className="h-[460px] flex items-center justify-center flex-col gap-y-4">
@@ -47,6 +60,48 @@ function EmptyState({ description }: { description: string }) {
       </div>
       <p className="text-muted-foreground text-sm">{description}</p>
     </div>
+  );
+}
+
+function TrainingItem({
+  training,
+  onClose,
+}: {
+  training: OutstandingTraining;
+  onClose: () => void;
+}) {
+  return (
+    <Link
+      className="flex items-center gap-x-4 px-3 py-3 hover:bg-secondary"
+      onClick={() => onClose()}
+      to={path.to.completeTrainingAssignment(training.trainingAssignmentId)}
+    >
+      <div>
+        <div className="h-9 w-9 flex items-center justify-center border rounded-full">
+          <LuGraduationCap size={16} />
+        </div>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex w-full justify-between items-center gap-2">
+          <div className="flex flex-col gap-y-1">
+            <p className="text-sm truncate">{training.trainingName}</p>
+            <div className="flex items-center gap-x-2">
+              <span className="text-xs text-muted-foreground capitalize">
+                {training.frequency}
+              </span>
+            </div>
+          </div>
+          <Badge
+            variant={
+              training.status === "Overdue" ? "destructive" : "secondary"
+            }
+            className="text-xs"
+          >
+            {training.status}
+          </Badge>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -249,6 +304,14 @@ function GenericNotification({
           {...props}
         />
       );
+    case NotificationEvent.TrainingAssignment:
+      return (
+        <Notification
+          icon={<LuListChecks />}
+          to={path.to.completeTrainingAssignment(id)}
+          {...props}
+        />
+      );
     default:
       return null;
   }
@@ -260,6 +323,10 @@ const Notifications = () => {
     company: { id: companyId },
   } = useUser();
   const [isOpen, setOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("inbox");
+  const [trainingsLoaded, setTrainingsLoaded] = useState(false);
+  const trainingsFetcher = useFetcher<{ data: OutstandingTraining[] }>();
+
   const {
     hasUnseenNotifications,
     notifications,
@@ -279,12 +346,30 @@ const Notifications = () => {
     (notification) => notification.read
   );
 
+  // Lazy load trainings when the tab is selected
+  useEffect(() => {
+    if (activeTab === "trainings" && !trainingsLoaded && isOpen) {
+      trainingsFetcher.load(path.to.api.outstandingTrainings);
+      setTrainingsLoaded(true);
+    }
+  }, [activeTab, trainingsLoaded, isOpen, trainingsFetcher]);
+
+  // Reset trainings loaded state when popover closes
+  useEffect(() => {
+    if (!isOpen) {
+      setTrainingsLoaded(false);
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     if (isOpen && hasUnseenNotifications) {
       markAllMessagesAsSeen();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUnseenNotifications, isOpen]);
+
+  const outstandingTrainings = trainingsFetcher.data?.data ?? [];
+  const isLoadingTrainings = trainingsFetcher.state === "loading";
 
   return (
     <Popover onOpenChange={setOpen} open={isOpen}>
@@ -305,10 +390,17 @@ const Notifications = () => {
         align="end"
         sideOffset={10}
       >
-        <Tabs defaultValue="inbox">
+        <Tabs
+          defaultValue="inbox"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
           <TabsList className="w-full border-b-[1px] py-6 rounded-none bg-muted/[0.5]">
             <TabsTrigger value="inbox" className="font-normal">
               Inbox
+            </TabsTrigger>
+            <TabsTrigger value="trainings" className="font-normal">
+              Trainings
             </TabsTrigger>
             <TabsTrigger value="archive" className="font-normal">
               Archive
@@ -367,6 +459,32 @@ const Notifications = () => {
                   Archive all
                 </Button>
               </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="trainings" className="mt-0">
+            {isLoadingTrainings && (
+              <div className="h-[460px] flex items-center justify-center">
+                <Spinner />
+              </div>
+            )}
+
+            {!isLoadingTrainings && outstandingTrainings.length === 0 && (
+              <EmptyState description="No outstanding trainings" />
+            )}
+
+            {!isLoadingTrainings && outstandingTrainings.length > 0 && (
+              <ScrollArea className="h-[490px]">
+                <div className="divide-y">
+                  {outstandingTrainings.map((training) => (
+                    <TrainingItem
+                      key={training.trainingAssignmentId}
+                      training={training}
+                      onClose={() => setOpen(false)}
+                    />
+                  ))}
+                </div>
+              </ScrollArea>
             )}
           </TabsContent>
 

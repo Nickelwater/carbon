@@ -51,6 +51,12 @@ const salesRoutes: AuthenticatedRouteGroup[] = [
         permission: "invoicing",
         table: "salesInvoice",
       },
+      {
+        name: "Portals",
+        to: path.to.customerPortals,
+        role: "employee",
+        icon: <LuGlobe />,
+      },
     ],
   },
   {
@@ -62,12 +68,7 @@ const salesRoutes: AuthenticatedRouteGroup[] = [
         role: "employee",
         icon: <LuBan />,
       },
-      {
-        name: "Portals",
-        to: path.to.customerPortals,
-        role: "employee",
-        icon: <LuGlobe />,
-      },
+
       {
         name: "Statuses",
         to: path.to.customerStatuses,

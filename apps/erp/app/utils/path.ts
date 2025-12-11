@@ -4,6 +4,7 @@ import { generatePath } from "@remix-run/react";
 const x = "/x"; // from ~/routes/x+ folder
 const api = "/api"; // from ~/routes/api+ folder
 const file = "/file"; // from ~/routes/file+ folder
+const share = "/share"; // from ~/routes/shared+ folder
 const onboarding = "/onboarding"; // from ~/routes/onboarding+ folder
 export const MES_URL = getMESUrl();
 export const ERP_URL = getAppUrl();
@@ -40,6 +41,7 @@ export const path = {
       customFieldOptions: (table: string, fieldId: string) =>
         generatePath(`${api}/settings/custom-fields/${table}/${fieldId}`),
       departments: `${api}/people/departments`,
+      outstandingTrainings: `${api}/people/trainings`,
       digitalQuote: (id: string) =>
         generatePath(`${api}/sales/digital-quote/${id}`),
       digitalSupplierQuote: (id: string) =>
@@ -383,6 +385,7 @@ export const path = {
     bulkUpdateShipmentLine: `${x}/shipment/lines/update`,
     bulkUpdateStockTransferLine: `${x}/stock-transfer/lines/update`,
     bulkUpdateSupplierQuote: `${x}/supplier-quote/update`,
+    bulkUpdateTraining: `${x}/training/update`,
     calibrations: `${x}/quality/calibrations`,
     chartOfAccount: (id: string) =>
       generatePath(`${x}/accounting/charts/${id}`),
@@ -390,6 +393,8 @@ export const path = {
     company: `${x}/settings/company`,
     companySwitch: (companyId: string) =>
       generatePath(`${x}/settings/company/switch/${companyId}`),
+    completeTrainingAssignment: (id: string) =>
+      generatePath(`${share}/training/${id}`),
     configurationParameter: (itemId: string) =>
       generatePath(`${x}/part/${itemId}/parameter`),
     configurationParameterGroup: (itemId: string) =>
@@ -682,11 +687,16 @@ export const path = {
       generatePath(`${x}/purchasing/supplier-statuses/delete/${id}`),
     deleteSupplierType: (id: string) =>
       generatePath(`${x}/purchasing/supplier-types/delete/${id}`),
+    deleteTraining: (id: string) => generatePath(`${x}/training/delete/${id}`),
+    deleteTrainingQuestion: (id: string, questionId: string) =>
+      generatePath(`${x}/training/${id}/questions/delete/${questionId}`),
     deleteUom: (id: string) => generatePath(`${x}/items/uom/delete/${id}`),
     deleteUserAttribute: (id: string) =>
       generatePath(`${x}/account/${id}/delete/attribute`),
     deleteWebhook: (id: string) =>
       generatePath(`${x}/settings/webhooks/delete/${id}`),
+    deleteWarehouseTransfer: (id: string) =>
+      generatePath(`${x}/warehouse-transfer/${id}/delete`),
     deleteWorkCenter: (id: string) =>
       generatePath(`${x}/resources/work-centers/delete/${id}`),
     demandProjection: (itemId: string, locationId: string) =>
@@ -716,6 +726,8 @@ export const path = {
     externalSupplierQuote: (id: string) =>
       generatePath(`/share/supplier-quote/${id}`),
     externalScar: (id: string) => generatePath(`/share/scar/${id}`),
+    externalTraining: (assignmentId: string) =>
+      generatePath(`/share/training/${assignmentId}`),
     feedback: `${x}/feedback`,
     fiscalYears: `${x}/accounting/years`,
     gauge: (id: string) => generatePath(`${x}/quality/gauges/${id}`),
@@ -826,6 +838,7 @@ export const path = {
     logos: `${x}/settings/logos`,
     makeMethodGet: `${x}/items/methods/get`,
     makeMethodSave: `${x}/items/methods/save`,
+    markTrainingComplete: `${x}/people/assignments/complete`,
     material: (id: string) => generatePath(`${x}/material/${id}`),
     materialCosting: (id: string) =>
       generatePath(`${x}/material/${id}/view/costing`),
@@ -1034,6 +1047,9 @@ export const path = {
     newTool: `${x}/tool/new`,
     newToolSupplier: (id: string) =>
       generatePath(`${x}/tool/${id}/view/purchasing/new`),
+    newTraining: `${x}/people/training/new`,
+    newTrainingQuestion: (id: string) =>
+      generatePath(`${x}/training/${id}/questions/new`),
     newUom: `${x}/items/uom/new`,
     newWarehouseTransfer: `${x}/warehouse-transfer/new`,
     newWarehouseTransferLine: (transferId: string) =>
@@ -1166,6 +1182,21 @@ export const path = {
       generatePath(`${x}/quality-document/${id}/steps/${attributeId}`),
     qualityDocumentStepOrder: (id: string) =>
       generatePath(`${x}/quality-document/${id}/steps/order`),
+
+    training: (id: string) => generatePath(`${x}/training/${id}`),
+    trainings: `${x}/people/training`,
+    trainingQuestion: (id: string, questionId: string) =>
+      generatePath(`${x}/training/${id}/questions/${questionId}`),
+    trainingQuestionOrder: (id: string) =>
+      generatePath(`${x}/training/${id}/questions/order`),
+    trainingAssignments: `${x}/people/assignments`,
+    trainingAssignmentDetail: (trainingId: string) =>
+      generatePath(`${x}/people/assignments/${trainingId}`),
+    newTrainingAssignment: `${x}/people/assignments/new`,
+    trainingAssignment: (assignmentId: string) =>
+      generatePath(`${x}/people/assignments/assignment/${assignmentId}`),
+    deleteTrainingAssignment: (assignmentId: string) =>
+      generatePath(`${x}/people/assignments/assignment/${assignmentId}/delete`),
 
     quote: (id: string) => generatePath(`${x}/quote/${id}`),
     quoteAssembly: (quoteId: string, lineId: string, assemblyId: string) =>
@@ -1356,8 +1387,6 @@ export const path = {
       generatePath(`${x}/warehouse-transfer/${transferId}/lines`),
     warehouseTransferLine: (transferId: string, lineId: string) =>
       generatePath(`${x}/warehouse-transfer/${transferId}/details/${lineId}`),
-    deleteWarehouseTransfer: (id: string) =>
-      generatePath(`${x}/warehouse-transfer/${id}/delete`),
     shippingMethods: `${x}/inventory/shipping-methods`,
     supplier: (id: string) => generatePath(`${x}/supplier/${id}`),
     suppliers: `${x}/purchasing/suppliers`,

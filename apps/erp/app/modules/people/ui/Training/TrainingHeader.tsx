@@ -1,0 +1,106 @@
+import {
+  Copy,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIcon,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  HStack,
+  Heading,
+  IconButton,
+  VStack,
+  useDisclosure,
+} from "@carbon/react";
+import { useParams } from "@remix-run/react";
+import {
+  LuEllipsisVertical,
+  LuPanelLeft,
+  LuPanelRight,
+  LuTrash,
+} from "react-icons/lu";
+import { usePanels } from "~/components/Layout";
+import ConfirmDelete from "~/components/Modals/ConfirmDelete";
+import { usePermissions, useRouteData } from "~/hooks";
+import type { Training } from "~/modules/people";
+import { path } from "~/utils/path";
+import TrainingStatus from "./TrainingStatus";
+
+const TrainingHeader = () => {
+  const { id } = useParams();
+  if (!id) throw new Error("id not found");
+
+  const routeData = useRouteData<{
+    training: Training;
+  }>(path.to.training(id));
+
+  const permissions = usePermissions();
+  const { toggleExplorer, toggleProperties } = usePanels();
+  const deleteDisclosure = useDisclosure();
+
+  return (
+    <div className="flex flex-shrink-0 items-center justify-between px-4 py-2 bg-card border-b border-border h-[50px] overflow-x-auto scrollbar-hide dark:border-none dark:shadow-[inset_0_0_1px_rgb(255_255_255_/_0.24),_0_0_0_0.5px_rgb(0,0,0,1),0px_0px_4px_rgba(0,_0,_0,_0.08)]">
+      <VStack spacing={0} className="flex-grow">
+        <HStack>
+          <IconButton
+            aria-label="Toggle Explorer"
+            icon={<LuPanelLeft />}
+            onClick={toggleExplorer}
+            variant="ghost"
+          />
+          <Heading size="h4" className="flex items-center gap-2">
+            <span>{routeData?.training?.name}</span>
+            <TrainingStatus status={routeData?.training?.status} />
+          </Heading>
+          <Copy text={routeData?.training?.name ?? ""} />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <IconButton
+                aria-label="More options"
+                icon={<LuEllipsisVertical />}
+                variant="secondary"
+                size="sm"
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                disabled={
+                  !permissions.can("delete", "people") ||
+                  !permissions.is("employee")
+                }
+                destructive
+                onClick={deleteDisclosure.onOpen}
+              >
+                <DropdownMenuIcon icon={<LuTrash />} />
+                Delete Training
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </HStack>
+      </VStack>
+      <div className="flex flex-shrink-0 gap-1 items-center justify-end">
+        <IconButton
+          aria-label="Toggle Properties"
+          icon={<LuPanelRight />}
+          onClick={toggleProperties}
+          variant="ghost"
+        />
+      </div>
+      {deleteDisclosure.isOpen && (
+        <ConfirmDelete
+          action={path.to.deleteTraining(id)}
+          isOpen={deleteDisclosure.isOpen}
+          name={routeData?.training?.name ?? "training"}
+          text={`Are you sure you want to delete ${routeData?.training?.name}? This cannot be undone.`}
+          onCancel={() => {
+            deleteDisclosure.onClose();
+          }}
+          onSubmit={() => {
+            deleteDisclosure.onClose();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+export default TrainingHeader;

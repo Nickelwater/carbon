@@ -237,7 +237,7 @@ function ItemsSummaryTable({ itemsIds }: { itemsIds: string[] }) {
     return itemsIds.map((id) => allItems.find((item) => item.id === id));
   }, [itemsIds, allItems]);
   return (
-    <Table>
+    <Table className="border rounded-md">
       <Tbody>
         {items.map(
           (item) =>
