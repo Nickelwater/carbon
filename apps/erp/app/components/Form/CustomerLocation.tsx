@@ -1,16 +1,15 @@
+import type { ComboboxProps } from "@carbon/form";
+import { CreatableCombobox } from "@carbon/form";
+import { useDisclosure } from "@carbon/react";
+import { formatAddress } from "@carbon/utils";
 import { useFetcher } from "@remix-run/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   type CustomerLocation as CustomerLocationType,
   type getCustomerLocations
 } from "~/modules/sales";
-import { path } from "~/utils/path";
-
-import type { ComboboxProps } from "@carbon/form";
-import { CreatableCombobox } from "@carbon/form";
-import { useDisclosure } from "@carbon/react";
-import { formatAddress } from "@carbon/utils";
 import CustomerLocationForm from "~/modules/sales/ui/Customer/CustomerLocationForm";
+import { path } from "~/utils/path";
 
 type CustomerLocationSelectProps = Omit<
   ComboboxProps,
@@ -44,7 +43,6 @@ const CustomerLocation = (props: CustomerLocationSelectProps) => {
         path.to.api.customerLocations(props.customer)
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.customer]);
 
   const options = useMemo(

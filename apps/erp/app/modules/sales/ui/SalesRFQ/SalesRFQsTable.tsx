@@ -217,7 +217,6 @@ const SalesRFQsTable = memo(({ data, count }: SalesRFQsTableProps) => {
   }, [customers, people, customColumns]);
 
   const renderContextMenu = useMemo(() => {
-    // eslint-disable-next-line react/display-name
     return (row: SalesRFQ) => (
       <>
         <MenuItem onClick={() => navigate(path.to.salesRfqDetails(row.id!))}>

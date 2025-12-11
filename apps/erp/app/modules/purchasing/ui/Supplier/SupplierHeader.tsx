@@ -4,8 +4,8 @@ import {
   CardAction,
   CardAttribute,
   CardAttributeLabel,
-  CardAttributeValue,
   CardAttributes,
+  CardAttributeValue,
   CardContent,
   CardHeader,
   CardTitle,
@@ -64,7 +64,7 @@ const SupplierHeader = () => {
         action: path.to.tags
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [supplierId]
   );
 

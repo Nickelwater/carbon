@@ -1,3 +1,4 @@
+import { SelectControlled, ValidatedForm } from "@carbon/form";
 import {
   Button,
   Copy,
@@ -7,8 +8,8 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  HStack,
   Heading,
+  HStack,
   IconButton,
   Modal,
   ModalBody,
@@ -17,13 +18,14 @@ import {
   ModalFooter,
   ModalHeader,
   ModalTitle,
-  VStack,
   toast,
-  useDisclosure
+  useDisclosure,
+  VStack
 } from "@carbon/react";
-
 import type { FetcherWithComponents } from "@remix-run/react";
 import { Await, Link, useFetcher, useParams } from "@remix-run/react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { CSVLink } from "react-csv";
 import {
   LuCheckCheck,
   LuChevronDown,
@@ -40,28 +42,23 @@ import {
   LuTrash,
   LuTruck
 } from "react-icons/lu";
-
+import { CustomerContact } from "~/components/Form";
 import { usePanels } from "~/components/Layout";
+import Confirm from "~/components/Modals/Confirm/Confirm";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
 import { usePermissions, useRouteData } from "~/hooks";
-import type { action as confirmAction } from "~/routes/x+/sales-order+/$orderId.confirm";
-import type { action as statusAction } from "~/routes/x+/sales-order+/$orderId.status";
-import { path } from "~/utils/path";
-import type { Opportunity, SalesOrder, SalesOrderLine } from "../../types";
-
-import { SelectControlled, ValidatedForm } from "@carbon/form";
-import { Suspense, useEffect, useMemo, useState } from "react";
-import { CSVLink } from "react-csv";
-import { CustomerContact } from "~/components/Form";
-import Confirm from "~/components/Modals/Confirm/Confirm";
 import { useIntegrations } from "~/hooks/useIntegrations";
 import type { Shipment } from "~/modules/inventory/types";
 import { ShipmentStatus } from "~/modules/inventory/ui/Shipments";
 import type { SalesInvoice } from "~/modules/invoicing/types";
 import SalesInvoiceStatus from "~/modules/invoicing/ui/SalesInvoice/SalesInvoiceStatus";
 import type { Job } from "~/modules/production/types";
+import type { action as confirmAction } from "~/routes/x+/sales-order+/$orderId.confirm";
+import type { action as statusAction } from "~/routes/x+/sales-order+/$orderId.status";
 import { useCustomers } from "~/stores/customers";
+import { path } from "~/utils/path";
 import { salesConfirmValidator } from "../../sales.models";
+import type { Opportunity, SalesOrder, SalesOrderLine } from "../../types";
 import SalesStatus from "./SalesStatus";
 import { useSalesOrder } from "./useSalesOrder";
 
@@ -90,7 +87,6 @@ const SalesOrderConfirmModal = ({
     } else if (fetcher.data?.success === false && fetcher.data?.message) {
       toast.error(fetcher.data.message);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data?.success]);
 
   return (

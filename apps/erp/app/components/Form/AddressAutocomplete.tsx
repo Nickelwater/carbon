@@ -66,7 +66,6 @@ const AddressAutocomplete = ({
     if (userInteracted) {
       debouncedGetSuggestions(value || "");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, userInteracted]);
 
   useEffect(() => {

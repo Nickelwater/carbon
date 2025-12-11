@@ -180,7 +180,6 @@ export const PurchasingPlanningOrderDrawer = memo(
       if (selectedItem.id) {
         getExistingOrders();
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedSupplier]);
 
     const onAddOrder = useCallback(() => {
@@ -293,7 +292,6 @@ export const PurchasingPlanningOrderDrawer = memo(
         setOrders(selectedItem, []);
         onClose();
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetcher.data?.success]);
 
     const supplierDisclosure = useDisclosure();

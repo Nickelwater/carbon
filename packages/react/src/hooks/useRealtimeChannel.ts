@@ -22,7 +22,6 @@ export const useRealtimeChannel = <TDeps extends any[]>(
   const channelRef = useRef<RealtimeChannel | null>(null);
   const { carbon, isRealtimeAuthSet } = useCarbon();
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoSetup = useCallback(setup, [topic, ...dependencies]);
 
   const teardown = useCallback(async () => {
@@ -89,15 +88,13 @@ export const useRealtimeChannel = <TDeps extends any[]>(
         );
       }
     })();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     carbon,
     isRealtimeAuthSet,
     enabled,
     topic,
     memoSetup,
-    teardown
+    teardown,
     // dependencies are already in memoSetup, so not needed here
   ]);
 

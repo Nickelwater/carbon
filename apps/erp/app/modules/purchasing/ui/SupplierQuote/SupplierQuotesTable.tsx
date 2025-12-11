@@ -212,7 +212,6 @@ const SupplierQuotesTable = memo(
     }, [suppliers, people, customColumns]);
 
     const renderContextMenu = useMemo(() => {
-      // eslint-disable-next-line react/display-name
       return (row: SupplierQuote) => (
         <>
           <MenuItem

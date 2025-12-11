@@ -1,7 +1,5 @@
 "use client";
 
-import { LuGitBranchPlus, LuGitPullRequestCreateArrow } from "react-icons/lu";
-
 import { useCarbon } from "@carbon/auth";
 import { Combobox, Hidden, Number, Submit, ValidatedForm } from "@carbon/form";
 import {
@@ -23,6 +21,7 @@ import {
 import { useRouteData } from "@carbon/remix";
 import { useFetcher } from "@remix-run/react";
 import { useEffect, useMemo, useState } from "react";
+import { LuGitBranchPlus, LuGitPullRequestCreateArrow } from "react-icons/lu";
 import type { action as endShiftAction } from "~/routes/x+/end-shift";
 import { inventoryAdjustmentValidator } from "~/services/inventory.service";
 import { useItems } from "~/stores";
@@ -93,7 +92,6 @@ export function AdjustInventory({ add }: { add: boolean }) {
         fetcher.data?.message ?? "Failed to complete inventory adjustment"
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data?.success]);
 
   const itemOptions = useMemo(() => {

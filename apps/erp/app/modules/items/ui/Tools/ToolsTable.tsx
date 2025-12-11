@@ -316,7 +316,7 @@ const ToolsTable = memo(({ data, tags, count }: ToolsTableProps) => {
         action: path.to.bulkUpdateItems
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 
@@ -377,7 +377,6 @@ const ToolsTable = memo(({ data, tags, count }: ToolsTableProps) => {
   );
 
   const renderContextMenu = useMemo(() => {
-    // eslint-disable-next-line react/display-name
     return (row: Tool) => {
       const revisions =
         (row.revisions as {

@@ -28,7 +28,7 @@ import type {
   ColumnOrderState,
   ColumnPinningState
 } from "@tanstack/react-table";
-import { useEffect, useState, type ReactNode } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import {
   LuCheck,
@@ -47,12 +47,12 @@ import { savedViewValidator } from "~/modules/shared/shared.models";
 import type { action as savedViewAction } from "~/routes/x+/shared+/views";
 import { path } from "~/utils/path";
 import Columns from "./Columns";
+import Download from "./Download";
 import { ActiveFilters, Filter } from "./Filter";
 import type { ColumnFilter } from "./Filter/types";
 import type { PaginationProps } from "./Pagination";
 import { PaginationButtons } from "./Pagination";
 import Sort from "./Sort";
-import Download from "./Download";
 
 type HeaderProps<T> = {
   renderActions?: (selectedRows: T[]) => ReactNode;
@@ -128,7 +128,6 @@ const TableHeader = <T extends object>({
     } else if (fetcher.data?.success === false) {
       toast.error(fetcher.data.message);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state, fetcher.data?.success]);
 
   const { currentView, hasView } = useSavedViews();

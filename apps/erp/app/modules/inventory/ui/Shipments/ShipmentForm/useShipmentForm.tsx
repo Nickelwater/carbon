@@ -115,7 +115,6 @@ export default function useShipmentForm({
     if (status !== "Posted") {
       fetchSourceDocuments();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceDocument, status]);
 
   return {

@@ -3,6 +3,7 @@ import { OnshapeLogo } from "@carbon/ee";
 import {
   Badge,
   Button,
+  cn,
   Combobox,
   DropdownMenu,
   DropdownMenuContent,
@@ -15,7 +16,6 @@ import {
   PulsingDot,
   Spinner,
   Status,
-  cn,
   toast,
   useDisclosure,
   useMount
@@ -97,7 +97,6 @@ export const OnshapeSync = ({
     if (!isDisabled && initialized) {
       documentsFetcher.load(path.to.api.onShapeDocuments);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialized]);
 
   useEffect(() => {
@@ -127,7 +126,6 @@ export const OnshapeSync = ({
     if (documentId && !isDisabled && initialized) {
       versionsFetcher.load(path.to.api.onShapeVersions(documentId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId, initialized]);
 
   const versionOptions =
@@ -151,7 +149,6 @@ export const OnshapeSync = ({
     if (documentId && versionId && !isDisabled && initialized) {
       elementsFetcher.load(path.to.api.onShapeElements(documentId, versionId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [documentId, versionId, initialized]);
 
   const elementOptions =
@@ -231,7 +228,6 @@ export const OnshapeSync = ({
     if (upsertBomFetcher.data?.success === false) {
       toast.error(upsertBomFetcher.data.message);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bomRows.length, upsertBomFetcher.data]);
 
   return (

@@ -1,3 +1,4 @@
+import { useCarbon } from "@carbon/auth";
 import {
   Card,
   CardAction,
@@ -22,26 +23,24 @@ import {
   Td,
   Th,
   Thead,
+  toast,
   Tr,
-  VStack,
-  toast
+  VStack
 } from "@carbon/react";
 import { convertKbToString } from "@carbon/utils";
 import { Link, useFetchers, useRevalidator, useSubmit } from "@remix-run/react";
 import type { FileObject } from "@supabase/storage-js";
 import type { ChangeEvent } from "react";
+import { useCallback } from "react";
 import { LuEllipsisVertical, LuUpload } from "react-icons/lu";
 import { DocumentPreview, FileDropzone, Hyperlink } from "~/components";
 import DocumentIcon from "~/components/DocumentIcon";
-import { usePermissions, useUser } from "~/hooks";
-import { getDocumentType } from "~/modules/shared";
-import { path } from "~/utils/path";
-
-import { useCarbon } from "@carbon/auth";
-import { useCallback } from "react";
 import { Enumerable } from "~/components/Enumerable";
+import { usePermissions, useUser } from "~/hooks";
 import type { OptimisticFileObject } from "~/modules/shared";
+import { getDocumentType } from "~/modules/shared";
 import type { ModelUpload } from "~/types";
+import { path } from "~/utils/path";
 import { stripSpecialCharacters } from "~/utils/string";
 
 const useOpportunityLineDocuments = ({
@@ -177,7 +176,7 @@ const useOpportunityLineDocuments = ({
         console.error(error);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 
@@ -203,7 +202,7 @@ const useOpportunityLineDocuments = ({
         console.error(error);
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 

@@ -3,24 +3,24 @@ import { InputControlled, ValidatedForm } from "@carbon/form";
 import {
   Badge,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIcon,
   DropdownMenuItem,
   DropdownMenuTrigger,
   HStack,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  cn,
-  toast
+  VStack
 } from "@carbon/react";
 import { Await, useFetcher, useParams } from "@remix-run/react";
 import { Suspense, useCallback, useEffect } from "react";
 import { LuCopy, LuLink } from "react-icons/lu";
-import { z } from "zod/v3";
 import { zfd } from "zod-form-data";
+import { z } from "zod/v3";
 import { MethodBadge, MethodIcon, TrackingTypeIcon } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { Boolean, Tags } from "~/components/Form";
@@ -97,7 +97,7 @@ const ConsumableProperties = () => {
         action: path.to.bulkUpdateItems
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [itemId]
   );
 
@@ -117,7 +117,7 @@ const ConsumableProperties = () => {
         action: path.to.tags
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [routeData?.consumableSummary?.readableId]
   );
 
@@ -134,7 +134,7 @@ const ConsumableProperties = () => {
         action: path.to.customFields
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [routeData?.consumableSummary?.readableId]
   );
 

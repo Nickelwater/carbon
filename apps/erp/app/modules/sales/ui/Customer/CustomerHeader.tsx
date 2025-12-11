@@ -4,8 +4,8 @@ import {
   CardAction,
   CardAttribute,
   CardAttributeLabel,
-  CardAttributeValue,
   CardAttributes,
+  CardAttributeValue,
   CardContent,
   CardHeader,
   CardTitle,
@@ -19,11 +19,11 @@ import { z } from "zod/v3";
 import { EmployeeAvatar } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { Tags } from "~/components/Form";
+import { useCustomerTypes } from "~/components/Form/CustomerType";
 import { useRouteData } from "~/hooks";
 import type { action } from "~/routes/x+/settings+/tags";
 import { path } from "~/utils/path";
 import type { CustomerDetail, CustomerStatus } from "../../types";
-import { useCustomerTypes } from "~/components/Form/CustomerType";
 
 const CustomerHeader = () => {
   const { customerId } = useParams();
@@ -63,7 +63,7 @@ const CustomerHeader = () => {
         action: path.to.tags
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [customerId]
   );
 

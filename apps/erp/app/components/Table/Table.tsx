@@ -338,7 +338,6 @@ const Table = <T extends object>({
         };
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
   /* Sorting */
@@ -428,7 +427,6 @@ const Table = <T extends object>({
     if (typeof onSelectedRowsChange === "function") {
       onSelectedRowsChange(selectedRows);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rowSelection, onSelectedRowsChange]);
 
   const [editMode, setEditMode] = useState(false);
@@ -639,7 +637,6 @@ const Table = <T extends object>({
 
   useEffect(() => {
     if (selectedCell) setSelectedCell(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editMode, pagination.pageIndex, pagination.pageSize]);
 
   useMount(() => {

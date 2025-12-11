@@ -1,6 +1,6 @@
-import { useCallback, useRef, useState } from "react";
-import { nanoid } from "nanoid";
 import { GOOGLE_PLACES_API_KEY } from "@carbon/auth";
+import { nanoid } from "nanoid";
+import { useCallback, useRef, useState } from "react";
 
 interface PlaceSuggestion {
   placeId: string;
@@ -227,7 +227,7 @@ export const useGooglePlaces = () => {
 
       return addressComponents;
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 

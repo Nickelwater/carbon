@@ -247,7 +247,6 @@ export const ProductionPlanningOrderDrawer = memo(
         setOrders(row, []);
         onClose();
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [fetcher.data?.success]);
 
     // Memoize drawer content

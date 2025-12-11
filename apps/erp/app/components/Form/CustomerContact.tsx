@@ -1,15 +1,14 @@
+import type { ComboboxProps } from "@carbon/form";
+import { CreatableCombobox } from "@carbon/form";
+import { Avatar, HStack, useDisclosure } from "@carbon/react";
 import { useFetcher } from "@remix-run/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   CustomerContact as CustomerContactType,
   getCustomerContacts
 } from "~/modules/sales";
-import { path } from "~/utils/path";
-
-import type { ComboboxProps } from "@carbon/form";
-import { CreatableCombobox } from "@carbon/form";
-import { Avatar, HStack, useDisclosure } from "@carbon/react";
 import CustomerContactForm from "~/modules/sales/ui/Customer/CustomerContactForm";
+import { path } from "~/utils/path";
 
 type CustomerContactSelectProps = Omit<
   ComboboxProps,
@@ -96,7 +95,6 @@ function useCustomerContacts(customerId?: string) {
     if (customerId) {
       customerContactsFetcher.load(path.to.api.customerContacts(customerId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customerId]);
 
   const options = useMemo(

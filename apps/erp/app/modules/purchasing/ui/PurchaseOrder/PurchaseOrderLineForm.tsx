@@ -1,3 +1,5 @@
+import { useCarbon } from "@carbon/auth";
+import { Combobox, ValidatedForm } from "@carbon/form";
 import {
   Badge,
   cn,
@@ -16,9 +18,6 @@ import {
   useMount,
   VStack
 } from "@carbon/react";
-
-import { useCarbon } from "@carbon/auth";
-import { Combobox, ValidatedForm } from "@carbon/form";
 import { getItemReadableId } from "@carbon/utils";
 import { useFetcher, useParams } from "@remix-run/react";
 import type { PostgrestResponse } from "@supabase/supabase-js";
@@ -596,7 +595,6 @@ function JobOperationSelect(initialValues: { jobId?: string }) {
     if (jobId) {
       jobOperationFetcher.load(path.to.api.outsideOperations(jobId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId]);
 
   const jobOperationOptions = useMemo(() => {
@@ -606,7 +604,6 @@ function JobOperationSelect(initialValues: { jobId?: string }) {
         label: c.description
       })) ?? []
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobOperationFetcher.data]);
 
   return (

@@ -6,8 +6,8 @@ import {
   DropdownMenuIcon,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  HStack,
   Heading,
+  HStack,
   IconButton,
   Input,
   InputGroup,
@@ -19,14 +19,15 @@ import {
   ModalFooter,
   ModalHeader,
   ModalTitle,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  toast,
   useDisclosure
 } from "@carbon/react";
 
 import { Link, useFetcher, useParams } from "@remix-run/react";
+import { useEffect, useState } from "react";
 import {
   LuCheck,
   LuCheckCheck,
@@ -48,8 +49,6 @@ import {
 } from "react-icons/lu";
 import { usePanels } from "~/components/Layout";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
-
-import { useEffect, useState } from "react";
 import { usePermissions, useRouteData } from "~/hooks";
 import { path } from "~/utils/path";
 import type {
@@ -428,7 +427,6 @@ function CreateRevisionModal({
       );
       setNewQuoteId(fetcher.data?.data.newQuoteId ?? null);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data?.success]);
 
   if (!quote) return null;

@@ -302,7 +302,7 @@ const PartsTable = memo(({ data, tags, count }: PartsTableProps) => {
         action: path.to.bulkUpdateItems
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 
@@ -382,7 +382,6 @@ const PartsTable = memo(({ data, tags, count }: PartsTableProps) => {
   );
 
   const renderContextMenu = useMemo(() => {
-    // eslint-disable-next-line react/display-name
     return (row: Part) => {
       const revisions =
         (row.revisions as {

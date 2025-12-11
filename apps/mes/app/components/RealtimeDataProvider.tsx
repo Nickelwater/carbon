@@ -97,8 +97,6 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!companyId) return;
     hydrate();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [companyId, accessToken]);
 
   useRealtimeChannel({

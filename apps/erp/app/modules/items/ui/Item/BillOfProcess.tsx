@@ -43,6 +43,7 @@ import { AnimatePresence, LayoutGroup, motion, Reorder } from "framer-motion";
 import { nanoid } from "nanoid";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { flushSync } from "react-dom";
 import {
   LuActivity,
   LuChevronRight,
@@ -68,6 +69,8 @@ import {
   Empty,
   TimeTypeIcon
 } from "~/components";
+import { ConfigurationEditor } from "~/components/Configurator/ConfigurationEditor";
+import type { Configuration } from "~/components/Configurator/types";
 import {
   Hidden,
   InputControlled,
@@ -85,18 +88,16 @@ import {
   UnitOfMeasure,
   WorkCenter
 } from "~/components/Form";
-
-import { flushSync } from "react-dom";
-import { ConfigurationEditor } from "~/components/Configurator/ConfigurationEditor";
-import type { Configuration } from "~/components/Configurator/types";
-
+import Procedure from "~/components/Form/Procedure";
+import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
 import { getUnitHint } from "~/components/Form/UnitHint";
+import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";
+import { ProcedureStepTypeIcon } from "~/components/Icons";
 import { ConfirmDelete } from "~/components/Modals";
 import type { Item, SortableItemRenderProps } from "~/components/SortableList";
 import { SortableList, SortableListItem } from "~/components/SortableList";
 import { usePermissions, useUser } from "~/hooks";
 import { useTags } from "~/hooks/useTags";
-
 import type {
   OperationParameter,
   OperationStep,
@@ -111,17 +112,11 @@ import {
   procedureStepType,
   standardFactorType
 } from "~/modules/shared";
-
 import type { action as editMethodOperationParameterAction } from "~/routes/x+/items+/methods+/operation.parameter.$id";
 import type { action as newMethodOperationParameterAction } from "~/routes/x+/items+/methods+/operation.parameter.new";
 import type { action as editMethodOperationStepAction } from "~/routes/x+/items+/methods+/operation.step.$id";
 import type { action as editMethodOperationToolAction } from "~/routes/x+/items+/methods+/operation.tool.$id";
 import type { action as newMethodOperationToolAction } from "~/routes/x+/items+/methods+/operation.tool.new";
-
-import Procedure from "~/components/Form/Procedure";
-import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
-import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";
-import { ProcedureStepTypeIcon } from "~/components/Icons";
 import { useItems, useTools } from "~/stores";
 import { getPrivateUrl, path } from "~/utils/path";
 import { methodOperationValidator } from "../../items.models";
@@ -2025,7 +2020,6 @@ function AttributesListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const [type, setType] = useState<OperationStep["type"]>(attribute.type);
@@ -2514,7 +2508,6 @@ function ParametersListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const isUpdated = updatedBy !== null;
@@ -2786,7 +2779,6 @@ function ToolsListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const tools = useTools();

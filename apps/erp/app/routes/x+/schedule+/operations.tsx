@@ -1,6 +1,3 @@
-import type { Handle } from "~/utils/handle";
-import { path } from "~/utils/path";
-
 import { error, useCarbon } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
@@ -30,7 +27,7 @@ import {
   toZoned
 } from "@internationalized/date";
 import { Link, useLoaderData } from "@remix-run/react";
-import { json, redirect, type LoaderFunctionArgs } from "@vercel/remix";
+import { json, type LoaderFunctionArgs, redirect } from "@vercel/remix";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuCirclePlus, LuSettings2, LuTriangleAlert } from "react-icons/lu";
 import { SearchFilter } from "~/components";
@@ -42,7 +39,6 @@ import { useFilters } from "~/components/Table/components/Filter/useFilters";
 import { useUrlParams, useUser } from "~/hooks";
 import { getActiveJobOperationsByLocation } from "~/modules/production";
 import type { Column, OperationItem } from "~/modules/production/ui/Schedule";
-
 import type {
   DisplaySettings,
   Event,
@@ -59,6 +55,8 @@ import { getTagsList } from "~/modules/shared";
 import { getUserDefaults } from "~/modules/users/users.server";
 import { usePeople } from "~/stores";
 import { makeDurations } from "~/utils/duration";
+import type { Handle } from "~/utils/handle";
+import { path } from "~/utils/path";
 
 export const handle: Handle = {
   breadcrumb: "Schedule",
@@ -669,7 +667,6 @@ function useProgressByOperation(
       const { progress } = getProgress();
       setProgressByOperation(progress);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productionEventsByOperation]);
 
   useRealtimeChannel({

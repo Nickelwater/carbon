@@ -4,9 +4,8 @@ import type { RangeCalendarProps } from "@react-aria/calendar";
 import { useRangeCalendar } from "@react-aria/calendar";
 import { useLocale } from "@react-aria/i18n";
 import { useRangeCalendarState } from "@react-stately/calendar";
-import { useEffect, useMemo, useRef } from "react";
-
 import clsx from "clsx";
+import { useEffect, useMemo, useRef } from "react";
 import {
   LuChevronLeft,
   LuChevronRight,
@@ -35,7 +34,6 @@ export function RangeCalendar({
   useEffect(() => {
     if (!props.value?.start) return;
     state.setFocusedDate(props.value.start as CalendarDate);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.value]);
 
   const ref = useRef<HTMLDivElement>(null);

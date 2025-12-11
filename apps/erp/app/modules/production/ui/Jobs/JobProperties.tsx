@@ -1,19 +1,3 @@
-import {
-  Badge,
-  Button,
-  HStack,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  VStack,
-  toast
-} from "@carbon/react";
-import { Await, useFetcher, useParams } from "@remix-run/react";
-import { Suspense, useCallback, useEffect, useState } from "react";
-import { LuCopy, LuLink, LuUnlink2 } from "react-icons/lu";
-import { usePermissions, useRouteData } from "~/hooks";
-import type { action } from "~/routes/x+/items+/update";
-
 import type { Json } from "@carbon/database";
 import {
   DatePicker,
@@ -22,10 +6,23 @@ import {
   Select,
   ValidatedForm
 } from "@carbon/form";
+import {
+  Badge,
+  Button,
+  HStack,
+  toast,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+  VStack
+} from "@carbon/react";
+import { Await, useFetcher, useParams } from "@remix-run/react";
 import type { PostgrestResponse } from "@supabase/supabase-js";
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { LuCopy, LuLink, LuUnlink2 } from "react-icons/lu";
 import { RiProgress8Line } from "react-icons/ri";
-import { z } from "zod/v3";
 import { zfd } from "zod-form-data";
+import { z } from "zod/v3";
 import { Assignee, Hyperlink, useOptimisticAssignment } from "~/components";
 import {
   Customer,
@@ -36,8 +33,10 @@ import {
   UnitOfMeasure
 } from "~/components/Form";
 import CustomFormInlineFields from "~/components/Form/CustomFormInlineFields";
+import { usePermissions, useRouteData } from "~/hooks";
 import type { TrackedEntity } from "~/modules/inventory/types";
 import type { MethodItemType } from "~/modules/shared";
+import type { action } from "~/routes/x+/items+/update";
 import { path } from "~/utils/path";
 import { copyToClipboard } from "~/utils/string";
 import { deadlineTypes } from "../../production.models";
@@ -80,7 +79,7 @@ const JobProperties = () => {
         action: path.to.bulkUpdateJob
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [jobId, routeData?.job]
   );
 
@@ -97,7 +96,7 @@ const JobProperties = () => {
         action: path.to.customFields
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [jobId]
   );
 
@@ -116,7 +115,7 @@ const JobProperties = () => {
         action: path.to.tags
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [jobId]
   );
 
@@ -136,7 +135,7 @@ const JobProperties = () => {
         action: path.to.jobBatchNumber(jobId)
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 

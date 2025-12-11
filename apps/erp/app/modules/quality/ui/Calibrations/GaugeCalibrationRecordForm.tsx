@@ -109,7 +109,6 @@ const GaugeCalibrationRecordForm = ({
     if (initialValues.gaugeId) {
       onGaugeSelected(initialValues.gaugeId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialValues.gaugeId]);
 
   const onGaugeSelected = async (gaugeId: string) => {

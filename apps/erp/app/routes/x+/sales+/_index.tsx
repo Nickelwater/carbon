@@ -30,10 +30,10 @@ import {
   Tr
 } from "@carbon/react";
 import {
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig
+  ChartTooltipContent
 } from "@carbon/react/Chart";
 import { FunnelChart } from "@carbon/react/FunnelChart";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
@@ -239,7 +239,6 @@ export default function SalesDashboard() {
         customerId === "all" ? "" : `&customerId=${customerId}`
       }`
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKpi, dateRange, interval, selectedKpiData.key, customerId]);
 
   const onIntervalChange = (value: string) => {

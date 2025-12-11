@@ -65,12 +65,12 @@ import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";
 import { ConfirmDelete } from "~/components/Modals";
 import { useRouteData, useUser } from "~/hooks";
 import {
-  ShelfForm,
-  splitValidator,
   type BatchProperty,
   type ItemTracking,
   type Receipt,
-  type ReceiptLine
+  type ReceiptLine,
+  ShelfForm,
+  splitValidator
 } from "~/modules/inventory";
 import { getDocumentType } from "~/modules/shared/shared.service";
 import type { action as receiptLinesUpdateAction } from "~/routes/x+/receipt+/lines.update";
@@ -185,7 +185,6 @@ const ReceiptLines = () => {
         };
       }, {})
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeData?.receipt?.sourceDocumentId, routeData?.receiptLines?.length]);
 
   const onUpdateReceiptLine = useCallback(
@@ -214,7 +213,7 @@ const ReceiptLines = () => {
         action: path.to.bulkUpdateReceiptLine
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 

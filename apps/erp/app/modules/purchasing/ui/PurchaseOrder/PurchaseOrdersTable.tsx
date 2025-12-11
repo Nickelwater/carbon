@@ -351,7 +351,7 @@ const PurchaseOrdersTable = memo(
           action: path.to.bulkUpdatePurchaseOrder
         });
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
       []
     );
 

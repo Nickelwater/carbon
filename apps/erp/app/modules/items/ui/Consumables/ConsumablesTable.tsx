@@ -293,7 +293,7 @@ const ConsumablesTable = memo(
           action: path.to.bulkUpdateItems
         });
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
       []
     );
 
@@ -358,7 +358,6 @@ const ConsumablesTable = memo(
     );
 
     const renderContextMenu = useMemo(() => {
-      // eslint-disable-next-line react/display-name
       return (row: Consumable) => (
         <>
           <MenuItem onClick={() => navigate(path.to.consumable(row.id!))}>

@@ -54,6 +54,7 @@ import {
   formatRelativeTime
 } from "@carbon/utils";
 import { getLocalTimeZone, today } from "@internationalized/date";
+import { useNumberFormatter } from "@react-aria/i18n";
 import { Link, useFetcher, useFetchers, useParams } from "@remix-run/react";
 import { AnimatePresence, LayoutGroup, motion, Reorder } from "framer-motion";
 import { nanoid } from "nanoid";
@@ -104,7 +105,13 @@ import {
   UnitHint,
   WorkCenter
 } from "~/components/Form";
+import Procedure from "~/components/Form/Procedure";
+import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
 import { getUnitHint } from "~/components/Form/UnitHint";
+import UnitOfMeasure, {
+  useUnitOfMeasure
+} from "~/components/Form/UnitOfMeasure";
+import { ProcedureStepTypeIcon } from "~/components/Icons";
 import InfiniteScroll from "~/components/InfiniteScroll";
 import { ConfirmDelete } from "~/components/Modals";
 import type { Item, SortableItemRenderProps } from "~/components/SortableList";
@@ -123,20 +130,11 @@ import {
   operationTypes,
   procedureStepType
 } from "~/modules/shared";
-
 import type { action as editJobOperationParameterAction } from "~/routes/x+/job+/methods+/operation.parameter.$id";
 import type { action as newJobOperationParameterAction } from "~/routes/x+/job+/methods+/operation.parameter.new";
 import type { action as editJobOperationStepAction } from "~/routes/x+/job+/methods+/operation.step.$id";
 import type { action as editJobOperationToolAction } from "~/routes/x+/job+/methods+/operation.tool.$id";
 import type { action as newJobOperationToolAction } from "~/routes/x+/job+/methods+/operation.tool.new";
-
-import { useNumberFormatter } from "@react-aria/i18n";
-import Procedure from "~/components/Form/Procedure";
-import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
-import UnitOfMeasure, {
-  useUnitOfMeasure
-} from "~/components/Form/UnitOfMeasure";
-import { ProcedureStepTypeIcon } from "~/components/Icons";
 import { useItems, usePeople, useTools } from "~/stores";
 import { getPrivateUrl, path } from "~/utils/path";
 import {
@@ -1370,7 +1368,6 @@ function StepsListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const [type, setType] = useState<OperationStep["type"]>(attribute.type);
@@ -1880,7 +1877,6 @@ function ParametersListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const isUpdated = updatedBy !== null;
@@ -2906,7 +2902,6 @@ function ToolsListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const tools = useTools();

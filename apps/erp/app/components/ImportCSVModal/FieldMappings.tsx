@@ -4,15 +4,15 @@ import { useCarbon } from "@carbon/auth";
 import type { Database } from "@carbon/database";
 import { Combobox, useFormContext } from "@carbon/form";
 import {
-  Button,
-  ModalDescription,
-  ModalHeader,
-  ModalTitle,
-  toast,
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
+    Button,
+    ModalDescription,
+    ModalHeader,
+    ModalTitle,
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+    toast
 } from "@carbon/react";
 import { formatDate } from "@carbon/utils";
 import { useFetcher } from "@remix-run/react";
@@ -88,7 +88,6 @@ export function FieldMapping({
         encType: "application/json"
       }
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fileColumns, firstRows]);
 
   useEffect(() => {
@@ -112,7 +111,6 @@ export function FieldMapping({
         );
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data]);
 
   const enumFields: [

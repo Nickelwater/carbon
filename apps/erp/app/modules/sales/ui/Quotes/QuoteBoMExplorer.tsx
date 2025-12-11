@@ -1,17 +1,17 @@
 import {
   Badge,
+  cn,
   Copy,
-  HStack,
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
+  HStack,
   IconButton,
   Input,
   InputGroup,
   InputLeftElement,
   Spinner,
-  VStack,
-  cn
+  VStack
 } from "@carbon/react";
 import { Link, useFetchers, useNavigate, useParams } from "@remix-run/react";
 import { useEffect, useRef, useState } from "react";
@@ -105,7 +105,6 @@ const QuoteBoMExplorer = ({
       );
       if (node?.id) selectNode(node?.id);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMaterialId, params.methodId]);
 
   return (

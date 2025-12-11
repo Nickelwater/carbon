@@ -3,6 +3,7 @@
 import type { JSONContent, MentionSuggestion } from "@carbon/tiptap";
 import {
   Command,
+  createImageUpload,
   createMentionExtension,
   EditorBubble,
   EditorCommand,
@@ -11,11 +12,10 @@ import {
   EditorCommandList,
   EditorContent,
   EditorRoot,
-  ImageResizer,
-  createImageUpload,
   handleCommandNavigation,
   handleImageDrop,
   handleImagePaste,
+  ImageResizer,
   renderItems
 } from "@carbon/tiptap";
 import TextStyle from "@tiptap/extension-text-style";
@@ -122,7 +122,6 @@ const Editor = ({
       items: () => mentionItemsRef.current
     });
     // Only depend on mentions existence and char, not items content
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mentions?.[0]?.char]);
 
   const extensions = useMemo(

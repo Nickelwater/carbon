@@ -20,7 +20,7 @@ export function useTags({ id, table }: { id?: string; table: string }) {
         action: path.to.tags
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [id, table]
   );
 

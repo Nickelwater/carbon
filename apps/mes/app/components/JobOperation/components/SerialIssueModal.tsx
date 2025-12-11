@@ -22,13 +22,10 @@ import {
   TabsTrigger,
   toast
 } from "@carbon/react";
-import { useFetcher } from "@remix-run/react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { JobMaterial, TrackedInput } from "~/services/types";
-import { path } from "~/utils/path";
-
 import type { TrackedEntityAttributes } from "@carbon/utils";
 import { getItemReadableId } from "@carbon/utils";
+import { useFetcher } from "@remix-run/react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LuCheck,
   LuCirclePlus,
@@ -38,7 +35,9 @@ import {
   LuX
 } from "react-icons/lu";
 import type { getSerialNumbersForItem } from "~/services/inventory.service";
+import type { JobMaterial, TrackedInput } from "~/services/types";
 import { useItems } from "~/stores";
+import { path } from "~/utils/path";
 
 export function SerialIssueModal({
   operationId,
@@ -201,7 +200,6 @@ export function SerialIssueModal({
         encType: "application/json"
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedSerialNumbers,
     validateSerialNumber,
@@ -549,7 +547,6 @@ function useSerialNumbers(itemId?: string) {
     if (itemId) {
       serialNumbersFetcher.load(path.to.api.serialNumbers(itemId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemId]);
 
   return { data: serialNumbersFetcher.data };

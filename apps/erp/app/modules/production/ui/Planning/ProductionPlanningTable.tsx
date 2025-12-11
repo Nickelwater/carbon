@@ -105,7 +105,6 @@ const ProductionPlanningTable = ({
     if (bulkUpdateFetcher.data?.success === true) {
       toast.success("Orders submitted");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bulkUpdateFetcher.data?.success]);
 
   const isDisabled =
@@ -167,7 +166,7 @@ const ProductionPlanningTable = ({
         encType: "application/json"
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [bulkUpdateFetcher, locationId, ordersMap]
   );
 
@@ -202,7 +201,6 @@ const ProductionPlanningTable = ({
       });
       setOrdersByItemId(ordersByItemId);
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   const columns = useMemo<ColumnDef<ProductionPlanningItem>[]>(() => {
@@ -393,7 +391,6 @@ const ProductionPlanningTable = ({
         }
       }
     ];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     dateFormatter,
     numberFormatter,

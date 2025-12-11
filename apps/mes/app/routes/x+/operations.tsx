@@ -604,7 +604,6 @@ function useProgressByOperation(
       const { progress } = getProgress();
       setProgressByOperation(progress);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [productionEventsByOperation]);
 
   useRealtimeChannel({

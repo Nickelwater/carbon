@@ -1,3 +1,4 @@
+import { useCarbon } from "@carbon/auth";
 import type { Database } from "@carbon/database";
 import {
   Card,
@@ -31,11 +32,6 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
-import { Link, useParams } from "@remix-run/react";
-import type { z } from "zod/v3";
-import { MethodIcon, TimeTypeIcon } from "~/components/Icons";
-
-import { useCarbon } from "@carbon/auth";
 import { formatDurationMilliseconds, getItemReadableId } from "@carbon/utils";
 import {
   getLocalTimeZone,
@@ -43,9 +39,12 @@ import {
   parseAbsolute,
   toZoned
 } from "@internationalized/date";
+import { Link, useParams } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { LuCircleChevronRight, LuNotebook } from "react-icons/lu";
+import type { z } from "zod/v3";
 import { EmployeeAvatar, EmployeeAvatarGroup } from "~/components";
+import { MethodIcon, TimeTypeIcon } from "~/components/Icons";
 import { useCurrencyFormatter, usePercentFormatter, useUser } from "~/hooks";
 import { useItems } from "~/stores";
 import { makeDurations } from "~/utils/duration";
@@ -132,7 +131,6 @@ const JobEstimatesVsActuals = ({
 
   useEffect(() => {
     getCurrentUnitCosts(materials.map((m) => m.itemId));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [materials]);
 
   const getEstimatedTime = (operation: Operation) => {

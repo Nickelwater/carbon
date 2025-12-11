@@ -1,15 +1,14 @@
-import { useFetcher } from "@remix-run/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type {
-  SupplierContact as SupplierContactType,
-  getSupplierContacts
-} from "~/modules/purchasing";
-import { path } from "~/utils/path";
-
 import type { ComboboxProps } from "@carbon/form";
 import { CreatableCombobox } from "@carbon/form";
 import { Avatar, HStack, useDisclosure } from "@carbon/react";
+import { useFetcher } from "@remix-run/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  getSupplierContacts,
+  SupplierContact as SupplierContactType
+} from "~/modules/purchasing";
 import { SupplierContactForm } from "~/modules/purchasing/ui/Supplier";
+import { path } from "~/utils/path";
 
 type SupplierContactSelectProps = Omit<
   ComboboxProps,
@@ -52,7 +51,6 @@ const SupplierContact = (props: SupplierContactSelectProps) => {
         path.to.api.supplierContacts(props.supplier)
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.supplier]);
 
   const options = useMemo(

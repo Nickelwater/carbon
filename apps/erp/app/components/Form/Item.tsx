@@ -1,29 +1,29 @@
 import type { ComboboxProps } from "@carbon/form";
 import { useControlField, useField } from "@carbon/form";
 import {
-  Button,
-  cn,
-  CreatableCombobox,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-  FormControl,
-  FormErrorMessage,
-  FormHelperText,
-  FormLabel,
-  IconButton,
-  Modal,
-  ModalBody,
-  ModalContent,
-  ModalFooter,
-  ModalHeader,
-  ModalTitle,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-  useDisclosure
+    Button,
+    cn,
+    CreatableCombobox,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuRadioGroup,
+    DropdownMenuRadioItem,
+    DropdownMenuTrigger,
+    FormControl,
+    FormErrorMessage,
+    FormHelperText,
+    FormLabel,
+    IconButton,
+    Modal,
+    ModalBody,
+    ModalContent,
+    ModalFooter,
+    ModalHeader,
+    ModalTitle,
+    Tooltip,
+    TooltipContent,
+    TooltipTrigger,
+    useDisclosure
 } from "@carbon/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { LuFilter } from "react-icons/lu";
@@ -32,7 +32,7 @@ import ConsumableForm from "~/modules/items/ui/Consumables/ConsumableForm";
 import MaterialForm from "~/modules/items/ui/Materials/MaterialForm";
 import PartForm from "~/modules/items/ui/Parts/PartForm";
 import ToolForm from "~/modules/items/ui/Tools/ToolForm";
-import { methodItemType, type MethodItemType } from "~/modules/shared";
+import { type MethodItemType, methodItemType } from "~/modules/shared";
 import { useItems } from "~/stores";
 import { MethodItemTypeIcon } from "../Icons";
 
@@ -111,7 +111,6 @@ const Item = ({
     }
 
     return results;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     items,
     props?.includeInactive,

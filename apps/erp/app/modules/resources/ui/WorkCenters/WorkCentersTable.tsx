@@ -263,7 +263,6 @@ const WorkCentersTable = memo(
         }
       ];
       return [...defaultColumns, ...customColumns];
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [params, customColumns]);
 
     const renderContextMenu = useCallback<(row: WorkCenter) => JSX.Element>(
@@ -297,7 +296,7 @@ const WorkCentersTable = memo(
           )}
         </>
       ),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
       [navigate, params, permissions]
     );
 

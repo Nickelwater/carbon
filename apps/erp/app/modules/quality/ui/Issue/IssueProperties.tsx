@@ -9,11 +9,11 @@ import {
 import {
   Button,
   HStack,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  toast
+  VStack
 } from "@carbon/react";
 import { useFetcher, useParams } from "@remix-run/react";
 import { useCallback, useEffect } from "react";
@@ -104,7 +104,7 @@ const IssueProperties = () => {
         action: path.to.bulkUpdateIssue
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [id]
   );
 
@@ -123,7 +123,7 @@ const IssueProperties = () => {
         action: path.to.tags
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [id]
   );
 
@@ -140,7 +140,7 @@ const IssueProperties = () => {
         action: path.to.customFields
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [id]
   );
 

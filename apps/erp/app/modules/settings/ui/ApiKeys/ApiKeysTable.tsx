@@ -105,7 +105,7 @@ const ApiKeysTable = memo(({ data, count }: ApiKeysTableProps) => {
         </>
       );
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [navigate, params, permissions]
   );
 

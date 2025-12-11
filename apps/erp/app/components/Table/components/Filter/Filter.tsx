@@ -104,7 +104,7 @@ const Filter = forwardRef<HTMLButtonElement, FilterProps>(
           fetcher.load(filter.filter.endpoint);
         }
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
       [filters]
     );
 

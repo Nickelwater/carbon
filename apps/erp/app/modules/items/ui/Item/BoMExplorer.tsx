@@ -1,6 +1,6 @@
-/* eslint-disable react/jsx-no-undef */
 import {
   Badge,
+  cn,
   Copy,
   DropdownMenu,
   DropdownMenuContent,
@@ -10,18 +10,17 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
-  HStack,
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
+  HStack,
   IconButton,
   Input,
   InputGroup,
   InputLeftElement,
-  VStack,
-  cn,
   useDisclosure,
-  useMount
+  useMount,
+  VStack
 } from "@carbon/react";
 import { useOptimisticLocation } from "@carbon/remix";
 import { Link, useNavigate, useParams } from "@remix-run/react";

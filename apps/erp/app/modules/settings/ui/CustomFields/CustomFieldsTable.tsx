@@ -8,7 +8,7 @@ import { LuDatabase, LuLayoutGrid, LuList, LuTags } from "react-icons/lu";
 import { Hyperlink, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { usePermissions, useUrlParams } from "~/hooks";
-import { modulesType, type CustomFieldsTableType } from "~/modules/settings";
+import { type CustomFieldsTableType, modulesType } from "~/modules/settings";
 import { tablesWithTags } from "~/modules/shared";
 import { path } from "~/utils/path";
 
@@ -104,7 +104,7 @@ const CustomFieldsTable = memo(({ data, count }: CustomFieldsTableProps) => {
         </>
       );
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [navigate, params, permissions]
   );
 

@@ -9,11 +9,11 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-  HStack,
   Heading,
+  HStack,
   IconButton,
-  VStack,
-  useDisclosure
+  useDisclosure,
+  VStack
 } from "@carbon/react";
 
 import { Await, Link, useParams } from "@remix-run/react";
@@ -52,7 +52,6 @@ const QualityDocumentHeader = () => {
 
   useEffect(() => {
     newVersionDisclosure.onClose();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   return (

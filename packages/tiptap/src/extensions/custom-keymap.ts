@@ -1,7 +1,6 @@
 import { Extension } from "@tiptap/core";
 
 declare module "@tiptap/core" {
-  // eslint-disable-next-line no-unused-vars
   interface Commands<ReturnType> {
     customkeymap: {
       /**
@@ -26,9 +25,9 @@ const CustomKeymap = Extension.create({
           const endNodePos = tr.selection.$to.end();
           return commands.setTextSelection({
             from: startNodePos,
-            to: endNodePos
+            to: endNodePos,
           });
-        }
+        },
     };
   },
 
@@ -48,9 +47,9 @@ const CustomKeymap = Extension.create({
           return true;
         }
         return false;
-      }
+      },
     };
-  }
+  },
 });
 
 export default CustomKeymap;

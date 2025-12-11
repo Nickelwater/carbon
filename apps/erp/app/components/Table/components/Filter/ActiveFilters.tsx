@@ -103,7 +103,6 @@ const ActiveFilter = ({ filter, operator, value }: ActiveFilterProps) => {
 
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data, filter.filter.type]);
 
   const makeLabel = (v: string) => {

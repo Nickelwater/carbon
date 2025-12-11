@@ -1,4 +1,3 @@
-/* eslint-disable react/display-name */
 import type { NumberFieldProps } from "@carbon/react";
 import { Input, NumberField } from "@carbon/react";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";

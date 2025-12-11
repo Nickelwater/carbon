@@ -7,7 +7,6 @@ export async function loader() {
     if (test.error !== null) throw test.error;
     return new Response("OK");
   } catch (error: unknown) {
-    // eslint-disable-next-line no-console
     console.log("health ❌", { error });
     return new Response("ERROR", { status: 500 });
   }

@@ -31,13 +31,13 @@ import {
   Table
 } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
+import { useCustomerTypes } from "~/components/Form/CustomerType";
 import { ConfirmDelete } from "~/components/Modals";
 import { usePermissions } from "~/hooks";
 import { useCustomColumns } from "~/hooks/useCustomColumns";
 import { usePeople } from "~/stores";
 import { path } from "~/utils/path";
 import type { Customer, CustomerStatus } from "../../types";
-import { useCustomerTypes } from "~/components/Form/CustomerType";
 
 type CustomersTableProps = {
   data: Customer[];
@@ -240,7 +240,6 @@ const CustomersTable = memo(
     }, [customerStatuses, customerTypes, people, customColumns, tags]);
 
     const renderContextMenu = useMemo(
-      // eslint-disable-next-line react/display-name
       () => (row: Customer) => (
         <>
           <MenuItem onClick={() => navigate(path.to.customer(row.id!))}>

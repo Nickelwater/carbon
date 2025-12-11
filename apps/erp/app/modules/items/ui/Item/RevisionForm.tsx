@@ -52,7 +52,6 @@ const RevisionForm = ({
     if (fetcher.data?.success === false) {
       toast.error(fetcher.data.message);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data]);
 
   return (

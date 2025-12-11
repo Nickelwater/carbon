@@ -76,8 +76,13 @@ import {
   UnitHint,
   WorkCenter
 } from "~/components/Form";
-
+import Procedure from "~/components/Form/Procedure";
+import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
 import { getUnitHint } from "~/components/Form/UnitHint";
+import UnitOfMeasure, {
+  useUnitOfMeasure
+} from "~/components/Form/UnitOfMeasure";
+import { ProcedureStepTypeIcon } from "~/components/Icons";
 import { ConfirmDelete } from "~/components/Modals";
 import type { Item, SortableItemRenderProps } from "~/components/SortableList";
 import { SortableList, SortableListItem } from "~/components/SortableList";
@@ -95,19 +100,11 @@ import {
   operationTypes,
   procedureStepType
 } from "~/modules/shared";
-
 import type { action as editQuoteOperationParameterAction } from "~/routes/x+/quote+/methods+/operation.parameter.$id";
 import type { action as newQuoteOperationParameterAction } from "~/routes/x+/quote+/methods+/operation.parameter.new";
 import type { action as editQuoteOperationStepAction } from "~/routes/x+/quote+/methods+/operation.step.$id";
 import type { action as editQuoteOperationToolAction } from "~/routes/x+/quote+/methods+/operation.tool.$id";
 import type { action as newQuoteOperationToolAction } from "~/routes/x+/quote+/methods+/operation.tool.new";
-
-import Procedure from "~/components/Form/Procedure";
-import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
-import UnitOfMeasure, {
-  useUnitOfMeasure
-} from "~/components/Form/UnitOfMeasure";
-import { ProcedureStepTypeIcon } from "~/components/Icons";
 import { useItems, useTools } from "~/stores";
 import { getPrivateUrl, path } from "~/utils/path";
 import { quoteOperationValidator } from "../../sales.models";
@@ -1171,7 +1168,6 @@ function AttributesListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const [type, setType] = useState<OperationStep["type"]>(attribute.type);
@@ -1565,7 +1561,6 @@ function ParametersListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const isUpdated = updatedBy !== null;
@@ -2438,7 +2433,6 @@ function ToolsListItem({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   const tools = useTools();

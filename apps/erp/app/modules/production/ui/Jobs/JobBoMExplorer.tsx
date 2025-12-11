@@ -1,22 +1,22 @@
 import {
   Badge,
+  cn,
   Copy,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIcon,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  HStack,
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
+  HStack,
   IconButton,
   Input,
   InputGroup,
   InputLeftElement,
   Spinner,
-  VStack,
-  cn
+  VStack
 } from "@carbon/react";
 import { Link, useFetchers, useNavigate, useParams } from "@remix-run/react";
 import { useEffect, useRef, useState } from "react";
@@ -105,7 +105,6 @@ const JobBoMExplorer = ({ method }: JobBoMExplorerProps) => {
         selectNode(node.id);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedMaterialId, methodId]);
 
   return (

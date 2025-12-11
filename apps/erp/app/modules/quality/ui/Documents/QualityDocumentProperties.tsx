@@ -2,26 +2,26 @@ import { Select, ValidatedForm } from "@carbon/form";
 import {
   Button,
   HStack,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  toast
+  VStack
 } from "@carbon/react";
 import { useFetcher, useParams } from "@remix-run/react";
 import { useCallback, useEffect } from "react";
 import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
 import { z } from "zod/v3";
 import Assignee, { useOptimisticAssignment } from "~/components/Assignee";
+import { Tags } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";
+import { useTags } from "~/hooks/useTags";
 import type { action } from "~/routes/x+/items+/update";
 import { path } from "~/utils/path";
 import { copyToClipboard } from "~/utils/string";
 import { qualityDocumentStatus } from "../../quality.models";
 import type { QualityDocument } from "../../types";
 import QualityDocumentStatus from "./QualityDocumentStatus";
-import { Tags } from "~/components/Form";
-import { useTags } from "~/hooks/useTags";
 
 const QualityDocumentProperties = () => {
   const { id } = useParams();
@@ -52,7 +52,7 @@ const QualityDocumentProperties = () => {
         action: path.to.bulkUpdateQualityDocument
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [id]
   );
 

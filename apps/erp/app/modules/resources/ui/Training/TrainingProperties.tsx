@@ -3,11 +3,11 @@ import {
   Badge,
   Button,
   HStack,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  toast
+  VStack
 } from "@carbon/react";
 import { useFetcher, useParams } from "@remix-run/react";
 import { useCallback, useEffect } from "react";
@@ -18,10 +18,10 @@ import { InputControlled, Tags } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";
 import { useTags } from "~/hooks/useTags";
 import {
+  type Training,
   trainingFrequency,
   trainingStatus,
-  trainingType,
-  type Training
+  trainingType
 } from "~/modules/resources";
 import type { action } from "~/routes/x+/items+/update";
 import { path } from "~/utils/path";
@@ -66,7 +66,7 @@ const TrainingProperties = () => {
         action: path.to.bulkUpdateTraining
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [id]
   );
 

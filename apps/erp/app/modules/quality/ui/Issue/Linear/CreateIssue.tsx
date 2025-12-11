@@ -106,7 +106,6 @@ const useLinearTeams = (teamId?: string) => {
     fetcher.load(
       path.to.api.linearCreateIssue + (teamId ? `?teamId=${teamId}` : "")
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [teamId]);
 
   return {

@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { z } from "zod/v3";
 import {
-  importSchemas,
-  type fieldMappings
+  type fieldMappings,
+  importSchemas
 } from "~/modules/shared/imports.models";
 import type { action } from "~/routes/x+/shared+/import.$tableId";
 import { path } from "~/utils/path";
@@ -49,7 +49,6 @@ export const ImportCSVModal = ({ table, onClose }: ImportCSVModalProps) => {
     } else if (fetcher.data?.success === false) {
       toast.error(fetcher.data.message);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data?.success]);
 
   // if the file upload is successful, set the page to field-mapping

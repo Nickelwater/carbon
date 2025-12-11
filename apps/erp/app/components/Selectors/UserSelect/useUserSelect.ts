@@ -10,7 +10,7 @@ import {
   useId,
   useMemo,
   useRef,
-  useState
+  useState,
 } from "react";
 import type { Group } from "~/modules/users";
 import { path } from "~/utils/path";
@@ -21,7 +21,7 @@ import type {
   SelectionItemsById,
   TreeNode,
   UserSelectionGenericQueryFilters,
-  UserSelectProps
+  UserSelectProps,
 } from "./types";
 
 const defaultProps = {
@@ -41,7 +41,7 @@ const defaultProps = {
   selectionsMaxHeight: 400,
   showAvatars: false,
   usersOnly: false,
-  onCancel: () => {}
+  onCancel: () => {},
 };
 
 export default function useUserSelect(props: UserSelectProps) {
@@ -49,7 +49,7 @@ export default function useUserSelect(props: UserSelectProps) {
   const innerProps = useMemo(
     () => ({
       ...defaultProps,
-      ...props
+      ...props,
     }),
     [props]
   );
@@ -62,7 +62,6 @@ export default function useUserSelect(props: UserSelectProps) {
 
   useEffect(() => {
     groupsFetcher.load(path.to.api.groupsByType(innerProps.type));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [innerProps.type]);
 
   /* Refs */
@@ -109,14 +108,14 @@ export default function useUserSelect(props: UserSelectProps) {
           ...group.data,
           uid: getOptionId(groupId, group.data.id),
           label: group.data.name || "",
-          children: group.children
+          children: group.children,
         });
 
         const subgroups = group.children.map((subgroup) => ({
           ...subgroup.data,
           uid: getOptionId(groupId, subgroup.data.id),
           label: subgroup.data.name || "",
-          children: subgroup.children
+          children: subgroup.children,
         }));
 
         result.push(...subgroups);
@@ -126,7 +125,7 @@ export default function useUserSelect(props: UserSelectProps) {
         return {
           ...user,
           uid: getOptionId(groupId, user.id),
-          label: user.fullName || ""
+          label: user.fullName || "",
         };
       });
 
@@ -149,7 +148,7 @@ export default function useUserSelect(props: UserSelectProps) {
               uid,
               expanded: false,
               items: makeGroupItems(group as Group, uid),
-              name: group.data.name || ""
+              name: group.data.name || "",
             });
           }
           return acc;
@@ -168,7 +167,7 @@ export default function useUserSelect(props: UserSelectProps) {
           if (innerProps.value!.includes(item.id)) {
             return {
               ...acc,
-              [item.id]: item
+              [item.id]: item,
             };
           }
           return acc;
@@ -182,7 +181,7 @@ export default function useUserSelect(props: UserSelectProps) {
         );
         if (selection) {
           setSelectionItemsById({
-            [selection?.id]: selection
+            [selection?.id]: selection,
           });
         }
       }
@@ -200,7 +199,7 @@ export default function useUserSelect(props: UserSelectProps) {
             return acc.concat({
               ...group,
               expanded: true,
-              items: matches
+              items: matches,
             });
           } else {
             return acc;
@@ -228,7 +227,7 @@ export default function useUserSelect(props: UserSelectProps) {
     handler: () => {
       clear();
       commit();
-    }
+    },
   });
 
   const focusInput = useCallback(() => {
@@ -394,7 +393,7 @@ export default function useUserSelect(props: UserSelectProps) {
       getPreviousNode,
       getNextNode,
       scrollTo,
-      setFocusedId
+      setFocusedId,
     ]
   );
 
@@ -450,7 +449,7 @@ export default function useUserSelect(props: UserSelectProps) {
       setSelectionItemsById((previousSelections) => {
         const nextSelections = innerProps.isMulti
           ? {
-              ...previousSelections
+              ...previousSelections,
             }
           : {};
 
@@ -473,7 +472,7 @@ export default function useUserSelect(props: UserSelectProps) {
       innerProps.resetAfterSelection,
       onChange,
       setFocusedId,
-      setSelectionItemsById
+      setSelectionItemsById,
     ]
   );
 
@@ -513,7 +512,7 @@ export default function useUserSelect(props: UserSelectProps) {
       setSelectionItemsById((previousSelections) => {
         const nextSelections = {
           ...previousSelections,
-          [selectionItem.id]: toggleChecked(selectionItem)
+          [selectionItem.id]: toggleChecked(selectionItem),
         };
 
         onCheckedChange(Object.values(nextSelections));
@@ -552,7 +551,7 @@ export default function useUserSelect(props: UserSelectProps) {
       dropdown,
       innerProps.isMulti,
       removeSelections,
-      setControlledValue
+      setControlledValue,
     ]
   );
 
@@ -570,7 +569,7 @@ export default function useUserSelect(props: UserSelectProps) {
             newSelectionItems[user.id] = {
               ...user,
               uid: getOptionId(id, user.id),
-              label: user.fullName || ""
+              label: user.fullName || "",
             };
           });
 
@@ -578,7 +577,7 @@ export default function useUserSelect(props: UserSelectProps) {
             newSelectionItems[group.data.id] = {
               ...group.data,
               uid: getOptionId(id, group.data.id),
-              label: group.data.name || ""
+              label: group.data.name || "",
             };
           });
 
@@ -691,7 +690,7 @@ export default function useUserSelect(props: UserSelectProps) {
       onSelect,
       onToggle,
       resetFocus,
-      setFocus
+      setFocus,
     ]
   );
 
@@ -703,7 +702,7 @@ export default function useUserSelect(props: UserSelectProps) {
     () => ({
       id: instanceId,
       role: "tree",
-      tabIndex: -1
+      tabIndex: -1,
     }),
     [instanceId]
   );
@@ -717,7 +716,7 @@ export default function useUserSelect(props: UserSelectProps) {
       "aria-autocomplete": "list",
       "aria-activedescendant": undefined, // TODO
       autoComplete: "off",
-      autoCorrect: "off"
+      autoCorrect: "off",
     }),
     [instanceId, dropdown.isOpen]
   );
@@ -726,7 +725,7 @@ export default function useUserSelect(props: UserSelectProps) {
     () => ({
       inputProps,
       listBoxProps,
-      popoverProps
+      popoverProps,
     }),
     [inputProps, listBoxProps, popoverProps]
   );
@@ -734,7 +733,7 @@ export default function useUserSelect(props: UserSelectProps) {
   let inputValue =
     innerProps.isMulti || focusedId || controlledValue
       ? controlledValue
-      : (Object.values(selectionItemsById)?.[0]?.label ?? "");
+      : Object.values(selectionItemsById)?.[0]?.label ?? "";
 
   return {
     aria,
@@ -757,7 +756,7 @@ export default function useUserSelect(props: UserSelectProps) {
       listBoxRef,
       popoverRef,
       buttonRef,
-      focusableNodes
+      focusableNodes,
     },
     // event handlers
     onClearInput,
@@ -773,7 +772,7 @@ export default function useUserSelect(props: UserSelectProps) {
     onExplode,
     onMouseOver,
     setControlledValue,
-    setSelectionItemsById
+    setSelectionItemsById,
   };
 }
 
@@ -788,7 +787,7 @@ function getGroupId(instanceId: string, groupId: string) {
 function checked(item: IndividualOrGroup): IndividualOrGroup {
   return {
     ...item,
-    isChecked: true
+    isChecked: true,
   };
 }
 
@@ -802,7 +801,7 @@ export function isGroup(item: IndividualOrGroup) {
 function toggleChecked(item: IndividualOrGroup): IndividualOrGroup {
   return {
     ...item,
-    isChecked: !item.isChecked || false
+    isChecked: !item.isChecked || false,
   };
 }
 

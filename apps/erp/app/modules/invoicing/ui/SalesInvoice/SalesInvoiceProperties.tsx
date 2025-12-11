@@ -4,18 +4,18 @@ import {
   Button,
   HStack,
   IconButton,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  toast
+  VStack
 } from "@carbon/react";
 import { useLocale } from "@react-aria/i18n";
 import { useFetcher, useParams } from "@remix-run/react";
 import { useCallback, useEffect, useMemo } from "react";
 import { LuCopy, LuInfo, LuLink, LuRefreshCcw } from "react-icons/lu";
-import { z } from "zod/v3";
 import { zfd } from "zod-form-data";
+import { z } from "zod/v3";
 import { Assignee, useOptimisticAssignment } from "~/components";
 import {
   Currency,
@@ -75,7 +75,7 @@ const SalesInvoiceProperties = () => {
         action: path.to.bulkUpdateSalesInvoice
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [invoiceId, routeData?.salesInvoice]
   );
 
@@ -92,7 +92,7 @@ const SalesInvoiceProperties = () => {
         action: path.to.customFields
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [invoiceId]
   );
 

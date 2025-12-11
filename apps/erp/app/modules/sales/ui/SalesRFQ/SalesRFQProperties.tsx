@@ -3,17 +3,17 @@ import { DatePicker, InputControlled, ValidatedForm } from "@carbon/form";
 import {
   Button,
   HStack,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  toast
+  VStack
 } from "@carbon/react";
 import { useFetcher, useParams } from "@remix-run/react";
 import { useCallback, useEffect } from "react";
 import { LuCopy, LuLink } from "react-icons/lu";
-import { z } from "zod/v3";
 import { zfd } from "zod-form-data";
+import { z } from "zod/v3";
 import { Assignee, useOptimisticAssignment } from "~/components";
 import {
   Customer,
@@ -59,7 +59,7 @@ const SalesRFQProperties = () => {
         action: path.to.bulkUpdateSalesRfq
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [rfqId, routeData?.rfqSummary]
   );
 
@@ -76,7 +76,7 @@ const SalesRFQProperties = () => {
         action: path.to.customFields
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [rfqId]
   );
 

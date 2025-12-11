@@ -44,7 +44,6 @@ export function ReviewersList({
       disclosure.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data?.success]);
 
   if (reviewers.length === 0) {

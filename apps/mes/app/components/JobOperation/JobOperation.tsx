@@ -1,3 +1,6 @@
+import type { Result } from "@carbon/auth";
+import { useCarbon } from "@carbon/auth";
+import type { Database } from "@carbon/database";
 import {
   Badge,
   Button,
@@ -12,6 +15,7 @@ import {
   Heading,
   HStack,
   IconButton,
+  type JSONContent,
   ModelViewer,
   Progress,
   ScrollArea,
@@ -33,37 +37,8 @@ import {
   TooltipTrigger,
   Tr,
   useDisclosure,
-  VStack,
-  type JSONContent
+  VStack
 } from "@carbon/react";
-import { Await, useFetcher, useNavigate, useParams } from "@remix-run/react";
-import { Suspense, useEffect, useMemo, useState } from "react";
-import {
-  DeadlineIcon,
-  FileIcon,
-  FilePreview,
-  OperationStatusIcon
-} from "~/components";
-import { useUrlParams, useUser } from "~/hooks";
-import type { productionEventType } from "~/services/models";
-import type {
-  Job,
-  JobMakeMethod,
-  JobMaterial,
-  JobOperationParameter,
-  JobOperationStep,
-  Kanban,
-  OperationWithDetails,
-  ProductionEvent,
-  StorageItem,
-  TrackedEntity,
-  TrackedInput
-} from "~/services/types";
-import { path } from "~/utils/path";
-
-import type { Result } from "@carbon/auth";
-import { useCarbon } from "@carbon/auth";
-import type { Database } from "@carbon/database";
 import { useKeyboardWedge, useMode } from "@carbon/remix";
 import type { TrackedEntityAttributes } from "@carbon/utils";
 import {
@@ -75,7 +50,9 @@ import {
   getItemReadableId,
   labelSizes
 } from "@carbon/utils";
+import { Await, useFetcher, useNavigate, useParams } from "@remix-run/react";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import { FaTasks } from "react-icons/fa";
 import { FaCheck, FaPlus, FaTrash } from "react-icons/fa6";
@@ -100,9 +77,31 @@ import {
   LuTimer,
   LuTriangleAlert
 } from "react-icons/lu";
+import {
+  DeadlineIcon,
+  FileIcon,
+  FilePreview,
+  OperationStatusIcon
+} from "~/components";
 import { MethodIcon, TrackingTypeIcon } from "~/components/Icons";
+import { useUrlParams, useUser } from "~/hooks";
+import type { productionEventType } from "~/services/models";
 import { getFileType } from "~/services/operations.service";
+import type {
+  Job,
+  JobMakeMethod,
+  JobMaterial,
+  JobOperationParameter,
+  JobOperationStep,
+  Kanban,
+  OperationWithDetails,
+  ProductionEvent,
+  StorageItem,
+  TrackedEntity,
+  TrackedInput
+} from "~/services/types";
 import { useItems } from "~/stores";
+import { path } from "~/utils/path";
 import ItemThumbnail from "../ItemThumbnail";
 import { BatchIssueModal } from "./components/BatchIssueModal";
 import { OperationChat } from "./components/Chat";
@@ -324,7 +323,6 @@ export const JobOperation = ({
     }
 
     createInspectionStepsForNonConformanceActions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     carbon,
     operationId,

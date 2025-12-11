@@ -27,7 +27,6 @@ export function QuoteLineMethodForm() {
     if (quote) {
       quoteLineFetcher.load(path.to.api.quoteLines(quote));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quote]);
 
   const quoteOptions = useMemo(

@@ -3,18 +3,18 @@ import { InputControlled, ValidatedForm } from "@carbon/form";
 import {
   Badge,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIcon,
   DropdownMenuItem,
   DropdownMenuTrigger,
   HStack,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  cn,
-  toast
+  VStack
 } from "@carbon/react";
 import { Await, Link, useFetcher, useParams } from "@remix-run/react";
 import type { PostgrestResponse } from "@supabase/supabase-js";
@@ -112,7 +112,7 @@ const PartProperties = () => {
         action: path.to.bulkUpdateItems
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [routeData?.partSummary?.id]
   );
 
@@ -131,7 +131,7 @@ const PartProperties = () => {
         action: path.to.tags
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [routeData?.partSummary?.readableId]
   );
 
@@ -148,7 +148,7 @@ const PartProperties = () => {
         action: path.to.customFields
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [routeData?.partSummary?.readableId]
   );
 

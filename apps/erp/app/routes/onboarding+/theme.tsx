@@ -8,13 +8,13 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-  HStack,
-  VStack,
   cn,
-  useKeyboardShortcuts
+  HStack,
+  useKeyboardShortcuts,
+  VStack
 } from "@carbon/react";
 import { useMode } from "@carbon/remix";
-import { themes, type Theme } from "@carbon/utils";
+import { type Theme, themes } from "@carbon/utils";
 import {
   Link,
   useFetcher,
@@ -28,7 +28,7 @@ import { useEffect, useRef, useState } from "react";
 import { BiMoon, BiSun } from "react-icons/bi";
 import { RxCheck } from "react-icons/rx";
 import { useOnboarding } from "~/hooks";
-import { themeValidator, type Theme as ThemeValue } from "~/modules/settings";
+import { type Theme as ThemeValue, themeValidator } from "~/modules/settings";
 import type { action as modeAction } from "~/root";
 import { getTheme, setTheme } from "~/services/theme.server";
 import type { Handle } from "~/utils/handle";
@@ -88,7 +88,6 @@ export default function OnboardingTheme() {
     if (t) {
       onThemeChange(t);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mode]);
 
   const { next, previous } = useOnboarding();

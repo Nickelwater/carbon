@@ -188,7 +188,6 @@ const ProductionQuantitiesTable = memo(
         </>
       ),
 
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       [permissions]
     );
 

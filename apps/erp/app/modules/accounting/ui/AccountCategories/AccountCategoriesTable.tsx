@@ -8,9 +8,9 @@ import {
 import { Link, useNavigate } from "@remix-run/react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useCallback, useMemo, useState } from "react";
-import { LuListChecks, LuPencil, LuTrash } from "react-icons/lu";
 import { BiAddToQueue } from "react-icons/bi";
 import { BsListUl } from "react-icons/bs";
+import { LuListChecks, LuPencil, LuTrash } from "react-icons/lu";
 import { Hyperlink, New, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { ConfirmDelete } from "~/components/Modals";
@@ -160,7 +160,7 @@ const AccountCategoriesTable = memo(
           </>
         );
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
       [navigate, params, permissions]
     );
 

@@ -162,7 +162,6 @@ export default function LessonRoute() {
     return () => {
       window.removeEventListener("message", handleMessage);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   return (

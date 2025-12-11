@@ -131,7 +131,6 @@ function useReadableTrackedEntities(data: Job[], companyId: string) {
       }, []),
       companyId
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
   return trackedEntities;
@@ -568,7 +567,6 @@ const JobsTable = memo(({ data, count, tags }: JobsTableProps) => {
       }
     ];
     return [...defaultColumns, ...customColumns];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params, customColumns, trackedEntities]);
 
   const fetcher = useFetcher<typeof action>();
@@ -591,7 +589,7 @@ const JobsTable = memo(({ data, count, tags }: JobsTableProps) => {
         action: path.to.bulkUpdateJob
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 
@@ -650,7 +648,7 @@ const JobsTable = memo(({ data, count, tags }: JobsTableProps) => {
         </MenuItem>
       </>
     ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [navigate, params, permissions]
   );
 

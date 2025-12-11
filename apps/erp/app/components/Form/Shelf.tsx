@@ -89,7 +89,6 @@ export function useShelves(locationId?: string, itemId?: string) {
       }
       shelvesFetcher.load(path.to.api.shelves(locationId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [locationId, itemId]);
 
   const options = useMemo(() => {

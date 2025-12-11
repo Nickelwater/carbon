@@ -88,7 +88,7 @@ export function ChatInterface({ geo }: Props) {
           });
         }
       ),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [accessToken]
   );
 

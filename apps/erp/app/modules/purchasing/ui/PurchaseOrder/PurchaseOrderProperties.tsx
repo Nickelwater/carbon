@@ -5,11 +5,11 @@ import {
   Button,
   HStack,
   IconButton,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  toast
+  VStack
 } from "@carbon/react";
 import { useLocale } from "@react-aria/i18n";
 import { Link, useFetcher, useParams } from "@remix-run/react";
@@ -22,8 +22,8 @@ import {
   LuLink,
   LuRefreshCcw
 } from "react-icons/lu";
-import { z } from "zod/v3";
 import { zfd } from "zod-form-data";
+import { z } from "zod/v3";
 import { Assignee, Hyperlink, useOptimisticAssignment } from "~/components";
 import {
   Currency,
@@ -83,7 +83,7 @@ const PurchaseOrderProperties = () => {
         action: path.to.bulkUpdatePurchaseOrder
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [orderId, routeData?.purchaseOrder]
   );
 
@@ -100,7 +100,7 @@ const PurchaseOrderProperties = () => {
         action: path.to.customFields
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [orderId]
   );
 

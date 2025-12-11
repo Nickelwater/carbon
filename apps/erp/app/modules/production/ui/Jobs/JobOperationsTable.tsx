@@ -229,7 +229,6 @@ const JobOperationsTable = memo(({ data, count }: JobOperationsTableProps) => {
       }
       return item;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingItems.length]);
 
   return (

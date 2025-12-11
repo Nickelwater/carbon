@@ -365,7 +365,6 @@ const Notifications = () => {
     if (isOpen && hasUnseenNotifications) {
       markAllMessagesAsSeen();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUnseenNotifications, isOpen]);
 
   const outstandingTrainings = trainingsFetcher.data?.data ?? [];

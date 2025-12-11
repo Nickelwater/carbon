@@ -1,14 +1,12 @@
 "use client";
 
-import * as React from "react";
-
-import type { Button } from "./Button";
-import { Drawer, DrawerContent } from "./Drawer";
-
 import { Slot } from "@radix-ui/react-slot";
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
+import * as React from "react";
 import { LuPanelLeft } from "react-icons/lu";
+import type { Button } from "./Button";
+import { Drawer, DrawerContent } from "./Drawer";
 import { useIsMobile } from "./hooks";
 import { IconButton } from "./IconButton";
 import { Input } from "./Input";
@@ -39,7 +37,6 @@ type SidebarContext = {
   toggleSidebar: () => void;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-redeclare
 const SidebarContext = React.createContext<SidebarContext | null>(null);
 
 function useSidebar() {

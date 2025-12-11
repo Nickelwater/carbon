@@ -260,7 +260,6 @@ const SalesInvoicesTable = memo(({ data, count }: SalesInvoicesTableProps) => {
   }, [currencyFormatter, customColumns, people, customers]);
 
   const renderContextMenu = useMemo(() => {
-    // eslint-disable-next-line react/display-name
     return (row: SalesInvoice) => (
       <>
         <MenuItem

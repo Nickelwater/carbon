@@ -1,10 +1,19 @@
+import { useCarbon } from "@carbon/auth";
 import {
   toast,
   useDisclosure,
   useInterval,
   useRealtimeChannel
 } from "@carbon/react";
+import type { TrackedEntityAttributes } from "@carbon/utils";
+import {
+  getLocalTimeZone,
+  now,
+  parseAbsolute,
+  toZoned
+} from "@internationalized/date";
 import { useParams, useRevalidator } from "@remix-run/react";
+import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useUrlParams, useUser } from "~/hooks";
 import type {
@@ -16,16 +25,6 @@ import type {
   TrackedEntity
 } from "~/services/types";
 import { path } from "~/utils/path";
-
-import { useCarbon } from "@carbon/auth";
-import type { TrackedEntityAttributes } from "@carbon/utils";
-import {
-  getLocalTimeZone,
-  now,
-  parseAbsolute,
-  toZoned
-} from "@internationalized/date";
-import type { RealtimeChannel } from "@supabase/supabase-js";
 
 export function useOperation({
   operation,
@@ -265,7 +264,6 @@ export function useOperation({
     if (uncompletedEntities.length > 0) serialModal.onOpen();
     setAvailableEntities(uncompletedEntities);
     // causes an infinite loop on navigation
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trackedEntities, trackedEntityParam]);
 
   return {

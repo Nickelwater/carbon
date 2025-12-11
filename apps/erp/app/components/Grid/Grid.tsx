@@ -1,4 +1,5 @@
 import {
+  cn,
   HStack,
   Table,
   Tbody,
@@ -6,10 +7,9 @@ import {
   Th,
   Thead,
   Tr,
-  VStack,
-  cn,
   useEscape,
-  useMount
+  useMount,
+  VStack
 } from "@carbon/react";
 import { clamp } from "@carbon/utils";
 import type { ColumnDef, ColumnOrderState } from "@tanstack/react-table";
@@ -311,7 +311,6 @@ const Grid = <T extends object>({
   // reset the selected cell when the table data changes
   useEffect(() => {
     setSelectedCell(null);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [columnOrder, columnVisibility]);
 
   useMount(() => {

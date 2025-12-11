@@ -49,7 +49,6 @@ export default defineConfig({
       serverModuleFormat: "esm",
       routes: async (defineRoutes) => {
         return flatRoutes("routes", defineRoutes, {
-          // eslint-disable-next-line no-undef
           appDir: path.resolve(__dirname, "app"),
         });
       },

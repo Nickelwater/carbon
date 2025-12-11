@@ -14,6 +14,12 @@ import {
   useDisclosure
 } from "@carbon/react";
 import { formatDate } from "@carbon/utils";
+import {
+  getLocalTimeZone,
+  isSameDay,
+  parseDate,
+  today
+} from "@internationalized/date";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useMemo, useState } from "react";
 import {
@@ -44,19 +50,12 @@ import {
   Table
 } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
-import { ConfirmDelete } from "~/components/Modals";
-import { useCurrencyFormatter, usePermissions } from "~/hooks";
-import { useCustomColumns } from "~/hooks/useCustomColumns";
-
-import {
-  getLocalTimeZone,
-  isSameDay,
-  parseDate,
-  today
-} from "@internationalized/date";
 import { useLocations } from "~/components/Form/Location";
 import { usePaymentTerm } from "~/components/Form/PaymentTerm";
 import { useShippingMethod } from "~/components/Form/ShippingMethod";
+import { ConfirmDelete } from "~/components/Modals";
+import { useCurrencyFormatter, usePermissions } from "~/hooks";
+import { useCustomColumns } from "~/hooks/useCustomColumns";
 import type { jobStatus } from "~/modules/production/production.models";
 import JobStatus from "~/modules/production/ui/Jobs/JobStatus";
 import { useCustomers, usePeople } from "~/stores";
@@ -468,7 +467,6 @@ const SalesOrdersTable = memo(({ data, count }: SalesOrdersTableProps) => {
   ]);
 
   const renderContextMenu = useMemo(() => {
-    // eslint-disable-next-line react/display-name
     return (row: SalesOrder) => (
       <>
         <MenuItem

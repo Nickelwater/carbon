@@ -266,7 +266,6 @@ const PurchaseInvoicesTable = memo(
     }, [currencyFormatter, customColumns, people, suppliers]);
 
     const renderContextMenu = useMemo(() => {
-      // eslint-disable-next-line react/display-name
       return (row: PurchaseInvoice) => (
         <>
           <MenuItem

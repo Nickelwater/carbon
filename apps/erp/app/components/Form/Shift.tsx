@@ -2,9 +2,8 @@ import type { SelectProps } from "@carbon/form";
 import { Select } from "@carbon/form";
 import { useFetcher } from "@remix-run/react";
 import { useEffect, useMemo } from "react";
-import { path } from "~/utils/path";
-
 import type { getShiftsList } from "~/modules/people";
+import { path } from "~/utils/path";
 
 type ShiftSelectProps = Omit<SelectProps, "options"> & {
   location?: string;
@@ -29,7 +28,6 @@ export const useShifts = (props?: { location?: string }) => {
     if (props?.location) {
       shiftFetcher.load(path.to.api.shifts(props.location));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props?.location]);
 
   const options = useMemo(

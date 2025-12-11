@@ -1,15 +1,14 @@
-import { useFetcher } from "@remix-run/react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import type {
-  MaterialGrade as MaterialGradeType,
-  getMaterialGradeList
-} from "~/modules/items";
-import { path } from "~/utils/path";
-
 import type { ComboboxProps } from "@carbon/form";
 import { CreatableCombobox } from "@carbon/form";
 import { useDisclosure, useMount } from "@carbon/react";
+import { useFetcher } from "@remix-run/react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type {
+  getMaterialGradeList,
+  MaterialGrade as MaterialGradeType
+} from "~/modules/items";
 import MaterialGradeForm from "~/modules/items/ui/MaterialGrades/MaterialGradeForm";
+import { path } from "~/utils/path";
 
 type MaterialGradeSelectProps = Omit<
   ComboboxProps,
@@ -47,7 +46,6 @@ const MaterialGrade = (props: MaterialGradeSelectProps) => {
     if (props.substanceId) {
       materialGradesLoader.load(path.to.api.materialGrades(props.substanceId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.substanceId]);
 
   const options = useMemo(() => {

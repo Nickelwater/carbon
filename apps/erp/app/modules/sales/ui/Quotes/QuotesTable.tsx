@@ -276,7 +276,6 @@ const QuotesTable = memo(({ data, count }: QuotesTableProps) => {
   }, [customers, people, customColumns]);
 
   const renderContextMenu = useMemo(() => {
-    // eslint-disable-next-line react/display-name
     return (row: Quotation) => (
       <>
         <MenuItem onClick={() => navigate(path.to.quoteDetails(row.id!))}>

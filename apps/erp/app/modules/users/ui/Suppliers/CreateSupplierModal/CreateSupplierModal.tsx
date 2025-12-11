@@ -1,4 +1,4 @@
-import { ValidatedForm, useControlField, useField } from "@carbon/form";
+import { useControlField, useField, ValidatedForm } from "@carbon/form";
 import {
   Combobox,
   FormControl,
@@ -20,8 +20,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Submit, Supplier } from "~/components/Form";
 import { useUrlParams } from "~/hooks";
 import type {
-  SupplierContact as SupplierContactType,
-  getSupplierContacts
+  getSupplierContacts,
+  SupplierContact as SupplierContactType
 } from "~/modules/purchasing";
 import { createSupplierAccountValidator } from "~/modules/users";
 import type { Result } from "~/types";
@@ -147,7 +147,6 @@ const SupplierContact = ({
         onChange(null);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [supplier]);
 
   const options = useMemo(
@@ -178,7 +177,6 @@ const SupplierContact = ({
     if (value && value === defaultValue) {
       handleChange(value);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, supplierContactFetcher.data?.data]);
 
   return (

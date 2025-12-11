@@ -200,7 +200,6 @@ const ViewsReorderGroup = ({
 
   useEffect(() => {
     setSortedViews([...views].sort((a, b) => a.sortOrder - b.sortOrder));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [views.length, viewNames]);
 
   const debouncedOnReorder = useDebounce(onReorder, 500, true);

@@ -1,4 +1,4 @@
-import { ValidatedForm, useControlField, useField } from "@carbon/form";
+import { useControlField, useField, ValidatedForm } from "@carbon/form";
 import {
   Combobox,
   FormControl,
@@ -148,7 +148,6 @@ const CustomerContact = ({
         onChange(null);
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [customer]);
 
   const options = useMemo(
@@ -180,7 +179,6 @@ const CustomerContact = ({
     if (value && value === defaultValue) {
       handleChange(value);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, customerContactFetcher.data?.data]);
 
   return (

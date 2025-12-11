@@ -352,7 +352,6 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
         }
       }
     ];
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     items,
     jobId,
@@ -363,7 +362,6 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
   ]);
 
   const renderContextMenu = useMemo(() => {
-    // eslint-disable-next-line react/display-name
     return (row: JobMaterial) => {
       // Skip non-inventory items and make items
       if (
@@ -517,7 +515,6 @@ const StockTransferSessionWidget = ({ jobId }: { jobId: string }) => {
     if (fetcher.data?.success) {
       onClearAll();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data?.success]);
 
   if (sessionItemsCount === 0) {

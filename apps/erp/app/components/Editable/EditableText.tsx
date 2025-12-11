@@ -1,4 +1,3 @@
-/* eslint-disable react/display-name */
 import { Input } from "@carbon/react";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
 import type { FocusEvent, KeyboardEvent } from "react";
@@ -53,7 +52,6 @@ const EditableText =
       }
     };
 
-    // eslint-disable-next-line jsx-a11y/no-autofocus
     return (
       <Input
         autoFocus

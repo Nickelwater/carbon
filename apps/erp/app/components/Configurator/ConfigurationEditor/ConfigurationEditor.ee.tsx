@@ -1,4 +1,3 @@
-/* eslint-disable no-new-func */
 import {
   Badge,
   Button,
@@ -225,8 +224,6 @@ export default function Configurator({
     if (fetcher.data?.success === true) {
       onClose();
     }
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data]);
 
   const runCode = useCallback(() => {

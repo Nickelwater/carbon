@@ -14,7 +14,7 @@ import { Hyperlink, New, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { usePermissions, useUrlParams } from "~/hooks";
 import { useCustomColumns } from "~/hooks/useCustomColumns";
-import { shippingCarrierType, type ShippingMethod } from "~/modules/inventory";
+import { type ShippingMethod, shippingCarrierType } from "~/modules/inventory";
 import { path } from "~/utils/path";
 
 type ShippingMethodsTableProps = {
@@ -91,7 +91,6 @@ const ShippingMethodsTable = memo(
             }
           ])
         : result;
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [permissions, customColumns]);
 
     const renderContextMenu = useCallback(

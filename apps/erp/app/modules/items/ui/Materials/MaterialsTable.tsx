@@ -429,7 +429,7 @@ const MaterialsTable = memo(({ data, tags, count }: MaterialsTableProps) => {
         action: path.to.bulkUpdateItems
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [materialSubstanceId, materialFormId]
   );
 
@@ -490,7 +490,6 @@ const MaterialsTable = memo(({ data, tags, count }: MaterialsTableProps) => {
   );
 
   const renderContextMenu = useMemo(() => {
-    // eslint-disable-next-line react/display-name
     return (row: Material) => {
       const revisions =
         (row.revisions as {

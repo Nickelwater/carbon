@@ -30,7 +30,6 @@ const ShipmentVoidModal = ({ onClose }: { onClose: () => void }) => {
     if (fetcher.state === "idle" && submitted.current) {
       onClose();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   return (

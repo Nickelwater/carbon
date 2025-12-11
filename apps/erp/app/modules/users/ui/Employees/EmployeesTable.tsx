@@ -155,7 +155,6 @@ const EmployeesTable = memo(
           }
         }
       ];
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [params]);
 
     const renderActions = useCallback(

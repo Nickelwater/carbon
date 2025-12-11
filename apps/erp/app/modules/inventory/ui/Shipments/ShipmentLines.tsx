@@ -175,7 +175,6 @@ const ShipmentLines = () => {
         };
       }, {})
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeData?.shipment?.sourceDocumentId, routeData?.shipmentLines?.length]);
 
   const onUpdateShipmentLine = useCallback(
@@ -204,7 +203,7 @@ const ShipmentLines = () => {
         action: path.to.bulkUpdateShipmentLine
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     []
   );
 
@@ -630,7 +629,6 @@ function BatchForm({
         });
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [line.shippedQuantity]);
 
   const getShelfFromBatchNumber = async (trackedEntityId: string) => {
@@ -657,7 +655,6 @@ function BatchForm({
     if (values.number && values.number.trim()) {
       getShelfFromBatchNumber(values.number);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [values.number]);
 
   const updateBatchNumber = async (newValues: typeof values, isNew = false) => {
@@ -1198,7 +1195,6 @@ export function useSerialNumbers(itemId?: string, isReadOnly = false) {
     if (itemId) {
       serialNumbersFetcher.load(path.to.api.serialNumbers(itemId, isReadOnly));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemId]);
 
   return { data: serialNumbersFetcher.data };
@@ -1212,7 +1208,6 @@ export function useBatchNumbers(itemId?: string) {
     if (itemId) {
       batchNumbersFetcher.load(path.to.api.batchNumbers(itemId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemId]);
 
   return { data: batchNumbersFetcher.data };

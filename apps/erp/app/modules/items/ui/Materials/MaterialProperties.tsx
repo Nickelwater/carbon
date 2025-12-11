@@ -5,6 +5,7 @@ import {
   AlertTitle,
   Badge,
   Button,
+  cn,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIcon,
@@ -17,19 +18,18 @@ import {
   ModalFooter,
   ModalHeader,
   ModalTitle,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  cn,
-  toast,
-  useDisclosure
+  useDisclosure,
+  VStack
 } from "@carbon/react";
 import { Await, useFetcher, useParams } from "@remix-run/react";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { LuCopy, LuKeySquare, LuLink, LuTriangleAlert } from "react-icons/lu";
-import { z } from "zod/v3";
 import { zfd } from "zod-form-data";
+import { z } from "zod/v3";
 import { MethodBadge, MethodIcon, TrackingTypeIcon } from "~/components";
 import { Boolean, Tags, UnitOfMeasure } from "~/components/Form";
 import CustomFormInlineFields from "~/components/Form/CustomFormInlineFields";
@@ -137,7 +137,7 @@ const MaterialProperties = () => {
         action: path.to.bulkUpdateItems
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [itemId]
   );
 
@@ -202,7 +202,7 @@ const MaterialProperties = () => {
         action: path.to.tags
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [routeData?.materialSummary?.readableId]
   );
 
@@ -219,7 +219,7 @@ const MaterialProperties = () => {
         action: path.to.customFields
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [routeData?.materialSummary?.readableId]
   );
 

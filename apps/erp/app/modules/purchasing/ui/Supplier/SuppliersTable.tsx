@@ -257,7 +257,6 @@ const SuppliersTable = memo(
     }, [supplierStatuses, supplierTypes, people, tags, customColumns]);
 
     const renderContextMenu = useMemo(
-      // eslint-disable-next-line react/display-name
       () => (row: Supplier) => (
         <MenuItem onClick={() => navigate(path.to.supplier(row.id!))}>
           <MenuIcon icon={<LuPencil />} />

@@ -2,26 +2,26 @@ import { Select, ValidatedForm } from "@carbon/form";
 import {
   Button,
   HStack,
+  toast,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  VStack,
-  toast
+  VStack
 } from "@carbon/react";
 import { useFetcher, useParams } from "@remix-run/react";
 import { useCallback, useEffect } from "react";
 import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
 import { z } from "zod/v3";
+import Assignee, { useOptimisticAssignment } from "~/components/Assignee";
 import { Process, Tags } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";
+import { useTags } from "~/hooks/useTags";
 import type { action } from "~/routes/x+/items+/update";
 import { path } from "~/utils/path";
 import { copyToClipboard } from "~/utils/string";
+import { procedureStatus } from "../../production.models";
 import type { Procedure } from "../../types";
 import ProcedureStatus from "./ProcedureStatus";
-import { procedureStatus } from "../../production.models";
-import Assignee, { useOptimisticAssignment } from "~/components/Assignee";
-import { useTags } from "~/hooks/useTags";
 
 const ProcedureProperties = () => {
   const { id } = useParams();
@@ -52,7 +52,7 @@ const ProcedureProperties = () => {
         action: path.to.bulkUpdateProcedure
       });
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
     [id]
   );
 

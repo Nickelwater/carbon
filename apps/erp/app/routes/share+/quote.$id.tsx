@@ -473,7 +473,6 @@ const LineItems = ({
         setOpenItems((prev) => prev.filter((item) => item !== lineId));
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLines]);
 
   const pricingByLine = useMemo(
@@ -1009,7 +1008,6 @@ const Quote = ({
       rejectQuoteModal.onClose();
       submitted.current = false;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.state]);
 
   useEffect(() => {

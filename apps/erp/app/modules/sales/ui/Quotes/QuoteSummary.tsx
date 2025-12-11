@@ -5,8 +5,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  HStack,
   Heading,
+  HStack,
   RadioGroup,
   RadioGroupItem,
   Table,
@@ -96,7 +96,6 @@ const LineItems = ({
         setOpenItems((prev) => prev.filter((item) => item !== lineId));
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedLines]);
 
   const pricingByLine = useMemo(

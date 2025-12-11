@@ -1,3 +1,5 @@
+import { useCarbon } from "@carbon/auth";
+import { requirePermissions } from "@carbon/auth/auth.server";
 import {
   Badge,
   Button,
@@ -27,12 +29,12 @@ import {
   useRealtimeChannel
 } from "@carbon/react";
 import {
+  type ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
   ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig
+  ChartTooltipContent
 } from "@carbon/react/Chart";
 import {
   convertDateStringToIsoString,
@@ -48,8 +50,10 @@ import {
   useFetcher,
   useLoaderData
 } from "@remix-run/react";
+import type { LoaderFunctionArgs } from "@vercel/remix";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { CSVLink } from "react-csv";
+import { flushSync } from "react-dom";
 import {
   LuArrowUpRight,
   LuChevronDown,
@@ -60,6 +64,7 @@ import {
   LuSquareUser,
   LuUserRoundCheck
 } from "react-icons/lu";
+import { RiProgress8Line } from "react-icons/ri";
 import { Bar, BarChart, LabelList, XAxis, YAxis } from "recharts";
 import {
   CustomerAvatar,
@@ -71,19 +76,13 @@ import {
 import { useUser } from "~/hooks/useUser";
 import type { ActiveProductionEvent } from "~/modules/production";
 import { getActiveProductionEvents, KPIs } from "~/modules/production";
+import { getDeadlineIcon } from "~/modules/production/ui/Jobs";
+import type { WorkCenter } from "~/modules/resources";
+import { getWorkCentersList } from "~/modules/resources";
 import { chartIntervals } from "~/modules/shared";
 import type { loader as kpiLoader } from "~/routes/api+/production.kpi.$key";
 import { path } from "~/utils/path";
 import { capitalize } from "~/utils/string";
-
-import { useCarbon } from "@carbon/auth";
-import { requirePermissions } from "@carbon/auth/auth.server";
-import type { LoaderFunctionArgs } from "@vercel/remix";
-import { flushSync } from "react-dom";
-import { RiProgress8Line } from "react-icons/ri";
-import { getDeadlineIcon } from "~/modules/production/ui/Jobs";
-import type { WorkCenter } from "~/modules/resources";
-import { getWorkCentersList } from "~/modules/resources";
 
 const OPEN_JOB_STATUSES = ["Ready", "In Progress", "Paused"] as const;
 
@@ -161,7 +160,6 @@ export default function ProductionDashboard() {
         selectedKpiData.key
       )}?start=${dateRange?.start.toString()}&end=${dateRange?.end.toString()}&interval=${interval}`
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKpi, dateRange, interval, selectedKpiData.key]);
 
   const onIntervalChange = (value: string) => {

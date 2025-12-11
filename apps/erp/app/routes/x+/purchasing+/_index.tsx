@@ -29,10 +29,10 @@ import {
   Tr
 } from "@carbon/react";
 import {
+  type ChartConfig,
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig
+  ChartTooltipContent
 } from "@carbon/react/Chart";
 import {
   getLocalTimeZone,
@@ -217,7 +217,6 @@ export default function PurchaseDashboard() {
         supplierId === "all" ? "" : `&supplierId=${supplierId}`
       }`
     );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedKpi, dateRange, interval, selectedKpiData.key, supplierId]);
 
   const onIntervalChange = (value: string) => {

@@ -1,7 +1,5 @@
 "use client";
 
-import { LuCircleStop } from "react-icons/lu";
-
 import { useCarbon } from "@carbon/auth";
 import {
   Button,
@@ -21,6 +19,7 @@ import { getLocalTimeZone } from "@internationalized/date";
 import { useFetcher } from "@remix-run/react";
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
+import { LuCircleStop } from "react-icons/lu";
 import { useUser } from "~/hooks";
 import type { action as endShiftAction } from "~/routes/x+/end-shift";
 import { getActiveJobOperationsByEmployee } from "~/services/operations.service";
@@ -44,7 +43,6 @@ export function EndShift() {
     if (fetcher.data?.success === false) {
       toast.error(fetcher.data?.message ?? "Failed to end shift");
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fetcher.data?.success]);
 
   const openModal = async () => {

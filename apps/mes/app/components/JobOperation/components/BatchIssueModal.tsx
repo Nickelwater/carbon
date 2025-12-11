@@ -1,4 +1,10 @@
 import {
+  Input as FormInput,
+  Number as FormNumberInput,
+  Hidden,
+  ValidatedForm
+} from "@carbon/form";
+import {
   Alert,
   AlertDescription,
   AlertTitle,
@@ -29,21 +35,11 @@ import {
   toast,
   useDisclosure
 } from "@carbon/react";
-
-import { useFetcher } from "@remix-run/react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { JobMaterial, TrackedInput } from "~/services/types";
-import { path } from "~/utils/path";
-
-import {
-  Input as FormInput,
-  Number as FormNumberInput,
-  Hidden,
-  ValidatedForm
-} from "@carbon/form";
 import type { TrackedEntityAttributes } from "@carbon/utils";
 import { getItemReadableId } from "@carbon/utils";
 import { useNumberFormatter } from "@react-aria/i18n";
+import { useFetcher } from "@remix-run/react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   LuArrowRightLeft,
   LuCheck,
@@ -61,7 +57,9 @@ import {
 } from "react-icons/lu";
 import type { getBatchNumbersForItem } from "~/services/inventory.service";
 import { convertEntityValidator } from "~/services/models";
+import type { JobMaterial, TrackedInput } from "~/services/types";
 import { useItems } from "~/stores";
+import { path } from "~/utils/path";
 
 export function BatchIssueModal({
   parentId,
@@ -256,7 +254,6 @@ export function BatchIssueModal({
         encType: "application/json"
       });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     selectedBatchNumbers,
     validateBatchNumber,
@@ -399,7 +396,6 @@ export function BatchIssueModal({
       encType: "application/json"
     });
     // fetcher is not needed to be in the dependency array
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unconsumedBatch, material?.id, parentId, trackedInputs]);
 
   const [items] = useItems();
@@ -946,7 +942,6 @@ function useBatchNumbers(itemId?: string) {
     if (itemId) {
       batchNumbersFetcher.load(path.to.api.batchNumbers(itemId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemId]);
 
   return { data: batchNumbersFetcher.data };

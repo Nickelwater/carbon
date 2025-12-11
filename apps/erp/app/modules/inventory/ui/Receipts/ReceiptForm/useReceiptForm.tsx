@@ -98,7 +98,6 @@ export default function useReceiptForm({
     if (status !== "Posted") {
       fetchSourceDocuments();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sourceDocument, status]);
 
   return {

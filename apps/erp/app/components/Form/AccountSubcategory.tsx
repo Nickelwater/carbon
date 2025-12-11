@@ -26,7 +26,6 @@ const AccountSubcategory = (props: AccountSubcategorySelectProps) => {
         path.to.api.accountingSubcategories(props.accountCategoryId)
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.accountCategoryId]);
 
   const options = useMemo(

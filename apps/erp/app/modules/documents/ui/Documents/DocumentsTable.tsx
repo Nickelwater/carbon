@@ -1,6 +1,7 @@
 import {
   Badge,
   BadgeCloseButton,
+  cn,
   Command,
   CommandGroup,
   CommandInput,
@@ -11,7 +12,6 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-  cn,
   useDisclosure
 } from "@carbon/react";
 import { convertKbToString, filterEmpty, formatDate } from "@carbon/utils";
@@ -380,7 +380,6 @@ const DocumentsTable = memo(
         }
       ];
       // Don't put the revalidator in the deps array
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       extensions,
       labelOptions,
@@ -402,7 +401,6 @@ const DocumentsTable = memo(
     };
 
     const renderContextMenu = useMemo(() => {
-      // eslint-disable-next-line react/display-name
       return (row: Document) => (
         <>
           <MenuItem disabled={canUpdate(row)} onClick={() => edit(row)}>

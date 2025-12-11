@@ -184,7 +184,7 @@ const PlanningTable = memo(
           encType: "application/json"
         });
       },
-      // eslint-disable-next-line react-hooks/exhaustive-deps
+
       [bulkUpdateFetcher, locationId, ordersMap, suppliersMap]
     );
 
@@ -224,7 +224,6 @@ const PlanningTable = memo(
         });
         setOrdersByItemId(ordersByItemId);
       });
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [data]);
 
     const columns = useMemo<ColumnDef<PurchasingPlanningItem>[]>(() => {
@@ -453,7 +452,6 @@ const PlanningTable = memo(
           }
         }
       ];
-      // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [
       suppliers,
       dateFormatter,
