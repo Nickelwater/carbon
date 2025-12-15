@@ -89,6 +89,7 @@ const DatePicker = ({
         onChange={handleChange}
         inline={inline ? DatePickerPreview : undefined}
         helperText={helperText}
+        label={label}
       />
       {error && <FormErrorMessage>{error}</FormErrorMessage>}
     </FormControl>
