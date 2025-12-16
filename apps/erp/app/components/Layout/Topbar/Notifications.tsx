@@ -322,6 +322,14 @@ function GenericNotification({
           {...props}
         />
       );
+    case NotificationEvent.SupplierQuoteResponse:
+      return (
+        <Notification
+          icon={<LuMailCheck />}
+          to={path.to.supplierQuoteDetails(id)}
+          {...props}
+        />
+      );
     case NotificationEvent.TrainingAssignment:
       return (
         <Notification

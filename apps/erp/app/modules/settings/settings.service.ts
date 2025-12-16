@@ -588,6 +588,17 @@ export async function updateSuggestionNotificationSetting(
     .eq("id", companyId);
 }
 
+export async function updateSupplierQuoteNotificationSetting(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  supplierQuoteNotificationGroup: string[]
+) {
+  return client
+    .from("companySettings")
+    .update(sanitize({ supplierQuoteNotificationGroup }))
+    .eq("id", companyId);
+}
+
 export async function updatePurchasePriceUpdateTimingSetting(
   client: SupabaseClient<Database>,
   companyId: string,

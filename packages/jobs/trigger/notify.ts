@@ -78,6 +78,8 @@ export const notifyTask = task({
           return NotificationWorkflow.DigitalQuoteResponse;
         case NotificationEvent.SuggestionResponse:
           return NotificationWorkflow.SuggestionResponse;
+        case NotificationEvent.SupplierQuoteResponse:
+          return NotificationWorkflow.SupplierQuoteResponse;
         case NotificationEvent.JobOperationMessage:
           return NotificationWorkflow.Message;
         default:
@@ -303,6 +305,23 @@ export const notifyTask = task({
           }
 
           return `Risk "${risk?.data?.title}" assigned to you`;
+
+        case NotificationEvent.SupplierQuoteResponse:
+          const supplierQuote = await client
+            .from("supplierQuote")
+            .select("*")
+            .eq("id", documentId)
+            .single();
+
+          
+          if (supplierQuote.error) {
+            console.error("Failed to get supplier quote", supplierQuote.error);
+            throw supplierQuote.error;
+          }
+
+          const externalNotes = supplierQuote.data.externalNotes as Record<string, unknown> | null;
+          const respondedBy = externalNotes?.lastSubmittedBy as string | undefined || "Supplier";
+          return `Supplier Quote ${supplierQuote?.data?.supplierQuoteId} was submitted by ${respondedBy}`;
 
         default:
           return null;

@@ -1,5 +1,8 @@
 import { assertIsPost, getCarbonServiceRole, notFound } from "@carbon/auth";
 import { validationError, validator } from "@carbon/form";
+import type { notifyTask } from "@carbon/jobs/trigger/notify";
+import { NotificationEvent } from "@carbon/notifications";
+import { tasks } from "@trigger.dev/sdk";
 import type { ActionFunctionArgs } from "react-router";
 import { z } from "zod/v3";
 import {
@@ -251,6 +254,23 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
       if (companySettings.error) {
         console.error("Failed to get company settings", companySettings.error);
+      }
+
+      // Send notification to supplier quote notification group
+      if (companySettings.data?.supplierQuoteNotificationGroup?.length) {
+        try {
+          await tasks.trigger<typeof notifyTask>("notify", {
+            companyId: companySettings.data.id,
+            documentId: quote.data.id,
+            event: NotificationEvent.SupplierQuoteResponse,
+            recipient: {
+              type: "group",
+              groupIds: companySettings.data.supplierQuoteNotificationGroup
+            }
+          });
+        } catch (err) {
+          console.error("Failed to trigger supplier quote notification", err);
+        }
       }
 
       return {

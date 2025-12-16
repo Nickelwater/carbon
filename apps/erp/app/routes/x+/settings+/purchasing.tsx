@@ -15,6 +15,7 @@ import {
   generateHTML,
   Heading,
   HStack,
+  Label,
   ScrollArea,
   toast,
   useDebounce,
@@ -26,13 +27,16 @@ import { useEffect, useState } from "react";
 import { LuCircleCheck } from "react-icons/lu";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useFetcher, useLoaderData } from "react-router";
+import { Users } from "~/components/Form";
 import { usePermissions, useUser } from "~/hooks";
 import {
   getCompanySettings,
   getTerms,
   purchasePriceUpdateTimingTypes,
   purchasePriceUpdateTimingValidator,
-  updatePurchasePriceUpdateTimingSetting
+  supplierQuoteNotificationValidator,
+  updatePurchasePriceUpdateTimingSetting,
+  updateSupplierQuoteNotificationSetting
 } from "~/modules/settings";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
@@ -106,6 +110,30 @@ export async function action({ request }: ActionFunctionArgs) {
       return {
         success: true,
         message: "Purchase price update timing updated"
+      };
+
+    case "supplierQuoteNotification":
+      const supplierQuoteValidation = await validator(
+        supplierQuoteNotificationValidator
+      ).validate(formData);
+
+      if (supplierQuoteValidation.error) {
+        return { success: false, message: "Invalid form data" };
+      }
+
+      const supplierQuoteResult = await updateSupplierQuoteNotificationSetting(
+        client,
+        companyId,
+        supplierQuoteValidation.data.supplierQuoteNotificationGroup ?? []
+      );
+
+      if (supplierQuoteResult.error) {
+        return { success: false, message: supplierQuoteResult.error.message };
+      }
+
+      return {
+        success: true,
+        message: "Supplier quote notification setting updated"
       };
   }
 
@@ -204,6 +232,44 @@ export default function PurchasingSettingsRoute() {
                     value: type
                   }))}
                 />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Submit>Save</Submit>
+            </CardFooter>
+          </ValidatedForm>
+        </Card>
+        <Card>
+          <ValidatedForm
+            method="post"
+            validator={supplierQuoteNotificationValidator}
+            defaultValues={{
+              supplierQuoteNotificationGroup:
+                companySettings.supplierQuoteNotificationGroup ?? []
+            }}
+            fetcher={fetcher}
+          >
+            <input
+              type="hidden"
+              name="intent"
+              value="supplierQuoteNotification"
+            />
+            <CardHeader>
+              <CardTitle>Supplier Quote Notifications</CardTitle>
+              <CardDescription>
+                Configure who should receive notifications when a supplier
+                submits a quote.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-8 max-w-[400px]">
+                <div className="flex flex-col gap-2">
+                  <Label>Notifications</Label>
+                  <Users
+                    name="supplierQuoteNotificationGroup"
+                    label="Who should receive notifications when a supplier quote is submitted?"
+                  />
+                </div>
               </div>
             </CardContent>
             <CardFooter>

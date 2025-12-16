@@ -29,6 +29,7 @@ const payloadSchema = z.object({
     NotificationEvent.StockTransferAssignment,
     NotificationEvent.SuggestionResponse,
     NotificationEvent.SupplierQuoteAssignment,
+    NotificationEvent.SupplierQuoteResponse,
     NotificationEvent.TrainingAssignment
   ]),
   from: z.string().optional()
@@ -109,6 +110,17 @@ export const suggestionResponseWorkflow = workflow(
   async ({ payload, step }) => {
     await step.inApp(NotificationType.SuggestionResponseInApp, () => ({
       body: "New Suggestion",
+      payload
+    }));
+  },
+  { payloadSchema }
+);
+
+export const supplierQuoteResponseWorkflow = workflow(
+  NotificationWorkflow.SupplierQuoteResponse,
+  async ({ payload, step }) => {
+    await step.inApp(NotificationType.SupplierQuoteResponseInApp, () => ({
+      body: "Supplier Quote Response",
       payload
     }));
   },
