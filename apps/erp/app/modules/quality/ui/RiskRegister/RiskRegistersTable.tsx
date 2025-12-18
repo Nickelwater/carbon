@@ -5,6 +5,7 @@ import { memo, useCallback, useMemo, useState } from "react";
 import {
   LuAlignLeft,
   LuDice5,
+  LuDna,
   LuPencil,
   LuShapes,
   LuSquareStack,
@@ -18,12 +19,17 @@ import { EmployeeAvatar, Hyperlink, New, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { Confirm } from "~/components/Modals";
 import { usePermissions, useUrlParams } from "~/hooks";
-import { riskSource, riskStatus } from "~/modules/quality/quality.models";
+import {
+  riskRegisterType,
+  riskSource,
+  riskStatus
+} from "~/modules/quality/quality.models";
 import type { Risk } from "~/modules/quality/types";
 import { useItems, usePeople } from "~/stores";
 import { path } from "~/utils/path";
 import { RiskRating } from "./RiskRating";
 import RiskStatus from "./RiskStatus";
+import RiskType from "./RiskType";
 
 type RiskRegistersTableProps = {
   data: Risk[];
@@ -79,6 +85,23 @@ const RiskRegistersTable = memo(({ data, count }: RiskRegistersTableProps) => {
         )
       },
       {
+        accessorKey: "type",
+        header: "Type",
+        cell: ({ row }) => {
+          return <RiskType type={row.original.type} />;
+        },
+        meta: {
+          icon: <LuShapes />,
+          filter: {
+            type: "static",
+            options: riskRegisterType.map((t) => ({
+              value: t,
+              label: <RiskType type={t} />
+            }))
+          }
+        }
+      },
+      {
         accessorKey: "itemId",
         header: "Item",
         cell: ({ row }) => getItemReadableId(items, row.original.itemId),
@@ -98,7 +121,7 @@ const RiskRegistersTable = memo(({ data, count }: RiskRegistersTableProps) => {
         header: "Source",
         cell: (item) => <Enumerable value={item.getValue<string>()} />,
         meta: {
-          icon: <LuShapes />,
+          icon: <LuDna />,
           filter: {
             type: "static",
             options: riskSource.map((c) => ({

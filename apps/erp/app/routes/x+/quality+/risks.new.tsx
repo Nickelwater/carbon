@@ -93,7 +93,8 @@ export default function NewRiskRoute() {
         source: "General",
         status: "Open",
         severity: "1",
-        likelihood: "1"
+        likelihood: "1",
+        type: "Risk"
       }}
       onClose={onClose}
     />

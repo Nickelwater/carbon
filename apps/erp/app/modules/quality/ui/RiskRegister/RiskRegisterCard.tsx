@@ -31,6 +31,7 @@ import { path } from "~/utils/path";
 import { RiskRating } from "./RiskRating";
 import RiskRegisterForm from "./RiskRegisterForm";
 import RiskStatus from "./RiskStatus";
+import RiskType from "./RiskType";
 
 type RiskRegisterCardProps = {
   sourceId: string;
@@ -147,7 +148,8 @@ export default function RiskRegisterCard({
                     : "1",
                   likelihood: selectedRisk.likelihood
                     ? selectedRisk.likelihood.toString()
-                    : "1"
+                    : "1",
+                  type: selectedRisk.type ?? "Risk"
                 }
               : {
                   title: "",
@@ -156,7 +158,8 @@ export default function RiskRegisterCard({
                   sourceId: sourceId,
                   itemId: itemId,
                   severity: "1",
-                  likelihood: "1"
+                  likelihood: "1",
+                  type: "Risk"
                 }
           }
         />
@@ -207,7 +210,9 @@ function RiskRegisterCardItem({
           <Heading size="h4" as="h3">
             {risk.title}
           </Heading>
-
+          <div>
+            <RiskType type={risk.type} />
+          </div>
           {risk.description && (
             <p className="text-sm text-muted-foreground line-clamp-2">
               {risk.description}

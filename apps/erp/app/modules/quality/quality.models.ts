@@ -22,6 +22,7 @@ export const gaugeCalibrationStatus = [
   "In-Calibration",
   "Out-of-Calibration"
 ] as const;
+
 export const gaugeRole = ["Master", "Standard"] as const;
 
 export const nonConformanceApprovalRequirement = ["MRB"] as const;
@@ -60,6 +61,8 @@ export const nonConformanceAssociationType = [
   "trackedEntities"
 ] as const;
 
+export const qualityDocumentStatus = ["Draft", "Active", "Archived"] as const;
+
 export const riskSource = [
   "Customer",
   "General",
@@ -78,7 +81,7 @@ export const riskStatus = [
   "Accepted"
 ] as const;
 
-export const qualityDocumentStatus = ["Draft", "Active", "Archived"] as const;
+export const riskRegisterType = ["Risk", "Opportunity"] as const;
 
 export const gaugeValidator = z.object({
   id: zfd.text(z.string().optional()),
@@ -313,9 +316,21 @@ export const riskRegisterValidator = z.object({
   description: zfd.text(z.string().optional()),
   itemId: zfd.text(z.string().optional()),
   likelihood: z.string().min(1, { message: "Likelihood is required" }),
+  notes: z
+    .string()
+    .optional()
+    .transform((val) => {
+      try {
+        return val ? JSON.parse(val) : {};
+        // biome-ignore lint/correctness/noUnusedVariables: suppressed due to migration
+      } catch (e) {
+        return {};
+      }
+    }),
   severity: z.string().min(1, { message: "Severity is required" }),
   source: z.enum(riskSource),
   sourceId: zfd.text(z.string().optional()),
   status: z.enum(riskStatus),
-  title: z.string().min(1, { message: "Title is required" })
+  title: z.string().min(1, { message: "Title is required" }),
+  type: z.enum(riskRegisterType)
 });

@@ -31357,6 +31357,12 @@ export default {
             $ref: "#/parameters/rowFilter.riskRegister.updatedAt",
           },
           {
+            $ref: "#/parameters/rowFilter.riskRegister.notes",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.type",
+          },
+          {
             $ref: "#/parameters/select",
           },
           {
@@ -31458,6 +31464,12 @@ export default {
             $ref: "#/parameters/rowFilter.riskRegister.updatedAt",
           },
           {
+            $ref: "#/parameters/rowFilter.riskRegister.notes",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.type",
+          },
+          {
             $ref: "#/parameters/preferReturn",
           },
         ],
@@ -31511,6 +31523,12 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.riskRegister.updatedAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.notes",
+          },
+          {
+            $ref: "#/parameters/rowFilter.riskRegister.type",
           },
           {
             $ref: "#/parameters/body.riskRegister",
@@ -76852,7 +76870,15 @@ export default {
       type: "object",
     },
     riskRegister: {
-      required: ["id", "companyId", "title", "source", "status", "createdAt"],
+      required: [
+        "id",
+        "companyId",
+        "title",
+        "source",
+        "status",
+        "createdAt",
+        "type",
+      ],
       properties: {
         id: {
           default: "gen_random_uuid()",
@@ -76930,6 +76956,15 @@ export default {
         },
         updatedAt: {
           format: "timestamp with time zone",
+          type: "string",
+        },
+        notes: {
+          format: "json",
+        },
+        type: {
+          default: "Risk",
+          enum: ["Risk", "Opportunity"],
+          format: 'public."riskRegisterType"',
           type: "string",
         },
       },
@@ -106359,6 +106394,18 @@ export default {
     },
     "rowFilter.riskRegister.updatedAt": {
       name: "updatedAt",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.notes": {
+      name: "notes",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.riskRegister.type": {
+      name: "type",
       required: false,
       in: "query",
       type: "string",

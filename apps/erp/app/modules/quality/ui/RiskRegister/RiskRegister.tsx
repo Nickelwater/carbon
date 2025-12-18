@@ -159,14 +159,18 @@ export default function RiskRegister({
                   sourceId: selectedRisk.sourceId ?? undefined,
                   itemId: selectedRisk.itemId ?? undefined,
                   severity: selectedRisk.severity ?? undefined,
-                  likelihood: selectedRisk.likelihood ?? undefined
+                  likelihood: selectedRisk.likelihood ?? undefined,
+                  type: selectedRisk.type ?? "Risk"
                 }
               : {
                   title: "",
                   status: "Open",
                   source: documentType ?? "General",
                   sourceId: documentId,
-                  itemId: undefined
+                  itemId: undefined,
+                  severity: "1",
+                  likelihood: "1",
+                  type: "Risk"
                 }
           }
         />

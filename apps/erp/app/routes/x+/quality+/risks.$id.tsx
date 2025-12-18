@@ -122,7 +122,8 @@ export default function EditRiskRoute() {
         severity: risk.severity ? risk.severity.toString() : "1",
         likelihood: risk.likelihood ? risk.likelihood.toString() : "1",
         assignee: risk.assignee ?? undefined,
-        sourceId: risk.sourceId ?? undefined
+        sourceId: risk.sourceId ?? undefined,
+        type: risk.type ?? "Risk"
       }}
       onClose={onClose}
     />
