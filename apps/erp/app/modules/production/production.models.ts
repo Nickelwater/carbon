@@ -903,7 +903,6 @@ export const maintenanceDispatchValidator = z.object({
   plannedStartTime: zfd.text(z.string().optional()),
   plannedEndTime: zfd.text(z.string().optional()),
   assignee: zfd.text(z.string().optional()),
-  isFailure: zfd.checkbox(),
   content: zfd.text(z.string().optional())
 });
 

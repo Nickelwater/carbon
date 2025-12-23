@@ -735,6 +735,20 @@ export async function endProductionEvents(
     .eq("companyId", args.companyId);
 }
 
+export async function endProductionEventsByWorkCenter(
+  client: SupabaseClient<Database>,
+  args: { workCenterId: string; companyId: string; endTime: string }
+) {
+  return client
+    .from("productionEvent")
+    .update({
+      endTime: args.endTime
+    })
+    .is("endTime", null)
+    .eq("workCenterId", args.workCenterId)
+    .eq("companyId", args.companyId);
+}
+
 export async function startProductionEvent(
   client: SupabaseClient<Database>,
   data: Omit<

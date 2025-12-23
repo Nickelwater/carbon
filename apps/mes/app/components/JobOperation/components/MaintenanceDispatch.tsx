@@ -1,6 +1,5 @@
 import { useCarbon } from "@carbon/auth";
 import {
-  Boolean,
   DateTimePicker,
   Hidden,
   Select,
@@ -94,9 +93,10 @@ export function MaintenanceDispatch({
   const { carbon } = useCarbon();
 
   const [content, setContent] = useState<JSONContent>({});
-  const [isFailure, setIsFailure] = useState(false);
   const [severity, setSeverity] =
     useState<(typeof maintenanceSeverity)[number]>("Operator Performed");
+  const [oeeImpactValue, setOeeImpactValue] =
+    useState<(typeof oeeImpact)[number]>("No Impact");
   const [actualStartTime, setActualStartTime] = useState<string>(
     new Date().toISOString()
   );
@@ -111,8 +111,8 @@ export function MaintenanceDispatch({
 
   const onClose = () => {
     setContent({});
-    setIsFailure(false);
     setSeverity("Operator Performed");
+    setOeeImpactValue("No Impact");
     setActualStartTime(new Date().toISOString());
     setActualEndTime("");
     disclosure.onClose();
@@ -170,11 +170,10 @@ export function MaintenanceDispatch({
           <ModalContent size="xlarge">
             <ValidatedForm
               method="post"
-              action={path.to.maintenanceDispatch}
+              action={path.to.newMaintenanceDispatch}
               validator={maintenanceDispatchValidator}
               defaultValues={{
                 workCenterId: workCenter.id,
-                isFailure: false,
                 priority: "Medium",
                 severity: "Operator Performed",
                 oeeImpact: "No Impact",
@@ -188,8 +187,6 @@ export function MaintenanceDispatch({
               <ModalBody>
                 <Hidden name="workCenterId" value={workCenter.id} />
                 <Hidden name="content" value={JSON.stringify(content)} />
-                <Hidden name="actualStartTime" value={actualStartTime} />
-                <Hidden name="actualEndTime" value={actualEndTime} />
                 <VStack spacing={4}>
                   <div className="flex flex-col gap-2 w-full">
                     <Label>Description</Label>
@@ -231,6 +228,24 @@ export function MaintenanceDispatch({
                         }
                       }}
                     />
+                    {severity === "Operator Performed" && (
+                      <>
+                        <DateTimePicker
+                          name="actualStartTime"
+                          label="Start Time"
+                          onChange={(value) => {
+                            if (value) setActualStartTime(value.toString());
+                          }}
+                        />
+                        <DateTimePicker
+                          name="actualEndTime"
+                          label="End Time"
+                          onChange={(value) => {
+                            if (value) setActualEndTime(value.toString());
+                          }}
+                        />
+                      </>
+                    )}
                     <Select
                       name="oeeImpact"
                       label="OEE Impact"
@@ -238,32 +253,16 @@ export function MaintenanceDispatch({
                         value: impact,
                         label: impact
                       }))}
+                      onChange={(option) => {
+                        if (option?.value) {
+                          setOeeImpactValue(
+                            option.value as (typeof oeeImpact)[number]
+                          );
+                        }
+                      }}
                     />
-                    {severity === "Operator Performed" && (
-                      <>
-                        <DateTimePicker
-                          name="actualStartTimeDisplay"
-                          label="Start Time"
-                          defaultValue={actualStartTime}
-                          onChange={(value) => {
-                            if (value) setActualStartTime(value.toISOString());
-                          }}
-                        />
-                        <DateTimePicker
-                          name="actualEndTimeDisplay"
-                          label="End Time"
-                          onChange={(value) => {
-                            if (value) setActualEndTime(value.toISOString());
-                          }}
-                        />
-                      </>
-                    )}
-                    <Boolean
-                      name="isFailure"
-                      label="Failure"
-                      onChange={(checked) => setIsFailure(checked)}
-                    />
-                    {isFailure &&
+                    {(oeeImpactValue === "Down" ||
+                      oeeImpactValue === "Impact") &&
                       failureModes.length > 0 &&
                       (severity === "Operator Performed" ? (
                         <Select

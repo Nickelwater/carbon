@@ -1,4 +1,4 @@
-import { Boolean, DateTimePicker, Select, ValidatedForm } from "@carbon/form";
+import { DateTimePicker, Select, ValidatedForm } from "@carbon/form";
 import {
   Button,
   HStack,
@@ -12,7 +12,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
 import { useFetcher, useParams } from "react-router";
 import { z } from "zod/v3";
-import { zfd } from "zod-form-data";
 import {
   Assignee,
   EmployeeAvatar,
@@ -79,9 +78,12 @@ const MaintenanceDispatchProperties = () => {
 
   const isCompleted = routeData?.dispatch?.status === "Completed";
 
-  const [isFailure, setIsFailure] = useState<boolean>(
-    routeData?.dispatch?.isFailure ?? false
+  const [currentOeeImpact, setCurrentOeeImpact] = useState<string>(
+    routeData?.dispatch?.oeeImpact ?? "No Impact"
   );
+
+  const showFailureModes =
+    currentOeeImpact === "Down" || currentOeeImpact === "Impact";
 
   return (
     <VStack
@@ -323,6 +325,7 @@ const MaintenanceDispatchProperties = () => {
           }}
           onChange={(value) => {
             if (value) {
+              setCurrentOeeImpact(value.value);
               onUpdate("oeeImpact", value.value);
             }
           }}
@@ -409,28 +412,7 @@ const MaintenanceDispatchProperties = () => {
         />
       </ValidatedForm>
 
-      <ValidatedForm
-        defaultValues={{
-          isFailure: routeData?.dispatch?.isFailure ?? false
-        }}
-        validator={z.object({
-          isFailure: zfd.checkbox()
-        })}
-        className="w-full"
-      >
-        <Boolean
-          name="isFailure"
-          label="Failure"
-          variant="small"
-          isDisabled={!permissions.can("update", "production")}
-          onChange={(checked) => {
-            setIsFailure(checked);
-            onUpdate("isFailure", checked.toString());
-          }}
-        />
-      </ValidatedForm>
-
-      {isFailure && (
+      {showFailureModes && (
         <>
           <ValidatedForm
             defaultValues={{

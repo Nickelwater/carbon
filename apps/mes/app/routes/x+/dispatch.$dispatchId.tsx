@@ -1,4 +1,5 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
+import { Database } from "@carbon/database";
 import { Hidden, ValidatedForm } from "@carbon/form";
 import {
   Badge,
@@ -6,6 +7,7 @@ import {
   Heading,
   HStack,
   SidebarTrigger,
+  Status,
   VStack
 } from "@carbon/react";
 import { useEffect, useMemo } from "react";
@@ -23,6 +25,7 @@ import { z } from "zod/v3";
 import { HighPriorityIcon } from "~/assets/icons/HighPriorityIcon";
 import { LowPriorityIcon } from "~/assets/icons/LowPriorityIcon";
 import { MediumPriorityIcon } from "~/assets/icons/MediumPriorityIcon";
+import EmployeeAvatar from "~/components/EmployeeAvatar";
 import {
   getActiveMaintenanceEventByEmployee,
   getMaintenanceDispatch,
@@ -71,29 +74,58 @@ function getPriorityIcon(
   }
 }
 
-function getStatusBadge(status: string) {
+type MaintenanceStatusProps = {
+  status?: Database["public"]["Enums"]["maintenanceDispatchStatus"];
+  className?: string;
+};
+
+function MaintenanceStatus({ status, className }: MaintenanceStatusProps) {
   switch (status) {
     case "Open":
-      return <Badge variant="secondary">Open</Badge>;
+      return (
+        <Status color="gray" className={className}>
+          {status}
+        </Status>
+      );
     case "Assigned":
-      return <Badge variant="outline">Assigned</Badge>;
+      return (
+        <Status color="yellow" className={className}>
+          {status}
+        </Status>
+      );
     case "In Progress":
-      return <Badge className="bg-emerald-500">In Progress</Badge>;
+      return (
+        <Status color="blue" className={className}>
+          {status}
+        </Status>
+      );
     case "Completed":
-      return <Badge>Completed</Badge>;
+      return (
+        <Status color="green" className={className}>
+          {status}
+        </Status>
+      );
+    case "Cancelled":
+      return (
+        <Status color="red" className={className}>
+          {status}
+        </Status>
+      );
     default:
-      return <Badge variant="outline">{status}</Badge>;
+      return null;
   }
 }
 
-function getOeeImpactBadge(oeeImpact: string | null) {
+function getOeeImpactBadge(
+  oeeImpact: Database["public"]["Enums"]["oeeImpact"]
+) {
   switch (oeeImpact) {
     case "Down":
       return <Badge variant="destructive">Down</Badge>;
     case "Planned":
       return <Badge variant="secondary">Planned</Badge>;
     case "Impact":
-      return <Badge variant="outline">Impact</Badge>;
+      return <Badge variant="yellow">Impact</Badge>;
     default:
       return <Badge variant="outline">No Impact</Badge>;
   }
@@ -116,7 +148,7 @@ const eventValidator = z.object({
 });
 
 export default function MaintenanceDetailRoute() {
-  const { dispatch, events, items, activeEvent, userId } =
+  const { dispatch, events, items, activeEvent } =
     useLoaderData<typeof loader>();
   const fetcher = useFetcher();
 
@@ -159,9 +191,8 @@ export default function MaintenanceDetailRoute() {
                 <LuArrowLeft className="h-4 w-4" />
               </Button>
             </Link>
-            <LuWrench className="h-4 w-4" />
             <Heading size="h4">{dispatch.maintenanceDispatchId}</Heading>
-            {getStatusBadge(dispatch.status)}
+            <MaintenanceStatus status={dispatch.status} />
           </HStack>
           <HStack>
             {getPriorityIcon(
@@ -172,7 +203,7 @@ export default function MaintenanceDetailRoute() {
       </header>
 
       <main className="h-[calc(100dvh-var(--header-height))] w-full overflow-y-auto scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent p-4">
-        <VStack spacing={6} className="max-w-2xl mx-auto">
+        <VStack spacing={4} className="max-w-2xl mx-auto">
           {/* Work Center & OEE Impact */}
           <div className="w-full p-4 bg-card rounded-lg border">
             <VStack spacing={2} className="items-start">
@@ -217,7 +248,7 @@ export default function MaintenanceDetailRoute() {
                     <Button
                       type="submit"
                       size="lg"
-                      variant={isWorking ? "destructive" : "default"}
+                      variant={isWorking ? "destructive" : "primary"}
                       className="h-16 w-16 rounded-full"
                       disabled={fetcher.state !== "idle"}
                     >
@@ -247,7 +278,7 @@ export default function MaintenanceDetailRoute() {
                       <Button
                         type="submit"
                         size="lg"
-                        variant="outline"
+                        variant="secondary"
                         className="h-16 w-16 rounded-full"
                         disabled={fetcher.state !== "idle"}
                       >
@@ -276,10 +307,12 @@ export default function MaintenanceDetailRoute() {
                       key={event.id}
                       className="py-2 flex justify-between items-center"
                     >
-                      <VStack spacing={0} className="items-start">
-                        <span className="text-sm">
-                          {event.employee?.fullName ?? "Unknown"}
-                        </span>
+                      <VStack spacing={2} className="items-start">
+                        <EmployeeAvatar
+                          employeeId={event.employeeId}
+                          size="xs"
+                        />
+
                         <span className="text-xs text-muted-foreground">
                           {new Date(event.startTime).toLocaleString()}
                           {event.endTime &&

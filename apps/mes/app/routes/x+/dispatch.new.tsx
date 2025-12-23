@@ -7,8 +7,11 @@ import {
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
-import { type ActionFunctionArgs, data } from "react-router";
+import { getLocalTimeZone, now } from "@internationalized/date";
+import { type ActionFunctionArgs, data, redirect } from "react-router";
 import { maintenanceDispatchValidator } from "~/services/models";
+import { endProductionEventsByWorkCenter } from "~/services/operations.service";
+import { path } from "~/utils/path";
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
@@ -64,10 +67,10 @@ export async function action({ request }: ActionFunctionArgs) {
         oeeImpact: validation.data.oeeImpact,
         source: "Reactive", // Coming from MES is always reactive
         workCenterId: validation.data.workCenterId,
+        assignee: isOperatorPerformed ? userId : undefined,
         suspectedFailureModeId:
           validation.data.suspectedFailureModeId || undefined,
         actualFailureModeId: validation.data.actualFailureModeId || undefined,
-        isFailure: validation.data.isFailure || false,
         actualStartTime: validation.data.actualStartTime || undefined,
         actualEndTime: validation.data.actualEndTime || undefined,
         content,
@@ -86,6 +89,19 @@ export async function action({ request }: ActionFunctionArgs) {
         error(insertDispatch.error, "Failed to create maintenance dispatch")
       )
     );
+  }
+
+  // End all production events for the work center if oeeImpact is Down
+  if (validation.data.oeeImpact === "Down") {
+    await endProductionEventsByWorkCenter(serviceRole, {
+      workCenterId: validation.data.workCenterId,
+      companyId,
+      endTime: now(getLocalTimeZone()).toAbsoluteString()
+    });
+  }
+
+  if (insertDispatch.data?.id && isOperatorPerformed) {
+    throw redirect(path.to.maintenanceDetail(insertDispatch.data.id));
   }
 
   return data(

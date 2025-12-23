@@ -73,12 +73,12 @@ export async function action({ request }: ActionFunctionArgs) {
     priority: validation.data.priority,
     severity: validation.data.severity || "Maintenance Required",
     source: validation.data.source || "Reactive",
+    oeeImpact: validation.data.oeeImpact || "No Impact",
     workCenterId: validation.data.workCenterId || undefined,
     assignee: validation.data.assignee || undefined,
     suspectedFailureModeId: validation.data.suspectedFailureModeId || undefined,
     plannedStartTime: validation.data.plannedStartTime || undefined,
     plannedEndTime: validation.data.plannedEndTime || undefined,
-    isFailure: validation.data.isFailure || false,
     content,
     companyId,
     createdBy: userId
@@ -116,7 +116,7 @@ export default function NewMaintenanceDispatchRoute() {
     priority: "Medium" as const,
     source: "Reactive" as const,
     severity: "Maintenance Required" as const,
-    isFailure: false
+    oeeImpact: "No Impact" as const
   };
 
   return (

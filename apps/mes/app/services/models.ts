@@ -169,7 +169,6 @@ export const maintenanceDispatchValidator = z.object({
   oeeImpact: z.enum(oeeImpact, {
     errorMap: () => ({ message: "OEE Impact is required" })
   }),
-  isFailure: zfd.checkbox(),
   suspectedFailureModeId: zfd.text(z.string().optional()),
   actualFailureModeId: zfd.text(z.string().optional()),
   content: zfd.text(z.string().optional()),

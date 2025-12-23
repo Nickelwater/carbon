@@ -41,9 +41,6 @@ export async function action({ request }: ActionFunctionArgs) {
     case "actualEndTime":
       updateData[field] = value ? new Date(value).toISOString() : null;
       break;
-    case "isFailure":
-      updateData[field] = value === "true";
-      break;
     default:
       return {
         error: { message: `Invalid field: ${field}` },

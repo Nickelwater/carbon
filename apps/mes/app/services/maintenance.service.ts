@@ -201,12 +201,7 @@ export async function getMaintenanceDispatchEvents(
 ) {
   return client
     .from("maintenanceDispatchEvent")
-    .select(
-      `
-      *,
-      employee:employeeId (id, fullName, avatarUrl)
-    `
-    )
+    .select("*")
     .eq("maintenanceDispatchId", dispatchId)
     .order("startTime", { ascending: false });
 }

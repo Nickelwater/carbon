@@ -1,3 +1,4 @@
+import { getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import {
   Badge,
@@ -34,8 +35,12 @@ import type { maintenanceDispatchPriority } from "~/services/models";
 import { path } from "~/utils/path";
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { client, userId } = await requirePermissions(request, {});
-  const { location } = await getLocation(request, client);
+  const { client, companyId, userId } = await requirePermissions(request, {});
+  const serviceRole = await getCarbonServiceRole();
+  const { location } = await getLocation(request, serviceRole, {
+    companyId,
+    userId
+  });
 
   const [allDispatches, assignedDispatches] = await Promise.all([
     getActiveMaintenanceDispatchesByLocation(client, location),
@@ -64,7 +69,7 @@ function getPriorityIcon(
   }
 }
 
-function getStatusColor(status: string) {
+function getStatusColor(status: string | null) {
   switch (status) {
     case "Open":
       return "bg-blue-500";
@@ -95,9 +100,12 @@ type MaintenanceDispatch = NonNullable<
 >[number];
 
 function MaintenanceCard({ dispatch }: { dispatch: MaintenanceDispatch }) {
+  if (!dispatch.id) {
+    return null;
+  }
   return (
     <Link to={path.to.maintenanceDetail(dispatch.id)}>
-      <Card className="hover:border-primary/50 transition-colors cursor-pointer">
+      <Card className="hover:border-primary/50 transition-colors cursor-pointer p-0">
         <CardHeader className="pb-2">
           <HStack className="justify-between">
             <HStack spacing={2}>
@@ -144,7 +152,7 @@ function EmptyState({
   onClear?: () => void;
 }) {
   return (
-    <div className="flex flex-col flex-1 w-full h-[calc(100%-var(--header-height)*2)] items-center justify-center gap-4">
+    <div className="flex flex-col flex-1 w-full h-[calc(100dvh-var(--header-height)*2-40px)] items-center justify-center gap-4">
       <div className="flex justify-center items-center h-12 w-12 rounded-full bg-foreground text-background">
         <LuTriangleAlert className="h-6 w-6" />
       </div>
@@ -199,7 +207,6 @@ export default function MaintenanceRoute() {
       <header className="sticky top-0 z-10 flex h-[var(--header-height)] shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b bg-background">
         <div className="flex items-center gap-2 px-2">
           <SidebarTrigger />
-          <LuWrench className="h-4 w-4" />
           <Heading size="h4">Maintenance</Heading>
         </div>
       </header>

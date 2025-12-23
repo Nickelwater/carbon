@@ -187,7 +187,6 @@ CREATE TABLE "maintenanceDispatch" (
   "plannedEndTime" TIMESTAMP WITH TIME ZONE,
   "actualStartTime" TIMESTAMP WITH TIME ZONE,
   "actualEndTime" TIMESTAMP WITH TIME ZONE,
-  "isFailure" BOOLEAN NOT NULL DEFAULT false,
   "duration" INTEGER GENERATED ALWAYS AS (
     CASE
       WHEN "actualEndTime" IS NULL THEN 0

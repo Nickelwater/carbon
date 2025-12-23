@@ -39,7 +39,6 @@ SELECT
   md."plannedEndTime",
   md."actualStartTime",
   md."actualEndTime",
-  md."isFailure",
   md.duration,
   md."nonConformanceId",
   md."completedAt",

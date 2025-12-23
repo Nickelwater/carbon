@@ -1,5 +1,5 @@
 import { useCarbon } from "@carbon/auth";
-import { Boolean, DateTimePicker, Select, ValidatedForm } from "@carbon/form";
+import { DateTimePicker, Select, ValidatedForm } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import {
   Card,
@@ -27,7 +27,8 @@ import {
   maintenanceDispatchPriority,
   maintenanceDispatchValidator,
   maintenanceSeverity,
-  maintenanceSource
+  maintenanceSource,
+  oeeImpact
 } from "../../production.models";
 import MaintenanceSeverity from "./MaintenanceSeverity";
 import MaintenanceSource from "./MaintenanceSource";
@@ -73,9 +74,12 @@ const MaintenanceDispatchForm = ({
       : {}
   );
 
-  const [isFailure, setIsFailure] = useState<boolean>(
-    initialValues?.isFailure ?? false
+  const [oeeImpactValue, setOeeImpactValue] = useState<string>(
+    initialValues?.oeeImpact ?? "No Impact"
   );
+
+  const showFailureModes =
+    oeeImpactValue === "Down" || oeeImpactValue === "Impact";
 
   const onUploadImage = async (file: File) => {
     const fileType = file.name.split(".").pop();
@@ -161,12 +165,20 @@ const MaintenanceDispatchForm = ({
                 }))}
               />
               <WorkCenter name="workCenterId" label="Work Center" />
-              <Boolean
-                name="isFailure"
-                label="Failure"
-                onChange={(checked) => setIsFailure(checked)}
+              <Select
+                name="oeeImpact"
+                label="OEE Impact"
+                options={oeeImpact.map((impact) => ({
+                  value: impact,
+                  label: impact
+                }))}
+                onChange={(option) => {
+                  if (option?.value) {
+                    setOeeImpactValue(option.value);
+                  }
+                }}
               />
-              {isFailure ? (
+              {showFailureModes ? (
                 <Select
                   name="suspectedFailureModeId"
                   label="Suspected Failure Mode"
