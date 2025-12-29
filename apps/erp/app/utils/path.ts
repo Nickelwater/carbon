@@ -200,6 +200,8 @@ export const path = {
       kanbanQrCode: (id: string, action: "order" | "start" | "complete") =>
         generatePath(`${file}/kanban/${id}/${action}.png`),
       jobTraveler: (id: string) => generatePath(`${file}/traveler/${id}.pdf`),
+      jobTravelerByJobId: (jobId: string) =>
+        generatePath(`${file}/job/${jobId}/traveler.pdf`),
       nonConformance: (id: string) => generatePath(`${file}/issue/${id}.pdf`),
       operationLabelsPdf: (
         id: string,
