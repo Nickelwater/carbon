@@ -2,7 +2,6 @@ import { DateTimePicker, Hidden, Select, ValidatedForm } from "@carbon/form";
 import {
   Button,
   HStack,
-  IconButton,
   Modal,
   ModalBody,
   ModalContent,
@@ -17,7 +16,7 @@ import {
   VStack
 } from "@carbon/react";
 import { useCallback, useEffect, useState } from "react";
-import { LuClock, LuCopy, LuKeySquare, LuLink, LuPencil } from "react-icons/lu";
+import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
 import { useFetcher, useParams } from "react-router";
 import { z } from "zod/v3";
 import {
@@ -46,16 +45,6 @@ import MaintenanceSeverity from "./MaintenanceSeverity";
 import MaintenanceSource from "./MaintenanceSource";
 import MaintenanceStatus from "./MaintenanceStatus";
 
-function formatDuration(seconds: number | null): string {
-  if (!seconds) return "-";
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`;
-  }
-  return `${minutes}m`;
-}
-
 const MaintenanceDispatchProperties = () => {
   const { dispatchId } = useParams();
   if (!dispatchId) throw new Error("dispatchId not found");
@@ -70,8 +59,6 @@ const MaintenanceDispatchProperties = () => {
     events: MaintenanceDispatchEvent[];
     failureModes: { id: string; name: string }[];
   }>(path.to.maintenanceDispatch(dispatchId));
-
-  const events = routeData?.events ?? [];
 
   const optimisticAssignment = useOptimisticAssignment({
     id: dispatchId,
@@ -521,52 +508,6 @@ const MaintenanceDispatchProperties = () => {
         </>
       )}
 
-      <VStack spacing={2} className="w-full">
-        <HStack className="w-full justify-between">
-          <h3 className="text-xs text-muted-foreground">Timecards</h3>
-          <LuClock className="w-3 h-3 text-muted-foreground" />
-        </HStack>
-        {events.length === 0 ? (
-          <span className="text-xs text-muted-foreground">No timecards</span>
-        ) : (
-          <div className="w-full space-y-1">
-            {events.map((event) => (
-              <HStack
-                key={event.id}
-                className="w-full justify-between py-1 px-2 rounded hover:bg-muted/50 cursor-pointer"
-                onClick={() => {
-                  setSelectedEvent(event);
-                  eventModal.onOpen();
-                }}
-              >
-                <HStack spacing={2}>
-                  <EmployeeAvatar employeeId={event.employeeId} size="xs" />
-                  <span className="text-sm font-mono">
-                    {formatDuration(event.duration)}
-                  </span>
-                  {!event.endTime && (
-                    <span className="text-xs bg-green-100 text-green-800 px-1 rounded">
-                      Active
-                    </span>
-                  )}
-                </HStack>
-                <IconButton
-                  aria-label="Edit timecard"
-                  icon={<LuPencil className="w-3 h-3" />}
-                  size="sm"
-                  variant="ghost"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedEvent(event);
-                    eventModal.onOpen();
-                  }}
-                />
-              </HStack>
-            ))}
-          </div>
-        )}
-      </VStack>
-
       <VStack spacing={2}>
         <h3 className="text-xs text-muted-foreground">Created By</h3>
         <EmployeeAvatar
@@ -595,9 +536,9 @@ const MaintenanceDispatchProperties = () => {
               defaultValues={{
                 id: selectedEvent.id,
                 maintenanceDispatchId: dispatchId,
-                employeeId: selectedEvent.employeeId,
+                employeeId: selectedEvent.employee.id,
                 workCenterId:
-                  selectedEvent.workCenterId ??
+                  selectedEvent.workCenter.id ??
                   routeData?.dispatch?.workCenterId ??
                   "",
                 startTime: selectedEvent.startTime,
@@ -611,7 +552,7 @@ const MaintenanceDispatchProperties = () => {
                 <VStack spacing={4}>
                   <HStack spacing={2}>
                     <EmployeeAvatar
-                      employeeId={selectedEvent.employeeId}
+                      employeeId={selectedEvent.employee.id}
                       size="sm"
                     />
                     <span className="text-sm font-medium">
@@ -620,11 +561,11 @@ const MaintenanceDispatchProperties = () => {
                   </HStack>
                   <Hidden name="id" value={selectedEvent.id} />
                   <Hidden name="maintenanceDispatchId" value={dispatchId} />
-                  <Hidden name="employeeId" value={selectedEvent.employeeId} />
+                  <Hidden name="employeeId" value={selectedEvent.employee.id} />
                   <Hidden
                     name="workCenterId"
                     value={
-                      selectedEvent.workCenterId ??
+                      selectedEvent.workCenter.id ??
                       routeData?.dispatch?.workCenterId ??
                       ""
                     }

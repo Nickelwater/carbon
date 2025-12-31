@@ -45116,14 +45116,14 @@ export type Database = {
           },
           {
             foreignKeyName: "partner_id_fkey"
-            columns: ["id"]
+            columns: ["supplierLocationId"]
             isOneToOne: false
             referencedRelation: "supplierLocation"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "partner_id_fkey"
-            columns: ["supplierLocationId"]
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "supplierLocation"
             referencedColumns: ["id"]
@@ -46496,14 +46496,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["supplierCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["supplierCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -49023,14 +49023,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["invoiceCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["invoiceCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -52996,19 +52996,25 @@ export type Database = {
           companyId: string
           createdAt: string
           createdBy: string
-          daysOfWeek: number[]
           description: string
           estimatedDuration: number
           frequency: Database["public"]["Enums"]["maintenanceFrequency"]
+          friday: boolean
           id: string
           lastGeneratedAt: string
           locationId: string
           locationName: string
+          monday: boolean
           name: string
           nextDueAt: string
           priority: Database["public"]["Enums"]["maintenanceDispatchPriority"]
+          saturday: boolean
+          sunday: boolean
+          thursday: boolean
+          tuesday: boolean
           updatedAt: string
           updatedBy: string
+          wednesday: boolean
           workCenterId: string
           workCenterName: string
         }[]
