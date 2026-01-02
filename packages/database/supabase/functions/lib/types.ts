@@ -10910,6 +10910,13 @@ export type Database = {
             foreignKeyName: "jobOperation_workCenterId_fkey"
             columns: ["workCenterId"]
             isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
+          },
+          {
+            foreignKeyName: "jobOperation_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
             referencedRelation: "workCenter"
             referencedColumns: ["id"]
           },
@@ -12734,6 +12741,13 @@ export type Database = {
             foreignKeyName: "maintenanceDispatch_workCenterId_fkey"
             columns: ["workCenterId"]
             isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
+          },
+          {
+            foreignKeyName: "maintenanceDispatch_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
             referencedRelation: "workCenter"
             referencedColumns: ["id"]
           },
@@ -13092,6 +13106,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "maintenanceDispatchEvent_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
           },
           {
             foreignKeyName: "maintenanceDispatchEvent_workCenterId_fkey"
@@ -13606,6 +13627,13 @@ export type Database = {
             foreignKeyName: "maintenanceDispatchWorkCenter_workCenterId_fkey"
             columns: ["workCenterId"]
             isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
+          },
+          {
+            foreignKeyName: "maintenanceDispatchWorkCenter_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
             referencedRelation: "workCenter"
             referencedColumns: ["id"]
           },
@@ -13931,6 +13959,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "maintenanceSchedule_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
           },
           {
             foreignKeyName: "maintenanceSchedule_workCenterId_fkey"
@@ -15656,6 +15691,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "methodOperation_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
           },
           {
             foreignKeyName: "methodOperation_workCenterId_fkey"
@@ -22254,6 +22296,13 @@ export type Database = {
             foreignKeyName: "productionEvent_workCenterId_fkey"
             columns: ["workCenterId"]
             isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
+          },
+          {
+            foreignKeyName: "productionEvent_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
             referencedRelation: "workCenter"
             referencedColumns: ["id"]
           },
@@ -27023,6 +27072,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "quoteOperation_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
           },
           {
             foreignKeyName: "quoteOperation_workCenterId_fkey"
@@ -39949,6 +40005,13 @@ export type Database = {
             foreignKeyName: "workCenterProcess_workCenterId_fkey"
             columns: ["workCenterId"]
             isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
+          },
+          {
+            foreignKeyName: "workCenterProcess_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
             referencedRelation: "workCenter"
             referencedColumns: ["id"]
           },
@@ -40138,6 +40201,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "workCenterReplacementPart_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
           },
           {
             foreignKeyName: "workCenterReplacementPart_workCenterId_fkey"
@@ -40704,6 +40774,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "maintenanceDispatch_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
           },
           {
             foreignKeyName: "maintenanceDispatch_workCenterId_fkey"
@@ -43254,6 +43331,13 @@ export type Database = {
             foreignKeyName: "jobOperation_workCenterId_fkey"
             columns: ["workCenterId"]
             isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
+          },
+          {
+            foreignKeyName: "jobOperation_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
             referencedRelation: "workCenter"
             referencedColumns: ["id"]
           },
@@ -43520,6 +43604,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "jobOperation_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
           },
           {
             foreignKeyName: "jobOperation_workCenterId_fkey"
@@ -44252,6 +44343,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "maintenanceSchedule_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
           },
           {
             foreignKeyName: "maintenanceSchedule_workCenterId_fkey"
@@ -46655,14 +46753,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["supplierCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["supplierCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -48367,6 +48465,13 @@ export type Database = {
             foreignKeyName: "quoteOperation_workCenterId_fkey"
             columns: ["workCenterId"]
             isOneToOne: false
+            referencedRelation: "riskRegisters"
+            referencedColumns: ["workCenterId"]
+          },
+          {
+            foreignKeyName: "quoteOperation_workCenterId_fkey"
+            columns: ["workCenterId"]
+            isOneToOne: false
             referencedRelation: "workCenter"
             referencedColumns: ["id"]
           },
@@ -48859,6 +48964,163 @@ export type Database = {
           },
         ]
       }
+      riskRegisters: {
+        Row: {
+          assignee: string | null
+          companyId: string | null
+          createdAt: string | null
+          createdBy: string | null
+          description: string | null
+          id: string | null
+          itemId: string | null
+          likelihood: number | null
+          notes: Json | null
+          severity: number | null
+          source: Database["public"]["Enums"]["riskSource"] | null
+          sourceId: string | null
+          status: Database["public"]["Enums"]["riskStatus"] | null
+          title: string | null
+          type: Database["public"]["Enums"]["riskRegisterType"] | null
+          updatedAt: string | null
+          workCenterId: string | null
+          workCenterName: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "riskRegister_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_assignee_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "riskRegister_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "riskRegister_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "consumables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "riskRegister_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       salesInvoiceLines: {
         Row: {
           accountNumber: string | null
@@ -49182,14 +49444,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["invoiceCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["invoiceCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -49725,14 +49987,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["paymentCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["paymentCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]

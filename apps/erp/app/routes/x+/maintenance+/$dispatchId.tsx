@@ -5,6 +5,7 @@ import { type JSONContent, VStack } from "@carbon/react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useLoaderData, useParams } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout/Panels";
+import RiskRegisterCard from "~/modules/quality/ui/RiskRegister/RiskRegisterCard";
 import {
   getFailureModesList,
   getMaintenanceDispatch,
@@ -106,6 +107,12 @@ export default function MaintenanceDispatchRoute() {
                       files={files}
                       isDisabled={isCompleted}
                     />
+                    {dispatch?.workCenterId && (
+                      <RiskRegisterCard
+                        sourceId={dispatch.workCenterId}
+                        source="Work Center"
+                      />
+                    )}
                     <Outlet />
                   </VStack>
                 </div>

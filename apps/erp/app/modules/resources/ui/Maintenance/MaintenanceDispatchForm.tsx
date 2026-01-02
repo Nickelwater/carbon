@@ -179,6 +179,7 @@ const MaintenanceDispatchForm = ({
               <Location
                 name="locationId"
                 label="Location"
+                // @ts-ignore
                 value={hasWorkCenter ? null : undefined}
                 isReadOnly={hasWorkCenter}
               />
