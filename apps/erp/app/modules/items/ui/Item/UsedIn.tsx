@@ -107,8 +107,6 @@ export function UsedInTree({
 }) {
   const [filterText, setFilterText] = useState("");
 
-  console.log({ tree });
-
   const revisions = (
     revisionValidator.safeParse(revisionsJson)?.data ?? []
   )?.map((r) => ({
