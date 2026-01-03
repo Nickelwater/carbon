@@ -1,7 +1,7 @@
 import { Copy, cn, Input, InputGroup, InputRightElement } from "@carbon/react";
 import { isBrowser } from "@carbon/utils";
 import type { SVGProps } from "react";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 import type { IntegrationConfig } from "../types";
 

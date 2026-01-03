@@ -9,11 +9,10 @@ import { Slack } from "@carbon/ee";
 import {
   createSlackApp,
   getSlackInstaller,
-  slackOAuthCallbackSchema,
   slackOAuthTokenResponseSchema
 } from "@carbon/ee/slack.server";
 import { data, type LoaderFunctionArgs, redirect } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { upsertCompanyIntegration } from "~/modules/settings/settings.server";
 import { oAuthCallbackSchema } from "~/modules/shared";
 import { path } from "~/utils/path";

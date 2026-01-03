@@ -1,7 +1,7 @@
 import type { Database, Json } from "@carbon/database";
 import { getDateNYearsAgo } from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";

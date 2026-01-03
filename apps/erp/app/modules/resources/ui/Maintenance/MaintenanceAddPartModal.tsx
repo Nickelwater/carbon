@@ -38,7 +38,7 @@ import {
   LuQrCode
 } from "react-icons/lu";
 import { useFetcher } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { Item, UnitOfMeasure } from "~/components/Form";
 import { MethodItemType } from "~/modules/shared/types";
 import { path } from "~/utils/path";

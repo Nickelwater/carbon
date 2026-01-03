@@ -19,7 +19,7 @@ import {
 import { useState } from "react";
 import { LuEllipsisVertical } from "react-icons/lu";
 import { Link, useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { TrackingTypeIcon } from "~/components";
 import {
   // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration

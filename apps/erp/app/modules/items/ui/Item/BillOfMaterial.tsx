@@ -54,7 +54,7 @@ import {
   useParams,
   useSearchParams
 } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { MethodIcon, MethodItemTypeIcon, TrackingTypeIcon } from "~/components";
 import { ConfigurationEditor } from "~/components/Configurator/ConfigurationEditor";
 import type { Configuration } from "~/components/Configurator/types";

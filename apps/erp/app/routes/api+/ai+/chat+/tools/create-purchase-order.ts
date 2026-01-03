@@ -1,7 +1,7 @@
 import { getAppUrl, getCarbonServiceRole } from "@carbon/auth";
 import { tool } from "ai";
 import { LuShoppingCart } from "react-icons/lu";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { getCurrencyByCode } from "~/modules/accounting/accounting.service";
 import { getEmployeeJob } from "~/modules/people/people.service";
 import {

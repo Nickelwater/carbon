@@ -30,7 +30,7 @@ import {
   LuTriangleAlert
 } from "react-icons/lu";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { EmployeeAvatar, Empty } from "~/components";
 import { Hidden, Submit, Users } from "~/components/Form";
 import { usePermissions } from "~/hooks";

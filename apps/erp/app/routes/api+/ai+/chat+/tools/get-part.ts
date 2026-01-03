@@ -1,6 +1,6 @@
 import { tool } from "ai";
 import { LuSearch } from "react-icons/lu";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { generateEmbedding } from "~/modules/shared/shared.service";
 import type { ChatContext } from "../agents/shared/context";
 import type { ToolConfig } from "../agents/shared/tools";

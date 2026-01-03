@@ -11,8 +11,7 @@ import {
   toast,
   VStack
 } from "@carbon/react";
-import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   CustomerLocation,
   CustomFormFields,

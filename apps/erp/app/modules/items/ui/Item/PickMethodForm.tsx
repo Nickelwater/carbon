@@ -9,7 +9,7 @@ import {
   Combobox,
   HStack
 } from "@carbon/react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   Combobox as ComboboxFormField,
   CustomFormFields,

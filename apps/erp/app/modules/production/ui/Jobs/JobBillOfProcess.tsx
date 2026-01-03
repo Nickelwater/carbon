@@ -81,7 +81,7 @@ import {
   LuX
 } from "react-icons/lu";
 import { Link, useFetcher, useFetchers, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   Assignee,
   DirectionAwareTabs,

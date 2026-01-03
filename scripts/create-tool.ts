@@ -39,7 +39,7 @@ if (existsSync(toolFilePath)) {
 
 const toolTemplate = `import { tool } from "ai";
 import { LuSearch } from "react-icons/lu";
-import { z } from "zod/v3";
+import { z } from "zod";
 import type { ToolConfig } from "../agents/shared/tools";
 import type { ChatContext } from "../agents/shared/context";
 

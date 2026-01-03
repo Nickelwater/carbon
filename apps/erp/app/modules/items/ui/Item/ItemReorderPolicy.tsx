@@ -1,7 +1,7 @@
 import type { Database } from "@carbon/database";
 import { Status } from "@carbon/react";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
-import { z } from "zod/v3";
+import { z } from "zod";
 import type {
   ProductionOrder,
   ProductionPlanningItem

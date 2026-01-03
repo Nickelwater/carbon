@@ -3,7 +3,7 @@ import type { JSONContent } from "@carbon/react";
 import type { TrackedActivityAttributes } from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { sanitize } from "~/utils/supabase";
 import type {
   documentTypes,

@@ -9,9 +9,9 @@ import {
   DropdownMenuTrigger,
   IconButton
 } from "@carbon/react";
-import { useCallback, useMemo } from "react";
+import { useCallback } from "react";
 import { useFetchers, useParams, useSubmit } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { Tags } from "~/components/Form";
 import { OperationStatusIcon } from "~/components/Icons";
 import { usePermissions, useRouteData } from "~/hooks";

@@ -28,7 +28,7 @@ import { useState } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { LuTrash } from "react-icons/lu";
 import { Link, useFetcher, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { MethodIcon, MethodItemTypeIcon } from "~/components";
 import { ConfiguratorModal } from "~/components/Configurator/ConfiguratorForm";
 import {

@@ -1,7 +1,7 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { validator } from "@carbon/form";
 import { type ActionFunctionArgs, data } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 
 const updateDueDateSchema = zfd.formData({

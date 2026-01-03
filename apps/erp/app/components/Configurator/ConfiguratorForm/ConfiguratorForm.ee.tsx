@@ -27,7 +27,7 @@ import {
 } from "@carbon/react";
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { LuChevronDown, LuChevronUp, LuTriangleAlert } from "react-icons/lu";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 import type {
   ConfigurationParameter,

@@ -42,7 +42,7 @@ import {
 import { useEffect, useState } from "react";
 import { LuCircleChevronRight, LuNotebook } from "react-icons/lu";
 import { Link, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { EmployeeAvatar, EmployeeAvatarGroup } from "~/components";
 import { MethodIcon, TimeTypeIcon } from "~/components/Icons";
 import { useCurrencyFormatter, usePercentFormatter, useUser } from "~/hooks";

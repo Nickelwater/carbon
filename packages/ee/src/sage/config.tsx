@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { z } from "zod/v3";
+import { z } from "zod";
 import type { IntegrationConfig } from "../types";
 
 export const Sage: IntegrationConfig = {

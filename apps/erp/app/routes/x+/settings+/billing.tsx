@@ -27,7 +27,7 @@ import { Edition } from "@carbon/utils";
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data, Form, redirect, useLoaderData } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { usePermissions, useUser } from "~/hooks";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";

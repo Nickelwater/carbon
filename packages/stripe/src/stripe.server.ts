@@ -12,7 +12,7 @@ import { Edition, Plan } from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { tasks } from "@trigger.dev/sdk";
 import { Stripe } from "stripe";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 export const stripe = STRIPE_SECRET_KEY
   ? new Stripe(STRIPE_SECRET_KEY, {

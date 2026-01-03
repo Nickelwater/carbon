@@ -18,7 +18,7 @@ import {
 import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useFetcher, useLoaderData } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { Users } from "~/components/Form";
 import { getCompanySettings } from "~/modules/settings";
 import type { Handle } from "~/utils/handle";

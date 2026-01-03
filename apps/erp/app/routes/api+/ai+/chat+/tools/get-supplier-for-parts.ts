@@ -3,7 +3,7 @@ import type { Database } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { tool } from "ai";
 import { LuSearch } from "react-icons/lu";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { path } from "~/utils/path";
 import type { ChatContext } from "../agents/shared/context";
 import type { ToolConfig } from "../agents/shared/tools";

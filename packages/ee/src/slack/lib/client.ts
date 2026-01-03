@@ -9,7 +9,7 @@ import {
 import Bolt from "@slack/bolt";
 import { InstallProvider } from "@slack/oauth";
 import { WebClient } from "@slack/web-api";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 const { App } = Bolt;
 

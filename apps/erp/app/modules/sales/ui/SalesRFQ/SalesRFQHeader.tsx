@@ -42,7 +42,7 @@ import {
 import { RiProgress4Line } from "react-icons/ri";
 import type { FetcherWithComponents } from "react-router";
 import { Link, useFetcher, useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { usePanels } from "~/components/Layout";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";

@@ -67,7 +67,7 @@ The project uses a custom form library with validators:
 
 ```typescript
 import { validator } from "@carbon/form";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 export const customerValidator = z.object({
   name: z.string().min(1),

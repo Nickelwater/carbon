@@ -18,7 +18,7 @@ import {
 } from "@internationalized/date";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   DateTimePicker,
   Employee,

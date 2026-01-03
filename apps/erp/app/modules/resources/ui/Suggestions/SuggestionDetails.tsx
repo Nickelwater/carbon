@@ -17,7 +17,7 @@ import data from "@emoji-mart/data";
 import Picker from "@emoji-mart/react";
 import { useCallback, useState } from "react";
 import { useFetcher, useNavigate } from "react-router";
-import z from "zod/v3";
+import z from "zod";
 import { Tags } from "~/components/Form";
 import { useTags } from "~/hooks/useTags";
 import type { Suggestion } from "~/modules/resources";

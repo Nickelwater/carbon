@@ -23,7 +23,7 @@ import { flushSync } from "react-dom";
 import { useDropzone } from "react-dropzone";
 import { LuCloudUpload } from "react-icons/lu";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { TrackingTypeIcon } from "~/components";
 import {
   CustomFormFields,

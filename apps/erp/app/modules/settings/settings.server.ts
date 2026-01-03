@@ -1,7 +1,7 @@
 import type { Database, Json } from "@carbon/database";
 import { redis } from "@carbon/kv";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { sanitize } from "~/utils/supabase";
 import type { customFieldValidator } from "./settings.models";
 

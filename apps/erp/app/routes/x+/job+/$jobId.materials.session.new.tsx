@@ -10,7 +10,7 @@ import {
 } from "@internationalized/date";
 import type { ActionFunctionArgs } from "react-router";
 import { data } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import {
   deleteStockTransfer,
   upsertStockTransfer,

@@ -13,7 +13,7 @@ import {
   TabsTrigger
 } from "@carbon/react";
 import { useNavigate } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { Hidden, Select, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { path } from "~/utils/path";

@@ -13,7 +13,7 @@ import {
 } from "@carbon/react";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   CustomFormFields,
   // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration

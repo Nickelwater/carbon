@@ -4,11 +4,10 @@ import { getLocalTimeZone, now, today } from "@internationalized/date";
 import {
   FunctionRegion,
   type PostgrestError,
-  PostgrestResponse,
   type PostgrestSingleResponse,
   type SupabaseClient
 } from "@supabase/supabase-js";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { getEmployeeJob } from "~/modules/people";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
@@ -48,7 +47,7 @@ import type {
   salesRfqValidator,
   selectedLinesValidator
 } from "./sales.models";
-import type { CustomerContact, Quotation, SalesOrder, SalesRFQ } from "./types";
+import type { Quotation, SalesOrder, SalesRFQ } from "./types";
 
 export async function closeSalesOrder(
   client: SupabaseClient<Database>,

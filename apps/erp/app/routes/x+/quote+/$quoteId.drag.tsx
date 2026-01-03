@@ -9,7 +9,7 @@ import { generateObject } from "ai";
 import { nanoid } from "nanoid";
 import type { ActionFunctionArgs } from "react-router";
 import { data, redirect } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { upsertPart } from "~/modules/items";
 import {
   getQuote,

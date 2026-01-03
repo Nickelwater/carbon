@@ -4,7 +4,7 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs } from "react-router";
 import { data } from "react-router";
-import type { ZodSchema } from "zod/v3";
+import type { ZodSchema } from "zod";
 import {
   attributeBooleanValidator,
   attributeCustomerValidator,

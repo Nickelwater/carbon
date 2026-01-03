@@ -17,7 +17,7 @@ import { FaCheck, FaPause, FaPlay } from "react-icons/fa6";
 import { LuArrowLeft, LuCheck, LuCirclePlus, LuX } from "react-icons/lu";
 import type { LoaderFunctionArgs } from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { HighPriorityIcon } from "~/assets/icons/HighPriorityIcon";
 import { LowPriorityIcon } from "~/assets/icons/LowPriorityIcon";
 import { MediumPriorityIcon } from "~/assets/icons/MediumPriorityIcon";

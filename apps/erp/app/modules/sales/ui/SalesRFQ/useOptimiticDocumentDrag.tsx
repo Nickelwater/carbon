@@ -1,5 +1,5 @@
 import { useFetchers, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { path } from "~/utils/path";
 import { salesRfqDragValidator } from "../../sales.models";
 

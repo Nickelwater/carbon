@@ -1,4 +1,4 @@
-import { z } from "zod/v3";
+import { z } from "zod";
 
 const methodType = ["Buy", "Make", "Pick"] as const;
 const replenishmentSystems = ["Buy", "Make", "Buy and Make"] as const;

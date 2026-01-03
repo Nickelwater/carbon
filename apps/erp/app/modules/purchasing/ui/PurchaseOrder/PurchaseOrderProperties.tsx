@@ -22,7 +22,7 @@ import {
   LuRefreshCcw
 } from "react-icons/lu";
 import { Link, useFetcher, useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { Assignee, Hyperlink, useOptimisticAssignment } from "~/components";
 import {

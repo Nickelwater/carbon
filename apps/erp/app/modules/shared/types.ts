@@ -1,5 +1,5 @@
 import type { ColumnPinningState } from "@tanstack/react-table";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import type { StorageItem } from "~/types";
 import type {
   methodItemType,

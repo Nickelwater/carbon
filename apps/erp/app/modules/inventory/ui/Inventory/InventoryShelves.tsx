@@ -44,7 +44,7 @@ import {
   LuQrCode
 } from "react-icons/lu";
 import { Outlet } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Enumerable } from "~/components/Enumerable";
 import { Input, Location, Select, Shelf } from "~/components/Form";
 import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";

@@ -2,7 +2,7 @@ import { openai } from "@ai-sdk/openai";
 import type { Tool } from "ai";
 import { generateText, stepCountIs, tool } from "ai";
 import { LuGlobe } from "react-icons/lu";
-import { z } from "zod/v3";
+import { z } from "zod";
 import type { ChatContext } from "../agents/shared/context";
 import type { ToolConfig } from "../agents/shared/tools";
 

@@ -21,7 +21,7 @@ import { cloneElement, forwardRef } from "react";
 import { LuChevronsUpDown } from "react-icons/lu";
 import type { LinkProps } from "react-router";
 import { Form, Link, useMatches } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { useRouteData } from "~/hooks";
 import { path } from "~/utils/path";
 

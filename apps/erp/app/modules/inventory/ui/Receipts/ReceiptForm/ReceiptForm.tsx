@@ -18,7 +18,7 @@ import {
   VStack
 } from "@carbon/react";
 import { LuEllipsisVertical, LuTrash } from "react-icons/lu";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   Combobox,
   CustomFormFields,

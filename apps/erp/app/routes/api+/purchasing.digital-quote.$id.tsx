@@ -4,7 +4,7 @@ import type { notifyTask } from "@carbon/jobs/trigger/notify";
 import { NotificationEvent } from "@carbon/notifications";
 import { tasks } from "@trigger.dev/sdk";
 import type { ActionFunctionArgs } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import {
   externalSupplierQuoteValidator,
   selectedLineSchema

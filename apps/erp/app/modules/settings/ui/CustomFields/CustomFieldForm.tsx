@@ -23,7 +23,7 @@ import {
   LuUser
 } from "react-icons/lu";
 import { useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Array, Hidden, Input, Submit, Tags } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";

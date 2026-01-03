@@ -3,7 +3,7 @@ import { Number, Select, ValidatedForm } from "@carbon/form";
 import { Card, CardContent, CardHeader, CardTitle, toast } from "@carbon/react";
 import { useCallback, useEffect } from "react";
 import { useFetcher } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { usePermissions } from "~/hooks";
 import type { action } from "~/routes/x+/issue+/item+/update";
 import { useItems } from "~/stores";

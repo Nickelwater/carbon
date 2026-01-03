@@ -1,7 +1,7 @@
 import { useCarbon } from "@carbon/auth";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { useUser } from "~/hooks";
 import type {
   shipmentStatusType,

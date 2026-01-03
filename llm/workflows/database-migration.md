@@ -180,7 +180,7 @@ After creating the migration, update the appropriate `.models.ts` file in the ER
 ```typescript
 // apps/carbon/app/modules/[module-name]/[module-name].models.ts
 
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 
 // Base validator matching the database schema

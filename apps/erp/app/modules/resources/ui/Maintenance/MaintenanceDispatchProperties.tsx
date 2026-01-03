@@ -18,7 +18,7 @@ import {
 import { useCallback, useEffect, useState } from "react";
 import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
 import { useFetcher, useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import {
   Assignee,
   EmployeeAvatar,

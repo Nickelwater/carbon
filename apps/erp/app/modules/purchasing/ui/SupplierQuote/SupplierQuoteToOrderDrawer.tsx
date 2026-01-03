@@ -25,7 +25,7 @@ import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { LuImage } from "react-icons/lu";
 import { Form, useNavigation, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { useUser } from "~/hooks";
 import { useCurrencyFormatter } from "~/hooks/useCurrencyFormatter";
 import { getPrivateUrl, path } from "~/utils/path";

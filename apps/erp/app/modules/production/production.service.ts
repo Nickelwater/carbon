@@ -8,7 +8,7 @@ import {
   type PostgrestError,
   type SupabaseClient
 } from "@supabase/supabase-js";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import type { StorageItem } from "~/types";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";

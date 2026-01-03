@@ -50,7 +50,7 @@ import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { LuDraftingCompass, LuHash, LuShapes, LuShield } from "react-icons/lu";
 import { useFetcher, useLocation } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Documents } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import {

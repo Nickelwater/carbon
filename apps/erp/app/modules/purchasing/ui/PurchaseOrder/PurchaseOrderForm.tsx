@@ -13,7 +13,7 @@ import {
 } from "@carbon/react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   Currency,
   CustomFormFields,

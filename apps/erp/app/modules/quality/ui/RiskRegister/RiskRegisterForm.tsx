@@ -16,11 +16,10 @@ import {
   VStack
 } from "@carbon/react";
 import { Editor } from "@carbon/react/Editor";
-import type { PostgrestResponse } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   Employee,
   Hidden,

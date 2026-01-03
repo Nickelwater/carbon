@@ -15,7 +15,7 @@ import type {
 } from "react-router";
 import { Form as ReactRouterForm, useSubmit } from "react-router";
 import * as R from "remeda";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { useIsSubmitting, useIsValid } from "./hooks";
 import { FORM_ID_FIELD } from "./internal/constants";
 import type { InternalFormContextValue } from "./internal/formContext";

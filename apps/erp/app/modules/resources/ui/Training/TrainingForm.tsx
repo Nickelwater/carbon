@@ -12,7 +12,7 @@ import {
 } from "@carbon/react";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Hidden, Input, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { trainingValidator } from "~/modules/resources";

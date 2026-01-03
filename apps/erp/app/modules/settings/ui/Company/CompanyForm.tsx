@@ -1,6 +1,6 @@
 import { ValidatedForm } from "@carbon/form";
 import { VStack } from "@carbon/react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Currency, Hidden, Input, Submit } from "~/components/Form";
 import AddressAutocomplete from "~/components/Form/AddressAutocomplete";
 import { companyValidator } from "~/modules/settings";

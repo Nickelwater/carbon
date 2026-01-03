@@ -9,7 +9,7 @@ import {
 } from "@carbon/react";
 import { useState } from "react";
 import { useFetcher, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   Customer,
   CustomerContact,

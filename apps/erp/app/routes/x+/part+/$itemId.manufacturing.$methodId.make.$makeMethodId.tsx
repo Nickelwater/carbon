@@ -7,7 +7,7 @@ import { useRouteData } from "@carbon/remix";
 import { Suspense } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Await, redirect, useLoaderData, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { CadModel } from "~/components";
 import { usePermissions } from "~/hooks/usePermissions";
 import type {

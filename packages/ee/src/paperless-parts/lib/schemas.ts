@@ -1,4 +1,4 @@
-import { z } from "zod/v3";
+import { z } from "zod";
 
 // Address schema
 export const AddressSchema = z.object({

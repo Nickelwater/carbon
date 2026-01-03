@@ -15,7 +15,7 @@ import { getMaterialDescription, getMaterialId } from "@carbon/utils";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { TrackingTypeIcon } from "~/components";
 import {
   // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration

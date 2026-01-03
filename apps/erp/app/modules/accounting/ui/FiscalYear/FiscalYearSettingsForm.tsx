@@ -7,7 +7,7 @@ import {
   CardTitle,
   VStack
 } from "@carbon/react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Select, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { months } from "~/modules/shared";

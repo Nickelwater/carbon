@@ -11,7 +11,7 @@ import {
   VStack
 } from "@carbon/react";
 import { useNavigate, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Customer, Hidden, Input, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { path } from "~/utils/path";

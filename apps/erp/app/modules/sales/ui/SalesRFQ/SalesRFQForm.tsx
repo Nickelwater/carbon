@@ -10,7 +10,7 @@ import {
   VStack
 } from "@carbon/react";
 import { useState } from "react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   Customer,
   CustomerContact,

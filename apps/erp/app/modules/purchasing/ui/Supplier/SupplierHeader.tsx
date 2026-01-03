@@ -14,7 +14,7 @@ import {
 } from "@carbon/react";
 import { useCallback } from "react";
 import { useFetcher, useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { EmployeeAvatar } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { Tags } from "~/components/Form";

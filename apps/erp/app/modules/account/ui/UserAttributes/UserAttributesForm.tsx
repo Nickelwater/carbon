@@ -13,7 +13,7 @@ import { useLocale } from "@react-aria/i18n";
 import { useState } from "react";
 import { LuFile, LuPaperclip } from "react-icons/lu";
 import { useFetcher, useParams } from "react-router";
-import type { ZodSchema } from "zod/v3";
+import type { ZodSchema } from "zod";
 import CustomerAvatar from "~/components/CustomerAvatar";
 import FileDropzone from "~/components/FileDropzone";
 import {

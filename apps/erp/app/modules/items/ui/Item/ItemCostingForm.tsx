@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle
 } from "@carbon/react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   CustomFormFields,
   Hidden,

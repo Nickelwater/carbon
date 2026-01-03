@@ -3,8 +3,8 @@ import { notFound } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { generateObject } from "ai";
 import type { ActionFunctionArgs } from "react-router";
-import type { ZodSchema } from "zod/v3";
-import { z } from "zod/v3";
+import type { ZodSchema } from "zod";
+import { z } from "zod";
 import { importSchemas } from "~/modules/shared";
 
 const inputSchema = z.object({

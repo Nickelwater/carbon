@@ -1,5 +1,5 @@
 import type { Validator } from "@carbon/form";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 
 export type TypeOfValidator<U extends Validator<any>> =

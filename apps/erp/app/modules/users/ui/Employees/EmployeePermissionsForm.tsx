@@ -12,7 +12,7 @@ import {
 } from "@carbon/react";
 import { useState } from "react";
 import { useNavigate } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Hidden, Select, Submit } from "~/components/Form";
 import type { CompanyPermission } from "~/modules/users";
 import { employeeValidator } from "~/modules/users";

@@ -1,6 +1,6 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { type ActionFunctionArgs, data } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { getDefaultShelfForJob } from "~/modules/inventory";
 import {
   productionOrderValidator,

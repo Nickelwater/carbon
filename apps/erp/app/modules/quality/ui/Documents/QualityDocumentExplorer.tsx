@@ -55,7 +55,7 @@ import {
   LuTrash
 } from "react-icons/lu";
 import { useFetcher, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Empty } from "~/components";
 import { UnitOfMeasure } from "~/components/Form";
 import { ProcedureStepTypeIcon } from "~/components/Icons";

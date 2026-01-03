@@ -1,6 +1,6 @@
 import type { Database, Json } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import type { DataType } from "~/modules/shared";
 import type { Employee } from "~/modules/users";
 import { getEmployees } from "~/modules/users/users.service";

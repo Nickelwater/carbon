@@ -3,7 +3,7 @@ import { validator } from "@carbon/form";
 import { Button } from "@carbon/react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data, Form, redirect, useLoaderData } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { client, companyId, userId } = await requirePermissions(request, {

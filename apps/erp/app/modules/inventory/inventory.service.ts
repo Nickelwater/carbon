@@ -2,7 +2,7 @@ import { type Database, fetchAllFromTable, type Json } from "@carbon/database";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import type { StorageItem } from "~/types";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";

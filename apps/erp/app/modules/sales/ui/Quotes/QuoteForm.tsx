@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
 import { useState } from "react";
 import { flushSync } from "react-dom";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   Currency,
   Customer,

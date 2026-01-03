@@ -2,7 +2,7 @@ import { type Database, fetchAllFromTable, type Json } from "@carbon/database";
 import type { JSONContent } from "@carbon/react";
 import { parseDate } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";

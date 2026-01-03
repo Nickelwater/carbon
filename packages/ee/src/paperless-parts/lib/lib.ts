@@ -10,7 +10,7 @@ import {
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { generateObject } from "ai";
 import { nanoid } from "nanoid";
-import { z } from "zod/v3";
+import { z } from "zod";
 import type { PaperlessPartsClient, QuoteCostingVariable } from "./client";
 import type {
   AddressSchema,

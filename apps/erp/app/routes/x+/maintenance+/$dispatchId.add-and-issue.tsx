@@ -3,7 +3,7 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { FunctionRegion } from "@supabase/supabase-js";
 import type { ActionFunctionArgs } from "react-router";
 import { data } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 const addAndIssueValidator = z.object({
   itemId: z.string().min(1),

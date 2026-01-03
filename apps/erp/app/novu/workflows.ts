@@ -4,7 +4,7 @@ import {
   NotificationWorkflow
 } from "@carbon/notifications";
 import { workflow } from "@novu/framework";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 const payloadSchema = z.object({
   recordId: z.string(),

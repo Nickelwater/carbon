@@ -7,7 +7,7 @@ import type { PostgrestResponse } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Await, redirect, useLoaderData, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import CadModel from "~/components/CadModel";
 import { usePermissions, useRouteData } from "~/hooks";
 import type {

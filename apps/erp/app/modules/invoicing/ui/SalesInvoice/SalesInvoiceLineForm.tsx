@@ -23,7 +23,7 @@ import { getItemReadableId } from "@carbon/utils";
 import { useEffect, useState } from "react";
 import { LuCircleAlert } from "react-icons/lu";
 import { useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { MethodIcon } from "~/components";
 import {
   CustomFormFields,

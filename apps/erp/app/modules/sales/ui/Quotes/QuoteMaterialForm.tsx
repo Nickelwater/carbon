@@ -14,7 +14,7 @@ import {
 import { getItemReadableId } from "@carbon/utils";
 import { useEffect, useState } from "react";
 import { useFetcher, useLocation, useNavigate, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   DefaultMethodType,
   Hidden,

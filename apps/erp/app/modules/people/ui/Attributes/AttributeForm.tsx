@@ -11,7 +11,7 @@ import {
   VStack
 } from "@carbon/react";
 import { useState } from "react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
   Array,

@@ -33,7 +33,7 @@ export const processData = task({
 
 ```ts
 import { schemaTask } from "@trigger.dev/sdk";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 export const validatedTask = schemaTask({
   id: "validated-task",

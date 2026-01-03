@@ -1,6 +1,6 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { type ActionFunctionArgs, data } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { updateIssueActionProcesses } from "~/modules/quality/quality.service";
 
 const updateProcessesSchema = z.object({

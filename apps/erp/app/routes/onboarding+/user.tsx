@@ -18,7 +18,7 @@ import {
   redirect,
   useLoaderData
 } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Hidden, Input, Submit } from "~/components/Form";
 import { useOnboarding } from "~/hooks";
 import {

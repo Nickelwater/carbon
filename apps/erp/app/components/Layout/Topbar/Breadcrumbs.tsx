@@ -27,7 +27,7 @@ import { BsFillHexagonFill } from "react-icons/bs";
 import { IoMdAdd } from "react-icons/io";
 import { LuChevronsUpDown } from "react-icons/lu";
 import { Form, Link, useMatches } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import {
   BreadcrumbItem,
   BreadcrumbLink,

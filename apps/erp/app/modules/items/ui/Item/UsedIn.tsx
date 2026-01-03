@@ -30,7 +30,7 @@ import {
   LuTruck
 } from "react-icons/lu";
 import { useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { Hyperlink, MethodIcon } from "~/components";
 import { Confirm } from "~/components/Modals";
 import { LevelLine } from "~/components/TreeView";

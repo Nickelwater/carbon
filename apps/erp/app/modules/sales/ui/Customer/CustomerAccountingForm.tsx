@@ -7,7 +7,7 @@ import {
   CardTitle,
   HStack
 } from "@carbon/react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { CustomerType, Hidden, Input, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { customerAccountingValidator } from "../../sales.models";

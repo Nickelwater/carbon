@@ -6,7 +6,7 @@ import {
   CardHeader,
   CardTitle
 } from "@carbon/react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { CustomFormFields, Hidden, Number, Submit } from "~/components/Form";
 import { usePermissions, useUser } from "~/hooks";

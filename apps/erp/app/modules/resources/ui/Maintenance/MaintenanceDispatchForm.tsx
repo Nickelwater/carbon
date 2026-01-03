@@ -16,7 +16,7 @@ import { Editor } from "@carbon/react/Editor";
 import { nanoid } from "nanoid";
 import { useState } from "react";
 import { BsExclamationSquareFill } from "react-icons/bs";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { HighPriorityIcon } from "~/assets/icons/HighPriorityIcon";
 import { LowPriorityIcon } from "~/assets/icons/LowPriorityIcon";
 import { MediumPriorityIcon } from "~/assets/icons/MediumPriorityIcon";

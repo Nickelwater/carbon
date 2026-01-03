@@ -1,5 +1,5 @@
 import { labelSizes } from "@carbon/utils";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { DataType } from "~/modules/shared";
 

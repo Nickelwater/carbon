@@ -15,7 +15,7 @@ import {
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useEffect } from "react";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import {
   CustomFormFields,
   Hidden,

@@ -1,7 +1,7 @@
 import { getCarbonServiceRole } from "@carbon/auth";
 import { validator } from "@carbon/form";
 import { type ActionFunctionArgs, data } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 const oauthTokenValidator = z.object({
   grant_type: z.enum(["authorization_code", "refresh_token"]),

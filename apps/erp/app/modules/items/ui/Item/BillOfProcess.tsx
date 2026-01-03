@@ -62,7 +62,7 @@ import {
   LuX
 } from "react-icons/lu";
 import { useFetcher, useFetchers, useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import {
   DirectionAwareTabs,
   EmployeeAvatar,

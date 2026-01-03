@@ -1,4 +1,4 @@
-import type { ZodType } from "zod/v3";
+import type { ZodType } from "zod";
 
 export type IntegrationConfig = {
   name: string;

@@ -22,7 +22,7 @@ import {
 } from "react-icons/lu";
 import type { LoaderFunctionArgs } from "react-router";
 import { useLoaderData, useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import {
   BreadcrumbItem,
   BreadcrumbLink,

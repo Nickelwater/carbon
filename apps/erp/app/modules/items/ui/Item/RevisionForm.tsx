@@ -14,7 +14,7 @@ import {
 } from "@carbon/react";
 import { useEffect } from "react";
 import { useFetcher, useNavigate } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Hidden, Input, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { path } from "~/utils/path";

@@ -1,7 +1,7 @@
 import { getAppUrl } from "@carbon/auth";
 import { tool } from "ai";
 import { LuSearch } from "react-icons/lu";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { generateEmbedding } from "~/modules/shared/shared.service";
 import { path } from "~/utils/path";
 import type { ChatContext } from "../agents/shared/context";

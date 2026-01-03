@@ -1,5 +1,5 @@
 import { getLocalTimeZone, today } from "@internationalized/date";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { address, contact } from "~/types/validators";
 import { methodItemType } from "../shared";

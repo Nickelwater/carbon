@@ -26,7 +26,7 @@ import {
   LuMove3D
 } from "react-icons/lu";
 import { Await, Link, useFetcher, useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { MethodBadge, MethodIcon, TrackingTypeIcon } from "~/components";
 import {

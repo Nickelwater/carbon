@@ -59,7 +59,7 @@ import {
   LuX
 } from "react-icons/lu";
 import { useFetcher, useFetchers, useParams } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { DirectionAwareTabs, EmployeeAvatar, TimeTypeIcon } from "~/components";
 import {
   Hidden,

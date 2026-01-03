@@ -10,7 +10,7 @@ import {
   HStack,
   VStack
 } from "@carbon/react";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Boolean, EmojiPicker, Hidden, Input, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";

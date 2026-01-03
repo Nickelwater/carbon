@@ -1,7 +1,7 @@
 import { assertIsPost } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { type ActionFunctionArgs, data } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { upsertQuoteLinePrices } from "~/modules/sales";
 
 const numberArrayValidator = z.array(z.number());

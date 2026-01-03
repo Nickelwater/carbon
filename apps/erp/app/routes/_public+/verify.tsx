@@ -34,7 +34,7 @@ import {
   useFetcher,
   useSearchParams
 } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 
 import type { FormActionData, Result } from "~/types";
 import { path } from "~/utils/path";

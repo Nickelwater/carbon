@@ -12,7 +12,7 @@ import {
   VStack
 } from "@carbon/react";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Hidden, Input, Location, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { shelfValidator } from "~/modules/inventory";

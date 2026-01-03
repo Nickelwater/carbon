@@ -4,7 +4,7 @@ import { tasks } from "@trigger.dev/sdk";
 import crypto from "crypto";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { getIntegration } from "~/modules/settings/settings.service";
 
 const integrationValidator = z.object({

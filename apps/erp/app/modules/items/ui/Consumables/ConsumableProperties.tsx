@@ -19,7 +19,7 @@ import {
 import { Suspense, useCallback, useEffect } from "react";
 import { LuCopy, LuLink } from "react-icons/lu";
 import { Await, useFetcher, useParams } from "react-router";
-import { z } from "zod/v3";
+import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { MethodBadge, MethodIcon, TrackingTypeIcon } from "~/components";
 import { Enumerable } from "~/components/Enumerable";

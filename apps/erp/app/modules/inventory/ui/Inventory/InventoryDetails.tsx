@@ -7,7 +7,7 @@ import {
 } from "@carbon/react";
 import { useLocale } from "@react-aria/i18n";
 import { LuMoveDown, LuMoveUp } from "react-icons/lu";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import type {
   ItemQuantities,
   ItemShelfQuantities,

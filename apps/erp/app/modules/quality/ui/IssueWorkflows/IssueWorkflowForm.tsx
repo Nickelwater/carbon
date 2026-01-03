@@ -17,7 +17,7 @@ import { Reorder, useDragControls } from "framer-motion";
 import { nanoid } from "nanoid";
 import { useEffect, useState } from "react";
 import { LuGripVertical, LuX } from "react-icons/lu";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { Hidden, Input, Submit } from "~/components/Form";
 import { usePermissions, useUser } from "~/hooks";
 import type { ListItem } from "~/types";

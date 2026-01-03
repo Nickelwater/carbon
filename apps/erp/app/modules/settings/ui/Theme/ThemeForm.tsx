@@ -13,7 +13,7 @@ import type { Theme } from "@carbon/utils";
 import { themes } from "@carbon/utils";
 import { RxCheck } from "react-icons/rx";
 import { useFetcher } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import type { themeValidator } from "~/modules/settings";
 import type { Action } from "~/types";
 import { path } from "~/utils/path";

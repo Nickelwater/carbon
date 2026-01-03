@@ -33,7 +33,7 @@ import {
   LuEllipsisVertical
 } from "react-icons/lu";
 import { Await, Link, useFetcher, useNavigate } from "react-router";
-import type { z } from "zod/v3";
+import type { z } from "zod";
 import { EmployeeAvatar, Empty } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import {
