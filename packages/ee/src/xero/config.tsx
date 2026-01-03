@@ -6,7 +6,7 @@ import type { IntegrationConfig } from "../types";
 export const Xero: IntegrationConfig = {
   name: "Xero",
   id: "xero",
-  active: true,
+  active: false,
   category: "Accounting",
   logo: Logo,
   description:
