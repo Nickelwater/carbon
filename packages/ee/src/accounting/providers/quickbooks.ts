@@ -47,6 +47,7 @@ export class QuickBooksProvider implements IQuickBooksProvider {
       clientSecret: config.clientSecret,
       redirectUri: config.redirectUri,
       tokenUrl: "https://oauth.platform.intuit.com/oauth2/v1/tokens/bearer",
+      onTokenRefresh: config.onTokenRefresh,
       getAuthUrl(scopes, redirect_uri = "") {
         const params = new URLSearchParams({
           client_id: config.clientId,

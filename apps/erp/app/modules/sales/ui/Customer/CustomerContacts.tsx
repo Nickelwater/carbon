@@ -58,7 +58,11 @@ const CustomerContacts = ({ contacts }: CustomerContactsProps) => {
         });
       }
 
-      if (permissions.can("create", "users") && contact.user === null) {
+      if (
+        permissions.can("create", "users") &&
+        contact.user === null &&
+        contact.contact.email
+      ) {
         actions.push({
           label: "Create Account",
           icon: <IoMdAdd />,

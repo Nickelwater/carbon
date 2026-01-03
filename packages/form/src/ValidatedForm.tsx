@@ -1,3 +1,4 @@
+import { useIsomorphicLayoutEffect } from "@carbon/react";
 import type { ComponentProps, FormEvent, RefObject } from "react";
 import React, {
   useCallback,
@@ -31,11 +32,7 @@ import type { SyncedFormProps } from "./internal/state/createFormStore";
 import { useRootFormStore } from "./internal/state/createFormStore";
 import { useFormStore } from "./internal/state/storeHooks";
 import { useSubmitComplete } from "./internal/submissionCallbacks";
-import {
-  mergeRefs,
-  useDeepEqualsMemo,
-  useIsomorphicLayoutEffect as useLayoutEffect
-} from "./internal/util";
+import { mergeRefs, useDeepEqualsMemo } from "./internal/util";
 import type { FieldErrors } from "./validation/types";
 import { validator as zodValidator } from "./zod";
 
@@ -328,12 +325,12 @@ export function ValidatedForm<
 
   // TODO: all these hooks running at startup cause extra, unnecessary renders
   // There must be a nice way to avoid this.
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     registerForm(formId);
     return () => cleanupForm(formId);
   }, [cleanupForm, formId, registerForm]);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     syncFormProps({
       action,
       defaultValues: providedDefaultValues ?? backendDefaultValues ?? {},
@@ -351,7 +348,7 @@ export function ValidatedForm<
     validator
   ]);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     setFormElementInState(formRef.current);
   }, [setFormElementInState]);
 

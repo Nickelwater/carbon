@@ -10,8 +10,8 @@ export type ProviderConfig<T = unknown> = {
 } & T;
 
 export enum ProviderID {
-  XERO = "xero",
-  QUICKBOOKS = "quickbooks"
+  XERO = "xero"
+  // QUICKBOOKS = "quickbooks"
   // SAGE = "sage",
 }
 
@@ -30,3 +30,16 @@ export const ProviderCredentialsSchema = z.discriminatedUnion("type", [
 ]);
 
 export type ProviderCredentials = z.output<typeof ProviderCredentialsSchema>;
+
+export const ExternalIdSchema = z.object({
+  [`${ProviderID.XERO}`]: z.object({
+    id: z.string(),
+    provider: z.literal(ProviderID.XERO),
+    metadata: z.record(z.any()).optional()
+  })
+  // [`${ProviderID.QUICKBOOKS}`]: z.object({
+  //   id: z.string(),
+  //   provider: z.literal(ProviderID.QUICKBOOKS),
+  //   metadata: z.record(z.any()).optional()
+  // })
+});

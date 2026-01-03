@@ -6,7 +6,7 @@ import type { IntegrationConfig } from "../types";
 export const QuickBooks: IntegrationConfig = {
   name: "QuickBooks",
   id: "quickbooks",
-  active: false,
+  active: true,
   category: "Accounting",
   logo: Logo,
   description:

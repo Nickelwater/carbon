@@ -1,9 +1,9 @@
+import { Database } from "@carbon/database";
 import { SupabaseClient } from "@supabase/supabase-js";
 import z from "zod";
-import { Database } from "../../../../database/src/types";
-import { AccountingEntityType, EntityMap } from "../entities";
+import { AccountingEntityType } from "../entities";
 import { AccountingProvider } from "../providers";
-import { ProviderCredentialsSchema, ProviderID } from "./models";
+import { ProviderID } from "./models";
 
 export const AccountingSyncSchema = z.object({
   companyId: z.string(),
@@ -11,19 +11,17 @@ export const AccountingSyncSchema = z.object({
   syncType: z.enum(["webhook", "scheduled", "trigger"]),
   syncDirection: z.enum(["from-accounting", "to-accounting", "bi-directional"]),
   entities: z.array(z.custom<AccountingEntity>()),
-  metadata: z
-    .record(z.union([z.string(), z.number(), z.boolean(), z.null()]))
-    .optional()
+  metadata: z.record(z.any()).optional()
 });
 
 export type AccountingSyncPayload = z.infer<typeof AccountingSyncSchema>;
 
-export type SyncFn = <T = unknown>(input: {
+export type SyncFn = (input: {
   client: SupabaseClient<Database>;
   entity: AccountingEntity;
   provider: AccountingProvider;
   payload: AccountingSyncPayload;
-}) => T | Promise<T>;
+}) => Promise<any> | any;
 
 /**
  *  {
@@ -48,5 +46,4 @@ export interface AccountingEntity<
   entityId: string;
   operation: "create" | "update" | "delete" | "sync";
   lastSyncedAt?: string;
-  data?: Partial<EntityMap[T]>;
 }

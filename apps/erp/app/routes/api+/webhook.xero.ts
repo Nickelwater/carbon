@@ -28,6 +28,8 @@ import {
 import {
   AccountingEntity,
   AccountingSyncPayload,
+  getProviderIntegration,
+  ProviderCredentials,
   ProviderID
 } from "@carbon/ee/accounting";
 import { XeroProvider } from "@carbon/ee/xero";
@@ -94,8 +96,7 @@ async function fetchInvoiceAndDetermineContactType(
       throw new Error("Xero integration not found");
     }
 
-    const { accessToken, refreshToken, tenantId } =
-      integration.data.metadata || {};
+    const { accessToken, tenantId } = integration.data.metadata || {};
 
     if (!accessToken) {
       throw new Error("No access token available for Xero integration");
@@ -190,14 +191,19 @@ async function fetchContactAndDetermineType(
       throw new Error("No access token available for Xero integration");
     }
 
-    const provider = new XeroProvider({
-      clientId: XERO_CLIENT_ID!,
-      clientSecret: XERO_CLIENT_SECRET!,
+    const creds: ProviderCredentials = {
+      type: "oauth2",
       accessToken,
       refreshToken,
-      tenantId: metadata.tenantId ?? tenantId,
-      companyId
-    });
+      tenantId
+    };
+
+    const provider = getProviderIntegration(
+      serviceRole,
+      companyId,
+      XeroProvider.id,
+      creds
+    );
 
     const contact = await provider.contacts.get(contactId);
 
@@ -406,17 +412,20 @@ export async function action({ request }: ActionFunctionArgs) {
             companyId,
             provider: ProviderID.XERO,
             syncType: "webhook",
-            syncDirection: "to-accounting",
+            syncDirection: "from-accounting",
             entities,
             metadata: {
-              tenantId: tenantId
+              tenantId: tenantId,
+              raw: parsed.data
             }
           };
 
           console.dir(payload, { depth: null });
 
           // Trigger the background job using Trigger.dev
-          const handle = await tasks.trigger("accounting-sync", payload);
+          const handle = await tasks.trigger("from-accounting-sync", payload, {
+            tags: [ProviderID.XERO, payload.syncType]
+          });
 
           console.log(
             `Triggered accounting sync job ${handle.id} for ${entities.length} entities`

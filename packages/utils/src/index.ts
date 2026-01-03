@@ -15,6 +15,7 @@ export * from "./math";
 export * from "./ssr";
 export * from "./status";
 export * from "./string";
+export * from "./supabase";
 export * from "./themes";
 export * from "./tiptap";
 export * from "./types";

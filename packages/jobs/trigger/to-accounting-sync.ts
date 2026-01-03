@@ -1,9 +1,13 @@
+/**
+ * Task to sync entities to accounting providers from Carbon
+ */
 import { getCarbonServiceRole } from "@carbon/auth";
 import {
   AccountingEntity,
   AccountingSyncSchema,
   EntityMap,
   getAccountingIntegration,
+  getEntityWithExternalId,
   getProviderIntegration,
   SyncFn,
 } from "@carbon/ee/accounting";
@@ -20,42 +24,51 @@ type Payload = z.infer<typeof PayloadSchema>;
 
 const UPSERT_MAP: Record<keyof EntityMap, SyncFn> = {
   async customer({ client, entity, payload, provider }) {
-    // Fetch customer from Carbon
-    const customer = await client
-      .from("customer")
-      .select("*, customerLocation(*, address(*))")
-      .eq("id", entity.data.companyId)
-      .eq("companyId", payload.companyId)
-      .single();
+    const customer = await getEntityWithExternalId(
+      client,
+      "customer",
+      payload.companyId,
+      provider.id,
+      { id: entity.entityId }
+    );
 
-    if (customer.error) {
-      throw new Error(`Failed to get customer`);
-    }
+    // const data = {
+    //   ...entity.data,
+    //   id: customer ? customer.data.externalId[provider.id].id : undefined,
+    // };
 
-    if (!customer.data) {
-      // Customer does not exist, create it
-    }
+    // await provider.contacts.upsert(data);
 
-    return {};
+    return {
+      id: entity.entityId,
+      message: "Upserted successfully",
+    };
   },
   async vendor({ client, entity, payload, provider }) {},
 };
 
 const DELETE_MAP: Record<keyof EntityMap, SyncFn> = {
   async customer({ client, entity, payload, provider }) {
-    // Fetch customer from Carbon
-    const customer = await client
-      .from("customer")
-      .select("*, customerLocation(*, address(*))")
-      .eq("id", entity.data.companyId)
-      .eq("companyId", payload.companyId)
-      .single();
+    const customer = await getEntityWithExternalId(
+      client,
+      "customer",
+      payload.companyId,
+      provider.id,
+      { id: entity.entityId }
+    );
 
-    if (customer.error || !customer.data) {
-      throw new Error(`Customer ${entity.entityId} not found`);
-    }
+    // if (customer.error || !customer.data) {
+    //   throw new Error(`Customer ${entity.entityId} not found`);
+    // }
 
-    return {};
+    // const externalId = customer.data.externalId[provider.id];
+
+    // await provider.contacts.delete(externalId.id);
+
+    return {
+      id: entity.entityId,
+      message: "Deleted successfully",
+    };
   },
   async vendor({ client, entity, payload, provider }) {},
 };

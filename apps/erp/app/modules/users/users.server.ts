@@ -203,7 +203,8 @@ export async function createCustomerAccount(
   if (
     customerContact.error ||
     customerContact.data === null ||
-    customerContact.data.contact === null
+    customerContact.data.contact === null ||
+    !customerContact.data.contact.email
   ) {
     return { success: false, message: "Failed to get customer contact" };
   }
@@ -434,7 +435,8 @@ export async function createSupplierAccount(
   if (
     supplierContact.error ||
     supplierContact.data === null ||
-    supplierContact.data.contact === null
+    supplierContact.data.contact === null ||
+    !supplierContact.data.contact.email
   ) {
     return { success: false, message: "Failed to get supplier contact" };
   }

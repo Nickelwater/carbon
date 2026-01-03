@@ -1,6 +1,7 @@
+import { useIsomorphicLayoutEffect } from "@carbon/react";
 import type { RefObject } from "react";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 
 // MediaQueryList Event based useEventListener interface
 function useEventListener<K extends keyof MediaQueryListEventMap>(
@@ -91,8 +92,7 @@ function useEventListener<
 ) {
   // Create a ref that stores handler
   const savedHandler = useRef(handler);
-
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     savedHandler.current = handler;
   }, [handler]);
 

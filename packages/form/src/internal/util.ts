@@ -1,5 +1,5 @@
 import type React from "react";
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useRef } from "react";
 import * as R from "remeda";
 
 export const omit = (obj: any, ...keys: string[]) => {
@@ -23,9 +23,6 @@ export const mergeRefs = <T = any>(
     });
   };
 };
-
-export const useIsomorphicLayoutEffect =
-  typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export const useDeepEqualsMemo = <T>(item: T): T => {
   const ref = useRef<T>(item);

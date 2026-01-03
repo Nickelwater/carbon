@@ -48,6 +48,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   try {
     // Use the QuickBooksProvider to handle the OAuth flow
     const provider = new QuickBooksProvider({
+      companyId,
       clientId: QUICKBOOKS_CLIENT_ID,
       clientSecret: QUICKBOOKS_CLIENT_SECRET,
       redirectUri: `${url.origin}/api/integrations/quickbooks/oauth`,
@@ -56,7 +57,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
     });
 
     // Exchange the authorization code for tokens
-    const auth = await provider.exchangeCodeForToken(d.code);
+
+    const auth = await provider.authenticate(
+      d.code,
+      provider.config.redirectUri!
+    );
+
     if (!auth) {
       return data(
         { error: "Failed to exchange code for token" },

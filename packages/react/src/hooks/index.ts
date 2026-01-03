@@ -5,6 +5,7 @@ import useHydrated from "./useHydrated";
 import useInitialDimensions from "./useInitialDimenions";
 import { useInterval } from "./useInterval";
 import useIsMobile from "./useIsMobile";
+import { useIsomorphicLayoutEffect } from "./useIsomorphicLayoutEffect";
 import useKeyboardShortcuts from "./useKeyboardShortcuts";
 import useLocalStorage from "./useLocalStorage";
 import useMount from "./useMount";
@@ -22,6 +23,7 @@ export {
   useInitialDimensions,
   useInterval,
   useIsMobile,
+  useIsomorphicLayoutEffect,
   useKeyboardShortcuts,
   useLocalStorage,
   useMount,

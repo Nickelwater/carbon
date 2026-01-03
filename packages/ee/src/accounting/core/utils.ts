@@ -122,6 +122,7 @@ interface OAuthClientOptions {
   refreshToken?: string;
   redirectUri?: string;
   getAuthUrl: (scopes: string[], redirectUri: string) => string;
+  onTokenRefresh?: (creds: ProviderCredentials) => void;
 }
 
 export function createOAuthClient({
@@ -161,12 +162,18 @@ export function createOAuthClient({
         throw new Error(`Auth failed: ${response.data}`);
       }
 
-      return {
+      const newCreds = {
         type: "oauth2",
         accessToken: response.data.access_token,
         refreshToken: response.data.refresh_token,
-        expiresAt: new Date(Date.now() + response.data.expires_in * 1000)
-      };
+        expiresAt: new Date(
+          Date.now() + response.data.expires_in * 1000
+        ).toISOString()
+      } satisfies ProviderCredentials;
+
+      options.onTokenRefresh?.(newCreds);
+
+      return newCreds;
     },
     async refresh() {
       if (!creds?.refreshToken) {
@@ -189,16 +196,21 @@ export function createOAuthClient({
       });
 
       if (response.error || !response.data) {
-        throw new Error(`Token refresh failed: ${response}`);
+        console.log(response.data);
+        throw new Error(`Token refresh failed: ${response.error}`);
       }
 
       const newCreds = {
         type: "oauth2",
         accessToken: response.data.access_token,
         refreshToken: response.data.refresh_token,
-        expiresAt: new Date(Date.now() + response.data.expires_in * 1000),
+        expiresAt: new Date(
+          Date.now() + response.data.expires_in * 1000
+        ).toISOString(),
         tenantId: creds?.tenantId
       } satisfies ProviderCredentials;
+
+      options.onTokenRefresh?.(newCreds);
 
       return newCreds;
     },

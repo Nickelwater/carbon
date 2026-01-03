@@ -24,13 +24,14 @@ export interface ReadableResource<T> {
   get(id: string): Promise<T>;
 }
 
-export interface WritableResource<T, Create, Update> {
+export type WritableResource<T, Create, Update> = {
   create(data: Create): Promise<T>;
   update(id: string, data: Update): Promise<T>;
+  upsert(data: Update & { id: string }): Promise<T>;
   delete(id: string): Promise<void>;
-}
+};
 
-export type Resource<T, Create, Update> = ReadableResource<T> &
+export type Resource<T, Create, Update = Create> = ReadableResource<T> &
   WritableResource<T, Create, Update>;
 
 export abstract class BaseProvider {

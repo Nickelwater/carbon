@@ -1,23 +1,16 @@
-import type {
-  Pool,
-  PoolClient,
-} from "https://deno.land/x/postgres@v0.17.0/mod.ts";
-import type {
+import { extendStackTrace } from "https://esm.sh/kysely@0.26.3/dist/esm/util/stack-trace-utils.js";
+import {
+  CompiledQuery,
   DatabaseConnection,
   Driver,
   PostgresCursorConstructor,
   QueryResult,
   TransactionSettings,
-} from "https://esm.sh/kysely@0.26.3";
-import { CompiledQuery } from "https://esm.sh/kysely@0.26.3";
-import {
-  freeze,
-  isFunction,
-} from "https://esm.sh/kysely@0.26.3/dist/esm/util/object-utils.js";
-import { extendStackTrace } from "https://esm.sh/kysely@0.26.3/dist/esm/util/stack-trace-utils.js";
+} from "kysely";
+import { Pool, PoolClient } from "pg";
 
 export interface PostgresDialectConfig {
-  pool: Pool | (() => Promise<Pool>);
+  pool: Pool;
   cursor?: PostgresCursorConstructor;
   onCreateConnection?: (connection: DatabaseConnection) => Promise<void>;
 }
@@ -30,13 +23,11 @@ export class PostgresDriver implements Driver {
   #pool?: Pool;
 
   constructor(config: PostgresDialectConfig) {
-    this.#config = freeze({ ...config });
+    this.#config = Object.freeze({ ...config });
   }
 
   async init(): Promise<void> {
-    this.#pool = isFunction(this.#config.pool)
-      ? await this.#config.pool()
-      : this.#config.pool;
+    this.#pool = this.#config.pool;
   }
 
   async acquireConnection(): Promise<DatabaseConnection> {

@@ -12,7 +12,7 @@ import { Xero } from "../entities";
 import { Accounting } from "../entities/types";
 
 export interface IXeroProvider extends BaseProvider {
-  contacts: Resource<Accounting.Contact, Accounting.Contact, unknown>;
+  contacts: Resource<Accounting.Contact, Accounting.Contact>;
 }
 
 type XeroProviderConfig = ProviderConfig<{
@@ -50,6 +50,7 @@ export class XeroProvider implements IXeroProvider {
       refreshToken: config.refreshToken,
       redirectUri: config.redirectUri,
       tokenUrl: "https://identity.xero.com/connect/token",
+      onTokenRefresh: config.onTokenRefresh,
       getAuthUrl(scopes: string[], redirectURL): string {
         const params = new URLSearchParams({
           response_type: "code",
@@ -99,7 +100,7 @@ export class XeroProvider implements IXeroProvider {
     create: async (data) => {
       const res = await this.request<{
         Contacts: Xero.Contact[];
-      }>("POST", `/Contacts`, {
+      }>("PUT", `/Contacts`, {
         body: JSON.stringify({
           Contacts: [
             {
@@ -130,6 +131,101 @@ export class XeroProvider implements IXeroProvider {
 
       if (res.error || !res.data?.Contacts?.length) {
         throw new Error(`Failed to create contact: ${res.message}`);
+      }
+
+      const contact = res.data.Contacts[0]!;
+
+      return transformContact(contact, this.config.companyId);
+    },
+    update: async (id, data) => {
+      const res = await this.request<{
+        Contacts: Xero.Contact[];
+      }>("POST", `/Contacts/${id}`, {
+        body: JSON.stringify({
+          Contacts: [
+            {
+              Name: data.name,
+              FirstName: data.firstName,
+              LastName: data.lastName,
+              EmailAddress: data.email,
+              Website: data.website,
+              TaxNumber: data.taxId,
+              IsCustomer: data.isCustomer,
+              IsSupplier: data.isVendor,
+              Phones: data.phones?.map((p) => ({
+                PhoneType: p.type,
+                PhoneNumber: p.phone
+              })),
+              Addresses: data.addresses?.map((a) => ({
+                AddressLine1: a.line1,
+                AddressLine2: a.line2,
+                City: a.city,
+                Region: a.region,
+                Country: a.country,
+                PostalCode: a.postalCode
+              }))
+            }
+          ]
+        })
+      });
+
+      if (res.error || !res.data?.Contacts?.length) {
+        throw new Error(`Failed to update contact: ${res.message}`);
+      }
+
+      const contact = res.data.Contacts[0]!;
+
+      return transformContact(contact, this.config.companyId);
+    },
+    delete: async (id) => {
+      const res = await this.request<{
+        Contacts: Xero.Contact[];
+      }>("POST", `/Contacts/${id}`, {
+        body: JSON.stringify({
+          ContactID: id,
+          ContactStatus: "ARCHIVED"
+        })
+      });
+
+      if (res.error) {
+        throw new Error(`Failed to delete contact ${id}: ${res.message}`);
+      }
+    },
+    upsert: async ({ id, ...data }) => {
+      const res = await this.request<{
+        Contacts: Xero.Contact[];
+      }>("POST", `/Contacts`, {
+        body: JSON.stringify({
+          Contacts: [
+            {
+              ContactID: id,
+              Name: data.name,
+              FirstName: data.firstName,
+              LastName: data.lastName,
+              EmailAddress: data.email,
+              Website: data.website,
+              TaxNumber: data.taxId,
+              IsCustomer: data.isCustomer,
+              IsSupplier: data.isVendor,
+              Phones: data.phones?.map((p) => ({
+                PhoneType: p.type,
+                PhoneNumber: p.phone
+              })),
+              Addresses: data.addresses?.map((a) => ({
+                AddressLine1: a.line1,
+                AddressLine2: a.line2,
+                City: a.city,
+                Region: a.region,
+                Country: a.country,
+                PostalCode: a.postalCode
+              }))
+            }
+          ]
+        })
+      });
+
+      if (res.error || !res.data?.Contacts?.length) {
+        throw new Error(`Failed to upsert contact: ${res.message}`);
       }
 
       const contact = res.data.Contacts[0]!;
@@ -212,6 +308,7 @@ const transformContact = (
   const addresses = contact.Addresses ?? [];
 
   return {
+    id: contact.ContactID,
     name: `${firstName} ${lastName}`.trim(),
     firstName,
     lastName,
@@ -223,6 +320,7 @@ const transformContact = (
     isCustomer: contact.IsCustomer,
     isVendor: contact.IsSupplier,
     addresses: addresses.map((a) => ({
+      label: a.AttentionTo,
       line1: a.AddressLine1,
       line2: a.AddressLine2,
       city: a.City,

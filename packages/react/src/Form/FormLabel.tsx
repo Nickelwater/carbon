@@ -29,7 +29,7 @@ export const FormLabel = forwardRef<
       {...labelProps}
       ref={ref}
       className="flex items-center justify-between"
-      {...props}
+      // {...props}
     >
       <span
         className={cn("text-xs font-medium text-muted-foreground", className)}

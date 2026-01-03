@@ -19,16 +19,17 @@ import {
   VStack
 } from "@carbon/react";
 import data from "@emoji-mart/data";
-import Picker from "@emoji-mart/react";
 import { nanoid } from "nanoid";
 import type { ChangeEvent } from "react";
-import { useEffect, useRef, useState } from "react";
-import { LuImage, LuLightbulb } from "react-icons/lu";
+import React, { Suspense, useEffect, useRef, useState } from "react";
+import { LuImage } from "react-icons/lu";
 import { useFetcher, useLocation } from "react-router";
 import { useUser } from "~/hooks";
 import { suggestionValidator } from "~/modules/shared";
 import type { action } from "~/routes/x+/resources+/suggestions.new";
 import { path } from "~/utils/path";
+
+const Picker = React.lazy(() => import("@emoji-mart/react"));
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
 
@@ -108,7 +109,9 @@ const Suggestion = () => {
   return (
     <Popover>
       <PopoverTrigger ref={popoverTriggerRef} asChild>
-        <Button variant="secondary">Suggestion</Button>
+        <Button variant="secondary" className="hover:scale-100">
+          Suggestion
+        </Button>
       </PopoverTrigger>
       <PopoverContent align="end" className="w-[380px] ">
         <ValidatedForm
@@ -164,15 +167,17 @@ const Suggestion = () => {
                   align="end"
                   sideOffset={8}
                 >
-                  <Picker
-                    data={data}
-                    onEmojiSelect={onEmojiSelect}
-                    theme="light"
-                    previewPosition="none"
-                    skinTonePosition="none"
-                    navPosition="bottom"
-                    perLine={8}
-                  />
+                  <Suspense>
+                    <Picker
+                      data={data}
+                      onEmojiSelect={onEmojiSelect}
+                      theme="light"
+                      previewPosition="none"
+                      skinTonePosition="none"
+                      navPosition="bottom"
+                      perLine={8}
+                    />
+                  </Suspense>
                 </PopoverContent>
               </Popover>
             </HStack>

@@ -76,14 +76,18 @@ import {
   LuTimer,
   LuTriangleAlert
 } from "react-icons/lu";
-import { Await, useFetcher, useNavigate, useParams } from "react-router";
+import { Await, Link, useFetcher, useNavigate, useParams } from "react-router";
 import {
   DeadlineIcon,
   FileIcon,
   FilePreview,
   OperationStatusIcon
 } from "~/components";
-import { MethodIcon, TrackingTypeIcon } from "~/components/Icons";
+import {
+  MethodIcon,
+  MethodItemTypeIcon,
+  TrackingTypeIcon
+} from "~/components/Icons";
 import { useUrlParams, useUser } from "~/hooks";
 import type { productionEventType } from "~/services/models";
 import { getFileType } from "~/services/operations.service";
@@ -411,6 +415,8 @@ export const JobOperation = ({
     active: !!kanban?.id
   });
 
+  const item = items.find((it) => it.id === operation.itemId);
+
   return (
     <>
       <Tabs
@@ -467,19 +473,46 @@ export const JobOperation = ({
         </header>
 
         <div className="hidden md:flex items-center justify-between px-4 lg:pl-6 py-2 h-[var(--header-height)] bg-background gap-4 max-w-[100vw] overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent">
-          <HStack>
+          <HStack className="min-w-22 justify-between">
             <Heading size="h4">{operation.jobReadableId}</Heading>
-            <a
-              href={path.to.file.jobTraveler(operation.jobMakeMethodId)}
-              target="_blank"
-              rel="noreferrer"
-            >
-              <IconButton
-                aria-label="Job Traveler"
-                variant="secondary"
-                icon={<LuQrCode />}
-              />
-            </a>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <IconButton
+                  aria-label="More options"
+                  variant="ghost"
+                  icon={<LuEllipsisVertical />}
+                />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem asChild>
+                  <a
+                    href={path.to.file.jobTraveler(operation.jobMakeMethodId)}
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    <DropdownMenuIcon icon={<LuQrCode />} />
+                    Job Traveler
+                  </a>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to={path.to.jobDetail(operation.jobId)}>
+                    <DropdownMenuIcon icon={<LuHardHat />} />
+                    Job Details
+                  </Link>
+                </DropdownMenuItem>
+                {item && (
+                  <DropdownMenuItem asChild>
+                    <Link to={path.to.itemMaster(item?.id, item.type)}>
+                      <DropdownMenuIcon
+                        icon={<MethodItemTypeIcon type={item.type} />}
+                      />
+                      Item Master
+                    </Link>
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </HStack>
 
           <HStack className="justify-end items-center gap-2">
@@ -1055,7 +1088,13 @@ export const JobOperation = ({
                                           {parentIsSerial &&
                                           (material.requiresBatchTracking ||
                                             material.requiresSerialTracking)
-                                            ? `${material.quantity ?? material.estimatedQuantity}/${material.estimatedQuantity ?? material.quantity}`
+                                            ? `${
+                                                material.quantity ??
+                                                material.estimatedQuantity
+                                              }/${
+                                                material.estimatedQuantity ??
+                                                material.quantity
+                                              }`
                                             : (material.estimatedQuantity ??
                                               material.quantity)}
                                         </Td>
@@ -1072,7 +1111,10 @@ export const JobOperation = ({
                                           ) : parentIsSerial &&
                                             (material.requiresBatchTracking ||
                                               material.requiresSerialTracking) ? (
-                                            `${material.quantityIssued}/${material.quantity ?? material.estimatedQuantity}`
+                                            `${material.quantityIssued}/${
+                                              material.quantity ??
+                                              material.estimatedQuantity
+                                            }`
                                           ) : (
                                             material.quantityIssued
                                           )}
@@ -1194,7 +1236,13 @@ export const JobOperation = ({
                                                 {parentIsSerial &&
                                                 (kittedChild.requiresBatchTracking ||
                                                   kittedChild.requiresSerialTracking)
-                                                  ? `${kittedChild.quantity ?? kittedChild.estimatedQuantity}/${kittedChild.estimatedQuantity ?? kittedChild.quantity}`
+                                                  ? `${
+                                                      kittedChild.quantity ??
+                                                      kittedChild.estimatedQuantity
+                                                    }/${
+                                                      kittedChild.estimatedQuantity ??
+                                                      kittedChild.quantity
+                                                    }`
                                                   : (kittedChild.estimatedQuantity ??
                                                     kittedChild.quantity)}
                                               </Td>
@@ -1214,7 +1262,12 @@ export const JobOperation = ({
                                                 ) : parentIsSerial &&
                                                   (kittedChild.requiresBatchTracking ||
                                                     kittedChild.requiresSerialTracking) ? (
-                                                  `${kittedChild.quantityIssued}/${kittedChild.quantity ?? kittedChild.estimatedQuantity}`
+                                                  `${
+                                                    kittedChild.quantityIssued
+                                                  }/${
+                                                    kittedChild.quantity ??
+                                                    kittedChild.estimatedQuantity
+                                                  }`
                                                 ) : (
                                                   kittedChild.quantityIssued
                                                 )}

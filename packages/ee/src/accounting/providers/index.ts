@@ -1,7 +1,6 @@
-import { QuickBooksProvider } from "./quickbooks";
 import { XeroProvider } from "./xero";
 
 export * from "./quickbooks";
 export * from "./xero";
 
-export type AccountingProvider = XeroProvider | QuickBooksProvider;
+export type AccountingProvider = XeroProvider;

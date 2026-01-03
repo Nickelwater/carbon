@@ -11,7 +11,8 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-  Textarea
+  Textarea,
+  useIsomorphicLayoutEffect
 } from "@carbon/react";
 import type { ChatStatus, FileUIPart } from "ai";
 import { nanoid } from "nanoid";
@@ -29,7 +30,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState
@@ -118,7 +118,7 @@ export function PromptInputAttachments({
   const [height, setHeight] = useState(0);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     const el = contentRef.current;
     if (!el) {
       return;

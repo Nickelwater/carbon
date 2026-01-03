@@ -22,7 +22,7 @@
     "@react-email/components": "0.3.3",
     "@slack/web-api": "~7.10.0",
     "@supabase/functions-js": "2.1.5",
-    "@supabase/supabase-js": "^2.40.0",
+    "@supabase/supabase-js": "2.80.0",
     "ai": "^5.0.88",
     "nanoid": "5.0.4",
     "resend": "^3.1.0",

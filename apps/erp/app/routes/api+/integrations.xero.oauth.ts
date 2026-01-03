@@ -1,6 +1,7 @@
 import { VERCEL_URL, XERO_CLIENT_ID, XERO_CLIENT_SECRET } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { Xero } from "@carbon/ee";
+import { getProviderIntegration, ProviderID } from "@carbon/ee/accounting";
 import { XeroProvider } from "@carbon/ee/xero";
 import { data, type LoaderFunctionArgs, redirect } from "react-router";
 import { upsertCompanyIntegration } from "~/modules/settings/settings.server";
@@ -37,11 +38,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   }
 
   try {
-    const provider = new XeroProvider({
-      clientId: XERO_CLIENT_ID,
-      clientSecret: XERO_CLIENT_SECRET,
-      companyId
-    });
+    const provider = getProviderIntegration(client, companyId, ProviderID.XERO);
 
     // Exchange the authorization code for tokens
     const auth = await provider.authenticate(

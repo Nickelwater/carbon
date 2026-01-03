@@ -13,6 +13,7 @@ function withNullable<T extends z.ZodTypeAny>(schema: T) {
 // });
 
 export const ContactSchema = z.object({
+  id: z.string(),
   name: z.string(),
   firstName: z.string(),
   lastName: z.string(),
@@ -33,6 +34,7 @@ export const ContactSchema = z.object({
   ),
   addresses: z.array(
     z.object({
+      label: z.string().nullish(),
       type: z.string().nullish(),
       line1: z.string().nullish(),
       line2: z.string().nullish(),

@@ -393,7 +393,7 @@ export async function getSupplier(
   client: SupabaseClient<Database>,
   supplierId: string
 ) {
-  return client.from("supplier").select("*").eq("id", supplierId).single();
+  return client.from("suppliers").select("*").eq("id", supplierId).single();
 }
 
 export async function getSupplierContact(
