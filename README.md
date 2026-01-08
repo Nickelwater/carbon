@@ -106,20 +106,20 @@ The monorepo follows the Turborepo convention of grouping packages into one of t
 
 ### `/packages`
 
-| Package Name           | Description                                                             |
-| ---------------------- | ----------------------------------------------------------------------- |
-| `@carbon/database`     | Database schema, migrations and types                                   |
-| `@carbon/documents`    | Transactional PDFs and email templates                                  |
-| `@carbon/ee`           | Integration definitions and configurations                              |
-| `@carbon/jest`         | Jest preset configuration shared across apps and packages               |
-| `@carbon/jobs`         | Background jobs and workers                                             |
-| `@carbon/logger`       | Shared logger used across apps                                          |
-| `@carbon/react`        | Shared web-based UI components                                          |
-| `@carbon/kv`           | Redis cache client                                                      |
-| `@carbon/lib`          | Third-party client libraries (slack, resend)                            |
-| `@carbon/stripe`       | Stripe integration                                                      |
-| `@carbon/tsconfig`     | Shared, extendable tsconfig configuration used across apps and packages |
-| `@carbon/utils`        | Shared utility functions used across apps and packages                  |
+| Package Name        | Description                                                             |
+| ------------------- | ----------------------------------------------------------------------- |
+| `@carbon/database`  | Database schema, migrations and types                                   |
+| `@carbon/documents` | Transactional PDFs and email templates                                  |
+| `@carbon/ee`        | Integration definitions and configurations                              |
+| `@carbon/jest`      | Jest preset configuration shared across apps and packages               |
+| `@carbon/jobs`      | Background jobs and workers                                             |
+| `@carbon/logger`    | Shared logger used across apps                                          |
+| `@carbon/react`     | Shared web-based UI components                                          |
+| `@carbon/kv`        | Redis cache client                                                      |
+| `@carbon/lib`       | Third-party client libraries (slack, resend)                            |
+| `@carbon/stripe`    | Stripe integration                                                      |
+| `@carbon/tsconfig`  | Shared, extendable tsconfig configuration used across apps and packages |
+| `@carbon/utils`     | Shared utility functions used across apps and packages                  |
 
 ## Development
 
@@ -175,7 +175,7 @@ $ cp ./.env.example ./.env
 - `UPSTASH_REDIS_REST_URL=[UPSTASH_REDIS_REST_URL]`
 - `UPSTASH_REDIS_REST_TOKEN=[UPSTASH_REDIS_REST_TOKEN]`
 
-3. Navigate to the project you created in [https://cloud.trigger.dev/](Trigger.dev) and copy the following from the `Environments & API Keys` section:
+3. Navigate to the project you created in [https://cloud.trigger.dev](https://cloud.trigger.dev) and copy the following from the `Environments & API Keys` section:
 
 - `TRIGGER_SECRET_KEY=[Private 'dev' API Key, starting 'tr_dev_*']`
 - `TRIGGER_API_URL="https://api.trigger.dev"`
@@ -226,7 +226,6 @@ After installation you should be able run the apps locally.
 | Supabase Studio | [http://localhost:54323/project/default](http://localhost:54323/project/default)                                   |
 | Mailpit         | [http://localhost:54324](http://localhost:54324)                                                                   |
 | Edge Functions  | [http://localhost:54321/functions/v1/<function-name>](http://localhost:54321/functions/v1/<function-name>)         |
-
 
 ### Code Formatting
 
