@@ -12,6 +12,7 @@ import {
   generateHTML,
   Heading,
   HStack,
+  Label,
   Modal,
   ModalBody,
   ModalContent,
@@ -32,6 +33,7 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
+import { Editor } from "@carbon/react/Editor";
 import { useMode } from "@carbon/remix";
 import { formatDate } from "@carbon/utils";
 import { useLocale } from "@react-aria/i18n";
@@ -211,13 +213,120 @@ const Header = ({ company, quote }: { company: any; quote: any }) => (
   </CardHeader>
 );
 
+const NotesEditorModal = ({
+  notes,
+  onSave,
+  quoteStatus
+}: {
+  notes: JSONContent;
+  onSave: (content: JSONContent) => void;
+  quoteStatus: SupplierQuote["status"];
+}) => {
+  const isDraft = quoteStatus === "Draft";
+  const modal = useDisclosure();
+
+  const [editorContent, setEditorContent] = useState<JSONContent>(notes ?? {});
+
+  const handleEditorChange = (value: JSONContent) => {
+    setEditorContent(value);
+  };
+
+  const handleSave = () => {
+    onSave(editorContent);
+    modal.onClose();
+  };
+
+  const handleCancel = () => {
+    setEditorContent(notes ?? {});
+    modal.onClose();
+  };
+
+  // For non-Draft status, show rendered content (if any)
+  if (!isDraft && notes && Object.keys(notes).length > 0) {
+    return (
+      <div
+        className="prose dark:prose-invert mt-2 text-muted-foreground"
+        dangerouslySetInnerHTML={{
+          __html: generateHTML(notes)
+        }}
+      />
+    );
+  }
+
+  // For Draft status, show button to open modal
+  if (isDraft) {
+    return (
+      <>
+        <div className="mt-3">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={(e) => {
+              e.stopPropagation();
+              modal.onOpen();
+            }}
+          >
+            {notes && Object.keys(notes).length > 0
+              ? "Edit Notes"
+              : "Add Notes"}
+          </Button>
+        </div>
+
+        {modal.isOpen && (
+          <Modal
+            open
+            onOpenChange={(open) => {
+              if (!open) handleCancel();
+            }}
+          >
+            <ModalOverlay />
+            <ModalContent
+              className="max-w-4xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <ModalHeader>
+                <ModalTitle>Edit Notes</ModalTitle>
+                <ModalDescription>
+                  Add or edit notes for this line item
+                </ModalDescription>
+              </ModalHeader>
+              <ModalBody>
+                <VStack spacing={4} className="w-full">
+                  <div className="flex flex-col gap-2 w-full">
+                    <Label>Notes</Label>
+                    <Editor
+                      initialValue={editorContent}
+                      onChange={handleEditorChange}
+                      className="min-h-[300px] p-4 border rounded-lg transition-colors"
+                      disableFileUpload
+                    />
+                  </div>
+                </VStack>
+              </ModalBody>
+              <ModalFooter>
+                <Button variant="secondary" onClick={handleCancel}>
+                  Cancel
+                </Button>
+                <Button onClick={handleSave}>Save Notes</Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
+        )}
+      </>
+    );
+  }
+
+  return null;
+};
+
 const LineItems = ({
   currencyCode,
   locale,
   selectedLines,
   setSelectedLines,
   quoteStatus,
-  quoteLinePrices
+  quoteLinePrices,
+  onSaveNotes
 }: {
   currencyCode: string;
   locale: string;
@@ -227,6 +336,7 @@ const LineItems = ({
   >;
   quoteStatus: SupplierQuote["status"];
   quoteLinePrices: SupplierQuoteLinePrice[];
+  onSaveNotes: (lineId: string, content: JSONContent) => void;
 }) => {
   const { quoteLines, thumbnails } = useLoaderData<typeof loader>().data!;
   const [openItems, setOpenItems] = useState<string[]>(() =>
@@ -288,18 +398,11 @@ const LineItems = ({
                   <span className="text-muted-foreground text-base truncate">
                     {line.description}
                   </span>
-
-                  {line.externalNotes &&
-                    Object.keys(line.externalNotes).length > 0 && (
-                      <div
-                        className="prose dark:prose-invert mt-2 text-muted-foreground"
-                        dangerouslySetInnerHTML={{
-                          __html: generateHTML(
-                            line.externalNotes as JSONContent
-                          )
-                        }}
-                      />
-                    )}
+                  <NotesEditorModal
+                    notes={(line.externalNotes as JSONContent) || {}}
+                    onSave={(content) => onSaveNotes(line.id!, content)}
+                    quoteStatus={quoteStatus}
+                  />
                 </div>
               </VStack>
             </HStack>
@@ -715,6 +818,22 @@ const Quote = ({
     return {};
   });
 
+  // Handler to save notes for a line
+  const handleSaveNotes = (lineId: string, content: JSONContent) => {
+    // Use fetcher to save
+    fetcher.submit(
+      {
+        intent: "updateNotes",
+        lineId,
+        notes: JSON.stringify(content)
+      },
+      {
+        method: "post",
+        action: path.to.api.digitalSupplierQuote(id)
+      }
+    );
+  };
+
   // Calculate grand total for display (all selected quantities across all lines)
   const eachSelectedLineHasPricingAndLeadTime =
     Object.values(selectedLines).every((lineSelections) => {
@@ -754,6 +873,7 @@ const Quote = ({
             setSelectedLines={setSelectedLines}
             quoteStatus={quote.status}
             quoteLinePrices={quoteLinePrices}
+            onSaveNotes={handleSaveNotes}
           />
           <div className="flex flex-col gap-2">
             {(quote?.status as string) === "Draft" && (

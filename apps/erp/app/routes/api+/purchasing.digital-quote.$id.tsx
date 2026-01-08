@@ -279,6 +279,45 @@ export async function action({ request, params }: ActionFunctionArgs) {
       };
     }
 
+    case "updateNotes": {
+      const lineId = formData.get("lineId");
+      const notesRaw = formData.get("notes");
+
+      if (!lineId || typeof lineId !== "string") {
+        return { success: false, message: "Invalid line ID" };
+      }
+
+      let notes = null;
+      if (notesRaw && typeof notesRaw === "string") {
+        try {
+          notes = JSON.parse(notesRaw);
+          // biome-ignore lint/correctness/noUnusedVariables: suppressed
+        } catch (e) {
+          return { success: false, message: "Invalid notes format" };
+        }
+      }
+
+      // Update the supplierQuoteLine with the new notes
+      const updateResult = await serviceRole
+        .from("supplierQuoteLine")
+        .update({
+          externalNotes: notes,
+          updatedAt: new Date().toISOString()
+        })
+        .eq("id", lineId)
+        .eq("supplierQuoteId", quote.data.id);
+
+      if (updateResult.error) {
+        console.error("Failed to update notes", updateResult.error);
+        return { success: false, message: "Failed to update notes" };
+      }
+
+      return {
+        success: true,
+        message: "Notes updated successfully"
+      };
+    }
+
     default:
       return { success: false, message: "Invalid intent" };
   }
