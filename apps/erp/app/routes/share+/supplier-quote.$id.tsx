@@ -40,7 +40,12 @@ import { useLocale } from "@react-aria/i18n";
 import { motion } from "framer-motion";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useRef, useState } from "react";
-import { LuChevronRight, LuImage, LuPencil } from "react-icons/lu";
+import {
+  LuChevronRight,
+  LuCirclePlus,
+  LuImage,
+  LuPencil
+} from "react-icons/lu";
 import type { LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData, useParams } from "react-router";
 import { externalSupplierQuoteValidator } from "~/modules/purchasing/purchasing.models";
@@ -241,8 +246,10 @@ const NotesEditorModal = ({
     modal.onClose();
   };
 
+  const hasNotes = notes && Object.keys(notes).length > 0;
+
   // For non-Draft status, show rendered content (if any)
-  if (!isDraft && notes && Object.keys(notes).length > 0) {
+  if (!isDraft && hasNotes) {
     return (
       <div
         className="prose dark:prose-invert mt-2 text-muted-foreground"
@@ -257,20 +264,18 @@ const NotesEditorModal = ({
   if (isDraft) {
     return (
       <>
-        <div className="mt-3">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={(e) => {
-              e.stopPropagation();
-              modal.onOpen();
-            }}
-          >
-            {notes && Object.keys(notes).length > 0
-              ? "Edit Notes"
-              : "Add Notes"}
-          </Button>
-        </div>
+        <Button
+          variant="secondary"
+          className="mt-3"
+          leftIcon={hasNotes ? <LuPencil /> : <LuCirclePlus />}
+          variant={hasNotes ? "secondary" : "primary"}
+          onClick={(e) => {
+            e.stopPropagation();
+            modal.onOpen();
+          }}
+        >
+          {hasNotes ? "Edit Notes" : "Add Notes"}
+        </Button>
 
         {modal.isOpen && (
           <Modal
@@ -398,11 +403,6 @@ const LineItems = ({
                   <span className="text-muted-foreground text-base truncate">
                     {line.description}
                   </span>
-                  <NotesEditorModal
-                    notes={(line.externalNotes as JSONContent) || {}}
-                    onSave={(content) => onSaveNotes(line.id!, content)}
-                    quoteStatus={quoteStatus}
-                  />
                 </div>
               </VStack>
             </HStack>
@@ -427,6 +427,11 @@ const LineItems = ({
                 quoteLinePrices={quoteLinePrices}
               />
             </motion.div>
+            <NotesEditorModal
+              notes={(line.externalNotes as JSONContent) || {}}
+              onSave={(content) => onSaveNotes(line.id!, content)}
+              quoteStatus={quoteStatus}
+            />
           </motion.div>
         );
       })}
@@ -600,7 +605,7 @@ const LinePricing = ({
         <Thead>
           <Tr className="whitespace-nowrap">
             <Th className="w-[50px]" />
-            <Th className=" w-2 bg-muted/50">Quantity</Th>
+            <Th className="w-2">Quantity</Th>
             <Th className="w-[150px]">
               <HStack spacing={4}>
                 <span>Unit Price</span>
@@ -625,7 +630,7 @@ const LinePricing = ({
                 {quoteStatus === "Draft" ? <EditableBadge /> : null}
               </HStack>
             </Th>
-            <Th className="w-[100px] bg-muted/50">Total</Th>
+            <Th className="w-[100px]">Total</Th>
           </Tr>
         </Thead>
         <Tbody>
@@ -668,7 +673,7 @@ const LinePricing = ({
                     {qty}
                   </label>
                 </Td>
-                <Td className=" bg-muted/30">{qty}</Td>
+                <Td>{qty}</Td>
                 {isSelected ? (
                   <>
                     <Td className="">
@@ -769,7 +774,7 @@ const LinePricing = ({
                     Select to provide pricing
                   </Td>
                 )}
-                <Td className="w-[150px] bg-muted/30">
+                <Td className="w-[150px]">
                   {isSelected && total > 0 ? formatter.format(total) : "—"}
                 </Td>
               </Tr>
