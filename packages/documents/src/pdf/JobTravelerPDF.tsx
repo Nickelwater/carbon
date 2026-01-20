@@ -17,9 +17,7 @@ type JobOperationWithSteps =
 
 interface JobTravelerProps extends PDF {
   job: Database["public"]["Views"]["jobs"]["Row"];
-  jobMakeMethod: Database["public"]["Tables"]["jobMakeMethod"]["Row"] & {
-    methodRevision?: string | null;
-  };
+  jobMakeMethod: Database["public"]["Tables"]["jobMakeMethod"]["Row"];
   jobOperations: JobOperationWithSteps[];
   customer: Database["public"]["Tables"]["customer"]["Row"] | null;
   item: Database["public"]["Tables"]["item"]["Row"];
@@ -151,7 +149,7 @@ const JobHeader = ({
         {methodRevision && methodRevision !== "0" && (
           <View style={jobHeaderStyles.infoRow}>
             <Text style={jobHeaderStyles.label}>Method Revision:</Text>
-            <Text style={jobHeaderStyles.value}>{methodRevision}</Text>
+            <Text style={jobHeaderStyles.value}>V{methodRevision}</Text>
           </View>
         )}
 
@@ -418,7 +416,7 @@ export const JobTravelerPageContent = ({
       </View>
 
       {/* Work Instructions and Procedure Steps Section */}
-      {jobOperations
+      {/* {jobOperations
         .sort((a, b) => a.order - b.order)
         .map((operation) => {
           const workInstruction = operation.workInstruction as
@@ -440,12 +438,6 @@ export const JobTravelerPageContent = ({
 
           return (
             <View key={`instructions-${operation.id}`}>
-              {hasWorkInstruction && (
-                <View>
-                  <Note title="Work Instructions" content={workInstruction} />
-                </View>
-              )}
-
               {hasProcedureSteps && (
                 <View>
                   {operation
@@ -475,9 +467,14 @@ export const JobTravelerPageContent = ({
                     })}
                 </View>
               )}
+              {hasWorkInstruction && (
+                <View>
+                  <Note title="Work Instructions" content={workInstruction} />
+                </View>
+              )}
             </View>
           );
-        })}
+        })} */}
 
       {/* Notes Section */}
       {notes && (
@@ -520,7 +517,7 @@ const JobTravelerPDF = ({
         batchNumber={batchNumber}
         notes={notes}
         thumbnail={thumbnail}
-        methodRevision={jobMakeMethod.methodRevision}
+        methodRevision={jobMakeMethod.version?.toString()}
       />
     </Template>
   );
