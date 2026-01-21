@@ -1,6 +1,7 @@
 import {
   LuBarcode,
   LuBox,
+  LuCircleCheck,
   LuClipboardCheck,
   LuCreditCard,
   LuCrown,
@@ -104,6 +105,12 @@ const settingsRoutes: AuthenticatedRouteGroup<{
   {
     name: "System",
     routes: [
+      {
+        name: "Approvals",
+        to: path.to.approvalSettings,
+        role: "employee",
+        icon: <LuCircleCheck />
+      },
       {
         name: "Custom Fields",
         to: path.to.customFields,
