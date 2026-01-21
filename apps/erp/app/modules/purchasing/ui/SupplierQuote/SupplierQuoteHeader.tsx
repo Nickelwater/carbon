@@ -74,7 +74,9 @@ const SupplierQuoteHeader = () => {
     lines: SupplierQuoteLine[];
     interaction: SupplierInteraction;
     prices: SupplierQuoteLinePrice[];
-    purchasingRfqs: { id: string; rfqId: string; status: string }[];
+    siblingQuotes: (SupplierQuote & {
+      supplier: { id: string; name: string };
+    })[];
   }>(path.to.supplierQuote(id));
 
   const isOutsideProcessing =
@@ -97,7 +99,10 @@ const SupplierQuoteHeader = () => {
   const isEditableStatus = editableStatuses.includes(quoteStatus);
 
   // Get the first linked RFQ ID for comparison
-  const linkedRfqId = routeData?.purchasingRfqs?.[0]?.id ?? null;
+  const linkedRfqId = routeData?.interaction.purchasingRfq?.id ?? null;
+
+  // Check if sibling quotes exist (for showing Compare option)
+  const hasSiblingQuotes = (routeData?.siblingQuotes ?? []).length > 0;
 
   const canSend =
     isEditableStatus && permissions.can("update", "purchasing") && hasLines;
@@ -211,26 +216,40 @@ const SupplierQuoteHeader = () => {
               </Button>
             )}
 
-            {routeData?.quote?.status === "Active" && (
-              <Button
-                isDisabled={!permissions.can("update", "purchasing")}
-                variant="primary"
-                leftIcon={<LuShoppingCart />}
-                onClick={convertToOrderModal.onOpen}
-              >
-                Order
-              </Button>
-            )}
-
-            {routeData?.quote?.status === "Active" && linkedRfqId && (
-              <Button
-                variant="secondary"
-                leftIcon={<LuGitCompare />}
-                onClick={compareModal.onOpen}
-              >
-                Compare
-              </Button>
-            )}
+            {routeData?.quote?.status === "Active" &&
+              (hasSiblingQuotes ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      isDisabled={!permissions.can("update", "purchasing")}
+                      variant="primary"
+                      leftIcon={<LuShoppingCart />}
+                      rightIcon={<LuChevronDown />}
+                    >
+                      Order
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem onClick={convertToOrderModal.onOpen}>
+                      <DropdownMenuIcon icon={<LuShoppingCart />} />
+                      Order
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={compareModal.onOpen}>
+                      <DropdownMenuIcon icon={<LuGitCompare />} />
+                      Compare and Order
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : (
+                <Button
+                  isDisabled={!permissions.can("update", "purchasing")}
+                  variant="primary"
+                  leftIcon={<LuShoppingCart />}
+                  onClick={convertToOrderModal.onOpen}
+                >
+                  Order
+                </Button>
+              ))}
 
             {routeData?.quote?.status === "Draft" && (
               <statusFetcher.Form

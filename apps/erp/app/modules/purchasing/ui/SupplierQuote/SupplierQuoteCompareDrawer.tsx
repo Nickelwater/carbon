@@ -1,3 +1,4 @@
+import type { Database } from "@carbon/database";
 import {
   Badge,
   Button,
@@ -39,16 +40,9 @@ import type { SupplierQuoteLine, SupplierQuoteLinePrice } from "../../types";
 
 type SelectedLine = z.infer<typeof selectedLineSchema>;
 
-// Type for quotes returned from comparison API (includes supplier info)
-type ComparisonQuote = {
-  id: string | null;
-  supplierQuoteId: string | null;
-  revisionId: number | null;
-  status: string | null;
-  supplierId: string | null;
-  currencyCode: string | null;
-  exchangeRate: number | null;
-  supplier: { name: string } | null;
+// Type for quotes returned from comparison API (includes supplier relation)
+type ComparisonQuote = Database["public"]["Tables"]["supplierQuote"]["Row"] & {
+  supplier: Database["public"]["Tables"]["supplier"]["Row"] | null;
 };
 
 type ComparisonData = {
@@ -112,6 +106,10 @@ const SupplierQuoteCompareDrawer = ({
   const quotes = fetcher.data?.quotes ?? [];
   const lines = fetcher.data?.lines ?? [];
   const prices = fetcher.data?.prices ?? [];
+
+  // Calculate submission stats for header
+  const totalQuotes = quotes.length;
+  const submittedQuotes = quotes.filter((q) => q.status === "Active").length;
 
   // Get all unique quantity tiers across all quotes
   const quantityTiers = useMemo(() => {
@@ -196,11 +194,18 @@ const SupplierQuoteCompareDrawer = ({
                   Back
                 </Button>
               )}
-              <DrawerTitle>
-                {step === "compare"
-                  ? "Compare Supplier Quotes"
-                  : `Create Order from ${selectedQuote?.supplier?.name ?? selectedQuote?.supplierQuoteId}`}
-              </DrawerTitle>
+              <VStack spacing={0} className="items-start">
+                <DrawerTitle>
+                  {step === "compare"
+                    ? "Compare Supplier Quotes"
+                    : `Create Order from ${selectedQuote?.supplier?.name ?? selectedQuote?.supplierQuoteId}`}
+                </DrawerTitle>
+                {step === "compare" && totalQuotes > 0 && (
+                  <span className="text-sm text-muted-foreground">
+                    {submittedQuotes} out of {totalQuotes} submitted
+                  </span>
+                )}
+              </VStack>
             </HStack>
 
             {/* Quantity tier selector in Step 1 */}

@@ -2007,22 +2007,29 @@ export async function getSupplierQuotesForComparison(
     return { data: { quotes: [], lines: [], prices: [] }, error: linksError };
   }
 
-  // Extract quotes and filter for Active status only
+  // Extract all quotes (for comparison header count)
   const allQuotes = links
     .map((l) => l.supplierQuote)
-    .filter(
-      (q): q is NonNullable<typeof q> => q !== null && q.status === "Active"
-    );
+    .filter((q): q is NonNullable<typeof q> => q !== null);
 
   if (allQuotes.length === 0) {
     return { data: { quotes: [], lines: [], prices: [] }, error: null };
   }
 
+  // Get IDs of Active quotes only (for fetching lines/prices)
   const activeQuoteIds = allQuotes
+    .filter((q) => q.status === "Active")
     .map((q) => q.id)
     .filter((id): id is string => !!id);
 
-  // 2. Fetch lines and pricing for all active quotes
+  // 2. Fetch lines and pricing for active quotes only (if any)
+  if (activeQuoteIds.length === 0) {
+    return {
+      data: { quotes: allQuotes, lines: [], prices: [] },
+      error: null
+    };
+  }
+
   const lines = await client
     .from("supplierQuoteLines")
     .select("*")

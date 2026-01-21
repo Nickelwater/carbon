@@ -81,7 +81,10 @@ const PurchasingRFQHeader = () => {
   const statusFetcher = useFetcher<{}>();
 
   const hasSuppliers = (routeData?.suppliers?.length ?? 0) > 0;
-  const hasLinkedQuotes = (routeData?.linkedQuotes?.length ?? 0) > 0;
+  const activeLinkedQuotes = (routeData?.linkedQuotes ?? []).filter(
+    (q: any) => q.status === "Active"
+  );
+  const canCompareQuotes = activeLinkedQuotes.length > 1;
 
   return (
     <div className="flex flex-shrink-0 items-center justify-between p-2 bg-card border-b h-[50px] overflow-x-auto scrollbar-hide ">
@@ -203,7 +206,7 @@ const PurchasingRFQHeader = () => {
             No Quote
           </Button>
 
-          {hasLinkedQuotes && (
+          {canCompareQuotes && (
             <Button
               onClick={compareQuotesModal.onOpen}
               leftIcon={<LuGitCompare />}
