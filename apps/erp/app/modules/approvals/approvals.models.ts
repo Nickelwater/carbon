@@ -21,7 +21,7 @@ export const approvalRequestValidator = z.object({
   documentId: zfd.text(
     z.string().min(1, { message: "Document ID is required" })
   ),
-  approverGroupId: zfd.text(z.string().optional()),
+  approverGroupIds: zfd.repeatableOfType(z.string()).optional(),
   approverId: zfd.text(z.string().optional())
 });
 
@@ -39,7 +39,7 @@ export const approvalConfigurationValidator = z.object({
     errorMap: () => ({ message: "Document type is required" })
   }),
   enabled: z.boolean().default(true),
-  approverGroupId: zfd.text(z.string().optional()),
+  approverGroupIds: zfd.repeatableOfType(z.string()).optional(),
   defaultApproverId: zfd.text(z.string().optional()),
   thresholdAmount: zfd.numeric(z.number().min(0).optional()),
   escalationDaysLimit: zfd.numeric(z.number().min(0).optional())
