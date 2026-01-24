@@ -1,5 +1,7 @@
 import type { Database } from "@carbon/database";
+import { getPurchaseOrderStatus } from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { getPurchaseOrderLines } from "~/modules/purchasing";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
@@ -10,7 +12,7 @@ import type {
   ApprovalRequestForCancelCheck,
   ApprovalRequestForViewCheck,
   CreateApprovalRequestInput,
-  UpsertApprovalConfigurationInput
+  UpsertApprovalRuleInput
 } from "./types";
 
 export async function canViewApprovalRequest(
@@ -165,7 +167,7 @@ export async function createApprovalRequest(
   client: SupabaseClient<Database>,
   request: CreateApprovalRequestInput & { amount?: number }
 ) {
-  const config = await getApprovalConfigurationByAmount(
+  const config = await getApprovalRuleByAmount(
     client,
     request.documentType,
     request.companyId,
@@ -199,24 +201,24 @@ export async function approveRequest(
   userId: string,
   notes?: string
 ) {
-  const existing = await client
+  const approvalRequest = await client
     .from("approvalRequest")
-    .select("id, status")
+    .select("id, status, documentType, documentId, companyId")
     .eq("id", id)
     .single();
 
-  if (existing.error || !existing.data) {
+  if (approvalRequest.error || !approvalRequest.data) {
     return { error: { message: "Approval request not found" }, data: null };
   }
 
-  if (existing.data.status !== "Pending") {
+  if (approvalRequest.data.status !== "Pending") {
     return {
       error: { message: "Approval request is not pending" },
       data: null
     };
   }
 
-  return client
+  const approvalUpdate = await client
     .from("approvalRequest")
     .update({
       status: "Approved",
@@ -229,6 +231,53 @@ export async function approveRequest(
     .eq("id", id)
     .select("id, documentType, documentId")
     .single();
+
+  if (approvalUpdate.error) {
+    return { error: approvalUpdate.error, data: null };
+  }
+
+  // Update document status based on type
+  if (approvalUpdate.data) {
+    const { documentType, documentId } = approvalUpdate.data;
+
+    if (documentType === "purchaseOrder") {
+      const lines = await getPurchaseOrderLines(client, documentId);
+      const { status: calculatedStatus } = getPurchaseOrderStatus(
+        lines.data || []
+      );
+
+      const statusUpdate = await client
+        .from("purchaseOrder")
+        .update({
+          status: calculatedStatus,
+          updatedBy: userId,
+          updatedAt: new Date().toISOString()
+        })
+        .eq("id", documentId)
+        .eq("status", "Needs Approval")
+        .select("id")
+        .single();
+
+      if (statusUpdate.error) {
+        console.warn(
+          `Failed to update PO ${documentId} status after approval:`,
+          statusUpdate.error
+        );
+      }
+    } else if (documentType === "qualityDocument") {
+      // Update quality document to "Active" when approved
+      await client
+        .from("qualityDocument")
+        .update({
+          status: "Active",
+          updatedBy: userId,
+          updatedAt: new Date().toISOString()
+        })
+        .eq("id", documentId);
+    }
+  }
+
+  return approvalUpdate;
 }
 
 export async function rejectRequest(
@@ -239,7 +288,7 @@ export async function rejectRequest(
 ) {
   const existing = await client
     .from("approvalRequest")
-    .select("id, status")
+    .select("id, status, documentType, documentId")
     .eq("id", id)
     .single();
 
@@ -254,7 +303,7 @@ export async function rejectRequest(
     };
   }
 
-  return client
+  const approvalUpdate = await client
     .from("approvalRequest")
     .update({
       status: "Rejected",
@@ -267,6 +316,33 @@ export async function rejectRequest(
     .eq("id", id)
     .select("id, documentType, documentId")
     .single();
+
+  if (approvalUpdate.error) {
+    return { error: approvalUpdate.error, data: null };
+  }
+
+  // Update document status based on type
+  if (approvalUpdate.data) {
+    const { documentType, documentId } = approvalUpdate.data;
+
+    if (documentType === "purchaseOrder") {
+      // Update purchase order from "Needs Approval" back to "Draft"
+      await client
+        .from("purchaseOrder")
+        .update({
+          status: "Draft",
+          updatedBy: userId,
+          updatedAt: new Date().toISOString()
+        })
+        .eq("id", documentId)
+        .eq("status", "Needs Approval");
+    } else if (documentType === "qualityDocument") {
+      // Keep quality document as "Draft" when rejected
+      // (No status change needed, it should remain in Draft)
+    }
+  }
+
+  return approvalUpdate;
 }
 
 export async function cancelApprovalRequest(
@@ -323,14 +399,14 @@ export async function getApprovalRequestsByDocument(
     .order("requestedAt", { ascending: false });
 }
 
-export async function getApprovalConfigurationByAmount(
+export async function getApprovalRuleByAmount(
   client: SupabaseClient<Database>,
   documentType: (typeof approvalDocumentType)[number],
   companyId: string,
   amount?: number
 ) {
   let query = client
-    .from("approvalConfiguration")
+    .from("approvalRule")
     .select("*")
     .eq("documentType", documentType)
     .eq("companyId", companyId)
@@ -350,33 +426,40 @@ export async function getApprovalConfigurationByAmount(
     .maybeSingle();
 }
 
-export async function getApprovalConfigurations(
+export async function getApprovalRules(
   client: SupabaseClient<Database>,
   companyId: string
 ) {
-  return client
-    .from("approvalConfiguration")
-    .select("*")
-    .eq("companyId", companyId);
+  return client.from("approvalRule").select("*").eq("companyId", companyId);
 }
 
-export async function upsertApprovalConfiguration(
+export async function upsertApprovalRule(
   client: SupabaseClient<Database>,
-  config: UpsertApprovalConfigurationInput
+  rule: UpsertApprovalRuleInput
 ) {
-  if ("id" in config) {
+  if ("id" in rule) {
+    const existing = await client
+      .from("approvalRule")
+      .select("companyId")
+      .eq("id", rule.id)
+      .single();
+
+    if (existing.error || !existing.data) {
+      return {
+        data: null,
+        error: existing.error || { message: "Rule not found" }
+      };
+    }
+
     return client
-      .from("approvalConfiguration")
-      .update(sanitize(config))
-      .eq("id", config.id)
+      .from("approvalRule")
+      .update(sanitize(rule))
+      .eq("id", rule.id)
+      .eq("companyId", existing.data.companyId)
       .select("id")
       .single();
   }
-  return client
-    .from("approvalConfiguration")
-    .insert([config])
-    .select("id")
-    .single();
+  return client.from("approvalRule").insert([rule]).select("id").single();
 }
 
 export async function isApprovalRequired(
@@ -385,7 +468,7 @@ export async function isApprovalRequired(
   companyId: string,
   amount?: number
 ): Promise<boolean> {
-  const config = await getApprovalConfigurationByAmount(
+  const config = await getApprovalRuleByAmount(
     client,
     documentType,
     companyId,
