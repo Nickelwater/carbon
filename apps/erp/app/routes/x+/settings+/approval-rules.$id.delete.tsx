@@ -20,7 +20,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   if (rules.error) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(request, error(rules.error, "Failed to load approval rule"))
     );
   }
@@ -29,14 +29,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   if (!rule) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(request, error(null, "Approval rule not found"))
     );
   }
 
   if (rule.createdBy !== userId) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(
         request,
         error(null, "Only the creator can delete this approval rule")
@@ -64,14 +64,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (!rule) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(request, error(null, "Approval rule not found"))
     );
   }
 
   if (rule.createdBy !== userId) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(
         request,
         error(null, "Only the creator can delete this approval rule")
@@ -89,7 +89,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (pendingRequests.error) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(
         request,
         error(pendingRequests.error, "Failed to check for pending approvals")
@@ -118,7 +118,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (matchingRequests && matchingRequests.length > 0) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(
         request,
         error(
@@ -138,7 +138,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (result.error) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(
         request,
         error(result.error, "Failed to delete approval rule")
@@ -148,7 +148,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (!result.data || result.data.length === 0) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(
         request,
         error(null, "Approval rule not found or already deleted")
@@ -157,7 +157,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   throw redirect(
-    `${path.to.approvalSettings}?${getParams(request)}`,
+    `${path.to.approvalRules}?${getParams(request)}`,
     await flash(request, success("Approval rule deleted successfully"))
   );
 }

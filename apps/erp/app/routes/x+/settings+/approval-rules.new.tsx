@@ -4,31 +4,15 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useLoaderData, useNavigate } from "react-router";
-import { useUrlParams } from "~/hooks";
-import {
-  type ApprovalDocumentType,
-  approvalDocumentType,
-  approvalRuleValidator,
-  upsertApprovalRule
-} from "~/modules/approvals";
+import { approvalRuleValidator, upsertApprovalRule } from "~/modules/approvals";
 import ApprovalRuleDrawer from "~/modules/approvals/ui/ApprovalRuleDrawer";
-import { getParams, path } from "~/utils/path";
+import { path } from "~/utils/path";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
     view: "settings",
     role: "employee"
   });
-
-  const url = new URL(request.url);
-  const tab = url.searchParams.get("tab") as ApprovalDocumentType | null;
-
-  if (!tab || !approvalDocumentType.includes(tab)) {
-    throw redirect(
-      path.to.approvalSettings,
-      await flash(request, error(null, "Invalid tab"))
-    );
-  }
 
   const groupsResult = await client
     .from("group")
@@ -39,7 +23,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   return {
     rule: null,
-    documentType: tab,
+    documentType: null,
     groups: groupsResult.data ?? []
   };
 }
@@ -73,27 +57,14 @@ export async function action({ request }: ActionFunctionArgs) {
   });
 
   if (result.error) {
-    const tab =
-      validation.data.documentType === "qualityDocument"
-        ? "qualityDocument"
-        : "purchaseOrder";
     throw redirect(
-      `${path.to.newApprovalRule(tab)}?${getParams(request)}`,
+      path.to.newApprovalRule(),
       await flash(request, error(result.error, result.error.message))
     );
   }
 
-  // Redirect to the appropriate tab based on document type
-  const tab =
-    validation.data.documentType === "qualityDocument"
-      ? "qualityDocument"
-      : "purchaseOrder";
-  const existingParams = getParams(request);
-  const params = new URLSearchParams(existingParams || "");
-  params.set("tab", tab);
-
   throw redirect(
-    `${path.to.approvalSettings}?${params.toString()}`,
+    path.to.approvalRules,
     await flash(request, success("Approval rule created"))
   );
 }
@@ -101,14 +72,12 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function NewApprovalRuleRoute() {
   const { rule, documentType, groups } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
-  const [params] = useUrlParams();
-  const onClose = () =>
-    navigate(`${path.to.approvalSettings}?${params.toString()}`);
+  const onClose = () => navigate(path.to.approvalRules);
 
   return (
     <ApprovalRuleDrawer
       rule={rule}
-      documentType={documentType!}
+      documentType={documentType}
       groups={groups}
       onClose={onClose}
     />

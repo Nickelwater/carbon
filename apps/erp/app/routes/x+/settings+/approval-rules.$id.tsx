@@ -14,7 +14,7 @@ import ApprovalRuleDrawer from "~/modules/approvals/ui/ApprovalRuleDrawer";
 import { getParams, path } from "~/utils/path";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const { client, companyId } = await requirePermissions(request, {
+  const { client, companyId, userId } = await requirePermissions(request, {
     view: "settings",
     role: "employee"
   });
@@ -36,14 +36,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   if (rules.error) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(request, error(rules.error, "Failed to load approval rule"))
     );
   }
 
   if (groupsResult.error) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(
         request,
         error(groupsResult.error, "Failed to load approver groups")
@@ -55,14 +55,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   if (!rule) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(request, error(null, "Approval rule not found"))
     );
   }
 
+  // Check if user can edit (only creator can edit)
+  const canEdit = rule.createdBy === userId;
+
   return {
     rule,
-    groups: groupsResult.data ?? []
+    groups: groupsResult.data ?? [],
+    canEdit
   };
 }
 
@@ -83,17 +87,25 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const existingRule = await serviceRole
-    .from("approvalRule")
-    .select("id")
-    .eq("id", id)
-    .eq("companyId", companyId)
-    .single();
+  // Get existing rule to check permissions
+  const rules = await getApprovalRules(serviceRole, companyId);
+  const existingRule = rules.data?.find((r) => r.id === id);
 
-  if (existingRule.error || !existingRule.data) {
+  if (!existingRule) {
     throw redirect(
-      path.to.approvalSettings,
+      path.to.approvalRules,
       await flash(request, error(null, "Approval rule not found"))
+    );
+  }
+
+  // Only the creator can edit their own rule
+  if (existingRule.createdBy !== userId) {
+    throw redirect(
+      path.to.approvalRules,
+      await flash(
+        request,
+        error(null, "Only the creator can edit this approval rule")
+      )
     );
   }
 
@@ -118,23 +130,24 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   throw redirect(
-    `${path.to.approvalSettings}?${getParams(request)}`,
+    `${path.to.approvalRules}?${getParams(request)}`,
     await flash(request, success("Approval rule updated"))
   );
 }
 
 export default function EditApprovalRuleRoute() {
-  const { rule, groups } = useLoaderData<typeof loader>();
+  const { rule, groups, canEdit } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
   const [params] = useUrlParams();
   const onClose = () =>
-    navigate(`${path.to.approvalSettings}?${params.toString()}`);
+    navigate(`${path.to.approvalRules}?${params.toString()}`);
 
   return (
     <ApprovalRuleDrawer
       rule={rule}
       documentType={rule.documentType}
       groups={groups}
+      canEdit={canEdit}
       onClose={onClose}
     />
   );
