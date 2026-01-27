@@ -3,6 +3,7 @@ import { Edition, isBrowser, parseBoolean } from "@carbon/utils";
 declare global {
   interface Window {
     env: {
+      AUTH_PROVIDERS: string;
       CARBON_EDITION: string;
       CLOUDFLARE_TURNSTILE_SITE_KEY: string;
       CONTROLLED_ENVIRONMENT: string;
@@ -85,6 +86,12 @@ export function getEnv(
 /**
  * Server env
  */
+
+export const AUTH_PROVIDERS =
+  getEnv("AUTH_PROVIDERS", {
+    isRequired: false,
+    isSecret: false
+  }) ?? "email,google,azure";
 
 const CARBON_EDITION = getEnv("CARBON_EDITION", {
   isRequired: false,

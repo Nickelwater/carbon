@@ -1,13 +1,12 @@
 import {
+  AUTH_PROVIDERS,
   assertIsPost,
   CarbonEdition,
   CONTROLLED_ENVIRONMENT,
   carbonClient,
   error,
   magicLinkValidator,
-  RATE_LIMIT,
-  SUPABASE_AUTH_EXTERNAL_AZURE_CLIENT_ID,
-  SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
+  RATE_LIMIT
 } from "@carbon/auth";
 import { sendMagicLink, verifyAuthSession } from "@carbon/auth/auth.server";
 import { flash, getAuthSession } from "@carbon/auth/session.server";
@@ -52,9 +51,10 @@ export async function loader({ request }: LoaderFunctionArgs) {
     throw redirect(path.to.authenticatedRoot);
   }
 
+  const providers = AUTH_PROVIDERS.split(",");
+
   return {
-    hasOutlookAuth: !!SUPABASE_AUTH_EXTERNAL_AZURE_CLIENT_ID,
-    hasGoogleAuth: !!SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID
+    providers
   };
 }
 
@@ -107,7 +107,10 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function LoginRoute() {
-  const { hasOutlookAuth, hasGoogleAuth } = useLoaderData<typeof loader>();
+  const { providers } = useLoaderData<typeof loader>();
+  const hasOutlookAuth = providers.includes("azure");
+  const hasGoogleAuth = providers.includes("google");
+
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? undefined;
 
