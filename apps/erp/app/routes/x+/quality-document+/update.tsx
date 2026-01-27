@@ -1,7 +1,5 @@
 import { getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { NotificationEvent } from "@carbon/notifications";
-import { tasks } from "@trigger.dev/sdk";
 import { type ActionFunctionArgs } from "react-router";
 import {
   createApprovalRequest,
@@ -74,55 +72,15 @@ export async function action({ request }: ActionFunctionArgs) {
                   undefined
                 );
 
-                const approvalResult = await createApprovalRequest(
-                  serviceRole,
-                  {
-                    documentType: "qualityDocument",
-                    documentId: doc.id,
-                    companyId,
-                    requestedBy: userId,
-                    createdBy: userId,
-                    approverGroupIds:
-                      config.data?.approverGroupIds || undefined,
-                    approverId: config.data?.defaultApproverId || undefined
-                  }
-                );
-
-                if (!approvalResult.error && approvalResult.data) {
-                  // Notify approvers
-                  let notifyRecipient:
-                    | { type: "group"; groupIds: string[] }
-                    | { type: "user"; userId: string }
-                    | null = null;
-                  if (
-                    config.data?.approverGroupIds &&
-                    config.data.approverGroupIds.length > 0
-                  ) {
-                    notifyRecipient = {
-                      type: "group",
-                      groupIds: config.data.approverGroupIds
-                    };
-                  } else if (config.data?.defaultApproverId) {
-                    notifyRecipient = {
-                      type: "user",
-                      userId: config.data.defaultApproverId
-                    };
-                  }
-
-                  if (notifyRecipient) {
-                    try {
-                      await tasks.trigger("notify", {
-                        event: NotificationEvent.ApprovalRequested,
-                        companyId,
-                        documentId: approvalResult.data.id,
-                        recipient: notifyRecipient,
-                        from: userId
-                      });
-                    } catch (err) {
-                      console.error("Failed to notify approvers", err);
-                    }
-                  }
-                }
+                await createApprovalRequest(serviceRole, {
+                  documentType: "qualityDocument",
+                  documentId: doc.id,
+                  companyId,
+                  requestedBy: userId,
+                  createdBy: userId,
+                  approverGroupIds: config.data?.approverGroupIds || undefined,
+                  approverId: config.data?.defaultApproverId || undefined
+                });
               }
             }
           }

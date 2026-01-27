@@ -9,7 +9,6 @@ import { flash } from "@carbon/auth/session.server";
 import { PurchaseOrderEmail } from "@carbon/documents/email";
 import { validationError, validator } from "@carbon/form";
 import type { sendEmailResendTask } from "@carbon/jobs/trigger/send-email-resend"; // Assuming you have a sendEmail task defined
-import { NotificationEvent } from "@carbon/notifications";
 import { renderAsync } from "@react-email/components";
 import { FunctionRegion } from "@supabase/supabase-js";
 import { tasks } from "@trigger.dev/sdk";
@@ -127,7 +126,7 @@ export async function action(args: ActionFunctionArgs) {
         orderAmount
       );
 
-      const approvalResult = await createApprovalRequest(serviceRole, {
+      await createApprovalRequest(serviceRole, {
         documentType: "purchaseOrder",
         documentId: orderId,
         companyId,
@@ -137,42 +136,6 @@ export async function action(args: ActionFunctionArgs) {
         approverGroupIds: config.data?.approverGroupIds || undefined,
         approverId: config.data?.defaultApproverId || undefined
       });
-
-      if (!approvalResult.error && approvalResult.data) {
-        // Notify approvers
-        let notifyRecipient:
-          | { type: "group"; groupIds: string[] }
-          | { type: "user"; userId: string }
-          | null = null;
-        if (
-          config.data?.approverGroupIds &&
-          config.data.approverGroupIds.length > 0
-        ) {
-          notifyRecipient = {
-            type: "group",
-            groupIds: config.data.approverGroupIds
-          };
-        } else if (config.data?.defaultApproverId) {
-          notifyRecipient = {
-            type: "user",
-            userId: config.data.defaultApproverId
-          };
-        }
-
-        if (notifyRecipient) {
-          try {
-            await tasks.trigger("notify", {
-              event: NotificationEvent.ApprovalRequested,
-              companyId,
-              documentId: approvalResult.data.id,
-              recipient: notifyRecipient,
-              from: userId
-            });
-          } catch (err) {
-            console.error("Failed to notify approvers", err);
-          }
-        }
-      }
     }
 
     await updatePurchaseOrderStatus(client, {

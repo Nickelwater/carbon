@@ -2,8 +2,6 @@ import { error, getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
-import { NotificationEvent } from "@carbon/notifications";
-import { tasks } from "@trigger.dev/sdk";
 import { useEffect } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useNavigate } from "react-router";
@@ -77,7 +75,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
-  const { companyId, userId } = await requirePermissions(request, {
+  const { userId } = await requirePermissions(request, {
     role: "employee"
   });
 
@@ -159,24 +157,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
       { error: result.error.message, success: false },
       { status: 400 }
     );
-  }
-
-  try {
-    await tasks.trigger("notify", {
-      event:
-        decision === "Approved"
-          ? NotificationEvent.ApprovalApproved
-          : NotificationEvent.ApprovalRejected,
-      companyId,
-      documentId: id,
-      recipient: {
-        type: "user" as const,
-        userId: approval.data.requestedBy
-      },
-      from: userId
-    });
-  } catch (err) {
-    console.error("Failed to notify requester", err);
   }
 
   // Return JSON response for fetcher requests
