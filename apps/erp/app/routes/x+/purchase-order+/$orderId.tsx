@@ -1,14 +1,21 @@
-import { error, getCarbonServiceRole } from "@carbon/auth";
+import {
+  assertIsPost,
+  error,
+  getCarbonServiceRole,
+  success
+} from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { VStack } from "@carbon/react";
-import type { LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useParams } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout/Panels";
 import {
+  approveRequest,
   canApproveRequest,
   canCancelRequest,
-  getLatestApprovalRequestForDocument
+  getLatestApprovalRequestForDocument,
+  rejectRequest
 } from "~/modules/approvals";
 import {
   getPurchaseOrder,
@@ -32,6 +39,108 @@ export const handle: Handle = {
   to: path.to.purchaseOrders,
   module: "purchasing"
 };
+
+export async function action({ request, params }: ActionFunctionArgs) {
+  assertIsPost(request);
+  const { userId } = await requirePermissions(request, {
+    update: "purchasing"
+  });
+
+  const { orderId } = params;
+  if (!orderId) throw new Error("Could not find orderId");
+
+  const formData = await request.formData();
+  const approvalRequestId = formData.get("approvalRequestId") as string;
+  const decision = formData.get("decision") as "Approved" | "Rejected";
+  const notes = formData.get("notes") as string | null;
+
+  if (!approvalRequestId || !decision) {
+    throw redirect(
+      path.to.purchaseOrder(orderId),
+      await flash(request, error(null, "Invalid approval decision data"))
+    );
+  }
+
+  if (!["Approved", "Rejected"].includes(decision)) {
+    throw redirect(
+      path.to.purchaseOrder(orderId),
+      await flash(request, error(null, "Invalid decision"))
+    );
+  }
+
+  const serviceRole = getCarbonServiceRole();
+
+  // Verify user can approve this request
+  const approvalRequest = await getLatestApprovalRequestForDocument(
+    serviceRole,
+    "purchaseOrder",
+    orderId
+  );
+
+  if (!approvalRequest.data || approvalRequest.data.id !== approvalRequestId) {
+    throw redirect(
+      path.to.purchaseOrder(orderId),
+      await flash(request, error(null, "Approval request not found"))
+    );
+  }
+
+  const canApprove = await canApproveRequest(
+    serviceRole,
+    {
+      amount: approvalRequest.data.amount,
+      documentType: approvalRequest.data.documentType,
+      companyId: approvalRequest.data.companyId
+    },
+    userId
+  );
+
+  if (!canApprove) {
+    throw redirect(
+      path.to.purchaseOrder(orderId),
+      await flash(
+        request,
+        error(null, "You do not have permission to approve this request")
+      )
+    );
+  }
+
+  // Process approval decision
+  const result =
+    decision === "Approved"
+      ? await approveRequest(
+          serviceRole,
+          approvalRequestId,
+          userId,
+          notes || undefined
+        )
+      : await rejectRequest(
+          serviceRole,
+          approvalRequestId,
+          userId,
+          notes || undefined
+        );
+
+  if (result.error) {
+    throw redirect(
+      path.to.purchaseOrder(orderId),
+      await flash(
+        request,
+        error(
+          result.error,
+          result.error?.message ?? "Failed to process approval decision"
+        )
+      )
+    );
+  }
+
+  throw redirect(
+    path.to.purchaseOrder(orderId),
+    await flash(
+      request,
+      success(`Approval request ${decision.toLowerCase()} successfully`)
+    )
+  );
+}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId, userId } = await requirePermissions(request, {

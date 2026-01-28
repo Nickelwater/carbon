@@ -319,10 +319,13 @@ const PurchaseOrderHeader = () => {
               <>
                 <approvalFetcher.Form
                   method="post"
-                  action={path.to.approvalDecision(
-                    routeData.approvalRequest?.id ?? ""
-                  )}
+                  action={path.to.purchaseOrder(orderId)}
                 >
+                  <input
+                    type="hidden"
+                    name="approvalRequestId"
+                    value={routeData.approvalRequest?.id ?? ""}
+                  />
                   <input type="hidden" name="decision" value="Approved" />
                   <Button
                     type="submit"
@@ -339,10 +342,13 @@ const PurchaseOrderHeader = () => {
                 </approvalFetcher.Form>
                 <approvalFetcher.Form
                   method="post"
-                  action={path.to.approvalDecision(
-                    routeData.approvalRequest?.id ?? ""
-                  )}
+                  action={path.to.purchaseOrder(orderId)}
                 >
+                  <input
+                    type="hidden"
+                    name="approvalRequestId"
+                    value={routeData.approvalRequest?.id ?? ""}
+                  />
                   <input type="hidden" name="decision" value="Rejected" />
                   <Button
                     type="submit"

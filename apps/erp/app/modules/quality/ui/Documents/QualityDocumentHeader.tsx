@@ -73,9 +73,6 @@ const QualityDocumentHeader = () => {
   const canActivate = isDraft || isArchived;
   const approvalRequestId = routeData?.approvalRequest?.id;
   const hasApprovalRequest = !!approvalRequestId;
-  const approvalDecisionAction = approvalRequestId
-    ? path.to.approvalDecision(approvalRequestId)
-    : null;
   const canApprove = routeData?.canApprove ?? false;
   const canDelete = routeData?.canDelete ?? true;
   const isApprovalRequired = routeData?.isApprovalRequired ?? false;
@@ -184,9 +181,17 @@ const QualityDocumentHeader = () => {
             <TooltipContent>{submitButtonTooltip}</TooltipContent>
           </Tooltip>
         )}
-        {canActivate && approvalDecisionAction && (
+        {canActivate && hasApprovalRequest && (
           <>
-            <approvalFetcher.Form method="post" action={approvalDecisionAction}>
+            <approvalFetcher.Form
+              method="post"
+              action={path.to.qualityDocument(id)}
+            >
+              <input
+                type="hidden"
+                name="approvalRequestId"
+                value={approvalRequestId ?? ""}
+              />
               <input type="hidden" name="decision" value="Approved" />
               <Button
                 type="submit"
@@ -201,7 +206,15 @@ const QualityDocumentHeader = () => {
                 Approve
               </Button>
             </approvalFetcher.Form>
-            <approvalFetcher.Form method="post" action={approvalDecisionAction}>
+            <approvalFetcher.Form
+              method="post"
+              action={path.to.qualityDocument(id)}
+            >
+              <input
+                type="hidden"
+                name="approvalRequestId"
+                value={approvalRequestId ?? ""}
+              />
               <input type="hidden" name="decision" value="Rejected" />
               <Button
                 type="submit"
