@@ -5,7 +5,7 @@ import { VStack } from "@carbon/react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useLoaderData } from "react-router";
 import { getPurchaseOrders } from "~/modules/purchasing";
-import PurchaseOrdersTable from "~/modules/purchasing/ui/PurchaseOrder/PurchaseOrdersTable";
+import { PurchaseOrdersTable } from "~/modules/purchasing/ui/PurchaseOrder";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 import { getGenericQueryFilters } from "~/utils/query";
