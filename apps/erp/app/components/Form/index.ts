@@ -45,6 +45,7 @@ import CustomerType from "./CustomerType";
 import CustomFormFields from "./CustomFormFields";
 import DefaultMethodType from "./DefaultMethodType";
 import Department from "./Department";
+import EmailRecipients from "./EmailRecipients";
 import EmojiPicker from "./EmojiPicker";
 import Employee from "./Employee";
 import Employees from "./Employees";
@@ -106,6 +107,7 @@ export {
   DefaultDisabledSubmit,
   DefaultMethodType,
   Department,
+  EmailRecipients,
   Employee,
   Employees,
   EmojiPicker,

@@ -109,7 +109,8 @@ export const supplierQuoteFinalizeValidator = z
   .object({
     notification: z.enum(["Email", "Share"]).optional(),
     supplierContact: zfd.text(z.string().optional()),
-    sendAttachments: zfd.checkbox()
+    sendAttachments: zfd.checkbox(),
+    cc: z.array(z.string()).optional()
   })
   .refine(
     (data) => (data.notification === "Email" ? data.supplierContact : true),
@@ -267,7 +268,8 @@ export const supplierValidator = z.object({
   currencyCode: zfd.text(z.string().optional()),
   purchasingContactId: zfd.text(z.string().optional()),
   invoicingContactId: zfd.text(z.string().optional()),
-  website: zfd.text(z.string().url().optional())
+  website: zfd.text(z.string().optional()),
+  defaultCc: z.array(z.string().email()).default([])
 });
 
 export const supplierContactValidator = z.object({

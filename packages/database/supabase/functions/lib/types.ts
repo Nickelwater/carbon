@@ -2250,6 +2250,8 @@ export type Database = {
       }
       companySettings: {
         Row: {
+          defaultCustomerCc: string[] | null
+          defaultSupplierCc: string[] | null
           digitalQuoteEnabled: boolean
           digitalQuoteIncludesPurchaseOrders: boolean
           digitalQuoteNotificationGroup: string[]
@@ -2273,6 +2275,8 @@ export type Database = {
           useMetric: boolean
         }
         Insert: {
+          defaultCustomerCc?: string[] | null
+          defaultSupplierCc?: string[] | null
           digitalQuoteEnabled?: boolean
           digitalQuoteIncludesPurchaseOrders?: boolean
           digitalQuoteNotificationGroup?: string[]
@@ -2296,6 +2300,8 @@ export type Database = {
           useMetric?: boolean
         }
         Update: {
+          defaultCustomerCc?: string[] | null
+          defaultSupplierCc?: string[] | null
           digitalQuoteEnabled?: boolean
           digitalQuoteIncludesPurchaseOrders?: boolean
           digitalQuoteNotificationGroup?: string[]
@@ -3611,6 +3617,7 @@ export type Database = {
           customerStatusId: string | null
           customerTypeId: string | null
           customFields: Json | null
+          defaultCc: string[] | null
           embedding: unknown
           externalId: Json | null
           fax: string | null
@@ -3637,6 +3644,7 @@ export type Database = {
           customerStatusId?: string | null
           customerTypeId?: string | null
           customFields?: Json | null
+          defaultCc?: string[] | null
           embedding?: unknown
           externalId?: Json | null
           fax?: string | null
@@ -3663,6 +3671,7 @@ export type Database = {
           customerStatusId?: string | null
           customerTypeId?: string | null
           customFields?: Json | null
+          defaultCc?: string[] | null
           embedding?: unknown
           externalId?: Json | null
           fax?: string | null
@@ -33591,6 +33600,7 @@ export type Database = {
           createdBy: string | null
           currencyCode: string | null
           customFields: Json | null
+          defaultCc: string[] | null
           embedding: unknown
           externalId: Json | null
           fax: string | null
@@ -33617,6 +33627,7 @@ export type Database = {
           createdBy?: string | null
           currencyCode?: string | null
           customFields?: Json | null
+          defaultCc?: string[] | null
           embedding?: unknown
           externalId?: Json | null
           fax?: string | null
@@ -33643,6 +33654,7 @@ export type Database = {
           createdBy?: string | null
           currencyCode?: string | null
           customFields?: Json | null
+          defaultCc?: string[] | null
           embedding?: unknown
           externalId?: Json | null
           fax?: string | null
@@ -41430,6 +41442,7 @@ export type Database = {
           customerStatusId: string | null
           customerTypeId: string | null
           customFields: Json | null
+          defaultCc: string[] | null
           fax: string | null
           id: string | null
           invoicingContactId: string | null
@@ -51984,6 +51997,7 @@ export type Database = {
           createdBy: string | null
           currencyCode: string | null
           customFields: Json | null
+          defaultCc: string[] | null
           embedding: unknown
           externalId: Json | null
           fax: string | null

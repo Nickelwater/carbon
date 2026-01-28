@@ -13123,6 +13123,9 @@ export default {
             $ref: "#/parameters/rowFilter.customers.invoicingContactId",
           },
           {
+            $ref: "#/parameters/rowFilter.customers.defaultCc",
+          },
+          {
             $ref: "#/parameters/rowFilter.customers.type",
           },
           {
@@ -29125,6 +29128,9 @@ export default {
             $ref: "#/parameters/rowFilter.suppliers.embedding",
           },
           {
+            $ref: "#/parameters/rowFilter.suppliers.defaultCc",
+          },
+          {
             $ref: "#/parameters/rowFilter.suppliers.type",
           },
           {
@@ -37270,6 +37276,9 @@ export default {
             $ref: "#/parameters/rowFilter.customer.invoicingContactId",
           },
           {
+            $ref: "#/parameters/rowFilter.customer.defaultCc",
+          },
+          {
             $ref: "#/parameters/select",
           },
           {
@@ -37401,6 +37410,9 @@ export default {
             $ref: "#/parameters/rowFilter.customer.invoicingContactId",
           },
           {
+            $ref: "#/parameters/rowFilter.customer.defaultCc",
+          },
+          {
             $ref: "#/parameters/preferReturn",
           },
         ],
@@ -37484,6 +37496,9 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.customer.invoicingContactId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.customer.defaultCc",
           },
           {
             $ref: "#/parameters/body.customer",
@@ -53050,6 +53065,9 @@ export default {
             $ref: "#/parameters/rowFilter.supplier.invoicingContactId",
           },
           {
+            $ref: "#/parameters/rowFilter.supplier.defaultCc",
+          },
+          {
             $ref: "#/parameters/select",
           },
           {
@@ -53181,6 +53199,9 @@ export default {
             $ref: "#/parameters/rowFilter.supplier.invoicingContactId",
           },
           {
+            $ref: "#/parameters/rowFilter.supplier.defaultCc",
+          },
+          {
             $ref: "#/parameters/preferReturn",
           },
         ],
@@ -53264,6 +53285,9 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.supplier.invoicingContactId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.supplier.defaultCc",
           },
           {
             $ref: "#/parameters/body.supplier",
@@ -59620,6 +59644,12 @@ export default {
             $ref: "#/parameters/rowFilter.companySettings.otherDispatchNotificationGroup",
           },
           {
+            $ref: "#/parameters/rowFilter.companySettings.defaultSupplierCc",
+          },
+          {
+            $ref: "#/parameters/rowFilter.companySettings.defaultCustomerCc",
+          },
+          {
             $ref: "#/parameters/select",
           },
           {
@@ -59742,6 +59772,12 @@ export default {
             $ref: "#/parameters/rowFilter.companySettings.otherDispatchNotificationGroup",
           },
           {
+            $ref: "#/parameters/rowFilter.companySettings.defaultSupplierCc",
+          },
+          {
+            $ref: "#/parameters/rowFilter.companySettings.defaultCustomerCc",
+          },
+          {
             $ref: "#/parameters/preferReturn",
           },
         ],
@@ -59816,6 +59852,12 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.companySettings.otherDispatchNotificationGroup",
+          },
+          {
+            $ref: "#/parameters/rowFilter.companySettings.defaultSupplierCc",
+          },
+          {
+            $ref: "#/parameters/rowFilter.companySettings.defaultCustomerCc",
           },
           {
             $ref: "#/parameters/body.companySettings",
@@ -71232,6 +71274,13 @@ export default {
           format: "text",
           type: "string",
         },
+        defaultCc: {
+          format: "text[]",
+          items: {
+            type: "string",
+          },
+          type: "array",
+        },
         type: {
           format: "text",
           type: "string",
@@ -78505,6 +78554,13 @@ export default {
           format: "extensions.halfvec(384)",
           type: "string",
         },
+        defaultCc: {
+          format: "text[]",
+          items: {
+            type: "string",
+          },
+          type: "array",
+        },
         type: {
           format: "text",
           type: "string",
@@ -82260,6 +82316,13 @@ export default {
             "Note:\nThis is a Foreign Key to `customerContact.id`.<fk table='customerContact' column='id'/>",
           format: "text",
           type: "string",
+        },
+        defaultCc: {
+          format: "text[]",
+          items: {
+            type: "string",
+          },
+          type: "array",
         },
       },
       type: "object",
@@ -90161,6 +90224,13 @@ export default {
           format: "text",
           type: "string",
         },
+        defaultCc: {
+          format: "text[]",
+          items: {
+            type: "string",
+          },
+          type: "array",
+        },
       },
       type: "object",
     },
@@ -93444,6 +93514,20 @@ export default {
           type: "array",
         },
         otherDispatchNotificationGroup: {
+          format: "text[]",
+          items: {
+            type: "string",
+          },
+          type: "array",
+        },
+        defaultSupplierCc: {
+          format: "text[]",
+          items: {
+            type: "string",
+          },
+          type: "array",
+        },
+        defaultCustomerCc: {
           format: "text[]",
           items: {
             type: "string",
@@ -100970,6 +101054,12 @@ export default {
     },
     "rowFilter.customers.invoicingContactId": {
       name: "invoicingContactId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.customers.defaultCc": {
+      name: "defaultCc",
       required: false,
       in: "query",
       type: "string",
@@ -109061,6 +109151,12 @@ export default {
       in: "query",
       type: "string",
     },
+    "rowFilter.suppliers.defaultCc": {
+      name: "defaultCc",
+      required: false,
+      in: "query",
+      type: "string",
+    },
     "rowFilter.suppliers.type": {
       name: "type",
       required: false,
@@ -113315,6 +113411,12 @@ export default {
     },
     "rowFilter.customer.invoicingContactId": {
       name: "invoicingContactId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.customer.defaultCc": {
+      name: "defaultCc",
       required: false,
       in: "query",
       type: "string",
@@ -122315,6 +122417,12 @@ export default {
       in: "query",
       type: "string",
     },
+    "rowFilter.supplier.defaultCc": {
+      name: "defaultCc",
+      required: false,
+      in: "query",
+      type: "string",
+    },
     "body.stockTransfer": {
       name: "stockTransfer",
       description: "stockTransfer",
@@ -125920,6 +126028,18 @@ export default {
     },
     "rowFilter.companySettings.otherDispatchNotificationGroup": {
       name: "otherDispatchNotificationGroup",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.companySettings.defaultSupplierCc": {
+      name: "defaultSupplierCc",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.companySettings.defaultCustomerCc": {
+      name: "defaultCustomerCc",
       required: false,
       in: "query",
       type: "string",
