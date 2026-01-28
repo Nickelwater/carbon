@@ -59,7 +59,7 @@ const ApprovalRules = memo(({ poRules, qdRules }: ApprovalRulesProps) => {
           </CardHeader>
           <CardContent>
             {poRules.length === 0 ? (
-              <Empty />
+              <Empty className="my-4" />
             ) : (
               <VStack spacing={3} className="items-stretch">
                 {poRules
@@ -94,7 +94,7 @@ const ApprovalRules = memo(({ poRules, qdRules }: ApprovalRulesProps) => {
           </CardHeader>
           <CardContent>
             {qdRules.length === 0 ? (
-              <Empty />
+              <Empty className="my-4" />
             ) : (
               <VStack spacing={3} className="items-stretch">
                 {qdRules
