@@ -630,7 +630,7 @@ export default function PurchaseDashboard() {
                     <Tr>
                       <Th>Document</Th>
                       <Th>Status</Th>
-                      <Th>Customer</Th>
+                      <Th>Supplier</Th>
                     </Tr>
                   </Thead>
                   <Tbody>
