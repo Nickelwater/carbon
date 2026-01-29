@@ -15,6 +15,7 @@ import type { FetcherWithComponents } from "react-router";
 import { useParams } from "react-router";
 import { SelectControlled, SupplierContact } from "~/components/Form";
 import { useIntegrations } from "~/hooks/useIntegrations";
+import type { ApprovalDecision } from "~/modules/shared/types";
 import { path } from "~/utils/path";
 import { purchaseOrderApprovalValidator } from "../../purchasing.models";
 import type { PurchaseOrder } from "../../types";
@@ -22,7 +23,7 @@ import type { PurchaseOrder } from "../../types";
 type PurchaseOrderApprovalModalProps = {
   purchaseOrder?: PurchaseOrder;
   approvalRequestId: string;
-  decision: "Approved" | "Rejected";
+  decision: ApprovalDecision;
   fetcher: FetcherWithComponents<unknown>;
   onClose: () => void;
 };

@@ -40,6 +40,7 @@ import { usePermissions, useRouteData } from "~/hooks";
 import { ReceiptStatus } from "~/modules/inventory/ui/Receipts";
 import { ShipmentStatus } from "~/modules/inventory/ui/Shipments";
 import PurchaseInvoicingStatus from "~/modules/invoicing/ui/PurchaseInvoice/PurchaseInvoicingStatus";
+import type { ApprovalDecision } from "~/modules/shared/types";
 import { path } from "~/utils/path";
 import type { PurchaseOrder, PurchaseOrderLine } from "../../types";
 import PurchaseOrderApprovalModal from "./PurchaseOrderApprovalModal";
@@ -84,9 +85,8 @@ const PurchaseOrderHeader = () => {
 
   const finalizeDisclosure = useDisclosure();
   const deleteModal = useDisclosure();
-  const [approvalDecision, setApprovalDecision] = useState<
-    "Approved" | "Rejected" | null
-  >(null);
+  const [approvalDecision, setApprovalDecision] =
+    useState<ApprovalDecision | null>(null);
 
   const isOutsideProcessing =
     routeData?.purchaseOrder?.purchaseOrderType === "Outside Processing";
