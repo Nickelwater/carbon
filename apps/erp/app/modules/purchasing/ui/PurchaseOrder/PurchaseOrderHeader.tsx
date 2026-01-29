@@ -14,6 +14,7 @@ import {
   SplitButton,
   useDisclosure
 } from "@carbon/react";
+import { useState } from "react";
 import {
   LuCheckCheck,
   LuChevronDown,
@@ -41,6 +42,7 @@ import { ShipmentStatus } from "~/modules/inventory/ui/Shipments";
 import PurchaseInvoicingStatus from "~/modules/invoicing/ui/PurchaseInvoice/PurchaseInvoicingStatus";
 import { path } from "~/utils/path";
 import type { PurchaseOrder, PurchaseOrderLine } from "../../types";
+import PurchaseOrderApprovalModal from "./PurchaseOrderApprovalModal";
 import PurchaseOrderFinalizeModal from "./PurchaseOrderFinalizeModal";
 import PurchasingStatus from "./PurchasingStatus";
 import {
@@ -82,6 +84,9 @@ const PurchaseOrderHeader = () => {
 
   const finalizeDisclosure = useDisclosure();
   const deleteModal = useDisclosure();
+  const [approvalDecision, setApprovalDecision] = useState<
+    "Approved" | "Rejected" | null
+  >(null);
 
   const isOutsideProcessing =
     routeData?.purchaseOrder?.purchaseOrderType === "Outside Processing";
@@ -315,52 +320,30 @@ const PurchaseOrderHeader = () => {
               </DropdownMenu>
             ) : isNeedsApproval && hasApprovalRequest ? (
               <>
-                <approvalFetcher.Form
-                  method="post"
-                  action={path.to.purchaseOrder(orderId)}
+                <Button
+                  leftIcon={<LuCheckCheck />}
+                  variant="primary"
+                  isLoading={
+                    approvalFetcher.state !== "idle" &&
+                    approvalFetcher.formData?.get("decision") === "Approved"
+                  }
+                  isDisabled={!canApprove || approvalFetcher.state !== "idle"}
+                  onClick={() => setApprovalDecision("Approved")}
                 >
-                  <input
-                    type="hidden"
-                    name="approvalRequestId"
-                    value={routeData.approvalRequest?.id ?? ""}
-                  />
-                  <input type="hidden" name="decision" value="Approved" />
-                  <Button
-                    type="submit"
-                    leftIcon={<LuCheckCheck />}
-                    variant="primary"
-                    isLoading={
-                      approvalFetcher.state !== "idle" &&
-                      approvalFetcher.formData?.get("decision") === "Approved"
-                    }
-                    isDisabled={!canApprove || approvalFetcher.state !== "idle"}
-                  >
-                    Approve
-                  </Button>
-                </approvalFetcher.Form>
-                <approvalFetcher.Form
-                  method="post"
-                  action={path.to.purchaseOrder(orderId)}
+                  Approve
+                </Button>
+                <Button
+                  leftIcon={<LuX />}
+                  variant="destructive"
+                  isLoading={
+                    approvalFetcher.state !== "idle" &&
+                    approvalFetcher.formData?.get("decision") === "Rejected"
+                  }
+                  isDisabled={!canApprove || approvalFetcher.state !== "idle"}
+                  onClick={() => setApprovalDecision("Rejected")}
                 >
-                  <input
-                    type="hidden"
-                    name="approvalRequestId"
-                    value={routeData.approvalRequest?.id ?? ""}
-                  />
-                  <input type="hidden" name="decision" value="Rejected" />
-                  <Button
-                    type="submit"
-                    leftIcon={<LuX />}
-                    variant="destructive"
-                    isLoading={
-                      approvalFetcher.state !== "idle" &&
-                      approvalFetcher.formData?.get("decision") === "Rejected"
-                    }
-                    isDisabled={!canApprove || approvalFetcher.state !== "idle"}
-                  >
-                    Reject
-                  </Button>
-                </approvalFetcher.Form>
+                  Reject
+                </Button>
               </>
             ) : (
               <Button
@@ -536,6 +519,15 @@ const PurchaseOrderHeader = () => {
           onSubmit={() => {
             deleteModal.onClose();
           }}
+        />
+      )}
+      {approvalDecision && routeData?.approvalRequest?.id && (
+        <PurchaseOrderApprovalModal
+          purchaseOrder={routeData?.purchaseOrder}
+          approvalRequestId={routeData.approvalRequest.id}
+          decision={approvalDecision}
+          fetcher={approvalFetcher}
+          onClose={() => setApprovalDecision(null)}
         />
       )}
     </>

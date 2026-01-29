@@ -247,6 +247,23 @@ export const purchaseOrderFinalizeValidator = z
     }
   );
 
+export const purchaseOrderApprovalValidator = z
+  .object({
+    approvalRequestId: z
+      .string()
+      .min(1, { message: "Approval request is required" }),
+    decision: z.enum(["Approved", "Rejected"]),
+    notification: z.enum(["Email", "None"]).optional(),
+    supplierContact: zfd.text(z.string().optional())
+  })
+  .refine(
+    (data) => (data.notification === "Email" ? data.supplierContact : true),
+    {
+      message: "Supplier contact is required for email",
+      path: ["supplierContact"] // path of error
+    }
+  );
+
 export const selectedLineSchema = z.object({
   leadTime: z.number(),
   quantity: z.number(),
