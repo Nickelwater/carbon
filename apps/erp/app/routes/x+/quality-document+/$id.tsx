@@ -12,14 +12,6 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useLoaderData, useParams } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout/Panels";
 import {
-  approveRequest,
-  canApproveRequest,
-  canCancelRequest,
-  getLatestApprovalRequestForDocument,
-  isApprovalRequired,
-  rejectRequest
-} from "~/modules/approvals";
-import {
   getQualityDocument,
   getQualityDocumentVersions
 } from "~/modules/quality";
@@ -27,7 +19,15 @@ import QualityDocumentEditor from "~/modules/quality/ui/Documents/QualityDocumen
 import QualityDocumentExplorer from "~/modules/quality/ui/Documents/QualityDocumentExplorer";
 import QualityDocumentHeader from "~/modules/quality/ui/Documents/QualityDocumentHeader";
 import QualityDocumentProperties from "~/modules/quality/ui/Documents/QualityDocumentProperties";
-import { getTagsList } from "~/modules/shared";
+import {
+  approveRequest,
+  canApproveRequest,
+  canCancelRequest,
+  getLatestApprovalRequestForDocument,
+  getTagsList,
+  isApprovalRequired,
+  rejectRequest
+} from "~/modules/shared";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 

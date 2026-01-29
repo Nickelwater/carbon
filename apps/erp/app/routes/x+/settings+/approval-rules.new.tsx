@@ -9,13 +9,13 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useLoaderData, useNavigate } from "react-router";
+import { ApprovalRuleForm } from "~/modules/settings";
 import {
   type ApprovalDocumentType,
   approvalRuleValidator,
   getApprovalRules,
   upsertApprovalRule
-} from "~/modules/approvals";
-import ApprovalRuleForm from "~/modules/approvals/ui/ApprovalRuleForm";
+} from "~/modules/shared";
 import { path } from "~/utils/path";
 
 export async function loader({ request }: LoaderFunctionArgs) {

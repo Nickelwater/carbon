@@ -65,10 +65,6 @@ import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Empty, Hyperlink, SupplierAvatar } from "~/components";
 import { useUser } from "~/hooks";
 import { useCurrencyFormatter } from "~/hooks/useCurrencyFormatter";
-import {
-  type ApprovalRequest,
-  getPendingApprovalsForApprover
-} from "~/modules/approvals";
 import type { PurchaseInvoice } from "~/modules/invoicing";
 import { PurchaseInvoicingStatus } from "~/modules/invoicing";
 import type { PurchaseOrder, SupplierQuote } from "~/modules/purchasing";
@@ -76,6 +72,10 @@ import { getPurchasingDocumentsAssignedToMe } from "~/modules/purchasing";
 import { KPIs } from "~/modules/purchasing/purchasing.models";
 import { PurchasingStatus } from "~/modules/purchasing/ui/PurchaseOrder";
 import { SupplierQuoteStatus } from "~/modules/purchasing/ui/SupplierQuote";
+import {
+  type ApprovalRequest,
+  getPendingApprovalsForApprover
+} from "~/modules/shared";
 import { chartIntervals } from "~/modules/shared/shared.models";
 import type { loader as kpiLoader } from "~/routes/api+/purchasing.kpi.$key";
 import { useSuppliers } from "~/stores/suppliers";

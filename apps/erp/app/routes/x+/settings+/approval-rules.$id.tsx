@@ -10,13 +10,13 @@ import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect, useLoaderData, useNavigate } from "react-router";
 import { useUrlParams } from "~/hooks";
+import { ApprovalRuleForm } from "~/modules/settings";
 import {
   approvalRuleValidator,
   getApprovalRuleById,
   getApprovalRules,
   upsertApprovalRule
-} from "~/modules/approvals";
-import ApprovalRuleForm from "~/modules/approvals/ui/ApprovalRuleForm";
+} from "~/modules/shared";
 
 import { getParams, path } from "~/utils/path";
 

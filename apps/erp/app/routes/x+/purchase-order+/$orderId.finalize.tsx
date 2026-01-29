@@ -15,11 +15,6 @@ import { tasks } from "@trigger.dev/sdk";
 import { parseAcceptLanguage } from "intl-parse-accept-language";
 import { type ActionFunctionArgs, redirect } from "react-router";
 import { getPaymentTermsList } from "~/modules/accounting";
-import {
-  createApprovalRequest,
-  hasPendingApproval,
-  isApprovalRequired
-} from "~/modules/approvals";
 import { upsertDocument } from "~/modules/documents";
 import { runMRP } from "~/modules/production/production.service";
 import {
@@ -32,6 +27,11 @@ import {
   updatePurchaseOrderStatus
 } from "~/modules/purchasing";
 import { getCompany, getCompanySettings } from "~/modules/settings";
+import {
+  createApprovalRequest,
+  hasPendingApproval,
+  isApprovalRequired
+} from "~/modules/shared";
 import { getUser } from "~/modules/users/users.server";
 import { loader as pdfLoader } from "~/routes/file+/purchase-order+/$orderId[.]pdf";
 import { path, requestReferrer } from "~/utils/path";

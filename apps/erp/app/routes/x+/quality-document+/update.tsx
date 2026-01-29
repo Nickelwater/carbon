@@ -3,14 +3,14 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import type { Database } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { type ActionFunctionArgs } from "react-router";
+import { qualityDocumentStatus } from "~/modules/quality/quality.models";
 import {
   canApproveRequest,
   createApprovalRequest,
   getLatestApprovalRequestForDocument,
   hasPendingApproval,
   isApprovalRequired
-} from "~/modules/approvals";
-import { qualityDocumentStatus } from "~/modules/quality/quality.models";
+} from "~/modules/shared";
 
 type DocRow = { id: string; status: string | null };
 

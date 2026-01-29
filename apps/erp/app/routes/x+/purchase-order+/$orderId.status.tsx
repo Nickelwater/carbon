@@ -8,12 +8,12 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
-import { canApproveRequest } from "~/modules/approvals";
 import { runMRP } from "~/modules/production";
 import {
   purchaseOrderStatusType,
   updatePurchaseOrderStatus
 } from "~/modules/purchasing";
+import { canApproveRequest } from "~/modules/shared";
 import { path, requestReferrer } from "~/utils/path";
 
 export async function action({ request, params }: ActionFunctionArgs) {

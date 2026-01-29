@@ -10,7 +10,7 @@ import {
 } from "react-icons/lu";
 import { EmployeeAvatar } from "~/components";
 import { UserSelect } from "~/components/Selectors";
-import type { ApprovalDocumentType, ApprovalRule } from "~/modules/approvals";
+import type { ApprovalDocumentType, ApprovalRule } from "~/modules/shared";
 
 type ApprovalRuleDetailsProps = {
   rule: ApprovalRule & { approverGroupNames?: string[] };

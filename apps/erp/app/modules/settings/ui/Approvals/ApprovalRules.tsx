@@ -17,7 +17,7 @@ import { usePermissions } from "~/hooks";
 import {
   type ApprovalRule,
   approvalDocumentTypesWithAmounts
-} from "~/modules/approvals";
+} from "~/modules/shared";
 import { path } from "~/utils/path";
 import ApprovalRuleCard from "./ApprovalRuleCard";
 

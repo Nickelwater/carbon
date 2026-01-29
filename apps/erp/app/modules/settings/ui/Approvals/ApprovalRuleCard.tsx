@@ -20,12 +20,12 @@ import { LuEllipsisVertical, LuPencil, LuTrash } from "react-icons/lu";
 import { useNavigate } from "react-router";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
 import { useCurrencyFormatter, usePermissions, useUrlParams } from "~/hooks";
+import type { ApprovalRule } from "~/modules/shared";
 import {
-  ApprovalDocumentType,
-  type ApprovalRule,
+  type ApprovalDocumentType,
   approvalDocumentTypeLabel,
   approvalDocumentTypesWithAmounts
-} from "~/modules/approvals";
+} from "~/modules/shared";
 import { path } from "~/utils/path";
 import ApprovalRuleDetails from "./ApprovalRuleDetails";
 

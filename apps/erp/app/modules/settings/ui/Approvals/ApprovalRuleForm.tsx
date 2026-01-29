@@ -18,12 +18,12 @@ import {
 } from "@carbon/react";
 import { Employee, Users } from "~/components/Form";
 import { usePermissions, useUser } from "~/hooks";
+import type { ApprovalRule } from "~/modules/shared";
 import {
-  ApprovalDocumentType,
-  type ApprovalRule,
+  type ApprovalDocumentType,
   approvalDocumentTypesWithAmounts,
   approvalRuleValidator
-} from "~/modules/approvals";
+} from "~/modules/shared";
 import { path } from "~/utils/path";
 
 type ApprovalRuleFormProps = {

@@ -3,8 +3,8 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useLoaderData } from "react-router";
-import { getApprovalRules } from "~/modules/approvals";
-import ApprovalRules from "~/modules/approvals/ui/ApprovalRules";
+import { ApprovalRules } from "~/modules/settings";
+import { getApprovalRules } from "~/modules/shared";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 

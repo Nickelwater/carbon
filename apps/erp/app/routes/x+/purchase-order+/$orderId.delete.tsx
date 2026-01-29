@@ -8,12 +8,12 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
+import { deletePurchaseOrder, getPurchaseOrder } from "~/modules/purchasing";
 import {
   canApproveRequest,
   canCancelRequest,
   getLatestApprovalRequestForDocument
-} from "~/modules/approvals";
-import { deletePurchaseOrder, getPurchaseOrder } from "~/modules/purchasing";
+} from "~/modules/shared";
 
 import { path } from "~/utils/path";
 
