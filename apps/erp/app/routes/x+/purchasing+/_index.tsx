@@ -93,6 +93,8 @@ const OPEN_PURCHASE_ORDER_STATUSES = [
   "To Review",
   "To Receive",
   "To Receive and Invoice",
+  "Needs Approval",
+  "Planned",
   "To Invoice"
 ] as const;
 
@@ -830,6 +832,7 @@ function PurchaseInvoiceRow({ doc }: { doc: PurchaseInvoice }) {
         </Hyperlink>
       </Td>
       <Td>
+        {/* @ts-expect-error - Return type is not defined */}
         <PurchaseInvoicingStatus status={doc.status} />
       </Td>
       <Td>

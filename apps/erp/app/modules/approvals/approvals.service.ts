@@ -225,7 +225,7 @@ export async function rejectRequest(
       await client
         .from("purchaseOrder")
         .update({
-          status: "Draft",
+          status: "Rejected",
           updatedBy: userId,
           updatedAt: new Date().toISOString()
         })

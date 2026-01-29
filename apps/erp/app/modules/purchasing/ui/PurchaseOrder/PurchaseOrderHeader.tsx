@@ -171,10 +171,8 @@ const PurchaseOrderHeader = () => {
             <SplitButton
               leftIcon={<LuCheckCheck />}
               isLoading={
-                statusFetcher.state !== "idle" &&
-                ["Planned", "To Receive and Invoice"].includes(
-                  routeData?.purchaseOrder?.status ?? ""
-                )
+                statusFetcher.formAction ===
+                path.to.purchaseOrderFinalize(orderId)
               }
               variant={
                 ["Draft", "Planned"].includes(
@@ -428,6 +426,7 @@ const PurchaseOrderHeader = () => {
                             <HStack spacing={8}>
                               <span>{invoice.invoiceId}</span>
                               <PurchaseInvoicingStatus
+                                // @ts-expect-error - Return type is not defined
                                 status={invoice.status}
                               />
                             </HStack>
