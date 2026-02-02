@@ -402,3 +402,74 @@ export const supplierQuoteLineValidator = z.object({
     zfd.numeric(z.number().min(0.00001, { message: "Quantity is required" }))
   )
 });
+
+export const purchasingRfqStatusType = [
+  "Draft",
+  "Ready for request",
+  "Requested",
+  "Closed"
+] as const;
+
+export const purchasingRfqValidator = z.object({
+  id: zfd.text(z.string().optional()),
+  rfqId: zfd.text(z.string().optional()),
+  rfqDate: z.string().min(1, { message: "RFQ Date is required" }),
+  expirationDate: zfd.text(z.string().optional()),
+  locationId: zfd.text(z.string().optional()),
+  employeeId: zfd.text(z.string().optional()),
+  status: z.enum(purchasingRfqStatusType).optional(),
+  supplierIds: z
+    .array(z.string())
+    .min(1, { message: "At least one supplier is required" })
+});
+
+export const purchasingRfqLineValidator = z.object({
+  id: zfd.text(z.string().optional()),
+  purchasingRfqId: z.string().min(1, { message: "RFQ is required" }),
+  itemId: z.string().min(1, { message: "Part is required" }),
+  description: zfd.text(z.string().optional()),
+  quantity: z.array(
+    zfd.numeric(z.number().min(0.00001, { message: "Quantity is required" }))
+  ),
+  purchaseUnitOfMeasureCode: zfd.text(
+    z.string().min(1, { message: "Unit of measure is required" })
+  ),
+  inventoryUnitOfMeasureCode: zfd.text(
+    z.string().min(1, { message: "Unit of measure is required" })
+  ),
+  conversionFactor: zfd.numeric(z.number().optional()),
+  order: zfd.numeric(z.number().min(0))
+});
+
+export const purchasingRfqSuppliersValidator = z.object({
+  purchasingRfqId: z.string().min(1, { message: "RFQ is required" }),
+  supplierIds: z
+    .array(z.string())
+    .min(1, { message: "At least one supplier is required" })
+});
+
+export const purchasingRfqFinalizeValidator = z.object({
+  suppliers: z.array(
+    z.object({
+      supplierId: z.string().min(1),
+      rfqSupplierId: z.string().min(1),
+      contactId: zfd.text(z.string().optional())
+    })
+  )
+});
+
+// RFQ Status Helpers
+export const PURCHASING_RFQ_EDITABLE_STATUSES = ["Draft"] as const;
+export const PURCHASING_RFQ_LOCKED_STATUSES = ["Requested", "Closed"] as const;
+
+export function isRfqEditable(status: string | null | undefined): boolean {
+  return PURCHASING_RFQ_EDITABLE_STATUSES.includes(
+    status as (typeof PURCHASING_RFQ_EDITABLE_STATUSES)[number]
+  );
+}
+
+export function isRfqLocked(status: string | null | undefined): boolean {
+  return PURCHASING_RFQ_LOCKED_STATUSES.includes(
+    status as (typeof PURCHASING_RFQ_LOCKED_STATUSES)[number]
+  );
+}

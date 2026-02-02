@@ -8868,7 +8868,7 @@ export type Database = {
           itemPostingGroupId: string | null
           standardCost: number
           tags: string[] | null
-          unitCost: number
+          unitCost: number | null
           updatedAt: string | null
           updatedBy: string | null
         }
@@ -8883,7 +8883,7 @@ export type Database = {
           itemPostingGroupId?: string | null
           standardCost?: number
           tags?: string[] | null
-          unitCost?: number
+          unitCost?: number | null
           updatedAt?: string | null
           updatedBy?: string | null
         }
@@ -8898,7 +8898,7 @@ export type Database = {
           itemPostingGroupId?: string | null
           standardCost?: number
           tags?: string[] | null
-          unitCost?: number
+          unitCost?: number | null
           updatedAt?: string | null
           updatedBy?: string | null
         }
@@ -25388,6 +25388,826 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          },
+        ]
+      }
+      purchasingRfq: {
+        Row: {
+          assignee: string | null
+          companyId: string
+          createdAt: string | null
+          createdBy: string | null
+          customFields: Json | null
+          employeeId: string | null
+          expirationDate: string | null
+          id: string
+          internalNotes: string | null
+          locationId: string | null
+          notes: Json | null
+          revisionId: number
+          rfqDate: string
+          rfqId: string
+          status: Database["public"]["Enums"]["purchasingRfqStatus"]
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          assignee?: string | null
+          companyId: string
+          createdAt?: string | null
+          createdBy?: string | null
+          customFields?: Json | null
+          employeeId?: string | null
+          expirationDate?: string | null
+          id?: string
+          internalNotes?: string | null
+          locationId?: string | null
+          notes?: Json | null
+          revisionId?: number
+          rfqDate: string
+          rfqId: string
+          status?: Database["public"]["Enums"]["purchasingRfqStatus"]
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          assignee?: string | null
+          companyId?: string
+          createdAt?: string | null
+          createdBy?: string | null
+          customFields?: Json | null
+          employeeId?: string | null
+          expirationDate?: string | null
+          id?: string
+          internalNotes?: string | null
+          locationId?: string | null
+          notes?: Json | null
+          revisionId?: number
+          rfqDate?: string
+          rfqId?: string
+          status?: Database["public"]["Enums"]["purchasingRfqStatus"]
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_locationId_fkey"
+            columns: ["locationId"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
+      purchasingRfqFavorite: {
+        Row: {
+          rfqId: string
+          userId: string
+        }
+        Insert: {
+          rfqId: string
+          userId: string
+        }
+        Update: {
+          rfqId?: string
+          userId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchasingRfqFavorites_purchasingRfqId_fkey"
+            columns: ["rfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfq"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqFavorites_purchasingRfqId_fkey"
+            columns: ["rfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqFavorites_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqFavorites_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqFavorites_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqFavorites_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqFavorites_userId_fkey"
+            columns: ["userId"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
+      purchasingRfqLine: {
+        Row: {
+          companyId: string
+          conversionFactor: number | null
+          createdAt: string | null
+          createdBy: string
+          customFields: Json | null
+          description: string | null
+          externalNotes: Json | null
+          id: string
+          internalNotes: Json | null
+          inventoryUnitOfMeasureCode: string
+          itemId: string
+          order: number
+          purchaseUnitOfMeasureCode: string
+          purchasingRfqId: string
+          quantity: number[] | null
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          companyId: string
+          conversionFactor?: number | null
+          createdAt?: string | null
+          createdBy: string
+          customFields?: Json | null
+          description?: string | null
+          externalNotes?: Json | null
+          id?: string
+          internalNotes?: Json | null
+          inventoryUnitOfMeasureCode: string
+          itemId: string
+          order?: number
+          purchaseUnitOfMeasureCode: string
+          purchasingRfqId: string
+          quantity?: number[] | null
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          companyId?: string
+          conversionFactor?: number | null
+          createdAt?: string | null
+          createdBy?: string
+          customFields?: Json | null
+          description?: string | null
+          externalNotes?: Json | null
+          id?: string
+          internalNotes?: Json | null
+          inventoryUnitOfMeasureCode?: string
+          itemId?: string
+          order?: number
+          purchaseUnitOfMeasureCode?: string
+          purchasingRfqId?: string
+          quantity?: number[] | null
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchasingRfqLine_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_inventoryUnitOfMeasureCode_fkey"
+            columns: ["inventoryUnitOfMeasureCode", "companyId"]
+            isOneToOne: false
+            referencedRelation: "unitOfMeasure"
+            referencedColumns: ["code", "companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "consumables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_purchaseUnitOfMeasureCode_fkey"
+            columns: ["purchaseUnitOfMeasureCode", "companyId"]
+            isOneToOne: false
+            referencedRelation: "unitOfMeasure"
+            referencedColumns: ["code", "companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfq"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
+      purchasingRfqSupplier: {
+        Row: {
+          companyId: string
+          createdAt: string | null
+          createdBy: string | null
+          id: string
+          purchasingRfqId: string
+          supplierId: string
+        }
+        Insert: {
+          companyId: string
+          createdAt?: string | null
+          createdBy?: string | null
+          id?: string
+          purchasingRfqId: string
+          supplierId: string
+        }
+        Update: {
+          companyId?: string
+          createdAt?: string | null
+          createdBy?: string | null
+          id?: string
+          purchasingRfqId?: string
+          supplierId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchasingRfqSupplier_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfq"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "contractors"
+            referencedColumns: ["supplierId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "partners"
+            referencedColumns: ["supplierId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "purchaseOrderSuppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "supplier"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqSupplier_supplierId_fkey"
+            columns: ["supplierId"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchasingRfqToPurchaseOrder: {
+        Row: {
+          companyId: string
+          purchaseOrderId: string
+          purchasingRfqId: string
+        }
+        Insert: {
+          companyId: string
+          purchaseOrderId: string
+          purchasingRfqId: string
+        }
+        Update: {
+          companyId?: string
+          purchaseOrderId?: string
+          purchasingRfqId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_purchaseOrderId_fkey"
+            columns: ["purchaseOrderId"]
+            isOneToOne: false
+            referencedRelation: "purchaseOrder"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_purchaseOrderId_fkey"
+            columns: ["purchaseOrderId"]
+            isOneToOne: false
+            referencedRelation: "purchaseOrderLocations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_purchaseOrderId_fkey"
+            columns: ["purchaseOrderId"]
+            isOneToOne: false
+            referencedRelation: "purchaseOrders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfq"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToPurchaseOrder_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfqs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      purchasingRfqToSupplierQuote: {
+        Row: {
+          companyId: string
+          purchasingRfqId: string
+          supplierQuoteId: string
+        }
+        Insert: {
+          companyId: string
+          purchasingRfqId: string
+          supplierQuoteId: string
+        }
+        Update: {
+          companyId?: string
+          purchasingRfqId?: string
+          supplierQuoteId?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchasingRfqToSupplierQuote_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToSupplierQuote_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToSupplierQuote_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToSupplierQuote_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToSupplierQuote_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfq"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToSupplierQuote_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToSupplierQuote_supplierQuoteId_fkey"
+            columns: ["supplierQuoteId"]
+            isOneToOne: false
+            referencedRelation: "supplierQuote"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqToSupplierQuote_supplierQuoteId_fkey"
+            columns: ["supplierQuoteId"]
+            isOneToOne: false
+            referencedRelation: "supplierQuotes"
+            referencedColumns: ["id"]
           },
         ]
       }
@@ -47751,6 +48571,397 @@ export type Database = {
           },
         ]
       }
+      purchasingRfqLines: {
+        Row: {
+          companyId: string | null
+          conversionFactor: number | null
+          createdAt: string | null
+          createdBy: string | null
+          customFields: Json | null
+          description: string | null
+          externalNotes: Json | null
+          id: string | null
+          internalNotes: Json | null
+          inventoryUnitOfMeasureCode: string | null
+          itemId: string | null
+          itemName: string | null
+          itemReadableId: string | null
+          itemType: Database["public"]["Enums"]["itemType"] | null
+          modelPath: string | null
+          order: number | null
+          purchaseUnitOfMeasureCode: string | null
+          purchasingRfqId: string | null
+          quantity: number[] | null
+          thumbnailPath: string | null
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchasingRfqLine_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_inventoryUnitOfMeasureCode_fkey"
+            columns: ["inventoryUnitOfMeasureCode", "companyId"]
+            isOneToOne: false
+            referencedRelation: "unitOfMeasure"
+            referencedColumns: ["code", "companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "consumables"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "materials"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "parts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: false
+            referencedRelation: "tools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_purchaseUnitOfMeasureCode_fkey"
+            columns: ["purchaseUnitOfMeasureCode", "companyId"]
+            isOneToOne: false
+            referencedRelation: "unitOfMeasure"
+            referencedColumns: ["code", "companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfq"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_purchasingRfqId_fkey"
+            columns: ["purchasingRfqId"]
+            isOneToOne: false
+            referencedRelation: "purchasingRfqs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfqLine_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
+      purchasingRfqs: {
+        Row: {
+          assignee: string | null
+          companyId: string | null
+          createdAt: string | null
+          createdBy: string | null
+          customFields: Json | null
+          employeeId: string | null
+          expirationDate: string | null
+          favorite: boolean | null
+          id: string | null
+          internalNotes: string | null
+          locationId: string | null
+          locationName: string | null
+          notes: Json | null
+          revisionId: number | null
+          rfqDate: string | null
+          rfqId: string | null
+          status: Database["public"]["Enums"]["purchasingRfqStatus"] | null
+          supplierCount: number | null
+          supplierIds: string[] | null
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_assigneeId_fkey"
+            columns: ["assignee"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_employeeId_fkey"
+            columns: ["employeeId"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_locationId_fkey"
+            columns: ["locationId"]
+            isOneToOne: false
+            referencedRelation: "location"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchasingRfq_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+        ]
+      }
       qualityActions: {
         Row: {
           actionType: string | null
@@ -54653,6 +55864,7 @@ export type Database = {
           id: string
           purchaseInvoices: Json
           purchaseOrders: Json
+          purchasingRfq: Json
           supplierId: string
           supplierQuotes: Json
         }[]
@@ -54979,6 +56191,7 @@ export type Database = {
         | "Consumable"
         | "Issue"
         | "Gauge Calibration Record"
+        | "Purchasing Request for Quote"
       documentthreadtype:
         | "nonConformance"
         | "quote"
@@ -55268,6 +56481,11 @@ export type Database = {
       purchasePriceUpdateTiming:
         | "Purchase Invoice Post"
         | "Purchase Order Finalize"
+      purchasingRfqStatus:
+        | "Draft"
+        | "Ready for request"
+        | "Requested"
+        | "Closed"
       qualityDocumentStatus: "Draft" | "Active" | "Archived"
       quoteLineStatus: "Not Started" | "In Progress" | "Complete" | "No Quote"
       quoteStatus:
@@ -56091,6 +57309,7 @@ export const Constants = {
         "Consumable",
         "Issue",
         "Gauge Calibration Record",
+        "Purchasing Request for Quote",
       ],
       documentthreadtype: [
         "nonConformance",
@@ -56409,6 +57628,12 @@ export const Constants = {
       purchasePriceUpdateTiming: [
         "Purchase Invoice Post",
         "Purchase Order Finalize",
+      ],
+      purchasingRfqStatus: [
+        "Draft",
+        "Ready for request",
+        "Requested",
+        "Closed",
       ],
       qualityDocumentStatus: ["Draft", "Active", "Archived"],
       quoteLineStatus: ["Not Started", "In Progress", "Complete", "No Quote"],

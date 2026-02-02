@@ -1429,7 +1429,40 @@ export const path = {
     salesRfqStatus: (id: string) => generatePath(`${x}/sales-rfq/${id}/status`),
     salesRfqs: `${x}/sales/rfqs`,
     salesSettings: `${x}/settings/sales`,
+
+    // Purchasing RFQ paths
+    purchasingRfq: (id: string) => generatePath(`${x}/purchasing-rfq/${id}`),
+    purchasingRfqDetails: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/details`),
+    purchasingRfqFavorite: `${x}/purchasing/rfqs/favorite`,
+    purchasingRfqLine: (id: string, lineId: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/${lineId}/details`),
+    purchasingRfqRoot: `${x}/purchasing-rfq`,
+    purchasingRfqStatus: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/status`),
+    cancelPurchasingRfq: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/cancel`),
+    purchasingRfqFinalize: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/finalize`),
+    purchasingRfqs: `${x}/purchasing/rfqs`,
+    newPurchasingRFQ: `${x}/purchasing-rfq/new`,
+    newPurchasingRFQLine: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/new`),
+    deletePurchasingRfq: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/delete`),
+    deletePurchasingRfqLine: (id: string, lineId: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/${lineId}/delete`),
+    purchasingRfqConvert: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/convert`),
+    purchasingRfqCompare: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/compare`),
+    purchasingRfqSuppliers: (id: string) =>
+      generatePath(`${x}/purchasing-rfq/${id}/suppliers`),
+    purchasingRfqPreview: (id: string) =>
+      generatePath(`/share/purchasing-rfq/${id}`),
+
     saveViews: `${x}/shared/views`,
+
     saveViewOrder: `${x}/shared/view/order`,
     scheduleOperation: `${x}/schedule/operations`,
     scheduleOperationUpdate: `${x}/schedule/operations/update`,

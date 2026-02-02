@@ -7,6 +7,7 @@ import { Outlet, redirect, useParams } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout/Panels";
 import { getCurrencyByCode } from "~/modules/accounting";
 import {
+  getSiblingQuotesForQuote,
   getSupplier,
   getSupplierInteraction,
   getSupplierInteractionDocuments,
@@ -38,10 +39,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (!id) throw new Error("Could not find id");
   const serviceRole = await getCarbonServiceRole();
 
-  const [quote, lines, prices] = await Promise.all([
+  const [quote, lines, prices, siblingQuotes] = await Promise.all([
     getSupplierQuote(serviceRole, id),
     getSupplierQuoteLines(serviceRole, id),
-    getSupplierQuoteLinePricesByQuoteId(serviceRole, id)
+    getSupplierQuoteLinePricesByQuoteId(serviceRole, id),
+    getSiblingQuotesForQuote(serviceRole, id)
   ]);
 
   if (quote.error) {
@@ -77,6 +79,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     exchangeRate = presentationCurrency.data.exchangeRate;
   }
 
+  // Extract sibling quotes from the linked data
+  const siblingQuotesData =
+    siblingQuotes.data
+      ?.map((link) => link.supplierQuote)
+      .filter(Boolean)
+      // Deduplicate by quote ID (a quote might be linked to multiple shared RFQs)
+      .filter(
+        (quote, index, self) =>
+          self.findIndex((q) => q?.id === quote?.id) === index
+      ) ?? [];
   // Compute default CC: use supplier's if set, otherwise company's
   const defaultCc =
     supplier.data?.defaultCc?.length > 0
@@ -94,6 +106,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ),
     interaction: supplierInteraction.data,
     exchangeRate,
+    siblingQuotes: siblingQuotesData,
     defaultCc
   };
 }

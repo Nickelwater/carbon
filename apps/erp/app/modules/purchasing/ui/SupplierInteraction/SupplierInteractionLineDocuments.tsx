@@ -37,6 +37,7 @@ import { path } from "~/utils/path";
 import { stripSpecialCharacters } from "~/utils/string";
 
 type SupportedDocument =
+  | "Purchasing RFQ"
   | "Supplier Quote"
   | "Purchase Order"
   | "Purchase Invoice";
