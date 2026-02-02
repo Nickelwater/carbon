@@ -283,7 +283,6 @@ CREATE POLICY "Users can delete their own purchasingRfq favorites" ON "purchasin
   );
 
 -- Views
-DROP VIEW "purchasingRfqs";
 CREATE OR REPLACE VIEW "purchasingRfqs" WITH(SECURITY_INVOKER=true) AS
   SELECT
     rfq.*,
@@ -294,7 +293,6 @@ CREATE OR REPLACE VIEW "purchasingRfqs" WITH(SECURITY_INVOKER=true) AS
   FROM "purchasingRfq" rfq
   LEFT JOIN "location" l ON l.id = rfq."locationId";
 
-DROP VIEW "purchasingRfqLines";
 CREATE OR REPLACE VIEW "purchasingRfqLines" WITH(SECURITY_INVOKER=true) AS
   SELECT
     prl.*,

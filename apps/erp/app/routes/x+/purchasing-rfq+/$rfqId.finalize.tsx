@@ -45,8 +45,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  console.log("validation", validation.data);
-
   const { suppliers: supplierContacts } = validation.data;
 
   // Get RFQ, lines, and suppliers

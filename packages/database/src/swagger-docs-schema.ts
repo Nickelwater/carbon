@@ -23863,7 +23863,7 @@ export default {
             $ref: "#/parameters/rowFilter.purchasingRfqs.supplierCount",
           },
           {
-            $ref: "#/parameters/rowFilter.purchasingRfqs.supplierNames",
+            $ref: "#/parameters/rowFilter.purchasingRfqs.supplierIds",
           },
           {
             $ref: "#/parameters/rowFilter.purchasingRfqs.favorite",
@@ -77204,7 +77204,7 @@ export default {
           format: "bigint",
           type: "integer",
         },
-        supplierNames: {
+        supplierIds: {
           format: "text[]",
           items: {
             type: "string",
@@ -108044,8 +108044,8 @@ export default {
       in: "query",
       type: "string",
     },
-    "rowFilter.purchasingRfqs.supplierNames": {
-      name: "supplierNames",
+    "rowFilter.purchasingRfqs.supplierIds": {
+      name: "supplierIds",
       required: false,
       in: "query",
       type: "string",
