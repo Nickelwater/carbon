@@ -319,7 +319,7 @@ const PurchaseOrderHeader = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : isNeedsApproval && hasApprovalRequest ? (
+            ) : isNeedsApproval && hasApprovalRequest && canApprove ? (
               <>
                 <Button
                   leftIcon={<LuCheckCheck />}
@@ -328,7 +328,7 @@ const PurchaseOrderHeader = () => {
                     approvalFetcher.state !== "idle" &&
                     approvalFetcher.formData?.get("decision") === "Approved"
                   }
-                  isDisabled={!canApprove || approvalFetcher.state !== "idle"}
+                  isDisabled={approvalFetcher.state !== "idle"}
                   onClick={() => setApprovalDecision("Approved")}
                 >
                   Approve
@@ -340,7 +340,7 @@ const PurchaseOrderHeader = () => {
                     approvalFetcher.state !== "idle" &&
                     approvalFetcher.formData?.get("decision") === "Rejected"
                   }
-                  isDisabled={!canApprove || approvalFetcher.state !== "idle"}
+                  isDisabled={approvalFetcher.state !== "idle"}
                   onClick={() => setApprovalDecision("Rejected")}
                 >
                   Reject
