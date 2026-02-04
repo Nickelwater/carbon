@@ -4042,9 +4042,6 @@ export default {
             $ref: "#/parameters/rowFilter.approvalRequests.requestedAt",
           },
           {
-            $ref: "#/parameters/rowFilter.approvalRequests.approverId",
-          },
-          {
             $ref: "#/parameters/rowFilter.approvalRequests.decisionBy",
           },
           {
@@ -40612,9 +40609,6 @@ export default {
             $ref: "#/parameters/rowFilter.approvalRequest.requestedAt",
           },
           {
-            $ref: "#/parameters/rowFilter.approvalRequest.approverId",
-          },
-          {
             $ref: "#/parameters/rowFilter.approvalRequest.decisionBy",
           },
           {
@@ -40719,9 +40713,6 @@ export default {
             $ref: "#/parameters/rowFilter.approvalRequest.requestedAt",
           },
           {
-            $ref: "#/parameters/rowFilter.approvalRequest.approverId",
-          },
-          {
             $ref: "#/parameters/rowFilter.approvalRequest.decisionBy",
           },
           {
@@ -40778,9 +40769,6 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.approvalRequest.requestedAt",
-          },
-          {
-            $ref: "#/parameters/rowFilter.approvalRequest.approverId",
           },
           {
             $ref: "#/parameters/rowFilter.approvalRequest.decisionBy",
@@ -63454,6 +63442,49 @@ export default {
         tags: ["(rpc) get_unscheduled_jobs"],
       },
     },
+    "/rpc/delete_from_search_index": {
+      post: {
+        parameters: [
+          {
+            in: "body",
+            name: "args",
+            required: true,
+            schema: {
+              properties: {
+                p_company_id: {
+                  format: "text",
+                  type: "string",
+                },
+                p_entity_id: {
+                  format: "text",
+                  type: "string",
+                },
+                p_entity_type: {
+                  format: "text",
+                  type: "string",
+                },
+              },
+              required: ["p_company_id", "p_entity_type", "p_entity_id"],
+              type: "object",
+            },
+          },
+          {
+            $ref: "#/parameters/preferParams",
+          },
+        ],
+        produces: [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json",
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+          },
+        },
+        tags: ["(rpc) delete_from_search_index"],
+      },
+    },
     "/rpc/get_direct_ancestors_of_tracked_entity": {
       post: {
         parameters: [
@@ -64992,6 +65023,80 @@ export default {
         tags: ["(rpc) xid_pid"],
       },
     },
+    "/rpc/upsert_to_search_index": {
+      post: {
+        parameters: [
+          {
+            in: "body",
+            name: "args",
+            required: true,
+            schema: {
+              properties: {
+                p_company_id: {
+                  format: "text",
+                  type: "string",
+                },
+                p_description: {
+                  format: "text",
+                  type: "string",
+                },
+                p_entity_id: {
+                  format: "text",
+                  type: "string",
+                },
+                p_entity_type: {
+                  format: "text",
+                  type: "string",
+                },
+                p_link: {
+                  format: "text",
+                  type: "string",
+                },
+                p_metadata: {
+                  format: "jsonb",
+                },
+                p_tags: {
+                  format: "text[]",
+                  items: {
+                    type: "string",
+                  },
+                  type: "array",
+                },
+                p_title: {
+                  format: "text",
+                  type: "string",
+                },
+              },
+              required: [
+                "p_company_id",
+                "p_entity_type",
+                "p_entity_id",
+                "p_title",
+                "p_description",
+                "p_link",
+                "p_tags",
+                "p_metadata",
+              ],
+              type: "object",
+            },
+          },
+          {
+            $ref: "#/parameters/preferParams",
+          },
+        ],
+        produces: [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json",
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+          },
+        },
+        tags: ["(rpc) upsert_to_search_index"],
+      },
+    },
     "/rpc/get_active_job_count": {
       post: {
         parameters: [
@@ -65029,6 +65134,45 @@ export default {
           },
         },
         tags: ["(rpc) get_active_job_count"],
+      },
+    },
+    "/rpc/delete_event_system_subscriptions_by_name": {
+      post: {
+        parameters: [
+          {
+            in: "body",
+            name: "args",
+            required: true,
+            schema: {
+              properties: {
+                p_company_id: {
+                  format: "text",
+                  type: "string",
+                },
+                p_name: {
+                  format: "text",
+                  type: "string",
+                },
+              },
+              required: ["p_company_id", "p_name"],
+              type: "object",
+            },
+          },
+          {
+            $ref: "#/parameters/preferParams",
+          },
+        ],
+        produces: [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json",
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+          },
+        },
+        tags: ["(rpc) delete_event_system_subscriptions_by_name"],
       },
     },
     "/rpc/groups_for_user": {
@@ -66330,6 +66474,41 @@ export default {
         tags: ["(rpc) has_role"],
       },
     },
+    "/rpc/delete_event_system_subscription": {
+      post: {
+        parameters: [
+          {
+            in: "body",
+            name: "args",
+            required: true,
+            schema: {
+              properties: {
+                p_subscription_id: {
+                  format: "text",
+                  type: "string",
+                },
+              },
+              required: ["p_subscription_id"],
+              type: "object",
+            },
+          },
+          {
+            $ref: "#/parameters/preferParams",
+          },
+        ],
+        produces: [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json",
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+          },
+        },
+        tags: ["(rpc) delete_event_system_subscription"],
+      },
+    },
     "/rpc/has_valid_api_key_for_company": {
       post: {
         parameters: [
@@ -66470,6 +66649,41 @@ export default {
           },
         },
         tags: ["(rpc) get_job_methods_by_method_id"],
+      },
+    },
+    "/rpc/create_search_subscriptions_for_company": {
+      post: {
+        parameters: [
+          {
+            in: "body",
+            name: "args",
+            required: true,
+            schema: {
+              properties: {
+                p_company_id: {
+                  format: "text",
+                  type: "string",
+                },
+              },
+              required: ["p_company_id"],
+              type: "object",
+            },
+          },
+          {
+            $ref: "#/parameters/preferParams",
+          },
+        ],
+        produces: [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json",
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+          },
+        },
+        tags: ["(rpc) create_search_subscriptions_for_company"],
       },
     },
     "/rpc/groups_query": {
@@ -66942,6 +67156,76 @@ export default {
           },
         },
         tags: ["(rpc) get_purchasing_planning"],
+      },
+    },
+    "/rpc/create_event_system_subscription": {
+      post: {
+        parameters: [
+          {
+            in: "body",
+            name: "args",
+            required: true,
+            schema: {
+              properties: {
+                p_active: {
+                  format: "boolean",
+                  type: "boolean",
+                },
+                p_company_id: {
+                  format: "text",
+                  type: "string",
+                },
+                p_config: {
+                  format: "jsonb",
+                },
+                p_filter: {
+                  format: "jsonb",
+                },
+                p_handler_type: {
+                  format: "text",
+                  type: "string",
+                },
+                p_name: {
+                  format: "text",
+                  type: "string",
+                },
+                p_operations: {
+                  format: "text[]",
+                  items: {
+                    type: "string",
+                  },
+                  type: "array",
+                },
+                p_table: {
+                  format: "text",
+                  type: "string",
+                },
+              },
+              required: [
+                "p_name",
+                "p_table",
+                "p_company_id",
+                "p_operations",
+                "p_handler_type",
+              ],
+              type: "object",
+            },
+          },
+          {
+            $ref: "#/parameters/preferParams",
+          },
+        ],
+        produces: [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json",
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+          },
+        },
+        tags: ["(rpc) create_event_system_subscription"],
       },
     },
     "/rpc/get_maintenance_dispatches_by_location": {
@@ -69070,12 +69354,6 @@ export default {
         },
         requestedAt: {
           format: "timestamp with time zone",
-          type: "string",
-        },
-        approverId: {
-          description:
-            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
-          format: "text",
           type: "string",
         },
         decisionBy: {
@@ -86141,12 +86419,6 @@ export default {
           format: "timestamp with time zone",
           type: "string",
         },
-        approverId: {
-          description:
-            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
-          format: "text",
-          type: "string",
-        },
         decisionBy: {
           description:
             "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
@@ -99350,12 +99622,6 @@ export default {
     },
     "rowFilter.approvalRequests.requestedAt": {
       name: "requestedAt",
-      required: false,
-      in: "query",
-      type: "string",
-    },
-    "rowFilter.approvalRequests.approverId": {
-      name: "approverId",
       required: false,
       in: "query",
       type: "string",
@@ -118562,12 +118828,6 @@ export default {
     },
     "rowFilter.approvalRequest.requestedAt": {
       name: "requestedAt",
-      required: false,
-      in: "query",
-      type: "string",
-    },
-    "rowFilter.approvalRequest.approverId": {
-      name: "approverId",
       required: false,
       in: "query",
       type: "string",

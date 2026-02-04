@@ -1,6 +1,5 @@
-import type { Kysely } from "kysely";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { KyselyDatabase } from "./client.ts";
 
 export const OperationSchema = z.enum([
   "INSERT",
@@ -9,7 +8,7 @@ export const OperationSchema = z.enum([
   "TRUNCATE"
 ]);
 
-const HandlerTypeSchema = z.enum(["WEBHOOK", "WORKFLOW", "SYNC"]);
+const HandlerTypeSchema = z.enum(["WEBHOOK", "WORKFLOW", "SYNC", "SEARCH"]);
 
 export const EventSchema = z.discriminatedUnion("operation", [
   z.object({
@@ -50,17 +49,13 @@ export const QueueMessageSchema = z.object({
 export type EventSystemEvent = z.infer<typeof EventSchema>;
 export type HandlerType = z.infer<typeof HandlerTypeSchema>;
 export type QueueMessage = z.infer<typeof QueueMessageSchema>;
+export type Operation = z.infer<typeof OperationSchema>;
 
 // The Main Subscription Schema
 export const CreateSubscriptionSchema = z.object({
   name: z.string().min(1, "Name is required"),
   // The table name in your database
-  table: z.custom<keyof Pick<KyselyDatabase, keyof KyselyDatabase>>(
-    (val) => typeof val === "string",
-    {
-      message: "Table name must be a string"
-    }
-  ),
+  table: z.string().min(1, "Table name is required"),
   // The company this subscription belongs to
   companyId: z.string().min(1, "Company ID is required"),
   // Must provide at least one operation (e.g. ['INSERT'])
@@ -80,61 +75,135 @@ export const CreateSubscriptionSchema = z.object({
 
 export type CreateSubscriptionParams = z.input<typeof CreateSubscriptionSchema>;
 
+// Return type for subscription creation
+export type SubscriptionResult = {
+  id: string;
+  name: string;
+  handlerType: string;
+  table: string;
+};
+
+// Type for Supabase client with our custom RPC functions
+// These RPC functions are defined in the migration
+type EventSystemRpcClient = {
+  rpc(
+    fn: "create_event_system_subscription",
+    params: {
+      p_name: string;
+      p_table: string;
+      p_company_id: string;
+      p_operations: string[];
+      p_handler_type: string;
+      p_config?: Record<string, any>;
+      p_filter?: Record<string, any>;
+      p_active?: boolean;
+    }
+  ): Promise<{ data: SubscriptionResult[] | null; error: any }>;
+  rpc(
+    fn: "delete_event_system_subscription",
+    params: { p_subscription_id: string }
+  ): Promise<{ data: any; error: any }>;
+  rpc(
+    fn: "delete_event_system_subscriptions_by_name",
+    params: { p_company_id: string; p_name: string }
+  ): Promise<{ data: any; error: any }>;
+};
+
+/**
+ * Creates or updates an event system subscription using RPC.
+ *
+ * @param client - Supabase client (e.g., from getCarbonServiceRole())
+ * @param input - Subscription parameters
+ * @returns The created/updated subscription
+ * @throws Error if the RPC call fails
+ *
+ * @example
+ * ```ts
+ * const client = getCarbonServiceRole();
+ * const subscription = await createEventSystemSubscription(client, {
+ *   name: "my-webhook",
+ *   table: "customer",
+ *   companyId: "company-123",
+ *   operations: ["INSERT", "UPDATE"],
+ *   type: "WEBHOOK",
+ *   config: { url: "https://example.com/webhook" },
+ * });
+ * ```
+ */
 export async function createEventSystemSubscription(
-  client: Kysely<KyselyDatabase>,
+  client: SupabaseClient | EventSystemRpcClient,
   input: CreateSubscriptionParams
-) {
+): Promise<SubscriptionResult | undefined> {
   // 1. Runtime Validation
-  // This throws a clear ZodError if inputs are wrong (e.g. missing 'table' or invalid 'type')
   const params = CreateSubscriptionSchema.parse(input);
 
-  // 2. Database Insert
-  // Note: We cast arrays/objects to ensure Postgres driver handles them correctly
-  const result = await client
-    .insertInto("eventSystemSubscription")
-    .values({
-      name: params.name,
-      table: params.table,
-      companyId: params.companyId,
-      operations: params.operations,
-      filter: params.filter,
-      handlerType: params.type,
-      config: params.config,
-      active: params.active
-    })
-    .onConflict((oc) =>
-      oc.constraint("unique_subscription_name_per_company").doUpdateSet({
-        operations: params.operations,
-        filter: params.filter,
-        handlerType: params.type,
-        config: params.config,
-        active: params.active
-      })
-    )
-    .returning(["id", "name", "handlerType", "table"])
-    .executeTakeFirst();
+  // 2. Call RPC function
+  const { data, error } = await (client as EventSystemRpcClient).rpc(
+    "create_event_system_subscription",
+    {
+      p_name: params.name,
+      p_table: params.table,
+      p_company_id: params.companyId,
+      p_operations: params.operations,
+      p_handler_type: params.type,
+      p_config: params.config,
+      p_filter: params.filter,
+      p_active: params.active
+    }
+  );
 
-  return result;
+  if (error) {
+    throw new Error(`Failed to create subscription: ${error.message}`);
+  }
+
+  return data?.[0];
 }
 
+/**
+ * Deletes an event system subscription by ID.
+ *
+ * @param client - Supabase client
+ * @param subscriptionId - The ID of the subscription to delete
+ * @throws Error if the RPC call fails
+ */
 export async function deleteEventSystemSubscription(
-  client: Kysely<KyselyDatabase>,
+  client: SupabaseClient | EventSystemRpcClient,
   subscriptionId: string
-) {
-  await client
-    .deleteFrom("eventSystemSubscription")
-    .where("id", "=", subscriptionId)
-    .execute();
+): Promise<void> {
+  const { error } = await (client as EventSystemRpcClient).rpc(
+    "delete_event_system_subscription",
+    {
+      p_subscription_id: subscriptionId
+    }
+  );
+
+  if (error) {
+    throw new Error(`Failed to delete subscription: ${error.message}`);
+  }
 }
 
+/**
+ * Deletes all event system subscriptions with a given name for a company.
+ *
+ * @param client - Supabase client
+ * @param companyId - The company ID
+ * @param name - The subscription name to delete
+ * @throws Error if the RPC call fails
+ */
 export async function deleteEventSystemSubscriptionsByName(
-  client: Kysely<KyselyDatabase>,
+  client: SupabaseClient | EventSystemRpcClient,
   companyId: string,
   name: string
-) {
-  await client
-    .deleteFrom("eventSystemSubscription")
-    .where("companyId", "=", companyId)
-    .where("name", "=", name)
-    .execute();
+): Promise<void> {
+  const { error } = await (client as EventSystemRpcClient).rpc(
+    "delete_event_system_subscriptions_by_name",
+    {
+      p_company_id: companyId,
+      p_name: name
+    }
+  );
+
+  if (error) {
+    throw new Error(`Failed to delete subscriptions: ${error.message}`);
+  }
 }

@@ -1692,7 +1692,6 @@ export type Database = {
       approvalRequest: {
         Row: {
           amount: number | null
-          approverId: string | null
           companyId: string
           createdAt: string
           createdBy: string
@@ -1710,7 +1709,6 @@ export type Database = {
         }
         Insert: {
           amount?: number | null
-          approverId?: string | null
           companyId: string
           createdAt?: string
           createdBy: string
@@ -1728,7 +1726,6 @@ export type Database = {
         }
         Update: {
           amount?: number | null
-          approverId?: string | null
           companyId?: string
           createdAt?: string
           createdBy?: string
@@ -1745,41 +1742,6 @@ export type Database = {
           updatedBy?: string | null
         }
         Relationships: [
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "employeesAcrossCompanies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "employeeSummary"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "user"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "userDefaults"
-            referencedColumns: ["userId"]
-          },
           {
             foreignKeyName: "approvalRequest_companyId_fkey"
             columns: ["companyId"]
@@ -42680,7 +42642,6 @@ export type Database = {
       }
       approvalRequests: {
         Row: {
-          approverId: string | null
           companyId: string | null
           createdAt: string | null
           decisionAt: string | null
@@ -42698,41 +42659,6 @@ export type Database = {
           status: Database["public"]["Enums"]["approvalStatus"] | null
         }
         Relationships: [
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "employees"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "employeesAcrossCompanies"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "employeeSummary"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "user"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "approvalRequest_approverId_fkey"
-            columns: ["approverId"]
-            isOneToOne: false
-            referencedRelation: "userDefaults"
-            referencedColumns: ["userId"]
-          },
           {
             foreignKeyName: "approvalRequest_companyId_fkey"
             columns: ["companyId"]
@@ -55464,6 +55390,24 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: undefined
       }
+      create_event_system_subscription: {
+        Args: {
+          p_active?: boolean
+          p_company_id: string
+          p_config?: Json
+          p_filter?: Json
+          p_handler_type: string
+          p_name: string
+          p_operations: string[]
+          p_table: string
+        }
+        Returns: {
+          handlerType: string
+          id: string
+          name: string
+          table: string
+        }[]
+      }
       create_rfq_from_model_v1: {
         Args: {
           company_id: string
@@ -55505,6 +55449,26 @@ export type Database = {
           rfq_line_ids: string[]
           rfq_readable_id: string
         }[]
+      }
+      create_search_subscriptions_for_company: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
+      delete_event_system_subscription: {
+        Args: { p_subscription_id: string }
+        Returns: undefined
+      }
+      delete_event_system_subscriptions_by_name: {
+        Args: { p_company_id: string; p_name: string }
+        Returns: undefined
+      }
+      delete_from_search_index: {
+        Args: {
+          p_company_id: string
+          p_entity_id: string
+          p_entity_type: string
+        }
+        Returns: undefined
       }
       drop_company_search_index: {
         Args: { p_company_id: string }
@@ -56957,6 +56921,19 @@ export type Database = {
           p_receipt_line_id: string
           p_serial_number: string
           p_tracked_entity_id?: string
+        }
+        Returns: undefined
+      }
+      upsert_to_search_index: {
+        Args: {
+          p_company_id: string
+          p_description: string
+          p_entity_id: string
+          p_entity_type: string
+          p_link: string
+          p_metadata: Json
+          p_tags: string[]
+          p_title: string
         }
         Returns: undefined
       }

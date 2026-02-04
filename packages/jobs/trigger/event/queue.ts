@@ -7,6 +7,7 @@ import { HandlerType, QueueMessage } from "@carbon/database/event";
 import { all } from "@carbon/utils";
 import { schedules } from "@trigger.dev/sdk";
 import { Kysely, PostgresDriver, sql } from "kysely";
+import { searchTask } from "./search.ts";
 import { syncTask } from "./sync.ts";
 import { webhookTask } from "./webhook.ts";
 import { workflowDispatchTask } from "./workflow.ts";
@@ -54,6 +55,7 @@ export const eventQueueTask = schedules.task({
       WEBHOOK: [],
       WORKFLOW: [],
       SYNC: [],
+      SEARCH: [],
     };
 
     // 2. Sort into Buckets
@@ -61,7 +63,7 @@ export const eventQueueTask = schedules.task({
       grouped[job.message.handlerType].push(job);
     }
 
-    const { webhooks, syncs, workflows } = await all({
+    const { webhooks, syncs, workflows, searches } = await all({
       async webhooks() {
         let queue: number[] = [];
 
@@ -136,9 +138,29 @@ export const eventQueueTask = schedules.task({
 
         return queue;
       },
+      async searches() {
+        let queue: number[] = [];
+
+        if (grouped.SEARCH.length === 0) return queue;
+
+        const records = grouped.SEARCH.map((job) => {
+          queue.push(job.msg_id);
+
+          return {
+            event: job.message.event,
+            companyId: job.message.companyId,
+          };
+        });
+
+        await searchTask.trigger({
+          records,
+        });
+
+        return queue;
+      },
     });
 
-    total = total.concat(webhooks, workflows, syncs);
+    total = total.concat(webhooks, workflows, syncs, searches);
 
     // 5. Delete from PGMQ
     // We delete immediately because we have successfully offloaded

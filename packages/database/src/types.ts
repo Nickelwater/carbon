@@ -32978,48 +32978,6 @@ export type Database = {
           },
         ]
       }
-      searchIndex_KyfnMsRatxt2eAMBNgdxQK: {
-        Row: {
-          createdAt: string
-          description: string | null
-          entityId: string
-          entityType: string
-          id: number
-          link: string
-          metadata: Json | null
-          searchVector: unknown
-          tags: string[] | null
-          title: string
-          updatedAt: string | null
-        }
-        Insert: {
-          createdAt?: string
-          description?: string | null
-          entityId: string
-          entityType: string
-          id?: number
-          link: string
-          metadata?: Json | null
-          searchVector?: unknown
-          tags?: string[] | null
-          title: string
-          updatedAt?: string | null
-        }
-        Update: {
-          createdAt?: string
-          description?: string | null
-          entityId?: string
-          entityType?: string
-          id?: number
-          link?: string
-          metadata?: Json | null
-          searchVector?: unknown
-          tags?: string[] | null
-          title?: string
-          updatedAt?: string | null
-        }
-        Relationships: []
-      }
       searchIndexRegistry: {
         Row: {
           companyId: string
@@ -47323,14 +47281,14 @@ export type Database = {
           },
           {
             foreignKeyName: "partner_id_fkey"
-            columns: ["id"]
+            columns: ["supplierLocationId"]
             isOneToOne: false
             referencedRelation: "supplierLocation"
             referencedColumns: ["id"]
           },
           {
             foreignKeyName: "partner_id_fkey"
-            columns: ["supplierLocationId"]
+            columns: ["id"]
             isOneToOne: false
             referencedRelation: "supplierLocation"
             referencedColumns: ["id"]
@@ -48719,14 +48677,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["supplierCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["supplierCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -51850,14 +51808,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["invoiceCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["invoiceCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -55432,6 +55390,24 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: undefined
       }
+      create_event_system_subscription: {
+        Args: {
+          p_active?: boolean
+          p_company_id: string
+          p_config?: Json
+          p_filter?: Json
+          p_handler_type: string
+          p_name: string
+          p_operations: string[]
+          p_table: string
+        }
+        Returns: {
+          handlerType: string
+          id: string
+          name: string
+          table: string
+        }[]
+      }
       create_rfq_from_model_v1: {
         Args: {
           company_id: string
@@ -55473,6 +55449,26 @@ export type Database = {
           rfq_line_ids: string[]
           rfq_readable_id: string
         }[]
+      }
+      create_search_subscriptions_for_company: {
+        Args: { p_company_id: string }
+        Returns: undefined
+      }
+      delete_event_system_subscription: {
+        Args: { p_subscription_id: string }
+        Returns: undefined
+      }
+      delete_event_system_subscriptions_by_name: {
+        Args: { p_company_id: string; p_name: string }
+        Returns: undefined
+      }
+      delete_from_search_index: {
+        Args: {
+          p_company_id: string
+          p_entity_id: string
+          p_entity_type: string
+        }
+        Returns: undefined
       }
       drop_company_search_index: {
         Args: { p_company_id: string }
@@ -56925,6 +56921,19 @@ export type Database = {
           p_receipt_line_id: string
           p_serial_number: string
           p_tracked_entity_id?: string
+        }
+        Returns: undefined
+      }
+      upsert_to_search_index: {
+        Args: {
+          p_company_id: string
+          p_description: string
+          p_entity_id: string
+          p_entity_type: string
+          p_link: string
+          p_metadata: Json
+          p_tags: string[]
+          p_title: string
         }
         Returns: undefined
       }
