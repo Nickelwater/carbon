@@ -256,14 +256,24 @@ serve(async (req: Request) => {
         const uninvoicedLines = purchaseOrderLines?.data?.reduce<
           (typeof purchaseOrderLines)["data"]
         >((acc, line) => {
-          if (line?.quantityToInvoice && line.quantityToInvoice > 0) {
+          if (
+            line?.quantityToInvoice &&
+            line.quantityToInvoice > 0 &&
+            !line.invoicedComplete
+          ) {
             acc.push(line);
           }
 
           return acc;
         }, []);
 
-        const uninvoicedSubtotal = uninvoicedLines?.reduce((acc, line) => {
+        if (!uninvoicedLines || uninvoicedLines.length === 0) {
+          throw new Error(
+            "No lines available to invoice. All lines may already be marked as invoiced complete."
+          );
+        }
+
+        const uninvoicedSubtotal = uninvoicedLines.reduce((acc, line) => {
           if (
             line?.quantityToInvoice &&
             line.unitPrice &&
@@ -331,40 +341,30 @@ serve(async (req: Request) => {
             })
             .execute();
 
-          const purchaseInvoiceLines = uninvoicedLines?.reduce<
-            Database["public"]["Tables"]["purchaseInvoiceLine"]["Insert"][]
-          >((acc, line) => {
-            if (
-              line?.quantityToInvoice &&
-              line.quantityToInvoice > 0 &&
-              !line.invoicedComplete
-            ) {
-              acc.push({
-                invoiceId: purchaseInvoiceId,
-                invoiceLineType: line.purchaseOrderLineType,
-                purchaseOrderId: line.purchaseOrderId,
-                purchaseOrderLineId: line.id,
-                itemId: line.itemId,
-                locationId: line.locationId,
-                shelfId: line.shelfId,
-                accountNumber: line.accountNumber,
-                assetId: line.assetId,
-                description: line.description,
-                quantity: line.quantityToInvoice,
-                supplierUnitPrice: line.supplierUnitPrice ?? 0,
-                supplierShippingCost: line.supplierShippingCost ?? 0,
-                supplierTaxAmount: line.supplierTaxAmount ?? 0,
-                purchaseUnitOfMeasureCode: line.purchaseUnitOfMeasureCode,
-                inventoryUnitOfMeasureCode: line.inventoryUnitOfMeasureCode,
-                conversionFactor: line.conversionFactor,
-                exchangeRate: line.exchangeRate ?? 1,
-                jobOperationId: line.jobOperationId,
-                companyId,
-                createdBy: userId,
-              });
-            }
-            return acc;
-          }, []);
+          const purchaseInvoiceLines: Database["public"]["Tables"]["purchaseInvoiceLine"]["Insert"][] =
+            uninvoicedLines.map((line) => ({
+              invoiceId: purchaseInvoiceId,
+              invoiceLineType: line.purchaseOrderLineType,
+              purchaseOrderId: line.purchaseOrderId,
+              purchaseOrderLineId: line.id,
+              itemId: line.itemId,
+              locationId: line.locationId,
+              shelfId: line.shelfId,
+              accountNumber: line.accountNumber,
+              assetId: line.assetId,
+              description: line.description,
+              quantity: line.quantityToInvoice,
+              supplierUnitPrice: line.supplierUnitPrice ?? 0,
+              supplierShippingCost: line.supplierShippingCost ?? 0,
+              supplierTaxAmount: line.supplierTaxAmount ?? 0,
+              purchaseUnitOfMeasureCode: line.purchaseUnitOfMeasureCode,
+              inventoryUnitOfMeasureCode: line.inventoryUnitOfMeasureCode,
+              conversionFactor: line.conversionFactor,
+              exchangeRate: line.exchangeRate ?? 1,
+              jobOperationId: line.jobOperationId,
+              companyId,
+              createdBy: userId,
+            }));
 
           await trx
             .insertInto("purchaseInvoiceLine")

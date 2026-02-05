@@ -83,9 +83,27 @@ export async function deletePurchaseInvoice(
   client: SupabaseClient<Database>,
   purchaseInvoiceId: string
 ) {
-  // TODO: this should be a transaction that checks whether it is posted
-  // and then sets the status of the purchase order back to
-  // "To Receive and Invoice" | "To Invoice"
+  // Check if invoice is in Draft status before deleting
+  const invoice = await client
+    .from("purchaseInvoice")
+    .select("id, status")
+    .eq("id", purchaseInvoiceId)
+    .single();
+
+  if (invoice.error) {
+    return invoice;
+  }
+
+  if (invoice.data.status !== "Draft") {
+    return {
+      data: null,
+      error: {
+        message: `Cannot delete purchase invoice with status "${invoice.data.status}". Only Draft invoices can be deleted.`,
+        code: "INVOICE_NOT_DRAFT"
+      }
+    };
+  }
+
   return client.from("purchaseInvoice").delete().eq("id", purchaseInvoiceId);
 }
 
@@ -103,9 +121,27 @@ export async function deleteSalesInvoice(
   client: SupabaseClient<Database>,
   salesInvoiceId: string
 ) {
-  // TODO: this should be a transaction that checks whether it is posted
-  // and then sets the status of the purchase order back to
-  // "To Receive and Invoice" | "To Invoice"
+  // Check if invoice is in Draft status before deleting
+  const invoice = await client
+    .from("salesInvoice")
+    .select("id, status")
+    .eq("id", salesInvoiceId)
+    .single();
+
+  if (invoice.error) {
+    return invoice;
+  }
+
+  if (invoice.data.status !== "Draft") {
+    return {
+      data: null,
+      error: {
+        message: `Cannot delete sales invoice with status "${invoice.data.status}". Only Draft invoices can be deleted.`,
+        code: "INVOICE_NOT_DRAFT"
+      }
+    };
+  }
+
   return client.from("salesInvoice").delete().eq("id", salesInvoiceId);
 }
 

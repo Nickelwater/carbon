@@ -65097,6 +65097,51 @@ export default {
         tags: ["(rpc) upsert_to_search_index"],
       },
     },
+    "/rpc/prevent_posted_sales_invoice_deletion": {
+      post: {
+        parameters: [
+          {
+            in: "body",
+            name: "args",
+            required: true,
+            schema: {
+              properties: {
+                p_new: {
+                  format: "jsonb",
+                },
+                p_old: {
+                  format: "jsonb",
+                },
+                p_operation: {
+                  format: "text",
+                  type: "string",
+                },
+                p_table: {
+                  format: "text",
+                  type: "string",
+                },
+              },
+              required: ["p_table", "p_operation", "p_new", "p_old"],
+              type: "object",
+            },
+          },
+          {
+            $ref: "#/parameters/preferParams",
+          },
+        ],
+        produces: [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json",
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+          },
+        },
+        tags: ["(rpc) prevent_posted_sales_invoice_deletion"],
+      },
+    },
     "/rpc/get_active_job_count": {
       post: {
         parameters: [
@@ -65582,6 +65627,51 @@ export default {
           },
         },
         tags: ["(rpc) get_direct_descendants_of_tracked_entity"],
+      },
+    },
+    "/rpc/prevent_posted_purchase_invoice_deletion": {
+      post: {
+        parameters: [
+          {
+            in: "body",
+            name: "args",
+            required: true,
+            schema: {
+              properties: {
+                p_new: {
+                  format: "jsonb",
+                },
+                p_old: {
+                  format: "jsonb",
+                },
+                p_operation: {
+                  format: "text",
+                  type: "string",
+                },
+                p_table: {
+                  format: "text",
+                  type: "string",
+                },
+              },
+              required: ["p_table", "p_operation", "p_new", "p_old"],
+              type: "object",
+            },
+          },
+          {
+            $ref: "#/parameters/preferParams",
+          },
+        ],
+        produces: [
+          "application/json",
+          "application/vnd.pgrst.object+json;nulls=stripped",
+          "application/vnd.pgrst.object+json",
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+          },
+        },
+        tags: ["(rpc) prevent_posted_purchase_invoice_deletion"],
       },
     },
     "/rpc/get_customer_ids_with_customer_permission": {

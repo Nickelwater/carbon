@@ -56872,6 +56872,14 @@ export type Database = {
         Args: { p_company_id: string }
         Returns: undefined
       }
+      prevent_posted_purchase_invoice_deletion: {
+        Args: { p_new: Json; p_old: Json; p_operation: string; p_table: string }
+        Returns: undefined
+      }
+      prevent_posted_sales_invoice_deletion: {
+        Args: { p_new: Json; p_old: Json; p_operation: string; p_table: string }
+        Returns: undefined
+      }
       search_company_index: {
         Args: {
           p_company_id: string
