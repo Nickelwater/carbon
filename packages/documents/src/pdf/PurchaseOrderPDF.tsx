@@ -11,7 +11,7 @@ import {
   getTotal
 } from "../utils/purchase-order";
 import { getCurrencyFormatter } from "../utils/shared";
-import { Header, Note, Summary, Template } from "./components";
+import { Note, Template } from "./components";
 
 interface PurchaseOrderPDFProps extends PDF {
   purchaseOrder: Database["public"]["Views"]["purchaseOrders"]["Row"];
@@ -21,21 +21,41 @@ interface PurchaseOrderPDFProps extends PDF {
   thumbnails?: Record<string, string | null>;
 }
 
-// Initialize tailwind-styled-components
 const tw = createTw({
   theme: {
     fontFamily: {
-      sans: ["Helvetica", "Arial", "sans-serif"]
+      sans: ["Inter", "Helvetica", "Arial", "sans-serif"]
     },
     extend: {
       colors: {
+        blue: {
+          600: "#202278"
+        },
         gray: {
-          500: "#7d7d7d"
+          50: "#f9fafb",
+          200: "#e5e7eb",
+          400: "#9ca3af",
+          600: "#4b5563",
+          800: "#1f2937"
         }
       }
     }
   }
 });
+
+const formatDate = (dateStr: string | null) => {
+  if (!dateStr) return null;
+  try {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric"
+    });
+  } catch {
+    return dateStr;
+  }
+};
 
 const PurchaseOrderPDF = ({
   company,
@@ -84,6 +104,8 @@ const PurchaseOrderPDF = ({
 
   const shippingCost = purchaseOrder?.supplierShippingCost ?? 0;
 
+  let rowIndex = 0;
+
   return (
     <Template
       title={title}
@@ -93,214 +115,304 @@ const PurchaseOrderPDF = ({
         subject: meta?.subject ?? "Purchase Order"
       }}
     >
-      <View>
-        <Header title={title} company={company} />
-        <Summary
-          company={company}
-          items={[
-            {
-              label: "Date",
-              value: purchaseOrder?.orderDate
-            },
-            {
-              label: "PO #",
-              value: purchaseOrder?.purchaseOrderId
-            }
-          ]}
-        />
-        <View style={tw("flex flex-row justify-between mb-5")}>
-          <View style={tw("flex flex-col w-1/3 text-sm gap-2")}>
-            <Text style={tw("text-gray-500 text-xs")}>Supplier</Text>
-            <Text>{supplierName}</Text>
-            {supplierAddressLine1 && <Text>{supplierAddressLine1}</Text>}
-            {supplierAddressLine2 && <Text>{supplierAddressLine2}</Text>}
-            <Text>
-              {formatCityStatePostalCode(
-                supplierCity,
-                supplierStateProvince,
-                supplierPostalCode
-              )}
-            </Text>
-            <Text>{supplierCountryName}</Text>
-          </View>
-          {dropShipment ? (
-            <View style={tw("flex flex-col text-sm gap-1 w-1/3")}>
-              <Text style={tw("text-gray-500 text-xs")}>Ship To</Text>
-              <Text>{customerName}</Text>
-              {customerAddressLine1 && <Text>{customerAddressLine1}</Text>}
-              {customerAddressLine2 && <Text>{customerAddressLine2}</Text>}
+      {/* Header */}
+      <View style={tw("flex flex-row justify-between mb-1")}>
+        <View style={tw("flex flex-col")}>
+          <Text style={tw("text-xl font-bold text-blue-600")}>
+            {company.name}
+          </Text>
+          <View style={tw("text-[10px] text-gray-600 mt-0.5")}>
+            {company.addressLine1 && <Text>{company.addressLine1}</Text>}
+            {(company.city || company.stateProvince || company.postalCode) && (
               <Text>
                 {formatCityStatePostalCode(
-                  customerCity,
-                  customerStateProvince,
-                  customerPostalCode
+                  company.city,
+                  company.stateProvince,
+                  company.postalCode
                 )}
               </Text>
-              <Text>{customerCountryName}</Text>
-            </View>
-          ) : (
-            <View style={tw("flex flex-col text-sm gap-1 w-1/3")}>
-              <Text style={tw("text-gray-500 text-xs")}>Ship To</Text>
-              <Text>{deliveryName}</Text>
-              {deliveryAddressLine1 && <Text>{deliveryAddressLine1}</Text>}
-              {deliveryAddressLine2 && <Text>{deliveryAddressLine2}</Text>}
-              <Text>
-                {formatCityStatePostalCode(
-                  deliveryCity,
-                  deliveryStateProvince,
-                  deliveryPostalCode
-                )}
-              </Text>
-              <Text>{deliveryCountryName}</Text>
-            </View>
-          )}
-        </View>
-        <View style={tw("flex flex-row justify-between mb-5 text-sm")}>
-          <View style={tw("flex flex-col gap-2 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Reference #</Text>
-            <Text>{purchaseOrder?.supplierReference}</Text>
-          </View>
-          <View style={tw("flex flex-col gap-2 w-1/3")}>
-            {/* <Text style={tw("text-gray-500 text-xs")}>Requested Date</Text>
-            <Text>{purchaseOrder?.receiptRequestedDate}</Text> */}
-          </View>
-          <View style={tw("flex flex-col gap-2 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Promised Date</Text>
-            <Text>{purchaseOrder?.receiptPromisedDate}</Text>
-          </View>
-        </View>
-        {/* <View style={tw("flex flex-row justify-between mb-5")}>
-          <View style={tw("flex flex-col gap-2 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Shipping Method</Text>
-            <Text>{purchaseOrder?.shippingMethodName}</Text>
-          </View>
-          <View style={tw("flex flex-col gap-2 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Shipping Terms</Text>
-            <Text>{purchaseOrder?.shippingTermName}</Text>
-          </View>
-          <View style={tw("flex flex-col gap-2 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Payment Terms</Text>
-            <Text>{purchaseOrder?.paymentTermName}</Text>
-          </View>
-        </View> */}
-        <View style={tw("mb-5 text-xs")}>
-          <View
-            style={tw(
-              "flex flex-row justify-between items-center mt-5 py-3 px-[6px] border-t border-b border-gray-300 font-bold uppercase"
             )}
-          >
-            <Text style={tw("w-[35%]")}>Description</Text>
-            <Text style={tw("w-[15%] text-right")}>Qty</Text>
-            <Text style={tw("w-[15%] text-right")}>Unit Price</Text>
-            <Text style={tw("w-[15%] text-right")}>Shipping</Text>
-            <Text style={tw("w-[20%] text-right")}>Total</Text>
+            {company.phone && <Text>{company.phone}</Text>}
+            {company.website && <Text>{company.website}</Text>}
           </View>
-          {purchaseOrderLines.map((line) => (
-            <View
-              style={tw(
-                "flex flex-col w-full gap-4 py-3 px-[6px] border-b border-gray-300"
-              )}
-              key={line.id}
-              wrap={false}
-            >
-              <View style={tw("flex flex-row justify-between")}>
-                <View style={tw("w-[35%]")}>
-                  <Text style={tw("font-bold mb-1")}>
-                    {getLineDescription(line)}
-                  </Text>
-                  <Text style={tw("text-[9px] opacity-80")}>
-                    {getLineDescriptionDetails(line)}
-                  </Text>
-                  {purchaseOrder.purchaseOrderType === "Outside Processing" &&
-                    line.jobOperationDescription && (
-                      <Text style={tw("text-[9px] opacity-80 mt-1")}>
-                        {line.jobOperationDescription}
-                      </Text>
-                    )}
+        </View>
+        <View style={tw("flex flex-col items-end")}>
+          <Text style={tw("text-2xl font-bold text-gray-800")}>
+            PURCHASE ORDER
+          </Text>
+          <Text style={tw("text-sm font-bold text-gray-600")}>
+            #{purchaseOrder?.purchaseOrderId}
+          </Text>
+        </View>
+      </View>
 
-                  {thumbnails &&
-                    line.id in thumbnails &&
-                    thumbnails[line.id] && (
-                      <View style={tw("mt-2")}>
-                        <Image
-                          src={thumbnails[line.id]!}
-                          style={tw("w-full h-auto")}
-                        />
-                      </View>
-                    )}
+      {/* Gray Divider */}
+      <View style={tw("h-[2px] bg-gray-200 mb-4")} />
+
+      {/* Supplier & Ship To Details */}
+      <View style={tw("border border-gray-200 mb-4")}>
+        <View style={tw("flex flex-row")}>
+          <View style={tw("w-1/2 p-3 border-r border-gray-200")}>
+            <Text
+              style={tw("text-[9px] font-bold text-gray-600 mb-1 uppercase")}
+            >
+              Supplier
+            </Text>
+            <View style={tw("text-[10px] text-gray-800")}>
+              {supplierName && (
+                <Text style={tw("font-bold")}>{supplierName}</Text>
+              )}
+              {supplierAddressLine1 && <Text>{supplierAddressLine1}</Text>}
+              {supplierAddressLine2 && <Text>{supplierAddressLine2}</Text>}
+              {(supplierCity ||
+                supplierStateProvince ||
+                supplierPostalCode) && (
+                <Text>
+                  {formatCityStatePostalCode(
+                    supplierCity,
+                    supplierStateProvince,
+                    supplierPostalCode
+                  )}
+                </Text>
+              )}
+              {supplierCountryName && <Text>{supplierCountryName}</Text>}
+            </View>
+          </View>
+          <View style={tw("w-1/2 p-3")}>
+            <Text
+              style={tw("text-[9px] font-bold text-gray-600 mb-1 uppercase")}
+            >
+              Ship To
+            </Text>
+            <View style={tw("text-[10px] text-gray-800")}>
+              {dropShipment ? (
+                <>
+                  {customerName && (
+                    <Text style={tw("font-bold")}>{customerName}</Text>
+                  )}
+                  {customerAddressLine1 && <Text>{customerAddressLine1}</Text>}
+                  {customerAddressLine2 && <Text>{customerAddressLine2}</Text>}
+                  {(customerCity ||
+                    customerStateProvince ||
+                    customerPostalCode) && (
+                    <Text>
+                      {formatCityStatePostalCode(
+                        customerCity,
+                        customerStateProvince,
+                        customerPostalCode
+                      )}
+                    </Text>
+                  )}
+                  {customerCountryName && <Text>{customerCountryName}</Text>}
+                </>
+              ) : (
+                <>
+                  {deliveryName && (
+                    <Text style={tw("font-bold")}>{deliveryName}</Text>
+                  )}
+                  {deliveryAddressLine1 && <Text>{deliveryAddressLine1}</Text>}
+                  {deliveryAddressLine2 && <Text>{deliveryAddressLine2}</Text>}
+                  {(deliveryCity ||
+                    deliveryStateProvince ||
+                    deliveryPostalCode) && (
+                    <Text>
+                      {formatCityStatePostalCode(
+                        deliveryCity,
+                        deliveryStateProvince,
+                        deliveryPostalCode
+                      )}
+                    </Text>
+                  )}
+                  {deliveryCountryName && <Text>{deliveryCountryName}</Text>}
+                </>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Order Details */}
+      <View style={tw("border border-gray-200 mb-4")}>
+        <View style={tw("flex flex-row")}>
+          <View style={tw("w-1/2 p-3 border-r border-gray-200")}>
+            <Text
+              style={tw("text-[9px] font-bold text-gray-600 mb-1 uppercase")}
+            >
+              Order Details
+            </Text>
+            <View style={tw("text-[10px] text-gray-800")}>
+              <Text>Date: {formatDate(purchaseOrder?.orderDate)}</Text>
+              {purchaseOrder?.supplierReference && (
+                <Text>Reference: {purchaseOrder.supplierReference}</Text>
+              )}
+            </View>
+          </View>
+          <View style={tw("w-1/2 p-3")}>
+            <Text
+              style={tw("text-[9px] font-bold text-gray-600 mb-1 uppercase")}
+            >
+              Delivery
+            </Text>
+            <View style={tw("text-[10px] text-gray-800")}>
+              {purchaseOrder?.receiptPromisedDate && (
+                <Text>
+                  Promised Date: {formatDate(purchaseOrder.receiptPromisedDate)}
+                </Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Line Items Table */}
+      <View style={tw("mb-4")}>
+        {/* Header */}
+        <View
+          style={tw(
+            "flex flex-row bg-blue-600 py-2 px-3 text-white text-[9px] font-bold uppercase"
+          )}
+        >
+          <Text style={tw("w-1/2")}>Description</Text>
+          <Text style={tw("w-1/6 text-right")}>Qty</Text>
+          <Text style={tw("w-1/6 text-right")}>Unit Price</Text>
+          <Text style={tw("w-1/6 text-right")}>Total</Text>
+        </View>
+
+        {/* Rows */}
+        {purchaseOrderLines.map((line) => {
+          const isEven = rowIndex % 2 === 0;
+          rowIndex++;
+
+          return (
+            <View key={line.id} wrap={false}>
+              <View
+                style={tw(
+                  `flex flex-col py-2 px-3 border-b border-gray-200 text-[10px] ${
+                    isEven ? "bg-white" : "bg-gray-50"
+                  }`
+                )}
+              >
+                <View style={tw("flex flex-row")}>
+                  <View style={tw("w-1/2 pr-2")}>
+                    <Text style={tw("text-gray-800")}>
+                      {getLineDescription(line)}
+                    </Text>
+                    <Text style={tw("text-[8px] text-gray-400 mt-0.5")}>
+                      {getLineDescriptionDetails(line)}
+                    </Text>
+                    {purchaseOrder.purchaseOrderType === "Outside Processing" &&
+                      line.jobOperationDescription && (
+                        <Text style={tw("text-[8px] text-gray-400 mt-0.5")}>
+                          {line.jobOperationDescription}
+                        </Text>
+                      )}
+                    {thumbnails &&
+                      line.id in thumbnails &&
+                      thumbnails[line.id] && (
+                        <View style={tw("mt-1 w-16")}>
+                          <Image
+                            src={thumbnails[line.id]!}
+                            style={tw("w-full h-auto")}
+                          />
+                        </View>
+                      )}
+                  </View>
+                  <Text style={tw("w-1/6 text-right text-gray-600")}>
+                    {line.purchaseOrderLineType === "Comment"
+                      ? ""
+                      : `${line.purchaseQuantity} ${line.purchaseUnitOfMeasureCode}`}
+                  </Text>
+                  <Text style={tw("w-1/6 text-right text-gray-600")}>
+                    {line.purchaseOrderLineType === "Comment"
+                      ? ""
+                      : formatter.format(line.supplierUnitPrice ?? 0)}
+                  </Text>
+                  <Text
+                    style={tw("w-1/6 text-right text-gray-800 font-medium")}
+                  >
+                    {line.purchaseOrderLineType === "Comment"
+                      ? ""
+                      : formatter.format(getLineTotal(line))}
+                  </Text>
                 </View>
-                <Text style={tw("w-[15%] text-right")}>
-                  {line.purchaseOrderLineType === "Comment"
-                    ? ""
-                    : `${line.purchaseQuantity} ${line.purchaseUnitOfMeasureCode}`}
-                </Text>
-                <Text style={tw("w-[15%] text-right")}>
-                  {line.purchaseOrderLineType === "Comment"
-                    ? null
-                    : formatter.format(line.supplierUnitPrice ?? 0)}
-                </Text>
-                <Text style={tw("w-[15%] text-right")}>
-                  {line.purchaseOrderLineType === "Comment"
-                    ? null
-                    : formatter.format(line.supplierShippingCost ?? 0)}
-                </Text>
-                <Text style={tw("w-[20%] text-right")}>
-                  {line.purchaseOrderLineType === "Comment"
-                    ? null
-                    : formatter.format(getLineTotal(line))}
-                </Text>
               </View>
               {Object.keys(line.externalNotes ?? {}).length > 0 && (
-                <Note
-                  key={`${line.id}-notes`}
-                  content={line.externalNotes as JSONContent}
-                />
+                <View style={tw("px-3 py-2 border-b border-gray-200")}>
+                  <Note
+                    key={`${line.id}-notes`}
+                    content={line.externalNotes as JSONContent}
+                  />
+                </View>
               )}
             </View>
-          ))}
-          {taxAmount > 0 && (
-            <View
-              style={tw(
-                "flex flex-row justify-between items-center py-3 px-[6px] border-b border-gray-300 font-bold uppercase"
+          );
+        })}
+
+        {/* Summary */}
+        <View>
+          {/* Subtotal - before tax and shipping */}
+          <View style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}>
+            <View style={tw("w-4/6")} />
+            <Text style={tw("w-1/6 text-right text-gray-600")}>Subtotal</Text>
+            <Text style={tw("w-1/6 text-right text-gray-800")}>
+              {formatter.format(
+                purchaseOrderLines.reduce((sum, line) => {
+                  if (line?.purchaseQuantity && line?.supplierUnitPrice) {
+                    return sum + line.purchaseQuantity * line.supplierUnitPrice;
+                  }
+                  return sum;
+                }, 0)
               )}
-            >
-              <Text>Tax</Text>
-              <Text style={tw("font-normal text-gray-500")}>
-                {formatter.format(taxAmount)}
-              </Text>
-            </View>
-          )}
+            </Text>
+          </View>
+
+          {/* Shipping */}
           {shippingCost > 0 && (
             <View
-              style={tw(
-                "flex flex-row justify-between items-center py-3 px-[6px] border-b border-gray-300 font-bold uppercase"
-              )}
+              style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
             >
-              <Text>Shipping</Text>
-              <Text style={tw("font-normal text-gray-500")}>
+              <View style={tw("w-4/6")} />
+              <Text style={tw("w-1/6 text-right text-gray-600")}>Shipping</Text>
+              <Text style={tw("w-1/6 text-right text-gray-800")}>
                 {formatter.format(shippingCost)}
               </Text>
             </View>
           )}
-          <View
-            style={tw(
-              "flex flex-row justify-between items-center py-3 px-[6px] border-b border-gray-300 font-bold uppercase"
-            )}
-          >
-            <Text>Total</Text>
-            <Text style={tw("font-bold text-black")}>
+
+          {/* Tax */}
+          {taxAmount > 0 && (
+            <View
+              style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
+            >
+              <View style={tw("w-4/6")} />
+              <Text style={tw("w-1/6 text-right text-gray-600")}>Tax</Text>
+              <Text style={tw("w-1/6 text-right text-gray-800")}>
+                {formatter.format(taxAmount)}
+              </Text>
+            </View>
+          )}
+
+          <View style={tw("h-[2px] bg-gray-400")} />
+          <View style={tw("flex flex-row py-2 px-3 text-[11px]")}>
+            <View style={tw("w-4/6")} />
+            <Text style={tw("w-1/6 text-right text-gray-800 font-bold")}>
+              Total
+            </Text>
+            <Text style={tw("w-1/6 text-right text-gray-800 font-bold")}>
               {formatter.format(getTotal(purchaseOrderLines) + shippingCost)}
             </Text>
           </View>
         </View>
-        {purchaseOrder?.externalNotes && (
+      </View>
+
+      {/* Notes & Terms */}
+      <View style={tw("flex flex-col gap-3 w-full")}>
+        {Object.keys(purchaseOrder?.externalNotes ?? {}).length > 0 && (
           <Note
             title="Notes"
             content={(purchaseOrder.externalNotes ?? {}) as JSONContent}
           />
         )}
-      </View>
-      <View style={tw("flex flex-col gap-4 w-full")}>
         <Note title="Standard Terms & Conditions" content={terms} />
       </View>
     </Template>

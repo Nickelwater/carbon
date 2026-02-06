@@ -226,7 +226,9 @@ const QuotePDF = ({
         </View>
         <View style={tw("flex flex-col items-end")}>
           <Text style={tw("text-2xl font-bold text-gray-800")}>QUOTE</Text>
-          <Text style={tw("text-xs text-gray-400")}>#{quote?.quoteId}</Text>
+          <Text style={tw("text-sm font-bold text-gray-600")}>
+            #{quote?.quoteId}
+          </Text>
         </View>
       </View>
 
@@ -281,7 +283,6 @@ const QuotePDF = ({
               {quote.customerReference && (
                 <Text>Reference: {quote.customerReference}</Text>
               )}
-              {quote.status && <Text>Status: {quote.status}</Text>}
             </View>
           </View>
         </View>
@@ -320,7 +321,7 @@ const QuotePDF = ({
               hasAnyLeadTime ? "w-2/12 text-right" : "w-1/6 text-right"
             )}
           >
-            Item Total
+            Total
           </Text>
         </View>
 
@@ -515,19 +516,23 @@ const QuotePDF = ({
         )}
       </View>
 
-      {/* Footer - Payment Terms */}
-      {paymentTerm && (
+      {/* Footer - Lead Time & Payment Terms */}
+      {(shipment?.leadTime || paymentTerm) && (
         <View style={tw("flex flex-row gap-8 mb-4 text-[10px]")}>
-          {/* {maxLeadTime > 0 && (
+          {shipment?.leadTime ? (
             <View style={tw("flex flex-row")}>
               <Text style={tw("font-bold text-gray-800")}>Lead Time: </Text>
-              <Text style={tw("text-gray-600")}>{maxLeadTime} days</Text>
+              <Text style={tw("text-gray-600")}>
+                {shipment.leadTime} {shipment.leadTime === 1 ? "day" : "days"}
+              </Text>
             </View>
-          )} */}
-          <View style={tw("flex flex-row")}>
-            <Text style={tw("font-bold text-gray-800")}>Payment Terms: </Text>
-            <Text style={tw("text-gray-600")}>{paymentTerm.name}</Text>
-          </View>
+          ) : null}
+          {paymentTerm && (
+            <View style={tw("flex flex-row")}>
+              <Text style={tw("font-bold text-gray-800")}>Payment Terms: </Text>
+              <Text style={tw("text-gray-600")}>{paymentTerm.name}</Text>
+            </View>
+          )}
         </View>
       )}
 

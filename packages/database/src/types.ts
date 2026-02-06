@@ -29319,6 +29319,7 @@ export type Database = {
         Row: {
           companyId: string
           id: string
+          leadTime: number | null
           locationId: string | null
           receiptRequestedDate: string | null
           shippingCost: number | null
@@ -29330,6 +29331,7 @@ export type Database = {
         Insert: {
           companyId: string
           id: string
+          leadTime?: number | null
           locationId?: string | null
           receiptRequestedDate?: string | null
           shippingCost?: number | null
@@ -29341,6 +29343,7 @@ export type Database = {
         Update: {
           companyId?: string
           id?: string
+          leadTime?: number | null
           locationId?: string | null
           receiptRequestedDate?: string | null
           shippingCost?: number | null
@@ -50863,6 +50866,7 @@ export type Database = {
           id: string | null
           internalNotes: Json | null
           itemType: Database["public"]["Enums"]["itemType"] | null
+          leadTime: number | null
           lines: number | null
           locationId: string | null
           locationName: string | null
@@ -52358,14 +52362,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["paymentCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["paymentCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]

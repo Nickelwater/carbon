@@ -7,12 +7,12 @@ import type { PDF } from "../types";
 import {
   getLineDescription,
   getLineDescriptionDetails,
-  getLineTaxesAndFees,
+  getLineSubtotal,
   getLineTotal,
   getTotal
 } from "../utils/sales-invoice";
 import { getCurrencyFormatter } from "../utils/shared";
-import { Header, Note, Summary, Template } from "./components";
+import { Note, Template } from "./components";
 
 interface SalesInvoicePDFProps extends PDF {
   salesInvoice: Database["public"]["Views"]["salesInvoices"]["Row"];
@@ -25,16 +25,22 @@ interface SalesInvoicePDFProps extends PDF {
   thumbnails?: Record<string, string | null>;
 }
 
-// Initialize tailwind-styled-components
 const tw = createTw({
   theme: {
     fontFamily: {
-      sans: ["Helvetica", "Arial", "sans-serif"]
+      sans: ["Inter", "Helvetica", "Arial", "sans-serif"]
     },
     extend: {
       colors: {
+        blue: {
+          600: "#202278"
+        },
         gray: {
-          500: "#7d7d7d"
+          50: "#f9fafb",
+          200: "#e5e7eb",
+          400: "#9ca3af",
+          600: "#4b5563",
+          800: "#1f2937"
         }
       }
     }
@@ -75,32 +81,29 @@ const SalesInvoicePDF = ({
   const currencyCode = salesInvoice.currencyCode ?? company.baseCurrencyCode;
   const formatter = getCurrencyFormatter(currencyCode, locale);
 
-  const summaryItems = [
-    {
-      label: "Date Issued",
-      value: salesInvoice?.dateIssued
-    },
-    {
-      label: "Invoice #",
-      value: salesInvoice?.invoiceId
+  const paymentTerm = paymentTerms?.find(
+    (term) => term.id === salesInvoice?.paymentTermId
+  );
+
+  const shippingMethod = shippingMethods?.find(
+    (method) => method.id === salesInvoiceShipment?.shippingMethodId
+  );
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    try {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+      });
+    } catch {
+      return dateStr;
     }
-  ];
+  };
 
-  if (salesInvoice?.paymentTermId) {
-    summaryItems.push({
-      label: "Payment Terms",
-      value: paymentTerms.find(
-        (term) => term.id === salesInvoice?.paymentTermId
-      )?.name
-    });
-  }
-
-  if (salesInvoice?.dateDue) {
-    summaryItems.push({
-      label: "Due Date",
-      value: salesInvoice?.dateDue
-    });
-  }
+  let rowIndex = 0;
 
   return (
     <Template
@@ -111,183 +114,285 @@ const SalesInvoicePDF = ({
         subject: meta?.subject ?? "Invoice"
       }}
     >
-      <View>
-        <Header title={title} company={company} />
-        <Summary company={company} items={summaryItems} />
-        <View style={tw("flex flex-row justify-between mb-5")}>
-          <View style={tw("flex flex-col gap-1 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Ship To</Text>
-            <Text style={tw("text-sm")}>{customerName}</Text>
-            {customerAddressLine1 && (
-              <Text style={tw("text-sm")}>{customerAddressLine1}</Text>
-            )}
-            {customerAddressLine2 && (
-              <Text style={tw("text-sm")}>{customerAddressLine2}</Text>
-            )}
-            <Text style={tw("text-sm")}>
-              {formatCityStatePostalCode(
-                customerCity,
-                customerStateProvince,
-                customerPostalCode
-              )}
-            </Text>
-            <Text style={tw("text-sm")}>{customerCountryName}</Text>
-          </View>
-          <View style={tw("flex flex-col gap-1 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Bill To</Text>
-            <Text style={tw("text-sm")}>{invoiceCustomerName}</Text>
-            {invoiceAddressLine1 && (
-              <Text style={tw("text-sm")}>{invoiceAddressLine1}</Text>
-            )}
-            {invoiceAddressLine2 && (
-              <Text style={tw("text-sm")}>{invoiceAddressLine2}</Text>
-            )}
-            <Text style={tw("text-sm")}>
-              {formatCityStatePostalCode(
-                invoiceCity,
-                invoiceStateProvince,
-                invoicePostalCode
-              )}
-            </Text>
-            <Text style={tw("text-sm")}>{invoiceCountryName}</Text>
-          </View>
-        </View>
-        <View style={tw("flex flex-row justify-between mb-5")}>
-          <View style={tw("flex flex-col gap-1 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Customer Invoice #</Text>
-            <Text style={tw("text-sm")}>{salesInvoice?.customerReference}</Text>
-          </View>
-          <View style={tw("flex flex-col gap-1 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Due Date</Text>
-            <Text style={tw("text-sm")}>{salesInvoice?.dateDue}</Text>
-          </View>
-        </View>
-        <View style={tw("flex flex-row justify-between mb-5")}>
-          <View style={tw("flex flex-col gap-1 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Shipping Method</Text>
-            <Text style={tw("text-sm")}>
-              {
-                shippingMethods.find(
-                  (method) =>
-                    method.id === salesInvoiceShipment?.shippingMethodId
-                )?.name
-              }
-            </Text>
-          </View>
-          <View style={tw("flex flex-col gap-1 w-1/3")}>
-            <Text style={tw("text-gray-500 text-xs")}>Shipping Terms</Text>
-            <Text style={tw("text-sm")}>
-              {salesInvoiceShipment?.shippingTermId}
-            </Text>
-          </View>
-        </View>
-        <View style={tw("mb-5 text-xs")}>
-          <View
-            style={tw(
-              "flex flex-row justify-between items-center mt-5 py-3 px-[6px] border-t border-b border-gray-300 font-bold uppercase"
-            )}
-          >
-            <Text style={tw("w-5/12 text-left")}>Description</Text>
-            <Text style={tw("w-1/6 text-right")}>Qty</Text>
-            <Text style={tw("w-1/6 text-right")}>Price</Text>
-            <Text style={tw("w-1/6 text-right")}>Tax & Fees</Text>
-            <Text style={tw("w-1/6 text-right")}>Total</Text>
-          </View>
-          {salesInvoiceLines.map((line) => {
-            return (
-              <View
-                style={tw(
-                  "flex flex-row justify-between py-3 px-[6px] border-b border-gray-300"
+      {/* Header */}
+      <View style={tw("flex flex-row justify-between mb-1")}>
+        <View style={tw("flex flex-col")}>
+          <Text style={tw("text-xl font-bold text-blue-600")}>
+            {company.name}
+          </Text>
+          <View style={tw("text-[10px] text-gray-600 mt-0.5")}>
+            {company.addressLine1 && <Text>{company.addressLine1}</Text>}
+            {(company.city || company.stateProvince || company.postalCode) && (
+              <Text>
+                {formatCityStatePostalCode(
+                  company.city,
+                  company.stateProvince,
+                  company.postalCode
                 )}
-                key={line.id}
-                wrap={false}
-              >
-                <View style={tw("w-5/12")}>
-                  <Text style={tw("font-bold mb-1")}>
-                    {getLineDescription(line)}
-                  </Text>
-                  <Text style={tw("text-[9px] opacity-80")}>
-                    {getLineDescriptionDetails(line)}
-                  </Text>
+              </Text>
+            )}
+            {company.phone && <Text>{company.phone}</Text>}
+            {company.website && <Text>{company.website}</Text>}
+          </View>
+        </View>
+        <View style={tw("flex flex-col items-end")}>
+          <Text style={tw("text-2xl font-bold text-gray-800")}>INVOICE</Text>
+          <Text style={tw("text-sm font-bold text-gray-600")}>
+            #{salesInvoice?.invoiceId}
+          </Text>
+        </View>
+      </View>
 
-                  {thumbnails &&
-                    line.id in thumbnails &&
-                    thumbnails[line.id] && (
-                      <View style={tw("mt-2")}>
-                        <Image
-                          src={thumbnails[line.id]!}
-                          style={tw("w-full h-auto")}
-                        />
-                      </View>
-                    )}
+      {/* Divider */}
+      <View style={tw("h-[2px] bg-gray-200 mb-4")} />
 
-                  <View style={tw("mt-1")}>
-                    {Object.keys(line.externalNotes ?? {}).length > 0 && (
-                      <Note
-                        key={`${line.id}-notes`}
-                        content={line.externalNotes as JSONContent}
-                      />
-                    )}
+      {/* Ship To & Bill To */}
+      <View style={tw("border border-gray-200 mb-4")}>
+        <View style={tw("flex flex-row")}>
+          <View style={tw("w-1/2 p-3 border-r border-gray-200")}>
+            <Text
+              style={tw("text-[9px] font-bold text-gray-600 mb-1 uppercase")}
+            >
+              Ship To
+            </Text>
+            <View style={tw("text-[10px] text-gray-800")}>
+              {customerName && (
+                <Text style={tw("font-bold")}>{customerName}</Text>
+              )}
+              {customerAddressLine1 && (
+                <Text style={tw("mt-1")}>{customerAddressLine1}</Text>
+              )}
+              {customerAddressLine2 && <Text>{customerAddressLine2}</Text>}
+              {(customerCity ||
+                customerStateProvince ||
+                customerPostalCode) && (
+                <Text>
+                  {formatCityStatePostalCode(
+                    customerCity,
+                    customerStateProvince,
+                    customerPostalCode
+                  )}
+                </Text>
+              )}
+              {customerCountryName && <Text>{customerCountryName}</Text>}
+            </View>
+          </View>
+          <View style={tw("w-1/2 p-3")}>
+            <Text
+              style={tw("text-[9px] font-bold text-gray-600 mb-1 uppercase")}
+            >
+              Bill To
+            </Text>
+            <View style={tw("text-[10px] text-gray-800")}>
+              {invoiceCustomerName && (
+                <Text style={tw("font-bold")}>{invoiceCustomerName}</Text>
+              )}
+              {invoiceAddressLine1 && (
+                <Text style={tw("mt-1")}>{invoiceAddressLine1}</Text>
+              )}
+              {invoiceAddressLine2 && <Text>{invoiceAddressLine2}</Text>}
+              {(invoiceCity || invoiceStateProvince || invoicePostalCode) && (
+                <Text>
+                  {formatCityStatePostalCode(
+                    invoiceCity,
+                    invoiceStateProvince,
+                    invoicePostalCode
+                  )}
+                </Text>
+              )}
+              {invoiceCountryName && <Text>{invoiceCountryName}</Text>}
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Invoice Details */}
+      <View style={tw("border border-gray-200 mb-4")}>
+        <View style={tw("flex flex-row")}>
+          <View style={tw("w-1/2 p-3 border-r border-gray-200")}>
+            <Text
+              style={tw("text-[9px] font-bold text-gray-600 mb-1 uppercase")}
+            >
+              Invoice Details
+            </Text>
+            <View style={tw("text-[10px] text-gray-800")}>
+              {salesInvoice?.dateIssued && (
+                <Text>Date Issued: {formatDate(salesInvoice.dateIssued)}</Text>
+              )}
+              {salesInvoice?.dateDue && (
+                <Text>Due Date: {formatDate(salesInvoice.dateDue)}</Text>
+              )}
+              {salesInvoice?.customerReference && (
+                <Text>Customer Ref: {salesInvoice.customerReference}</Text>
+              )}
+              {paymentTerm && <Text>Payment Terms: {paymentTerm.name}</Text>}
+            </View>
+          </View>
+          <View style={tw("w-1/2 p-3")}>
+            <Text
+              style={tw("text-[9px] font-bold text-gray-600 mb-1 uppercase")}
+            >
+              Shipping
+            </Text>
+            <View style={tw("text-[10px] text-gray-800")}>
+              {shippingMethod && <Text>Method: {shippingMethod.name}</Text>}
+              {salesInvoiceShipment?.shippingTermId && (
+                <Text>Terms: {salesInvoiceShipment.shippingTermId}</Text>
+              )}
+            </View>
+          </View>
+        </View>
+      </View>
+
+      {/* Line Items Table */}
+      <View style={tw("mb-4")}>
+        {/* Header */}
+        <View
+          style={tw(
+            "flex flex-row bg-blue-600 py-2 px-3 text-white text-[9px] font-bold uppercase"
+          )}
+        >
+          <Text style={tw("w-1/2")}>Description</Text>
+          <Text style={tw("w-1/6 text-right")}>Qty</Text>
+          <Text style={tw("w-1/6 text-right")}>Unit Price</Text>
+          <Text style={tw("w-1/6 text-right")}>Total</Text>
+        </View>
+
+        {/* Rows */}
+        {salesInvoiceLines.map((line) => {
+          const isEven = rowIndex % 2 === 0;
+          rowIndex++;
+
+          return (
+            <View
+              key={line.id}
+              style={tw(
+                `flex flex-row py-2 px-3 border-b border-gray-200 text-[10px] ${
+                  isEven ? "bg-white" : "bg-gray-50"
+                }`
+              )}
+              wrap={false}
+            >
+              <View style={tw("w-1/2 pr-2")}>
+                <Text style={tw("text-gray-800")}>
+                  {getLineDescription(line)}
+                </Text>
+                <Text style={tw("text-[8px] text-gray-400 mt-0.5")}>
+                  {getLineDescriptionDetails(line)}
+                </Text>
+                {thumbnails && line.id in thumbnails && thumbnails[line.id] && (
+                  <View style={tw("mt-1 w-16")}>
+                    <Image
+                      src={thumbnails[line.id]!}
+                      style={tw("w-full h-auto")}
+                    />
                   </View>
-                </View>
-                <Text style={tw("w-1/6 text-right")}>
-                  {line.invoiceLineType === "Comment"
-                    ? ""
-                    : `${line.quantity} ${line.unitOfMeasureCode}`}
+                )}
+                {Object.keys(line.externalNotes ?? {}).length > 0 && (
+                  <View style={tw("mt-1")}>
+                    <Note
+                      key={`${line.id}-notes`}
+                      content={line.externalNotes as JSONContent}
+                    />
+                  </View>
+                )}
+              </View>
+              <Text style={tw("w-1/6 text-right text-gray-600")}>
+                {line.invoiceLineType === "Comment"
+                  ? ""
+                  : `${line.quantity} ${line.unitOfMeasureCode ?? "EA"}`}
+              </Text>
+              <Text style={tw("w-1/6 text-right text-gray-600")}>
+                {line.invoiceLineType === "Comment"
+                  ? ""
+                  : formatter.format(line.convertedUnitPrice ?? 0)}
+              </Text>
+              <Text style={tw("w-1/6 text-right text-gray-800 font-medium")}>
+                {line.invoiceLineType === "Comment"
+                  ? ""
+                  : formatter.format(getLineTotal(line))}
+              </Text>
+            </View>
+          );
+        })}
+
+        {/* Summary */}
+        <View>
+          {/* Subtotal - before tax */}
+          <View style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}>
+            <View style={tw("w-4/6")} />
+            <Text style={tw("w-1/6 text-right text-gray-600")}>Subtotal</Text>
+            <Text style={tw("w-1/6 text-right text-gray-800")}>
+              {formatter.format(
+                salesInvoiceLines.reduce(
+                  (sum, line) => sum + getLineSubtotal(line),
+                  0
+                )
+              )}
+            </Text>
+          </View>
+
+          {/* Shipping */}
+          {salesInvoiceShipment?.shippingCost &&
+            salesInvoiceShipment.shippingCost > 0 && (
+              <View
+                style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
+              >
+                <View style={tw("w-4/6")} />
+                <Text style={tw("w-1/6 text-right text-gray-600")}>
+                  Shipping
                 </Text>
-                <Text style={tw("w-1/6 text-right")}>
-                  {line.invoiceLineType === "Comment"
-                    ? null
-                    : formatter.format(line.convertedUnitPrice ?? 0)}
-                </Text>
-                <Text style={tw("w-1/6 text-right")}>
-                  {line.invoiceLineType === "Comment"
-                    ? null
-                    : formatter.format(getLineTaxesAndFees(line))}
-                </Text>
-                <Text style={tw("w-1/6 text-right")}>
-                  {line.invoiceLineType === "Comment"
-                    ? null
-                    : formatter.format(getLineTotal(line))}
+                <Text style={tw("w-1/6 text-right text-gray-800")}>
+                  {formatter.format(
+                    (salesInvoiceShipment.shippingCost ?? 0) *
+                      (salesInvoice.exchangeRate ?? 1)
+                  )}
                 </Text>
               </View>
-            );
-          })}
-          {salesInvoiceShipment?.shippingCost && (
+            )}
+
+          {/* Taxes */}
+          {salesInvoiceLines.some((line) => (line.taxPercent ?? 0) > 0) && (
             <View
-              style={tw(
-                "flex flex-row justify-between items-center py-3 px-[6px] border-b border-gray-300 font-bold text-gray-500 uppercase"
-              )}
+              style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
             >
-              <Text>Shipping</Text>
-              <Text style={tw("text-black")}>
+              <View style={tw("w-4/6")} />
+              <Text style={tw("w-1/6 text-right text-gray-600")}>Taxes</Text>
+              <Text style={tw("w-1/6 text-right text-gray-800")}>
                 {formatter.format(
-                  (salesInvoiceShipment.shippingCost ?? 0) *
-                    (salesInvoice.exchangeRate ?? 1)
+                  salesInvoiceLines.reduce((sum, line) => {
+                    const taxPercent = line.taxPercent ?? 0;
+                    return sum + getLineSubtotal(line) * taxPercent;
+                  }, 0)
                 )}
               </Text>
             </View>
           )}
-          <View
-            style={tw(
-              "flex flex-row justify-between items-center py-3 px-[6px] border-b border-gray-300 font-bold uppercase"
-            )}
-          >
-            <Text>Total</Text>
-            <Text style={tw("font-bold text-black")}>
+
+          <View style={tw("h-[2px] bg-gray-400")} />
+          <View style={tw("flex flex-row py-2 px-3 text-[11px]")}>
+            <View style={tw("w-4/6")} />
+            <Text style={tw("w-1/6 text-right text-gray-800 font-bold")}>
+              Total
+            </Text>
+            <Text style={tw("w-1/6 text-right text-gray-800 font-bold")}>
               {formatter.format(
                 getTotal(salesInvoiceLines, salesInvoice, salesInvoiceShipment)
               )}
             </Text>
           </View>
         </View>
-        <View style={tw("flex flex-col gap-4 w-full")}>
+      </View>
+
+      {/* Notes & Terms */}
+      <View style={tw("flex flex-col gap-3 w-full")}>
+        {Object.keys(salesInvoice.externalNotes ?? {}).length > 0 && (
           <Note
             title="Notes"
             content={(salesInvoice.externalNotes ?? {}) as JSONContent}
           />
-          <Note title="Standard Terms & Conditions" content={terms} />
-        </View>
+        )}
+        <Note title="Standard Terms & Conditions" content={terms} />
       </View>
     </Template>
   );
