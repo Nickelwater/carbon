@@ -64,7 +64,6 @@ serve(async (req: Request) => {
     await db.transaction().execute(async (trx) => {
       await trx
         .withSchema("storage")
-        // @ts-expect-error - it's legit, chill typescript
         .insertInto("buckets")
         .values({
           id: companyId,

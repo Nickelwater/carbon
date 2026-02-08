@@ -40,6 +40,7 @@ async function migrate(): Promise<void> {
 
   console.log("👯‍♀️ Copying supabase folder");
   await $`cp -r ../packages/database/supabase .`;
+  await $`cp -r ../packages/database/src .`;
 
   for await (const workspace of workspaces as Workspace[]) {
     try {
