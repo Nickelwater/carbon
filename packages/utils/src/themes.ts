@@ -55,7 +55,7 @@ export const themes = [
         destructive: "0 100% 64%",
         "destructive-foreground": "0 0% 100%",
         border: "0 0% 15%",
-        input: "0 0% 7%",
+        input: "0 0% 15%",
         ring: "0 0% 35%",
         success: "152 72% 53%",
         "success-foreground": "0 0% 0%"
