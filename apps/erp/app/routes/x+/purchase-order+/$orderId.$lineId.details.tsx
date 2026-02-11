@@ -22,8 +22,7 @@ import {
   getSupplierInteractionLineDocuments,
   isPurchaseOrderLocked,
   purchaseOrderLineValidator,
-  upsertPurchaseOrderLine,
-  validateLockedPOSingleLineEdit
+  upsertPurchaseOrderLine
 } from "~/modules/purchasing";
 import { PurchaseOrderLineForm } from "~/modules/purchasing/ui/PurchaseOrder";
 import {
@@ -114,32 +113,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   // biome-ignore lint/correctness/noUnusedVariables: suppressed due to migration
   const { id, ...d } = validation.data;
-
-  // If locked, validate that changes only reduce the line total
-  if (isLocked) {
-    const validationResult = validateLockedPOSingleLineEdit(
-      {
-        id: lineId,
-        purchaseQuantity: currentLine.data.purchaseQuantity,
-        supplierUnitPrice: currentLine.data.supplierUnitPrice,
-        supplierTaxAmount: currentLine.data.supplierTaxAmount,
-        supplierShippingCost: currentLine.data.supplierShippingCost
-      },
-      {
-        purchaseQuantity: d.purchaseQuantity,
-        supplierUnitPrice: d.supplierUnitPrice,
-        supplierTaxAmount: d.supplierTaxAmount,
-        supplierShippingCost: d.supplierShippingCost
-      }
-    );
-
-    if (!validationResult.allowed) {
-      throw redirect(
-        path.to.purchaseOrderLine(orderId, lineId),
-        await flash(request, error(null, validationResult.error))
-      );
-    }
-  }
 
   const updatePurchaseOrderLine = await upsertPurchaseOrderLine(client, {
     id: lineId,

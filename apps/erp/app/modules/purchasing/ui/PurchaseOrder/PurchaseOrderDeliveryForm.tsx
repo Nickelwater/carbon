@@ -26,7 +26,10 @@ import {
 } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";
 import type { PurchaseOrder } from "~/modules/purchasing";
-import { purchaseOrderDeliveryValidator } from "~/modules/purchasing";
+import {
+  isPurchaseOrderLocked,
+  purchaseOrderDeliveryValidator
+} from "~/modules/purchasing";
 import type { action } from "~/routes/x+/purchase-order+/$orderId.delivery";
 import { path } from "~/utils/path";
 
@@ -53,9 +56,8 @@ const PurchaseOrderDeliveryForm = forwardRef<
     purchaseOrder: PurchaseOrder;
   }>(path.to.purchaseOrder(orderId));
 
-  const isEditable = ["Draft", "To Review", "Needs Approval"].includes(
-    routeData?.purchaseOrder?.status ?? ""
-  );
+  const isLocked = isPurchaseOrderLocked(routeData?.purchaseOrder?.status);
+  const isClosed = routeData?.purchaseOrder?.status === "Closed";
 
   const permissions = usePermissions();
   const fetcher = useFetcher<typeof action>();
@@ -150,7 +152,12 @@ const PurchaseOrderDeliveryForm = forwardRef<
         </CardContent>
         <CardFooter>
           <Submit
-            isDisabled={!permissions.can("update", "purchasing") || !isEditable}
+            isDisabled={
+              isClosed ||
+              (isLocked
+                ? !permissions.can("delete", "purchasing")
+                : !permissions.can("update", "purchasing"))
+            }
           >
             Save
           </Submit>
