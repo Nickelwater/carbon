@@ -312,7 +312,7 @@ async function deploy(): Promise<void> {
 
       console.log(`🚀 🐓 Deploying apps for ${workspace.id} with SST`);
 
-      await $$`npx --yes sst deploy --stage prod`;
+      await $$`npx --yes sst@3.17.38 deploy --stage prod`;
 
       console.log(`✅ 🍗 Successfully deployed ${workspace.id}`);
     } catch (error) {
