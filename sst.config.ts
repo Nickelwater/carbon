@@ -16,7 +16,7 @@ export default $config({
       forceUpgrade: "v2",
     });
     const erp = cluster.addService("CarbonERPService", {
-      image: `${process.env.AWS_ACCOUNT_ID}.dkr.ecr.us-gov-east-1.amazonaws.com/carbon/erp:latest`,
+      image: `${process.env.AWS_ACCOUNT_ID}.dkr.ecr.us-gov-east-1.amazonaws.com/carbon/erp:${process.env.IMAGE_TAG}`,
       loadBalancer: {
         domain: {
           name: "itar.carbon.ms",
@@ -104,7 +104,7 @@ export default $config({
     });
 
     const mes = cluster.addService("CarbonMESService", {
-      image: `${process.env.AWS_ACCOUNT_ID}.dkr.ecr.us-gov-east-1.amazonaws.com/carbon/mes:latest`,
+      image: `${process.env.AWS_ACCOUNT_ID}.dkr.ecr.us-gov-east-1.amazonaws.com/carbon/mes:${process.env.IMAGE_TAG}`,
       loadBalancer: {
         domain: {
           name: "mes.itar.carbon.ms",

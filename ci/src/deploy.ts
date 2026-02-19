@@ -69,6 +69,14 @@ export type Workspace = {
 async function deploy(): Promise<void> {
   console.log("✅ 🌱 Starting deployment");
 
+  const imageTag = process.env.IMAGE_TAG;
+  if (!imageTag) {
+    console.error("🔴 🍳 Missing IMAGE_TAG environment variable");
+    process.exit(1);
+  }
+
+  console.log(`✅ 🏷️ Using image tag: ${imageTag}`);
+
   const { data: workspaces, error } = await client
     .from("workspaces")
     .select("*");
@@ -260,6 +268,7 @@ async function deploy(): Promise<void> {
         env: {
           AWS_ACCOUNT_ID: aws_account_id,
           AWS_REGION: aws_region,
+          IMAGE_TAG: imageTag,
           CARBON_EDITION: carbon_edition ?? "enterprise",
           CERT_ARN_ERP: cert_arn_erp,
           CERT_ARN_MES: cert_arn_mes,
