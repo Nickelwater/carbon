@@ -400,6 +400,8 @@ serve(async (req: Request) => {
             const partId = readableId || name;
             if (!partId) return;
 
+            const externalPartId = getReadableIdWithRevision(partId, revision);
+
             const isMade = children.length > 0;
             let itemId = id;
 
@@ -418,8 +420,14 @@ serve(async (req: Request) => {
               await trx
                 .deleteFrom("externalIntegrationMapping")
                 .where("entityType", "=", "item")
-                .where("entityId", "=", itemId)
                 .where("integration", "=", "onshapeData")
+                .where("companyId", "=", companyId)
+                .where((eb) =>
+                  eb.or([
+                    eb("entityId", "=", itemId),
+                    eb("externalId", "=", externalPartId),
+                  ])
+                )
                 .execute();
 
               await trx
@@ -428,7 +436,7 @@ serve(async (req: Request) => {
                   entityType: "item",
                   entityId: itemId,
                   integration: "onshapeData",
-                  externalId: partId,
+                  externalId: externalPartId,
                   metadata: data.data,
                   companyId,
                   allowDuplicateExternalId: false,
@@ -461,13 +469,22 @@ serve(async (req: Request) => {
 
                 // Create OnShape mapping for the new item
                 if (itemId) {
+                  // Delete any stale mapping with the same externalId
+                  await trx
+                    .deleteFrom("externalIntegrationMapping")
+                    .where("integration", "=", "onshapeData")
+                    .where("externalId", "=", externalPartId)
+                    .where("entityType", "=", "item")
+                    .where("companyId", "=", companyId)
+                    .execute();
+
                   await trx
                     .insertInto("externalIntegrationMapping")
                     .values({
                       entityType: "item",
                       entityId: itemId,
                       integration: "onshapeData",
-                      externalId: partId,
+                      externalId: externalPartId,
                       metadata: data.data,
                       companyId,
                       allowDuplicateExternalId: false,
