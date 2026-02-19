@@ -316,7 +316,7 @@ async function deploy(): Promise<void> {
         },
         // Run SST from the repository root where sst.config.ts is located
         cwd: "..",
-        stdio: "pipe",
+        stdio: "inherit",
       });
 
       console.log(`🚀 🐓 Deploying apps for ${workspace.id} with SST`);
