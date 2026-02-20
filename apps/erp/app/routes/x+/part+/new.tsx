@@ -6,7 +6,11 @@ import type { modelThumbnailTask } from "@carbon/jobs/trigger/model-thumbnail";
 import { tasks } from "@trigger.dev/sdk";
 import type { ActionFunctionArgs } from "react-router";
 import { data, redirect } from "react-router";
-import { partValidator, upsertPart } from "~/modules/items";
+import {
+  partValidator,
+  upsertItemCustomerPart,
+  upsertPart
+} from "~/modules/items";
 import { PartForm } from "~/modules/items/ui/Parts";
 import { setCustomFields } from "~/utils/form";
 import type { Handle } from "~/utils/handle";
@@ -60,6 +64,30 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const itemId = createPart.data?.id;
   if (!itemId) throw new Error("Part ID not found");
+
+  const newPartCustomerId = formData.get("newPartCustomerId");
+  const newPartCustomerPartId = formData.get("newPartCustomerPartId");
+  const newPartCustomerPartRevision = formData.get(
+    "newPartCustomerPartRevision"
+  );
+
+  if (
+    typeof newPartCustomerId === "string" &&
+    newPartCustomerId.trim() !== "" &&
+    typeof newPartCustomerPartId === "string" &&
+    newPartCustomerPartId.trim() !== ""
+  ) {
+    await upsertItemCustomerPart(client, {
+      itemId,
+      customerId: newPartCustomerId.trim(),
+      customerPartId: newPartCustomerPartId.trim(),
+      customerPartRevision:
+        typeof newPartCustomerPartRevision === "string"
+          ? newPartCustomerPartRevision.trim()
+          : "",
+      companyId
+    });
+  }
 
   return modal
     ? data(createPart, { status: 201 })

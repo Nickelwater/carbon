@@ -425,6 +425,20 @@ export async function getCustomerShipping(
     .single();
 }
 
+export async function getCustomerPartsForCustomer(
+  client: SupabaseClient<Database>,
+  customerId: string,
+  companyId: string
+) {
+  return client
+    .from("customerPartToItem")
+    .select("id, customerPartId, customerPartRevision, itemId")
+    .eq("customerId", customerId)
+    .eq("companyId", companyId)
+    .order("customerPartId")
+    .order("customerPartRevision");
+}
+
 export async function getCustomers(
   client: SupabaseClient<Database>,
   companyId: string,

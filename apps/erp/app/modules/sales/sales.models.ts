@@ -74,7 +74,8 @@ export const customerValidator = z.object({
   ),
   salesContactId: zfd.text(z.string().optional()),
   invoicingContactId: zfd.text(z.string().optional()),
-  website: zfd.text(z.string().optional())
+  website: zfd.text(z.string().optional()),
+  contractCustomer: zfd.checkbox(z.boolean()).default(false)
   // defaultCc: z.array(z.string().email()).default([])
 });
 

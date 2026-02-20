@@ -10,9 +10,12 @@ type AvatarProps = AvatarBaseProps & {
 };
 
 const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
-  ({ name, path, bucket = "avatars", ...props }, ref) => {
-    const imageUrl = props.imageUrl
-      ? props.imageUrl
+  (
+    { name, path, bucket = "avatars", imageUrl: imageUrlProp, ...props },
+    ref
+  ) => {
+    const imageUrl = imageUrlProp
+      ? imageUrlProp
       : path
         ? getStoragePath(bucket, path)
         : undefined;

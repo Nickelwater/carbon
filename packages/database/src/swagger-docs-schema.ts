@@ -13831,6 +13831,9 @@ export default {
             $ref: "#/parameters/rowFilter.customers.defaultCc",
           },
           {
+            $ref: "#/parameters/rowFilter.customers.contractCustomer",
+          },
+          {
             $ref: "#/parameters/rowFilter.customers.externalId",
           },
           {
@@ -39352,6 +39355,9 @@ export default {
             $ref: "#/parameters/rowFilter.customer.defaultCc",
           },
           {
+            $ref: "#/parameters/rowFilter.customer.contractCustomer",
+          },
+          {
             $ref: "#/parameters/select",
           },
           {
@@ -39483,6 +39489,9 @@ export default {
             $ref: "#/parameters/rowFilter.customer.defaultCc",
           },
           {
+            $ref: "#/parameters/rowFilter.customer.contractCustomer",
+          },
+          {
             $ref: "#/parameters/preferReturn",
           },
         ],
@@ -39566,6 +39575,9 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.customer.defaultCc",
+          },
+          {
+            $ref: "#/parameters/rowFilter.customer.contractCustomer",
           },
           {
             $ref: "#/parameters/body.customer",
@@ -75088,6 +75100,10 @@ export default {
           },
           type: "array",
         },
+        contractCustomer: {
+          format: "boolean",
+          type: "boolean",
+        },
         externalId: {
           format: "jsonb",
         },
@@ -86586,7 +86602,14 @@ export default {
       type: "object",
     },
     customer: {
-      required: ["id", "name", "companyId", "createdAt", "taxPercent"],
+      required: [
+        "id",
+        "name",
+        "companyId",
+        "createdAt",
+        "taxPercent",
+        "contractCustomer",
+      ],
       properties: {
         id: {
           default: "public.id('cust'::text)",
@@ -86712,6 +86735,13 @@ export default {
             type: "string",
           },
           type: "array",
+        },
+        contractCustomer: {
+          default: false,
+          description:
+            "When true, sales order line item dropdown shows this customer's part numbers (customerPartToItem) instead of internal part numbers.",
+          format: "boolean",
+          type: "boolean",
         },
       },
       type: "object",
@@ -106058,6 +106088,12 @@ export default {
       in: "query",
       type: "string",
     },
+    "rowFilter.customers.contractCustomer": {
+      name: "contractCustomer",
+      required: false,
+      in: "query",
+      type: "string",
+    },
     "rowFilter.customers.externalId": {
       name: "externalId",
       required: false,
@@ -119113,6 +119149,14 @@ export default {
     },
     "rowFilter.customer.defaultCc": {
       name: "defaultCc",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.customer.contractCustomer": {
+      name: "contractCustomer",
+      description:
+        "When true, sales order line item dropdown shows this customer's part numbers (customerPartToItem) instead of internal part numbers.",
       required: false,
       in: "query",
       type: "string",
