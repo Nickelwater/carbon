@@ -2050,20 +2050,27 @@ export const JobOperation = ({
         {!["chat"].includes(activeTab) && (
           <Times>
             <div className=" lg:p-6">
-              <div className="flex flex-col w-full gap-2">
+              <div className="w-full gap-2 grid grid-cols-[auto_auto_1fr]">
                 {operation.setupDuration > 0 && (
-                  <HStack>
+                  <>
                     <Tooltip>
                       <TooltipTrigger>
                         <LuTimer className="h-4 w-4 mr-1" />
                       </TooltipTrigger>
                       <TooltipContent side="right">Setup</TooltipContent>
                     </Tooltip>
+                    <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap">
+                      {formatDurationMilliseconds(progress.setup, {
+                        style: "short"
+                      })}
+                      /
+                      {formatDurationMilliseconds(operation.setupDuration, {
+                        style: "short"
+                      })}
+                    </span>
                     <BarProgress
-                      label="Setup"
                       gradient
                       invertGradient
-                      value={`${formatDurationMilliseconds(progress.setup, { style: "short" })}/${formatDurationMilliseconds(operation.setupDuration, { style: "short" })}`}
                       progress={
                         (progress.setup / operation.setupDuration) * 100
                       }
@@ -2073,21 +2080,28 @@ export const JobOperation = ({
                           : "bg-emerald-500"
                       }
                     />
-                  </HStack>
+                  </>
                 )}
                 {operation.laborDuration > 0 && (
-                  <HStack>
+                  <>
                     <Tooltip>
                       <TooltipTrigger>
                         <LuHardHat className="h-4 w-4 mr-1" />
                       </TooltipTrigger>
                       <TooltipContent side="right">Labor</TooltipContent>
                     </Tooltip>
+                    <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap">
+                      {formatDurationMilliseconds(progress.labor, {
+                        style: "short"
+                      })}
+                      /
+                      {formatDurationMilliseconds(operation.laborDuration, {
+                        style: "short"
+                      })}
+                    </span>
                     <BarProgress
-                      label="Labor"
                       gradient
                       invertGradient
-                      value={`${formatDurationMilliseconds(progress.labor, { style: "short" })}/${formatDurationMilliseconds(operation.laborDuration, { style: "short" })}`}
                       progress={
                         (progress.labor / operation.laborDuration) * 100
                       }
@@ -2097,21 +2111,28 @@ export const JobOperation = ({
                           : "bg-emerald-500"
                       }
                     />
-                  </HStack>
+                  </>
                 )}
                 {operation.machineDuration > 0 && (
-                  <HStack>
+                  <>
                     <Tooltip>
                       <TooltipTrigger>
                         <LuHammer className="h-4 w-4 mr-1" />
                       </TooltipTrigger>
                       <TooltipContent side="right">Machine</TooltipContent>
                     </Tooltip>
+                    <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap">
+                      {formatDurationMilliseconds(progress.machine, {
+                        style: "short"
+                      })}
+                      /
+                      {formatDurationMilliseconds(operation.machineDuration, {
+                        style: "short"
+                      })}
+                    </span>
                     <BarProgress
-                      label="Machine"
                       gradient
                       invertGradient
-                      value={`${formatDurationMilliseconds(progress.machine, { style: "short" })}/${formatDurationMilliseconds(operation.machineDuration, { style: "short" })}`}
                       progress={
                         (progress.machine / operation.machineDuration) * 100
                       }
@@ -2121,30 +2142,31 @@ export const JobOperation = ({
                           : "bg-emerald-500"
                       }
                     />
-                  </HStack>
+                  </>
                 )}
-                <HStack>
+                <>
                   <Tooltip>
                     <TooltipTrigger>
                       <FaTasks className="h-4 w-4 mr-1" />
                     </TooltipTrigger>
                     <TooltipContent side="right">Quantity</TooltipContent>
                   </Tooltip>
+                  <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap min-w-[100px]">
+                    {operation.quantityComplete}/{operation.targetQuantity}
+                  </span>
                   <BarProgress
-                    label="Quantity"
                     activeClassName={
                       operation.operationStatus === "Paused" &&
                       operation.quantityComplete < operation.targetQuantity
                         ? "bg-yellow-500"
                         : "bg-emerald-500"
                     }
-                    value={`${operation.quantityComplete}/${operation.targetQuantity}`}
                     progress={
                       (operation.quantityComplete / operation.targetQuantity) *
                       100
                     }
                   />
-                </HStack>
+                </>
               </div>
             </div>
           </Times>
