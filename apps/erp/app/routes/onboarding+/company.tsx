@@ -20,12 +20,8 @@ import {
 import { Edition } from "@carbon/utils";
 import { getLocalTimeZone } from "@internationalized/date";
 import { tasks } from "@trigger.dev/sdk";
-import {
-  type ActionFunctionArgs,
-  Link,
-  redirect,
-  useLoaderData
-} from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { Link, redirect, useLoaderData } from "react-router";
 import {
   AddressAutocomplete,
   Currency,

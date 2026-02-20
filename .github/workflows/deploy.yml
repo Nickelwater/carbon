@@ -58,6 +58,7 @@ jobs:
     needs: build
 
     env:
+      IMAGE_TAG: ${{ github.sha }}
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE }}
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -75,6 +76,11 @@ jobs:
       - uses: actions/setup-node@v3
         with:
           node-version: "20"
+
+      - name: Install compatible Pulumi version
+        run: |
+          curl -fsSL https://get.pulumi.com | sh -s -- --version 3.212.0
+          echo "$HOME/.pulumi/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
         run: |

@@ -14,7 +14,7 @@ import {
   SplitButton,
   useDisclosure
 } from "@carbon/react";
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import {
   LuCheckCheck,
   LuChevronDown,
@@ -25,6 +25,7 @@ import {
   LuEye,
   LuFile,
   LuHandCoins,
+  LuHistory,
   LuLoaderCircle,
   LuPanelLeft,
   LuPanelRight,
@@ -32,16 +33,18 @@ import {
   LuTruck,
   LuX
 } from "react-icons/lu";
-import { Link, useFetcher, useParams } from "react-router";
+import { Await, Link, useFetcher, useParams } from "react-router";
 
+import { AuditLogDrawer } from "~/components/AuditLog";
 import { usePanels } from "~/components/Layout";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
-import { usePermissions, useRouteData } from "~/hooks";
+import { usePermissions, useRouteData, useUser } from "~/hooks";
 import { ReceiptStatus } from "~/modules/inventory/ui/Receipts";
 import { ShipmentStatus } from "~/modules/inventory/ui/Shipments";
 import PurchaseInvoicingStatus from "~/modules/invoicing/ui/PurchaseInvoice/PurchaseInvoicingStatus";
 import type { ApprovalDecision } from "~/modules/shared/types";
 import { path } from "~/utils/path";
+import { isPurchaseOrderLocked } from "../../purchasing.models";
 import type { PurchaseOrder, PurchaseOrderLine } from "../../types";
 import PurchaseOrderApprovalModal from "./PurchaseOrderApprovalModal";
 import PurchaseOrderFinalizeModal from "./PurchaseOrderFinalizeModal";
@@ -55,6 +58,7 @@ const PurchaseOrderHeader = () => {
   const { orderId } = useParams();
   if (!orderId) throw new Error("orderId not found");
 
+  const { company } = useUser();
   const { toggleExplorer, toggleProperties } = usePanels();
 
   const routeData = useRouteData<{
@@ -64,6 +68,7 @@ const PurchaseOrderHeader = () => {
     canApprove: boolean;
     canReopen: boolean;
     canDelete: boolean;
+    defaultCc: string[];
   }>(path.to.purchaseOrder(orderId));
 
   if (!routeData?.purchaseOrder)
@@ -78,6 +83,7 @@ const PurchaseOrderHeader = () => {
   const isNeedsApproval = routeData?.purchaseOrder?.status === "Needs Approval";
   const hasApprovalRequest = !!routeData?.approvalRequest;
   const canApprove = routeData?.canApprove ?? false;
+  const isLocked = isPurchaseOrderLocked(routeData?.purchaseOrder?.status);
   const { receipts, invoices, shipments } = usePurchaseOrderRelatedDocuments(
     routeData?.purchaseOrder?.supplierInteractionId ?? "",
     routeData?.purchaseOrder?.purchaseOrderType === "Outside Processing"
@@ -85,8 +91,13 @@ const PurchaseOrderHeader = () => {
 
   const finalizeDisclosure = useDisclosure();
   const deleteModal = useDisclosure();
+  const auditDrawer = useDisclosure();
   const [approvalDecision, setApprovalDecision] =
     useState<ApprovalDecision | null>(null);
+
+  const rootRouteData = useRouteData<{
+    auditLogEnabled: Promise<boolean>;
+  }>(path.to.authenticatedRoot);
 
   const isOutsideProcessing =
     routeData?.purchaseOrder?.purchaseOrderType === "Outside Processing";
@@ -127,6 +138,23 @@ const PurchaseOrderHeader = () => {
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
+                <Suspense fallback={null}>
+                  <Await resolve={rootRouteData?.auditLogEnabled}>
+                    {(auditLogEnabled) => {
+                      return (
+                        <>
+                          {auditLogEnabled && (
+                            <DropdownMenuItem onClick={auditDrawer.onOpen}>
+                              <DropdownMenuIcon icon={<LuHistory />} />
+                              History
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      );
+                    }}
+                  </Await>
+                </Suspense>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   disabled={
                     !permissions.can("delete", "purchasing") ||
@@ -271,7 +299,34 @@ const PurchaseOrderHeader = () => {
                   Ship
                 </Button>
               ))}
-            {receipts.length > 0 ? (
+            {isNeedsApproval && hasApprovalRequest && canApprove ? (
+              <>
+                <Button
+                  leftIcon={<LuCheckCheck />}
+                  variant="primary"
+                  isLoading={
+                    approvalFetcher.state !== "idle" &&
+                    approvalFetcher.formData?.get("decision") === "Approved"
+                  }
+                  isDisabled={approvalFetcher.state !== "idle"}
+                  onClick={() => setApprovalDecision("Approved")}
+                >
+                  Approve
+                </Button>
+                <Button
+                  leftIcon={<LuX />}
+                  variant="destructive"
+                  isLoading={
+                    approvalFetcher.state !== "idle" &&
+                    approvalFetcher.formData?.get("decision") === "Rejected"
+                  }
+                  isDisabled={approvalFetcher.state !== "idle"}
+                  onClick={() => setApprovalDecision("Rejected")}
+                >
+                  Reject
+                </Button>
+              </>
+            ) : receipts.length > 0 ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
@@ -318,33 +373,6 @@ const PurchaseOrderHeader = () => {
                   ))}
                 </DropdownMenuContent>
               </DropdownMenu>
-            ) : isNeedsApproval && hasApprovalRequest ? (
-              <>
-                <Button
-                  leftIcon={<LuCheckCheck />}
-                  variant="primary"
-                  isLoading={
-                    approvalFetcher.state !== "idle" &&
-                    approvalFetcher.formData?.get("decision") === "Approved"
-                  }
-                  isDisabled={!canApprove || approvalFetcher.state !== "idle"}
-                  onClick={() => setApprovalDecision("Approved")}
-                >
-                  Approve
-                </Button>
-                <Button
-                  leftIcon={<LuX />}
-                  variant="destructive"
-                  isLoading={
-                    approvalFetcher.state !== "idle" &&
-                    approvalFetcher.formData?.get("decision") === "Rejected"
-                  }
-                  isDisabled={!canApprove || approvalFetcher.state !== "idle"}
-                  onClick={() => setApprovalDecision("Rejected")}
-                >
-                  Reject
-                </Button>
-              </>
             ) : (
               <Button
                 leftIcon={<LuHandCoins />}
@@ -458,7 +486,7 @@ const PurchaseOrderHeader = () => {
                     routeData?.purchaseOrder?.status ?? ""
                   ) ||
                   statusFetcher.state !== "idle" ||
-                  !permissions.can("update", "production")
+                  !permissions.can("delete", "purchasing")
                 }
                 leftIcon={<LuCircleStop />}
                 variant="secondary"
@@ -478,7 +506,10 @@ const PurchaseOrderHeader = () => {
                 isDisabled={
                   ["Draft"].includes(routeData?.purchaseOrder?.status ?? "") ||
                   statusFetcher.state !== "idle" ||
-                  !permissions.can("update", "purchasing") ||
+                  // Locked POs require delete permission to reopen
+                  (isLocked
+                    ? !permissions.can("delete", "purchasing")
+                    : !permissions.can("update", "purchasing")) ||
                   (isNeedsApproval && !routeData?.canReopen)
                 }
                 isLoading={
@@ -505,6 +536,7 @@ const PurchaseOrderHeader = () => {
           fetcher={statusFetcher}
           purchaseOrder={routeData?.purchaseOrder}
           onClose={finalizeDisclosure.onClose}
+          defaultCc={routeData?.defaultCc ?? []}
         />
       )}
       {deleteModal.isOpen && (
@@ -528,8 +560,16 @@ const PurchaseOrderHeader = () => {
           decision={approvalDecision}
           fetcher={approvalFetcher}
           onClose={() => setApprovalDecision(null)}
+          defaultCc={routeData?.defaultCc ?? []}
         />
       )}
+      <AuditLogDrawer
+        isOpen={auditDrawer.isOpen}
+        onClose={auditDrawer.onClose}
+        entityType="purchaseOrder"
+        entityId={orderId}
+        companyId={company.id}
+      />
     </>
   );
 };

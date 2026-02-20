@@ -80,17 +80,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     );
   }
 
-  // Only the creator can edit their own rule
-  if (existingRule.createdBy !== userId) {
-    throw redirect(
-      path.to.approvalRules,
-      await flash(
-        request,
-        error(null, "Only the creator can edit this approval rule")
-      )
-    );
-  }
-
   const rulesForType =
     rules.data?.filter(
       (r) => r.documentType === validation.data.documentType && r.id !== id

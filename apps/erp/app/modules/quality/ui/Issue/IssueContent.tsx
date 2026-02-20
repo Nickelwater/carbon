@@ -1,4 +1,5 @@
 import { useCarbon } from "@carbon/auth";
+import type { JSONContent } from "@carbon/react";
 import {
   Card,
   CardContent,
@@ -6,7 +7,6 @@ import {
   CardHeader,
   CardTitle,
   generateHTML,
-  type JSONContent,
   toast,
   useDebounce
 } from "@carbon/react";

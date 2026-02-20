@@ -4,13 +4,8 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import { NotificationEvent } from "@carbon/notifications";
 import { tasks } from "@trigger.dev/sdk";
-import {
-  type ActionFunctionArgs,
-  data,
-  type LoaderFunctionArgs,
-  useLoaderData,
-  useNavigate
-} from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { data, useLoaderData, useNavigate } from "react-router";
 import invariant from "tiny-invariant";
 import { riskRegisterValidator } from "~/modules/quality/quality.models";
 import { getRisk, upsertRisk } from "~/modules/quality/quality.service";

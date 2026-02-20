@@ -1,7 +1,8 @@
 import type { Database } from "@carbon/database";
+import type { Kysely, KyselyDatabase } from "@carbon/database/client";
 import { getPurchaseOrderStatus, supportedModelTypes } from "@carbon/utils";
-import { FunctionRegion, type SupabaseClient } from "@supabase/supabase-js";
-import { getPurchaseOrderLines } from "~/modules/purchasing";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { FunctionRegion } from "@supabase/supabase-js";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
@@ -17,86 +18,113 @@ import type {
 } from "./types";
 
 export async function approveRequest(
-  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   id: string,
   userId: string,
   notes?: string
 ) {
-  const approvalRequest = await client
-    .from("approvalRequest")
-    .select("id, status, documentType, documentId, companyId")
-    .eq("id", id)
-    .single();
+  // Pre-flight check: verify approval request exists and is pending
+  const approvalRequest = await db
+    .selectFrom("approvalRequest")
+    .select(["id", "status", "documentType", "documentId", "companyId"])
+    .where("id", "=", id)
+    .executeTakeFirst();
 
-  if (approvalRequest.error || !approvalRequest.data) {
+  if (!approvalRequest) {
     return { error: { message: "Approval request not found" }, data: null };
   }
 
-  if (approvalRequest.data.status !== "Pending") {
+  if (approvalRequest.status !== "Pending") {
     return {
       error: { message: "Approval request is not pending" },
       data: null
     };
   }
 
-  const approvalUpdate = await client
-    .from("approvalRequest")
-    .update({
-      status: "Approved",
-      decisionBy: userId,
-      decisionAt: new Date().toISOString(),
-      decisionNotes: notes || null,
-      updatedBy: userId,
-      updatedAt: new Date().toISOString()
-    })
-    .eq("id", id)
-    .select("id, documentType, documentId")
-    .single();
+  const { documentType, documentId } = approvalRequest;
+  const now = new Date().toISOString();
 
-  if (approvalUpdate.error) {
-    return { error: approvalUpdate.error, data: null };
-  }
-
-  if (approvalUpdate.data) {
-    const { documentType, documentId } = approvalUpdate.data;
-
-    if (documentType === "purchaseOrder") {
-      const lines = await getPurchaseOrderLines(client, documentId);
-      const { status: calculatedStatus } = getPurchaseOrderStatus(
-        lines.data || []
-      );
-
-      const statusUpdate = await client
-        .from("purchaseOrder")
-        .update({
-          status: calculatedStatus,
+  try {
+    const result = await db.transaction().execute(async (trx) => {
+      // 1. Update approval request to "Approved"
+      const updatedApproval = await trx
+        .updateTable("approvalRequest")
+        .set({
+          status: "Approved",
+          decisionBy: userId,
+          decisionAt: now,
+          decisionNotes: notes || null,
           updatedBy: userId,
-          updatedAt: new Date().toISOString()
+          updatedAt: now
         })
-        .eq("id", documentId)
-        .eq("status", "Needs Approval")
-        .select("id")
-        .single();
+        .where("id", "=", id)
+        .returning(["id", "documentType", "documentId"])
+        .executeTakeFirstOrThrow();
 
-      if (statusUpdate.error) {
-        console.warn(
-          `Failed to update PO ${documentId} status after approval:`,
-          statusUpdate.error
-        );
+      // 2. Update document status based on type
+      if (documentType === "purchaseOrder") {
+        // Fetch PO lines to calculate new status
+        const lines = await trx
+          .selectFrom("purchaseOrderLine")
+          .select([
+            "purchaseOrderLineType",
+            "invoicedComplete",
+            "receivedComplete"
+          ])
+          .where("purchaseOrderId", "=", documentId)
+          .execute();
+
+        const { status: calculatedStatus } = getPurchaseOrderStatus(lines);
+
+        // Update PO status (only if currently "Needs Approval")
+        const poUpdate = await trx
+          .updateTable("purchaseOrder")
+          .set({
+            status: calculatedStatus,
+            updatedBy: userId,
+            updatedAt: now
+          })
+          .where("id", "=", documentId)
+          .where("status", "=", "Needs Approval")
+          .returning(["id"])
+          .executeTakeFirst();
+
+        if (!poUpdate) {
+          throw new Error(
+            "Failed to update purchase order status - it may no longer be in 'Needs Approval' state"
+          );
+        }
+      } else if (documentType === "qualityDocument") {
+        const qdUpdate = await trx
+          .updateTable("qualityDocument")
+          .set({
+            status: "Active",
+            updatedBy: userId,
+            updatedAt: now
+          })
+          .where("id", "=", documentId)
+          .returning(["id"])
+          .executeTakeFirst();
+
+        if (!qdUpdate) {
+          throw new Error("Failed to update quality document status");
+        }
       }
-    } else if (documentType === "qualityDocument") {
-      await client
-        .from("qualityDocument")
-        .update({
-          status: "Active",
-          updatedBy: userId,
-          updatedAt: new Date().toISOString()
-        })
-        .eq("id", documentId);
-    }
-  }
 
-  return approvalUpdate;
+      return updatedApproval;
+    });
+
+    return { data: result, error: null };
+  } catch (error) {
+    // Transaction automatically rolled back on error
+    return {
+      error: {
+        message:
+          error instanceof Error ? error.message : "Failed to process approval"
+      },
+      data: null
+    };
+  }
 }
 
 export async function canApproveRequest(
@@ -128,6 +156,12 @@ export async function canApproveRequest(
       return false;
     }
 
+    // Check if user ID is directly in approverGroupIds (for individual approvers)
+    if (approverGroupIds.includes(userId)) {
+      return true;
+    }
+
+    // Check if user belongs to any of the approver groups
     return approverGroupIds.some((groupId) => userGroupIds.includes(groupId));
   });
 }
@@ -162,6 +196,12 @@ export async function canApproveRequestInWindow(
     return false;
   }
 
+  // Check if user ID is directly in approverGroupIds (for individual approvers)
+  if (approverGroupIds.includes(userId)) {
+    return true;
+  }
+
+  // Check if user belongs to any of the approver groups
   const userGroups = await client.rpc("groups_for_user", { uid: userId });
   const userGroupIds = userGroups.data || [];
   return approverGroupIds.some((groupId) => userGroupIds.includes(groupId));
@@ -604,6 +644,7 @@ export async function getLatestApprovalRequestForDocument(
     .select("*")
     .eq("documentType", documentType)
     .eq("documentId", documentId)
+    .eq("status", "Pending")
     .order("requestedAt", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -1007,66 +1048,85 @@ export async function updateNote(
 }
 
 export async function rejectRequest(
-  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   id: string,
   userId: string,
   notes?: string
 ) {
-  const existing = await client
-    .from("approvalRequest")
-    .select("id, status, documentType, documentId")
-    .eq("id", id)
-    .single();
+  // Pre-flight check: verify approval request exists and is pending
+  const approvalRequest = await db
+    .selectFrom("approvalRequest")
+    .select(["id", "status", "documentType", "documentId"])
+    .where("id", "=", id)
+    .executeTakeFirst();
 
-  if (existing.error || !existing.data) {
+  if (!approvalRequest) {
     return { error: { message: "Approval request not found" }, data: null };
   }
 
-  if (existing.data.status !== "Pending") {
+  if (approvalRequest.status !== "Pending") {
     return {
       error: { message: "Approval request is not pending" },
       data: null
     };
   }
 
-  const approvalUpdate = await client
-    .from("approvalRequest")
-    .update({
-      status: "Rejected",
-      decisionBy: userId,
-      decisionAt: new Date().toISOString(),
-      decisionNotes: notes || null,
-      updatedBy: userId,
-      updatedAt: new Date().toISOString()
-    })
-    .eq("id", id)
-    .select("id, documentType, documentId")
-    .single();
+  const { documentType, documentId } = approvalRequest;
+  const now = new Date().toISOString();
 
-  if (approvalUpdate.error) {
-    return { error: approvalUpdate.error, data: null };
-  }
-
-  if (approvalUpdate.data) {
-    const { documentType, documentId } = approvalUpdate.data;
-
-    if (documentType === "purchaseOrder") {
-      await client
-        .from("purchaseOrder")
-        .update({
+  try {
+    const result = await db.transaction().execute(async (trx) => {
+      // 1. Update approval request to "Rejected"
+      const updatedApproval = await trx
+        .updateTable("approvalRequest")
+        .set({
           status: "Rejected",
+          decisionBy: userId,
+          decisionAt: now,
+          decisionNotes: notes || null,
           updatedBy: userId,
-          updatedAt: new Date().toISOString()
+          updatedAt: now
         })
-        .eq("id", documentId)
-        .eq("status", "Needs Approval");
-    } else if (documentType === "qualityDocument") {
-      // Keep quality document as "Draft" when rejected
-      // (No status change needed, it should remain in Draft)
-    }
-  }
+        .where("id", "=", id)
+        .returning(["id", "documentType", "documentId"])
+        .executeTakeFirstOrThrow();
 
-  return approvalUpdate;
+      // 2. Update document status based on type
+      if (documentType === "purchaseOrder") {
+        const poUpdate = await trx
+          .updateTable("purchaseOrder")
+          .set({
+            status: "Rejected",
+            updatedBy: userId,
+            updatedAt: now
+          })
+          .where("id", "=", documentId)
+          .where("status", "=", "Needs Approval")
+          .returning(["id"])
+          .executeTakeFirst();
+
+        if (!poUpdate) {
+          throw new Error(
+            "Failed to update purchase order status - it may no longer be in 'Needs Approval' state"
+          );
+        }
+      }
+      // Note: qualityDocument rejection doesn't change status (stays Draft)
+
+      return updatedApproval;
+    });
+
+    return { data: result, error: null };
+  } catch (error) {
+    // Transaction automatically rolled back on error
+    return {
+      error: {
+        message:
+          error instanceof Error ? error.message : "Failed to process rejection"
+      },
+      data: null
+    };
+  }
 }
 
 export async function upsertApprovalRule(

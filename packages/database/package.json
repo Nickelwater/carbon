@@ -17,6 +17,10 @@
   "exports": {
     ".": "./src/index.ts",
     "./client": "./src/client.ts",
+    "./event": "./src/event.ts",
+    "./audit": "./src/audit.ts",
+    "./audit.config": "./src/audit.config.ts",
+    "./audit.types": "./src/audit.types.ts",
     "./swagger-docs-schema": "./src/swagger-docs-schema.ts"
   },
   "private": true,
@@ -29,6 +33,7 @@
     "db:migrate": "supabase migration up",
     "db:migrate:new": "supabase migration new",
     "db:seed": "tsx src/seed.ts",
+    "db:seed:dev": "tsx src/seed-dev.ts",
     "db:setup": "supabase db reset",
     "db:start": "supabase start",
     "db:stop": "supabase stop",

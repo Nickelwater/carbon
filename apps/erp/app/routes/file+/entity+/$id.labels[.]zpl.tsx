@@ -1,7 +1,8 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { generateProductLabelZPL } from "@carbon/documents/zpl";
 import { labelSizes } from "@carbon/utils";
-import { type LoaderFunctionArgs, redirect } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { path } from "~/utils/path";
 import { getEntityLabelData } from "./labels.server";
 

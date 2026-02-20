@@ -31,7 +31,7 @@ import { Enumerable } from "~/components/Enumerable";
 import { useWorkCenters } from "~/components/Form/WorkCenter";
 import { usePermissions, useUrlParams } from "~/hooks";
 import { useCustomColumns } from "~/hooks/useCustomColumns";
-import { type Process } from "~/modules/resources";
+import type { Process } from "~/modules/resources";
 import { standardFactorType } from "~/modules/shared";
 import { usePeople } from "~/stores";
 import { path } from "~/utils/path";

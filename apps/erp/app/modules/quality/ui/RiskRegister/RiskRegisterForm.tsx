@@ -107,7 +107,7 @@ const RiskRegisterForm = ({
     } else if (fetcher.state === "idle" && fetcher.data?.success === false) {
       toast.error(`Failed to save risk: ${fetcher.data?.error?.message}`);
     }
-  }, [fetcher.data?.success, fetcher.data?.error]);
+  }, [fetcher.data?.success, fetcher.data?.error, fetcher.state, onClose]);
 
   const isEditing = !!initialValues.id;
   const isDisabled = isEditing

@@ -9,10 +9,8 @@ import {
   ConversationScrollButton
 } from "../Conversation";
 import { Markdown } from "../Markdown/Markdown";
-import {
-  type SupportedToolName,
-  ToolCallIndicator
-} from "../ToolCallIndicator";
+import type { SupportedToolName } from "../ToolCallIndicator";
+import { ToolCallIndicator } from "../ToolCallIndicator";
 import { WebSearchSources } from "../WebSearch";
 import { MessageActions } from "./MessageActions";
 

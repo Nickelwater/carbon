@@ -1,4 +1,5 @@
-import { type Database, fetchAllFromTable, type Json } from "@carbon/database";
+import type { Database, Json } from "@carbon/database";
+import { fetchAllFromTable } from "@carbon/database";
 import type { JSONContent } from "@carbon/react";
 import { parseDate } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -386,7 +387,7 @@ export async function getIssueAction(
 ) {
   return client
     .from("nonConformanceActionTask")
-    .select("id,nonConformanceId,nonConformance(id,nonConformanceId)")
+    .select("id,notes,nonConformanceId,nonConformance(id,nonConformanceId)")
     .eq("id", id)
     .single();
 }
@@ -408,7 +409,50 @@ export async function getIssueActionTasks(
   if (supplierId) {
     query = query.eq("supplierId", supplierId);
   }
-  return query;
+
+  const result = await query;
+
+  if (result.error || !result.data) {
+    return result;
+  }
+
+  // Fetch Linear and Jira mappings for all action task IDs
+  const taskIds = result.data.map((t) => t.id);
+  let linearMappings: Map<string, unknown> = new Map();
+  let jiraMappings: Map<string, unknown> = new Map();
+
+  if (taskIds.length > 0) {
+    const [{ data: linearData }, { data: jiraData }] = await Promise.all([
+      client
+        .from("externalIntegrationMapping")
+        .select("entityId, metadata")
+        .eq("entityType", "nonConformanceActionTask")
+        .eq("integration", "linear")
+        .in("entityId", taskIds),
+      client
+        .from("externalIntegrationMapping")
+        .select("entityId, metadata")
+        .eq("entityType", "nonConformanceActionTask")
+        .eq("integration", "jira")
+        .in("entityId", taskIds)
+    ]);
+
+    linearMappings = new Map(
+      (linearData ?? []).map((m) => [m.entityId, m.metadata])
+    );
+    jiraMappings = new Map(
+      (jiraData ?? []).map((m) => [m.entityId, m.metadata])
+    );
+  }
+
+  return {
+    ...result,
+    data: result.data.map((task) => ({
+      ...task,
+      linearIssue: linearMappings.get(task.id) ?? null,
+      jiraIssue: jiraMappings.get(task.id) ?? null
+    }))
+  };
 }
 
 export async function getIssueApprovalTasks(

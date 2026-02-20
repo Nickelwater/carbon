@@ -1,4 +1,4 @@
-import React from "react";
+import type React from "react";
 import { useDropzone } from "react-dropzone";
 import { LuCloudUpload } from "react-icons/lu";
 
@@ -13,7 +13,7 @@ const FileDropzone: React.FC<FileDropzoneProps> = ({ onDrop }) => {
     <div
       {...getRootProps()}
       className={`mt-4 border-2 border-dashed rounded-md p-6 text-center hover:border-primary hover:bg-primary/10 ${
-        isDragActive ? "border-primary bg-primary/10" : "border-muted"
+        isDragActive ? "border-primary bg-primary/10" : "border-card"
       }`}
     >
       <input {...getInputProps()} />

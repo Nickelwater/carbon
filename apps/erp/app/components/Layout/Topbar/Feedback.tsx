@@ -21,7 +21,7 @@ import { SUPPORT_EMAIL } from "@carbon/utils";
 import { nanoid } from "nanoid";
 import type { ChangeEvent } from "react";
 import { useEffect, useRef, useState } from "react";
-import { LuImage, LuLightbulb } from "react-icons/lu";
+import { LuImage } from "react-icons/lu";
 import { useFetcher, useLocation } from "react-router";
 import { feedbackValidator } from "~/modules/shared";
 import type { action } from "~/routes/x+/feedback";

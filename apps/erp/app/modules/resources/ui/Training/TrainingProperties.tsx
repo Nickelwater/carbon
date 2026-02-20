@@ -17,8 +17,8 @@ import Assignee, { useOptimisticAssignment } from "~/components/Assignee";
 import { InputControlled, Tags } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";
 import { useTags } from "~/hooks/useTags";
+import type { Training } from "~/modules/resources";
 import {
-  type Training,
   trainingFrequency,
   trainingStatus,
   trainingType
@@ -93,7 +93,9 @@ const TrainingProperties = () => {
     >
       <VStack spacing={2}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xs text-muted-foreground">Properties</h3>
+          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+            Properties
+          </h3>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>

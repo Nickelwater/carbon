@@ -1,11 +1,11 @@
 import { getUser } from "@carbon/auth";
 import type { Database } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import type { TiptapDocument } from "../../linear/lib";
 import {
   getLinearClient,
   getLinearIssueFromExternalId,
   mapCarbonStatusToLinearStatus,
-  type TiptapDocument,
   tiptapToMarkdown
 } from "../../linear/lib";
 import type { NotificationEvent, NotificationService } from "../types";

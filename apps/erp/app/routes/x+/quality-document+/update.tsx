@@ -4,7 +4,7 @@ import type { Database } from "@carbon/database";
 import { NotificationEvent } from "@carbon/notifications";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { tasks } from "@trigger.dev/sdk";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { qualityDocumentStatus } from "~/modules/quality/quality.models";
 import {
   canApproveRequest,

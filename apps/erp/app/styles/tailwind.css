@@ -33,6 +33,9 @@
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
 
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 98%;
+
     --base-shadow-color: rgb(0 0 0 / 0.05);
 
     --button-drop-shadow: rgb(0 0 0 / 0);
@@ -67,6 +70,9 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 98%;
 
     --button-drop-shadow: rgb(0 0 0 / 0.4);
     --danger-drop-shadow: rgb(127 29 29 / 0.8);

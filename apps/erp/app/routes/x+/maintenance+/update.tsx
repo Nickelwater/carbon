@@ -1,5 +1,5 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { upsertMaintenanceDispatch } from "~/modules/resources";
 
 export async function action({ request }: ActionFunctionArgs) {

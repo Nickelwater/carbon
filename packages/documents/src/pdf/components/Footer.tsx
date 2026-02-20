@@ -10,10 +10,10 @@ const tw = createTw({
 });
 
 interface FooterProps {
-  nonConformanceId: string;
+  label?: string;
 }
 
-const Footer = ({ nonConformanceId }: FooterProps) => {
+const Footer = ({ label }: FooterProps) => {
   return (
     <View style={tw("absolute bottom-0 left-0 right-0 px-10 pb-5")} fixed>
       <View
@@ -21,7 +21,7 @@ const Footer = ({ nonConformanceId }: FooterProps) => {
           "flex flex-row justify-between items-center text-sm text-gray-500"
         )}
       >
-        <Text>Issue #{nonConformanceId}</Text>
+        <Text>{label ?? ""}</Text>
         <Text
           render={({ pageNumber, totalPages }) =>
             `${pageNumber} of ${totalPages}`

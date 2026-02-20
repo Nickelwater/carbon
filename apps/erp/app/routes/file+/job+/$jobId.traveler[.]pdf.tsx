@@ -10,14 +10,14 @@ import {
   renderToStream,
   StyleSheet
 } from "@react-pdf/renderer";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import {
   getJob,
   getJobMethodTree,
   getJobOperationsByMethodId,
   getTrackedEntityByJobId
 } from "~/modules/production/production.service";
-import { getCompany } from "~/modules/settings";
+import { getCompany, getCompanySettings } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -52,10 +52,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Error("Failed to load job make methods");
   }
 
-  const company = await getCompany(serviceRole, job.data.companyId ?? "");
+  const [company, companySettings] = await Promise.all([
+    getCompany(serviceRole, job.data.companyId ?? ""),
+    getCompanySettings(serviceRole, job.data.companyId ?? "")
+  ]);
   if (company.error) {
     console.error(company.error);
     throw new Error("Failed to load company");
+  }
+  if (companySettings.error) {
+    console.error(companySettings.error);
+    throw new Error("Failed to load company settings");
   }
 
   const customer = await serviceRole
@@ -193,6 +200,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             notes={index === 0 ? jobNotes : undefined}
             thumbnail={data.thumbnail}
             methodRevision={data.makeMethod.version?.toString()}
+            includeWorkInstructions={
+              companySettings.data?.jobTravelerIncludeWorkInstructions ?? false
+            }
           />
         </Page>
       ))}
@@ -212,7 +222,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="${job.data.jobId}.pdf"`
+    "Content-Disposition": `inline; filename="${company.data.name} - ${job.data.jobId}.pdf"`
   });
   return new Response(body, { status: 200, headers });
 }

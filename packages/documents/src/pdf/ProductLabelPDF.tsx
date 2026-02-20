@@ -2,6 +2,7 @@ import type { LabelSize, ProductLabelItem } from "@carbon/utils";
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { createTw } from "react-pdf-tailwind";
 import { generateQRCode } from "../qr/qr-code";
+import Footer from "./components/Footer";
 
 interface ProductLabelProps {
   items: ProductLabelItem[];
@@ -206,6 +207,7 @@ const ProductLabelPDF = ({ items, labelSize }: ProductLabelProps) => {
               })}
             </View>
           ))}
+          <Footer />
         </Page>
       ))}
     </Document>

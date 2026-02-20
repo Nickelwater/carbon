@@ -68,7 +68,8 @@ import { SortableList, SortableListItem } from "~/components/SortableList";
 import { usePermissions, useRouteData, useUrlParams, useUser } from "~/hooks";
 import { getLinkToItemDetails } from "~/modules/items/ui/Item/ItemForm";
 import type { MethodItemType, MethodType } from "~/modules/shared";
-import { type Item as ItemType, useItems } from "~/stores";
+import type { Item as ItemType } from "~/stores";
+import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import type { jobOperationValidator } from "../../production.models";
 import {

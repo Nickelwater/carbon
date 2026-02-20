@@ -104,9 +104,19 @@ const JobBoMExplorer = ({ method }: JobBoMExplorerProps) => {
 
   const [searchParams, setSearchParams] = useSearchParams();
   const selectedMaterialId = searchParams.get("materialId");
+  const isDetailsRoute =
+    jobId && location.pathname === path.to.jobDetails(jobId);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: supress
   useEffect(() => {
     if (!selectedMaterialId) {
+      if (isDetailsRoute) {
+        const rootNode = method.find((m) => m.data.isRoot);
+        if (rootNode) {
+          selectNode(rootNode.id);
+          return;
+        }
+      }
       deselectAllNodes();
       return;
     }
@@ -239,8 +249,8 @@ const JobBoMExplorer = ({ method }: JobBoMExplorerProps) => {
                       className={cn(
                         "flex h-8 cursor-pointer items-center overflow-hidden rounded-sm pr-2 gap-1",
                         state.selected
-                          ? "bg-muted hover:bg-muted/90"
-                          : "bg-transparent hover:bg-muted/90"
+                          ? "bg-muted hover:bg-accent"
+                          : "bg-transparent hover:bg-accent"
                       )}
                       onClick={() => {
                         selectNode(node.id, false);
@@ -298,7 +308,7 @@ const JobBoMExplorer = ({ method }: JobBoMExplorerProps) => {
                       <div className="flex w-full items-center justify-between gap-2">
                         <div className="flex items-center gap-2 overflow-x-hidden">
                           {bomIdMap.get(node.id) && (
-                            <Badge variant="outline">
+                            <Badge variant="outline" className="flex-shrink-0">
                               {bomIdMap.get(node.id)}
                             </Badge>
                           )}
@@ -463,7 +473,7 @@ function NodePreview({ node }: { node: FlatTreeItem<JobMethod> }) {
 
 function getNodePath(node: FlatTreeItem<JobMethod>) {
   return node.data.isRoot
-    ? path.to.jobMethod(node.data.jobId, node.data.jobMaterialMakeMethodId)
+    ? path.to.jobDetails(node.data.jobId)
     : node.data.methodType === "Make"
       ? path.to.jobMakeMethod(
           node.data.jobId,

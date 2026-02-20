@@ -7,7 +7,6 @@ import {
   Card,
   CardContent,
   CardHeader,
-  CardTitle,
   HStack,
   VStack
 } from "@carbon/react";

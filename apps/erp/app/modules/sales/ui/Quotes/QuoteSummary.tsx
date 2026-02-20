@@ -127,7 +127,7 @@ const LineItems = ({
     routeData?.quote.currencyCode !== company?.baseCurrencyCode;
 
   return (
-    <VStack spacing={8} className="w-full overflow-hidden">
+    <VStack spacing={8} className="w-full overflow-hidden tracking-tight">
       {routeData?.lines?.map((line) => {
         const prices = pricingByLine[line.id!];
 
@@ -316,6 +316,13 @@ const LinePricingOptions = ({
     });
   });
 
+  const hasAnyShipping = options.some(
+    (option) => (option.convertedShippingCost ?? 0) > 0
+  );
+  const hasAnyFees = options.some(
+    (option) => (convertedAdditionalChargesByQuantity[option.quantity] ?? 0) > 0
+  );
+
   return (
     <VStack spacing={4}>
       <RadioGroup
@@ -365,7 +372,8 @@ const LinePricingOptions = ({
               <Th>Quantity</Th>
               <Th>Unit Price</Th>
               <Th>Discount</Th>
-              <Th>Add-Ons</Th>
+              {hasAnyShipping && <Th>Shipping</Th>}
+              {hasAnyFees && <Th>Fees</Th>}
               <Th>Lead Time</Th>
               <Th>Subtotal</Th>
             </Tr>
@@ -373,7 +381,10 @@ const LinePricingOptions = ({
           <Tbody>
             {!Array.isArray(options) || options.length === 0 ? (
               <Tr>
-                <Td colSpan={6} className="text-center py-8">
+                <Td
+                  colSpan={5 + (hasAnyShipping ? 1 : 0) + (hasAnyFees ? 1 : 0)}
+                  className="text-center py-8"
+                >
                   No pricing options found
                 </Td>
               </Tr>
@@ -404,13 +415,28 @@ const LinePricingOptions = ({
                           ? percentFormatter.format(option.discountPercent)
                           : "-"}
                       </Td>
-                      <Td>
-                        {formatter.format(
-                          convertedAdditionalChargesByQuantity[
+                      {hasAnyShipping && (
+                        <Td>
+                          {(option.convertedShippingCost ?? 0) > 0
+                            ? formatter.format(
+                                option.convertedShippingCost ?? 0
+                              )
+                            : "-"}
+                        </Td>
+                      )}
+                      {hasAnyFees && (
+                        <Td>
+                          {(convertedAdditionalChargesByQuantity[
                             option.quantity
-                          ] + (option.convertedShippingCost ?? 0)
-                        )}
-                      </Td>
+                          ] ?? 0) > 0
+                            ? formatter.format(
+                                convertedAdditionalChargesByQuantity[
+                                  option.quantity
+                                ]
+                              )
+                            : "-"}
+                        </Td>
+                      )}
                       <Td>
                         {new Intl.NumberFormat(locale, {
                           style: "unit",

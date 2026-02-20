@@ -1,5 +1,6 @@
 import { openai } from "@ai-sdk/openai";
-import { Agent, type AgentConfig } from "@ai-sdk-tools/agents";
+import type { AgentConfig } from "@ai-sdk-tools/agents";
+import { Agent } from "@ai-sdk-tools/agents";
 import { UpstashProvider } from "@ai-sdk-tools/memory/upstash";
 import { UPSTASH_REDIS_REST_TOKEN, UPSTASH_REDIS_REST_URL } from "@carbon/auth";
 import { Redis } from "@upstash/redis";

@@ -6,7 +6,7 @@ import {
   useDisclosure
 } from "@carbon/react";
 import { formatDate } from "@carbon/utils";
-import { type ColumnDef } from "@tanstack/react-table";
+import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
   LuBookMarked,

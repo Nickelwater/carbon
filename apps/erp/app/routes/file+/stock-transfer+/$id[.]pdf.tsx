@@ -1,7 +1,7 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { StockTransferPDF } from "@carbon/documents/pdf";
 import { renderToStream } from "@react-pdf/renderer";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { getStockTransfer, getStockTransferLines } from "~/modules/inventory";
 import { getCompany } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
@@ -117,7 +117,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="${stockTransfer.data.stockTransferId}.pdf"`
+    "Content-Disposition": `inline; filename="${company.data.name} - ${stockTransfer.data.stockTransferId}.pdf"`
   });
   return new Response(body, { status: 200, headers });
 }

@@ -1,13 +1,11 @@
 import { getCarbonServiceRole } from "@carbon/auth";
-import { type Database, fetchAllFromTable, type Json } from "@carbon/database";
+import type { Database, Json } from "@carbon/database";
+import { fetchAllFromTable } from "@carbon/database";
 import type { JSONContent } from "@carbon/react";
 import { parseDate } from "@internationalized/date";
 import type { FileObject, StorageError } from "@supabase/storage-js";
-import {
-  FunctionRegion,
-  type PostgrestError,
-  type SupabaseClient
-} from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { FunctionRegion } from "@supabase/supabase-js";
 import type { z } from "zod";
 import type { StorageItem } from "~/types";
 import type { GenericQueryFilters } from "~/utils/query";
@@ -917,6 +915,20 @@ export async function getJobMakeMethodById(
     .from("jobMakeMethod")
     .select("*, ...item(itemType:type, methodRevision:revision)")
     .eq("id", jobMakeMethodId)
+    .eq("companyId", companyId)
+    .single();
+}
+
+export async function getRootMakeMethod(
+  client: SupabaseClient<Database>,
+  jobId: string,
+  companyId: string
+) {
+  return client
+    .from("jobMakeMethod")
+    .select("*, ...item(itemType:type, methodRevision:revision)")
+    .eq("jobId", jobId)
+    .is("parentMaterialId", null)
     .eq("companyId", companyId)
     .single();
 }
@@ -2326,6 +2338,14 @@ export async function upsertJobMethod(
     companyId: string;
     userId: string;
     configuration?: Record<string, unknown>;
+    parts?: {
+      billOfMaterial: boolean;
+      billOfProcess: boolean;
+      parameters: boolean;
+      tools: boolean;
+      steps: boolean;
+      workInstructions: boolean;
+    };
   }
 ) {
   const body: {
@@ -2335,6 +2355,14 @@ export async function upsertJobMethod(
     companyId: string;
     userId: string;
     configuration?: Record<string, unknown>;
+    parts?: {
+      billOfMaterial: boolean;
+      billOfProcess: boolean;
+      parameters: boolean;
+      tools: boolean;
+      steps: boolean;
+      workInstructions: boolean;
+    };
   } = {
     type,
     sourceId: jobMethod.sourceId,
@@ -2346,6 +2374,11 @@ export async function upsertJobMethod(
   // Only add configuration if it exists
   if (jobMethod.configuration !== undefined) {
     body.configuration = jobMethod.configuration;
+  }
+
+  // Only add parts if it exists
+  if (jobMethod.parts !== undefined) {
+    body.parts = jobMethod.parts;
   }
 
   const getMethodResult = await client.functions.invoke("get-method", {
@@ -2370,6 +2403,14 @@ export async function upsertJobMaterialMakeMethod(
     companyId: string;
     userId: string;
     configuration?: Record<string, unknown>;
+    parts?: {
+      billOfMaterial: boolean;
+      billOfProcess: boolean;
+      parameters: boolean;
+      tools: boolean;
+      steps: boolean;
+      workInstructions: boolean;
+    };
   }
 ) {
   const body: {
@@ -2379,6 +2420,14 @@ export async function upsertJobMaterialMakeMethod(
     companyId: string;
     userId: string;
     configuration?: Record<string, unknown>;
+    parts?: {
+      billOfMaterial: boolean;
+      billOfProcess: boolean;
+      parameters: boolean;
+      tools: boolean;
+      steps: boolean;
+      workInstructions: boolean;
+    };
   } = {
     type: "itemToJobMakeMethod",
     sourceId: jobMaterial.sourceId,
@@ -2390,6 +2439,11 @@ export async function upsertJobMaterialMakeMethod(
   // Only add configuration if it exists
   if (jobMaterial.configuration !== undefined) {
     body.configuration = jobMaterial.configuration;
+  }
+
+  // Only add parts if it exists
+  if (jobMaterial.parts !== undefined) {
+    body.parts = jobMaterial.parts;
   }
 
   const { error } = await client.functions.invoke("get-method", {
@@ -2414,6 +2468,14 @@ export async function upsertMakeMethodFromJob(
     targetId: string;
     companyId: string;
     userId: string;
+    parts?: {
+      billOfMaterial: boolean;
+      billOfProcess: boolean;
+      parameters: boolean;
+      tools: boolean;
+      steps: boolean;
+      workInstructions: boolean;
+    };
   }
 ) {
   return client.functions.invoke("get-method", {
@@ -2422,7 +2484,8 @@ export async function upsertMakeMethodFromJob(
       sourceId: jobMethod.sourceId,
       targetId: jobMethod.targetId,
       companyId: jobMethod.companyId,
-      userId: jobMethod.userId
+      userId: jobMethod.userId,
+      parts: jobMethod.parts
     },
     region: FunctionRegion.UsEast1
   });
@@ -2435,6 +2498,14 @@ export async function upsertMakeMethodFromJobMethod(
     targetId: string;
     companyId: string;
     userId: string;
+    parts?: {
+      billOfMaterial: boolean;
+      billOfProcess: boolean;
+      parameters: boolean;
+      tools: boolean;
+      steps: boolean;
+      workInstructions: boolean;
+    };
   }
 ) {
   const { error } = await client.functions.invoke("get-method", {
@@ -2443,7 +2514,8 @@ export async function upsertMakeMethodFromJobMethod(
       sourceId: jobMethod.sourceId,
       targetId: jobMethod.targetId,
       companyId: jobMethod.companyId,
-      userId: jobMethod.userId
+      userId: jobMethod.userId,
+      parts: jobMethod.parts
     },
     region: FunctionRegion.UsEast1
   });

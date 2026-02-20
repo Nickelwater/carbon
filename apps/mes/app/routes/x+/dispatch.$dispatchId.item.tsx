@@ -7,7 +7,8 @@ import {
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { FunctionRegion } from "@supabase/supabase-js";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { addMaintenanceDispatchItem } from "~/services/maintenance.service";
 
 export async function action({ request, params }: ActionFunctionArgs) {

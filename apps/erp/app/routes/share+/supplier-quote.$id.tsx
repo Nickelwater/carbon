@@ -50,7 +50,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData, useParams } from "react-router";
 import { externalSupplierQuoteValidator } from "~/modules/purchasing/purchasing.models";
 import {
-  getSupplierQuoteByExternalId,
+  getSupplierQuoteByExternalLinkId,
   getSupplierQuoteLinePricesByQuoteId,
   getSupplierQuoteLines
 } from "~/modules/purchasing/purchasing.service";
@@ -95,7 +95,7 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
   }
 
   const serviceRole = getCarbonServiceRole();
-  const quote = await getSupplierQuoteByExternalId(serviceRole, id);
+  const quote = await getSupplierQuoteByExternalLinkId(serviceRole, id);
 
   if (quote.error) {
     return {
@@ -192,8 +192,8 @@ const EditableBadge = () => {
 };
 
 const Header = ({ company, quote }: { company: any; quote: any }) => (
-  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-start justify-between gap-4 sm:space-y-2 pb-7">
-    <VStack spacing={4}>
+  <div className="flex justify-between">
+    <VStack spacing={4} className="tracking-tight">
       <div>
         <CardTitle className="text-3xl">{company?.name ?? ""}</CardTitle>
         {quote?.supplierQuoteId && (
@@ -215,7 +215,7 @@ const Header = ({ company, quote }: { company: any; quote: any }) => (
         </span>
       ) : null}
     </VStack>
-  </CardHeader>
+  </div>
 );
 
 const NotesEditorModal = ({
@@ -858,17 +858,20 @@ const Quote = ({
         />
       )}
       <Card className="w-full max-w-5xl mx-auto">
-        <div className="w-full text-center">
-          {quote?.status && (quote?.status as string) !== "Draft" && (
-            <Status
-              className="inline-flex"
-              color={quote.status === "Active" ? "green" : "gray"}
-            >
-              {quote.status}
-            </Status>
-          )}
-        </div>
-        <Header company={company} quote={quote} />
+        <CardHeader>
+          <div className="w-full text-center">
+            {quote?.status && (quote?.status as string) !== "Draft" && (
+              <Status
+                className="inline-flex"
+                color={quote.status === "Active" ? "green" : "gray"}
+              >
+                {quote.status}
+              </Status>
+            )}
+          </div>
+
+          <Header company={company} quote={quote} />
+        </CardHeader>
         <CardContent>
           <LineItems
             currencyCode={quote.currencyCode ?? "USD"}

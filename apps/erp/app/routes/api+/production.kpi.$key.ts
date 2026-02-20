@@ -4,7 +4,7 @@ import {
   parseDateTime,
   toCalendarDateTime
 } from "@internationalized/date";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { KPIs } from "~/modules/production/production.models";
 import { makeDurations } from "~/utils/duration";
 

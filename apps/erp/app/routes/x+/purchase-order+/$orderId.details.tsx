@@ -18,6 +18,7 @@ import type {
 import {
   getPurchaseOrder,
   getPurchaseOrderPayment,
+  isPurchaseOrderLocked,
   purchaseOrderValidator,
   upsertPurchaseOrder
 } from "~/modules/purchasing";
@@ -70,12 +71,47 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId } = await requirePermissions(request, {
-    update: "purchasing"
-  });
 
   const { orderId } = params;
   if (!orderId) throw new Error("Could not find orderId");
+
+  // First check with basic update permission to get the PO
+  const { client: viewClient } = await requirePermissions(request, {
+    view: "purchasing"
+  });
+
+  // Check if PO is locked
+  const purchaseOrder = await getPurchaseOrder(viewClient, orderId);
+  if (purchaseOrder.error) {
+    throw redirect(
+      path.to.purchaseOrder(orderId),
+      await flash(
+        request,
+        error(purchaseOrder.error, "Failed to load purchase order")
+      )
+    );
+  }
+
+  const isLocked = isPurchaseOrderLocked(purchaseOrder.data?.status);
+
+  // If locked, require delete permission; otherwise require update permission
+  const { client, userId } = await requirePermissions(request, {
+    ...(isLocked ? { delete: "purchasing" } : { update: "purchasing" })
+  });
+
+  // If locked, block all edits (no header changes allowed on locked POs)
+  if (isLocked) {
+    throw redirect(
+      path.to.purchaseOrder(orderId),
+      await flash(
+        request,
+        error(
+          null,
+          "Cannot modify a finalized purchase order. To make changes, please cancel this PO and create a new one."
+        )
+      )
+    );
+  }
 
   const formData = await request.formData();
   const validation = await validator(purchaseOrderValidator).validate(formData);
@@ -121,7 +157,9 @@ export default function PurchaseOrderBasicRoute() {
     purchaseOrderDelivery: PurchaseOrderDelivery;
     lines: PurchaseOrderLine[];
     files: Promise<FileObject[]>;
-    interaction: SupplierInteraction;
+    interaction: SupplierInteraction & {
+      purchasingRfq?: { id: string; rfqId: string; status: string } | null;
+    };
   }>(path.to.purchaseOrder(orderId));
   if (!orderData) throw new Error("Could not find order data");
 
@@ -217,7 +255,7 @@ export default function PurchaseOrderBasicRoute() {
         ref={deliveryFormRef}
         initialValues={deliveryInitialValues}
         currencyCode={initialValues.currencyCode || company.baseCurrencyCode}
-        defaultCollapsed={true}
+        defaultCollapsed={false}
       />
 
       <PurchaseOrderPaymentForm

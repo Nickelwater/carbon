@@ -1,5 +1,5 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { getCurrencyByCode } from "~/modules/accounting";
 
 export async function action({ request }: ActionFunctionArgs) {

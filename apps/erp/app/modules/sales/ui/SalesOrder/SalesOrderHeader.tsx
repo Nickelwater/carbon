@@ -34,6 +34,7 @@ import {
   LuEye,
   LuFile,
   LuGitCompare,
+  LuHistory,
   LuLoaderCircle,
   LuPanelLeft,
   LuPanelRight,
@@ -42,11 +43,12 @@ import {
 } from "react-icons/lu";
 import type { FetcherWithComponents } from "react-router";
 import { Await, Link, useFetcher, useParams } from "react-router";
-import { CustomerContact } from "~/components/Form";
+import { AuditLogDrawer } from "~/components/AuditLog";
+import { CustomerContact, EmailRecipients } from "~/components/Form";
 import { usePanels } from "~/components/Layout";
 import Confirm from "~/components/Modals/Confirm/Confirm";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
-import { usePermissions, useRouteData } from "~/hooks";
+import { usePermissions, useRouteData, useUser } from "~/hooks";
 import { useIntegrations } from "~/hooks/useIntegrations";
 import type { Shipment } from "~/modules/inventory/types";
 import { ShipmentStatus } from "~/modules/inventory/ui/Shipments";
@@ -65,11 +67,13 @@ import { useSalesOrder } from "./useSalesOrder";
 const SalesOrderConfirmModal = ({
   fetcher,
   salesOrder,
-  onClose
+  onClose,
+  defaultCc = []
 }: {
   fetcher: FetcherWithComponents<{ success: boolean; message: string }>;
   salesOrder?: SalesOrder;
   onClose: () => void;
+  defaultCc?: string[];
 }) => {
   const { orderId } = useParams();
   if (!orderId) throw new Error("orderId not found");
@@ -107,7 +111,8 @@ const SalesOrderConfirmModal = ({
           onSubmit={onClose}
           defaultValues={{
             notification: notificationType,
-            customerContact: salesOrder?.customerContactId ?? undefined
+            customerContact: salesOrder?.customerContactId ?? undefined,
+            cc: defaultCc
           }}
           fetcher={fetcher}
         >
@@ -142,10 +147,13 @@ const SalesOrderConfirmModal = ({
                 />
               )}
               {notificationType === "Email" && (
-                <CustomerContact
-                  name="customerContact"
-                  customer={salesOrder?.customerId ?? undefined}
-                />
+                <>
+                  <CustomerContact
+                    name="customerContact"
+                    customer={salesOrder?.customerId ?? undefined}
+                  />
+                  <EmailRecipients name="cc" label="CC" type="employee" />
+                </>
               )}
             </VStack>
           </ModalBody>
@@ -167,6 +175,7 @@ const SalesOrderHeader = () => {
   const { orderId } = useParams();
   if (!orderId) throw new Error("orderId not found");
 
+  const { company } = useUser();
   const { toggleExplorer, toggleProperties } = usePanels();
 
   const routeData = useRouteData<{
@@ -178,6 +187,7 @@ const SalesOrderHeader = () => {
       shipments: Shipment[];
       invoices: SalesInvoice[];
     }>;
+    defaultCc: string[];
   }>(path.to.salesOrder(orderId));
 
   if (!routeData?.salesOrder) throw new Error("Failed to load sales order");
@@ -191,6 +201,7 @@ const SalesOrderHeader = () => {
   const salesOrderToJobsModal = useDisclosure();
   const confirmDisclosure = useDisclosure();
   const deleteSalesOrderModal = useDisclosure();
+  const auditDrawer = useDisclosure();
   const [customers] = useCustomers();
 
   const csvExportData = useMemo(() => {
@@ -225,6 +236,10 @@ const SalesOrderHeader = () => {
     routeData?.salesOrder?.salesOrderId
   ]);
 
+  const rootRouteData = useRouteData<{
+    auditLogEnabled: Promise<boolean>;
+  }>(path.to.authenticatedRoot);
+
   return (
     <>
       <div className="flex flex-shrink-0 items-center justify-between p-2 bg-card border-b h-[50px] overflow-x-auto scrollbar-hide">
@@ -252,6 +267,23 @@ const SalesOrderHeader = () => {
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent>
+                <Suspense fallback={null}>
+                  <Await resolve={rootRouteData?.auditLogEnabled}>
+                    {(auditLogEnabled) => {
+                      return (
+                        <>
+                          {auditLogEnabled && (
+                            <DropdownMenuItem onClick={auditDrawer.onOpen}>
+                              <DropdownMenuIcon icon={<LuHistory />} />
+                              History
+                            </DropdownMenuItem>
+                          )}
+                        </>
+                      );
+                    }}
+                  </Await>
+                </Suspense>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem
                   disabled={
                     !["To Ship and Invoice", "To Ship"].includes(
@@ -594,6 +626,7 @@ const SalesOrderHeader = () => {
           fetcher={confirmFetcher}
           salesOrder={routeData?.salesOrder}
           onClose={confirmDisclosure.onClose}
+          defaultCc={routeData?.defaultCc ?? []}
         />
       )}
       {deleteSalesOrderModal.isOpen && (
@@ -611,6 +644,13 @@ const SalesOrderHeader = () => {
           }}
         />
       )}
+      <AuditLogDrawer
+        isOpen={auditDrawer.isOpen}
+        onClose={auditDrawer.onClose}
+        entityType="salesOrder"
+        entityId={orderId}
+        companyId={company.id}
+      />
     </>
   );
 };

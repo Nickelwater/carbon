@@ -16,7 +16,11 @@ import { LuCopy, LuInfo, LuLink, LuRefreshCcw } from "react-icons/lu";
 import { useFetcher, useParams } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
-import { Assignee, useOptimisticAssignment } from "~/components";
+import {
+  Assignee,
+  EmployeeAvatar,
+  useOptimisticAssignment
+} from "~/components";
 import {
   Currency,
   Customer,
@@ -119,7 +123,9 @@ const QuoteProperties = () => {
     >
       <VStack spacing={4}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xs text-muted-foreground">Properties</h3>
+          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+            Properties
+          </h3>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -452,6 +458,13 @@ const QuoteProperties = () => {
             </HStack>
           </VStack>
         )}
+      <VStack spacing={2}>
+        <span className="text-xs font-medium text-muted-foreground">
+          Created By
+        </span>
+        <EmployeeAvatar employeeId={routeData?.quote?.createdBy} />
+      </VStack>
+
       <CustomFormInlineFields
         customFields={
           (routeData?.quote?.customFields ?? {}) as Record<string, Json>

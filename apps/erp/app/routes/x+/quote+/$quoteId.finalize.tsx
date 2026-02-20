@@ -7,7 +7,8 @@ import type { sendEmailResendTask } from "@carbon/jobs/trigger/send-email-resend
 import { getLocalTimeZone, now } from "@internationalized/date";
 import { renderAsync } from "@react-email/components";
 import { tasks } from "@trigger.dev/sdk";
-import { type ActionFunctionArgs, redirect } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { upsertDocument } from "~/modules/documents";
 import {
   finalizeQuote,

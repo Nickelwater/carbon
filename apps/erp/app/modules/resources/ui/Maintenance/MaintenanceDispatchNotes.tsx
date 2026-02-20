@@ -1,7 +1,7 @@
 import { useCarbon } from "@carbon/auth";
+import type { JSONContent } from "@carbon/react";
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -14,7 +14,6 @@ import {
   generateHTML,
   HStack,
   IconButton,
-  type JSONContent,
   Skeleton,
   Table,
   Tbody,
@@ -29,7 +28,8 @@ import { Editor } from "@carbon/react/Editor";
 import { convertKbToString } from "@carbon/utils";
 import type { FileObject } from "@supabase/storage-js";
 import { nanoid } from "nanoid";
-import { type ChangeEvent, Suspense, useCallback, useState } from "react";
+import type { ChangeEvent } from "react";
+import { Suspense, useCallback, useState } from "react";
 import { LuEllipsisVertical, LuUpload } from "react-icons/lu";
 import { Await, useRevalidator } from "react-router";
 import { DocumentPreview, FileDropzone } from "~/components";
@@ -130,9 +130,6 @@ export function MaintenanceDispatchFilesSkeleton() {
     <Card>
       <CardHeader>
         <CardTitle>Files</CardTitle>
-        <CardDescription>
-          Attachments and documents related to this dispatch
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="flex flex-col gap-2">
@@ -160,9 +157,6 @@ export function MaintenanceDispatchFiles({
     <Card>
       <CardHeader>
         <CardTitle>Files</CardTitle>
-        <CardDescription>
-          Attachments and documents related to this dispatch
-        </CardDescription>
       </CardHeader>
       <CardContent>
         <Suspense fallback={<MaintenanceDispatchFilesSkeleton />}>

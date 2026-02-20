@@ -232,7 +232,7 @@ export default function EmailRecipients({
         <PopoverTrigger asChild>
           <div
             className={cn(
-              "flex flex-wrap gap-1 min-h-10 w-full rounded-md border bg-background px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 cursor-text",
+              "flex flex-wrap gap-1 min-h-10 w-full rounded-md border bg-transparent px-3 py-2 text-sm ring-offset-background focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 cursor-text",
               inputError ? "border-destructive" : "border-input"
             )}
             onClick={(e) => {

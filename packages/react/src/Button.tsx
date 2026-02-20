@@ -10,26 +10,32 @@ export const buttonVariants = cva(
   [
     "relative font-medium shrink-0 group inline-flex items-center justify-center select-none transform-gpu initial:border-none disabled:opacity-50",
     "focus:!outline-none focus:!ring-0 active:!outline-none active:!ring-0 whitespace-nowrap",
-    "after:pointer-events-none after:absolute after:-inset-[3px] after:rounded-lg after:border after:border-blue-500 after:opacity-0 after:ring-2 after:ring-blue-500/20 after:transition-opacity focus-visible:after:opacity-100 active:after:opacity-0",
-    "before:pointer-events-none before:bg-gradient-to-b before:transition-opacity before:from-white/[0.12] before:absolute before:inset-0 before:z-[1] before:rounded before:opacity-0",
-    "hover:scale-95 transform-gpu will-change-auto focus-visible:scale-95 transition-all duration-150 ease-in-out"
+    "after:pointer-events-none after:absolute after:-inset-[3px] after:rounded-lg after:border after:border-blue-500 after:opacity-0 after:ring-2 after:ring-blue-500/20 after:transition-opacity after:duration-150 after:ease-out focus-visible:after:opacity-100 active:after:opacity-0",
+    // Transition: background/colors use 'ease' (150ms), transform uses 'ease-out' for responsive press feel
+    "transform-gpu transition-[background-color,color,transform,box-shadow] duration-150 ease",
+    // Active state: subtle scale down for tactile press feedback
+    "active:scale-[0.97] active:duration-75 active:ease-out",
+    // Accessibility: respect reduced motion preferences
+    "motion-reduce:transform-none motion-reduce:transition-[background-color,color,box-shadow]"
   ],
   {
     variants: {
       variant: {
         primary:
-          "bg-gradient-to-br from-primary/90 to-primary text-primary-foreground hover:bg-primary/90 saturate-[105%] shadow-[inset_0px_0.5px_0px_rgb(255_255_255_/_0.32)]",
+          "bg-gradient-to-br from-primary/90 to-primary text-primary-foreground hover:bg-primary/90 saturate-[105%] shadow-[inset_0px_0.5px_0px_rgb(255_255_255_/_0.32)] before:pointer-events-none before:bg-gradient-to-b before:transition-opacity before:duration-100 before:ease before:from-white/[0.12] before:absolute before:inset-0 before:z-[1] before:rounded before:opacity-0 hover:before:opacity-100 active:before:opacity-0",
         active:
-          "bg-active text-active-foreground hover:bg-active/90 hover:text-active-foreground shadow-button-base",
+          "bg-active text-active-foreground hover:bg-active/90 hover:text-active-foreground shadow-button-base before:hidden",
         secondary:
-          "bg-background hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 shadow-button-base",
+          "bg-background text-foreground hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 shadow-button-base",
         solid:
           "bg-accent text-accent-foreground hover:bg-accent/90 shadow-button-base",
         destructive:
-          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[inset_0px_0.5px_0px_rgb(255_255_255_/_0.32)]",
+          "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-[inset_0px_0.5px_0px_rgb(255_255_255_/_0.32)] before:pointer-events-none before:bg-gradient-to-b before:transition-opacity before:duration-100 before:ease before:from-white/[0.12] before:absolute before:inset-0 before:z-[1] before:rounded before:opacity-0 hover:before:opacity-100 active:before:opacity-0",
         ghost:
-          "bg-transparent hover:bg-primary/10 text-accent-foreground hover:text-accent-foreground/90",
-        link: "text-foreground hover:text-foreground underline-offset-4 hover:underline px-0 py-0"
+          "bg-transparent hover:bg-primary/10 text-accent-foreground hover:text-accent-foreground/90 before:hidden",
+        outline:
+          "bg-transparent border border-border text-foreground hover:bg-accent hover:text-accent-foreground before:hidden",
+        link: "text-foreground hover:text-foreground underline-offset-4 hover:underline px-0 py-0 before:hidden"
       },
       size: {
         sm: "h-6 rounded-sm text-xs",

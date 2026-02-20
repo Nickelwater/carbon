@@ -14,7 +14,8 @@ import { Hyperlink, New, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { usePermissions, useUrlParams } from "~/hooks";
 import { useCustomColumns } from "~/hooks/useCustomColumns";
-import { type ShippingMethod, shippingCarrierType } from "~/modules/inventory";
+import type { ShippingMethod } from "~/modules/inventory";
+import { shippingCarrierType } from "~/modules/inventory";
 import { path } from "~/utils/path";
 
 type ShippingMethodsTableProps = {

@@ -3,9 +3,9 @@ import template from "lodash.template";
 export const themes = [
   {
     name: "zinc",
-    label: "Zinc",
+    label: "Modern",
     activeColor: {
-      light: "220 5.9% 10%",
+      light: "220 5.9% 2%",
       dark: "220 5.2% 33.9%"
     },
     cssVars: {
@@ -16,8 +16,8 @@ export const themes = [
         "card-foreground": "220 10% 3.9%",
         popover: "0 0% 100%",
         "popover-foreground": "220 10% 3.9%",
-        active: "222 10% 98%",
-        "active-foreground": "222 0 20%",
+        active: "222 10% 88%",
+        "active-foreground": "222 0 8%",
         primary: "220 5.9% 10%",
         "primary-foreground": "0 0% 98%",
         secondary: "220 4.8% 95.9%",
@@ -30,36 +30,41 @@ export const themes = [
         "destructive-foreground": "0 0% 98%",
         border: "220 5.9% 90%",
         input: "220 5.9% 90%",
-        ring: "220 5.9% 10%"
+        ring: "220 5.9% 10%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       },
       dark: {
-        background: "220 10% 6.9%",
-        foreground: "0 0% 98%",
-        card: "220 10% 8.9%",
-        "card-foreground": "0 0% 98%",
-        popover: "220 10% 8.9%",
-        "popover-foreground": "0 0% 98%",
-        primary: "0 0% 98%",
-        "primary-foreground": "220 5.9% 10%",
-        active: "220 5.2% 13.9%",
-        "active-foreground": "0 0% 98%",
-        secondary: "220 10% 15.9%",
-        "secondary-foreground": "0 0% 98%",
-        muted: "220 10% 15.9%",
-        "muted-foreground": "220 5% 64.9%",
-        accent: "220 10% 15.9%",
-        "accent-foreground": "0 0% 98%",
-        destructive: "0 62.8% 30.6%",
-        "destructive-foreground": "0 0% 98%",
-        border: "220 10% 15.9%",
-        input: "220 10% 15.9%",
-        ring: "220 4.9% 83.9%"
+        // Vercel/Geist-inspired dark mode - pure black base
+        background: "0 0% 0%",
+        foreground: "0 0% 93%",
+        card: "0 0% 4%",
+        "card-foreground": "0 0% 93%",
+        popover: "0 0% 7%",
+        "popover-foreground": "0 0% 93%",
+        primary: "0 0% 100%",
+        "primary-foreground": "0 0% 0%",
+        active: "0 0% 10%",
+        "active-foreground": "0 0% 100%",
+        secondary: "0 0% 7%",
+        "secondary-foreground": "0 0% 93%",
+        muted: "0 0% 15%",
+        "muted-foreground": "0 0% 63%",
+        accent: "0 0% 10%",
+        "accent-foreground": "0 0% 93%",
+        destructive: "0 100% 64%",
+        "destructive-foreground": "0 0% 100%",
+        border: "0 0% 15%",
+        input: "0 0% 15%",
+        ring: "0 0% 35%",
+        success: "152 72% 53%",
+        "success-foreground": "0 0% 0%"
       }
     }
   },
   {
     name: "neutral",
-    label: "Neutral",
+    label: "Brutal",
     activeColor: {
       light: "0 0% 45.1%",
       dark: "0 0% 32.2%"
@@ -74,8 +79,8 @@ export const themes = [
         "popover-foreground": "0 0% 3.9%",
         primary: "0 0% 9%",
         "primary-foreground": "0 0% 98%",
-        active: "0 0% 93%",
-        "active-foreground": "0 0% 20%",
+        active: "0 0% 88%",
+        "active-foreground": "0 0% 12%",
         secondary: "0 0% 96%",
         "secondary-foreground": "0 0% 9%",
         muted: "0 0% 85%",
@@ -86,12 +91,14 @@ export const themes = [
         "destructive-foreground": "0 0% 98%",
         border: "0 0% 80%",
         input: "0 0% 80%",
-        ring: "0 0% 3.9%"
+        ring: "0 0% 3.9%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       },
       dark: {
         background: "20 33% 4%",
         foreground: "0 0% 98%",
-        card: "0 0% 8.9%",
+        card: "0 0% 5%",
         "card-foreground": "0 0% 98%",
         popover: "0 0% 8.9%",
         "popover-foreground": "0 0% 98%",
@@ -109,13 +116,15 @@ export const themes = [
         "destructive-foreground": "0 0% 98%",
         border: "0 0% 14.9%",
         input: "0 0% 14.9%",
-        ring: "0 0% 83.1%"
+        ring: "0 0% 83.1%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       }
     }
   },
   {
     name: "red",
-    label: "Red",
+    label: "Cherry",
     activeColor: {
       light: "0 72.2% 50.6%",
       dark: "0 72.2% 50.6%"
@@ -130,8 +139,8 @@ export const themes = [
         "popover-foreground": "0 0% 3.9%",
         primary: "0 72.2% 50.6%",
         "primary-foreground": "0 85.7% 97.3%",
-        active: "0 0% 98%",
-        "active-foreground": "0 0% 20%",
+        active: "0 55% 92%",
+        "active-foreground": "0 72% 50%",
         secondary: "0 0% 96.1%",
         "secondary-foreground": "0 0% 9%",
         muted: "0 0% 96.1%",
@@ -142,20 +151,21 @@ export const themes = [
         "destructive-foreground": "0 0% 98%",
         border: "0 0% 89.8%",
         input: "0 0% 89.8%",
-        ring: "0 72.2% 50.6%"
+        ring: "0 72.2% 50.6%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       },
       dark: {
         background: "0 0% 6.9%",
         foreground: "0 0% 98%",
-        card: "0 0% 8.9%",
+        card: "0 0% 5%",
         "card-foreground": "0 0% 98%",
         popover: "0 0% 8.9%",
         "popover-foreground": "0 0% 98%",
         primary: "0 72.2% 50.6%",
         "primary-foreground": "0 85.7% 97.3%",
-        active: "0 5.2% 13.9%",
-        "active-foreground": "0 0% 98%",
-
+        active: "0 40% 17%",
+        "active-foreground": "0 80% 63%",
         secondary: "0 0% 14.9%",
         "secondary-foreground": "0 0% 98%",
         muted: "0 0% 14.9%",
@@ -166,16 +176,18 @@ export const themes = [
         "destructive-foreground": "0 0% 98%",
         border: "0 0% 14.9%",
         input: "0 0% 14.9%",
-        ring: "0 72.2% 50.6%"
+        ring: "0 72.2% 50.6%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       }
     }
   },
   {
     name: "orange",
-    label: "Orange",
+    label: "Apricot",
     activeColor: {
-      light: "24.6 95% 53.1%",
-      dark: "20.5 90.2% 48.2%"
+      light: "17 96% 57%",
+      dark: "17 96% 57%"
     },
     cssVars: {
       light: {
@@ -185,10 +197,10 @@ export const themes = [
         "card-foreground": "20 14.3% 4.1%",
         popover: "0 0% 100%",
         "popover-foreground": "20 14.3% 4.1%",
-        primary: "24.6 95% 53.1%",
+        primary: "17 96% 57%",
         "primary-foreground": "60 9.1% 97.8%",
-        active: "20 5% 96%",
-        "active-foreground": "20 5.3% 6%",
+        active: "11 55% 92%",
+        "active-foreground": "17 88% 51%",
         secondary: "24 4.8% 95.9%",
         "secondary-foreground": "24 9.8% 10%",
         muted: "24 4.8% 95.9%",
@@ -199,19 +211,21 @@ export const themes = [
         "destructive-foreground": "60 9.1% 97.8%",
         border: "20 5.9% 90%",
         input: "20 5.9% 90%",
-        ring: "24.6 95% 53.1%"
+        ring: "17 96% 57%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       },
       dark: {
         background: "20 14.3% 6.1%",
         foreground: "60 9.1% 97.8%",
-        card: "20 14.3% 8.9%",
+        card: "20 14.3% 5%",
         "card-foreground": "60 9.1% 97.8%",
         popover: "20 14.3% 8.9%",
         "popover-foreground": "60 9.1% 97.8%",
-        primary: "20.5 90.2% 48.2%",
-        "primary-foreground": "60 9.1% 97.8%",
-        active: "20 24.3% 14.1%",
-        "active-foreground": "0 0% 98%",
+        primary: "17 96% 57%",
+        "primary-foreground": "60 9.1% 3.8%",
+        active: "18 40% 17%",
+        "active-foreground": "18 80% 63%",
         secondary: "12 6.5% 15.1%",
         "secondary-foreground": "60 9.1% 97.8%",
         muted: "12 6.5% 15.1%",
@@ -222,13 +236,15 @@ export const themes = [
         "destructive-foreground": "60 9.1% 97.8%",
         border: "12 6.5% 15.1%",
         input: "12 6.5% 15.1%",
-        ring: "20.5 90.2% 48.2%"
+        ring: "17 96% 57%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       }
     }
   },
   {
     name: "yellow",
-    label: "Yellow",
+    label: "Lemon",
     activeColor: {
       light: "47.9 95.8% 53.1%",
       dark: "61 100% 50%"
@@ -243,8 +259,8 @@ export const themes = [
         "popover-foreground": "20 14.3% 4.1%",
         primary: "47.9 95.8% 53.1%",
         "primary-foreground": "26 83.3% 14.1%",
-        active: "47.9 0% 96%",
-        "active-foreground": "0 0% 4.1%",
+        active: "47.9 95.8% 88%",
+        "active-foreground": "47.9 95.8% 4%",
         secondary: "47.9 4.8% 95.9%",
         "secondary-foreground": "24 9.8% 10%",
         muted: "47.9 4.8% 95.9%",
@@ -255,19 +271,22 @@ export const themes = [
         "destructive-foreground": "60 9.1% 97.8%",
         border: "20 5.9% 90%",
         input: "20 5.9% 90%",
-        ring: "20 14.3% 4.1%"
+        ring: "47.9 14.3% 4.1%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       },
       dark: {
         background: "20 14.3% 6.1%",
         foreground: "61 9.1% 97.8%",
-        card: "20 14.3% 8.9%",
+        card: "20 14.3% 5%",
         "card-foreground": "61 9.1% 97.8%",
         popover: "20 14.3% 4.1%",
         "popover-foreground": "61 9.1% 97.8%",
         primary: "61 100% 53.1%",
         "primary-foreground": "61 83.3% 14.1%",
-        active: "61 100% 13.1%",
-        "active-foreground": "61 100% 53.1%",
+        active: "61 40% 17%",
+        "active-foreground": "61 80% 63%",
+
         secondary: "12 6.5% 15.1%",
         "secondary-foreground": "61 9.1% 97.8%",
         muted: "12 6.5% 15.1%",
@@ -278,17 +297,19 @@ export const themes = [
         "destructive-foreground": "61 9.1% 97.8%",
         border: "12 6.5% 15.1%",
         input: "12 6.5% 15.1%",
-        ring: "61 91.7% 32.9%"
+        ring: "61 91.7% 32.9%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       }
     }
   },
 
   {
     name: "green",
-    label: "Green",
+    label: "Mint",
     activeColor: {
       light: "171 62% 41%",
-      dark: "142.1 70.6% 45.3%"
+      dark: "171 98% 59%"
     },
     cssVars: {
       light: {
@@ -300,8 +321,8 @@ export const themes = [
         "popover-foreground": "171 10% 3.9%",
         primary: "171 62% 41%",
         "primary-foreground": "171 100% 97.3%",
-        active: "171 0% 96%",
-        "active-foreground": "0 0% 4.1%",
+        active: "171 62% 92%",
+        "active-foreground": "171 62% 22%",
         secondary: "171 4.8% 95.9%",
         "secondary-foreground": "171 5.9% 10%",
         muted: "171 4.8% 95.9%",
@@ -312,19 +333,21 @@ export const themes = [
         "destructive-foreground": "0 0% 98%",
         border: "171 5.9% 90%",
         input: "171 5.9% 90%",
-        ring: "171 62% 41%"
+        ring: "171 62% 41%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       },
       dark: {
         background: "20 14.3% 6.1%",
         foreground: "0 0% 95%",
         popover: "151 0% 9%",
         "popover-foreground": "151 0% 95%",
-        card: "151 0% 9%",
+        card: "151 0% 5%",
         "card-foreground": "151 0% 95%",
-        primary: "142.1 87.6% 63.3%",
+        primary: "171 98% 59%",
         "primary-foreground": "144.9 80.4% 10%",
-        active: "137 18% 15%",
-        "active-foreground": "142.1 87.6% 63.3%",
+        active: "171 98% 15%",
+        "active-foreground": "171 98% 59%",
         secondary: "151 3.7% 15.9%",
         "secondary-foreground": "0 0% 98%",
         muted: "151 0% 15%",
@@ -335,13 +358,15 @@ export const themes = [
         "destructive-foreground": "0 85.7% 97.3%",
         border: "151 3.7% 15.9%",
         input: "151 3.7% 15.9%",
-        ring: "142.4 71.8% 29.2%"
+        ring: "171 71.8% 29.2%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       }
     }
   },
   {
     name: "blue",
-    label: "Blue",
+    label: "Blueberry",
     activeColor: {
       light: "237 57% 30%",
       dark: "216 98% 52%"
@@ -356,8 +381,8 @@ export const themes = [
         "popover-foreground": "237 98% 4.9%",
         primary: "237 57% 30%",
         "primary-foreground": "210 40% 98%",
-        active: "237 10% 98%",
-        "active-foreground": "237 0 20%",
+        active: "237 57% 88%",
+        "active-foreground": "237 57 30%",
         secondary: "210 40% 96.1%",
         "secondary-foreground": "237.2 47.4% 11.2%",
         muted: "237 40% 96.1%",
@@ -368,14 +393,16 @@ export const themes = [
         "destructive-foreground": "210 40% 98%",
         border: "214.3 31.8% 91.4%",
         input: "214.3 31.8% 91.4%",
-        ring: "237.2 83.2% 53.3%"
+        ring: "237.2 83.2% 53.3%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       },
       dark: {
         background: "220 14.3% 6.1%",
         foreground: "220 0% 95%",
         popover: "216 0% 9%",
         "popover-foreground": "220 0% 95%",
-        card: "220 10% 8.9%",
+        card: "220 10% 5%",
         "card-foreground": "220 10% 95%",
         primary: "216 98% 52%",
         "primary-foreground": "216 80.4% 100%",
@@ -391,15 +418,17 @@ export const themes = [
         "destructive-foreground": "0 85.7% 97.3%",
         border: "220 10% 15.9%",
         input: "220 10% 15.9%",
-        ring: "216 71.8% 29.2%"
+        ring: "216 71.8% 29.2%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       }
     }
   },
   {
     name: "violet",
-    label: "Violet",
+    label: "Lavender",
     activeColor: {
-      light: "252.1 83.3% 47.8%",
+      light: "238 57% 50%",
       dark: "253.4 70% 40.4%"
     },
     cssVars: {
@@ -410,33 +439,35 @@ export const themes = [
         "card-foreground": "224 71.4% 4.1%",
         popover: "0 0% 100%",
         "popover-foreground": "224 71.4% 4.1%",
-        primary: "252.1 83.3% 47.8%",
-        "primary-foreground": "210 20% 98%",
-        active: "220 14.3% 95.9%",
-        "active-foreground": "252.1 83.3% 47.8%",
+        primary: "238 57% 50%",
+        "primary-foreground": "238 20% 98%",
+        active: "238 57% 88%",
+        "active-foreground": "238 57% 44%",
         secondary: "220 14.3% 95.9%",
         "secondary-foreground": "220.9 39.3% 11%",
-        muted: "220 14.3% 95.9%",
-        "muted-foreground": "220 8.9% 46.1%",
-        accent: "220 14.3% 95.9%",
+        muted: "238 57% 95.9%",
+        "muted-foreground": "238 8.9% 46.1%",
+        accent: "238 33.3% 95.9%",
         "accent-foreground": "220.9 39.3% 11%",
         destructive: "0 84.2% 60.2%",
         "destructive-foreground": "210 20% 98%",
         border: "220 13% 91%",
         input: "220 13% 91%",
-        ring: "262.1 83.3% 57.8%"
+        ring: "238 83.3% 57.8%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       },
       dark: {
         background: "263 41.4 6.1%",
         foreground: "263 20% 98%",
-        card: "263 41.4 8.9%",
+        card: "263 41.4 5%",
         "card-foreground": "210 20% 98%",
         popover: "263 41.4 8.9%",
         "popover-foreground": "210 20% 98%",
         primary: "327 70% 40.4%",
         "primary-foreground": "210 20% 98%",
-        active: "263 40% 20%",
-        "active-foreground": "263 41 98%",
+        active: "327 40% 17%",
+        "active-foreground": "327 80% 63%",
         secondary: "263 27.9% 16.9%",
         "secondary-foreground": "263 20% 98%",
         muted: "263 27.9% 12.9%",
@@ -447,7 +478,9 @@ export const themes = [
         "destructive-foreground": "210 20% 98%",
         border: "263 27.9% 16.9%",
         input: "263 27.9% 16.9%",
-        ring: "263.4 70% 50.4%"
+        ring: "263.4 70% 50.4%",
+        success: "142 70% 45%",
+        "success-foreground": "0 0% 98%"
       }
     }
   }
@@ -479,6 +512,8 @@ export const BASE_THEME_WITH_VARIABLES = `
   --input: <%- colors.light["input"] %>;
   --ring: <%- colors.light["ring"] %>;
   --radius: <%- radius %>rem;
+  --success: <%- colors.light["success"] %>;
+  --success-foreground: <%- colors.light["success-foreground"] %>;
 }
 
 .dark {
@@ -503,6 +538,8 @@ export const BASE_THEME_WITH_VARIABLES = `
   --border: <%- colors.dark["border"] %>;
   --input: <%- colors.dark["input"] %>;
   --ring: <%- colors.dark["ring"] %>;
+  --success: <%- colors.dark["success"] %>;
+  --success-foreground: <%- colors.dark["success-foreground"] %>;
 }`;
 
 export function getThemeCode(theme: Theme) {

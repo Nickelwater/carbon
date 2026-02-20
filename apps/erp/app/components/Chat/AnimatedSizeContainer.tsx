@@ -1,11 +1,7 @@
 import { cn } from "@carbon/react";
 import { motion } from "framer-motion";
-import {
-  type ComponentPropsWithoutRef,
-  forwardRef,
-  type PropsWithChildren,
-  useRef
-} from "react";
+import type { ComponentPropsWithoutRef, PropsWithChildren } from "react";
+import { forwardRef, useRef } from "react";
 import { useResizeObserver } from "~/hooks/useResizeObserver";
 
 type AnimatedSizeContainerProps = PropsWithChildren<{

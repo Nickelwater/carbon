@@ -106,15 +106,15 @@ export default function RiskRegisterCard({
         </CardAction>
       </HStack>
 
-      <CardContent className="p-0 h-full">
+      <CardContent className="h-full">
         {loading ? (
           <div className="p-4">
             <Loading isLoading={true} />
           </div>
         ) : risks.length === 0 ? (
-          <Empty className="pb-8">No risks registered</Empty>
+          <Empty className="py-8" />
         ) : (
-          <div className="flex flex-col gap-4 p-4">
+          <div className="flex flex-col gap-4">
             {risks.map((risk) => (
               <RiskRegisterCardItem
                 key={risk.id}

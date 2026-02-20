@@ -32,6 +32,7 @@ import {
   isApprovalRequired,
   rejectRequest
 } from "~/modules/shared";
+import { getDatabaseClient } from "~/services/database.server";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
@@ -161,20 +162,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   // Process approval decision
+  const db = getDatabaseClient();
   const result =
     decision === "Approved"
-      ? await approveRequest(
-          serviceRole,
-          approvalRequestId,
-          userId,
-          notes || undefined
-        )
-      : await rejectRequest(
-          serviceRole,
-          approvalRequestId,
-          userId,
-          notes || undefined
-        );
+      ? await approveRequest(db, approvalRequestId, userId, notes || undefined)
+      : await rejectRequest(db, approvalRequestId, userId, notes || undefined);
 
   if (result.error) {
     throw redirect(

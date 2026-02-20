@@ -1,9 +1,10 @@
 import type { Database, Json } from "@carbon/database";
 import { fetchAllFromTable } from "@carbon/database";
 import { getLocalTimeZone, today } from "@internationalized/date";
-import { FunctionRegion, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { FunctionRegion } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
-import { type z } from "zod";
+import type { z } from "zod";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
@@ -76,7 +77,15 @@ export async function copyItem(
       sourceId: args.sourceId,
       targetId: args.targetId,
       companyId: args.companyId,
-      userId: args.userId
+      userId: args.userId,
+      parts: {
+        billOfMaterial: args.billOfMaterial,
+        billOfProcess: args.billOfProcess,
+        parameters: args.parameters,
+        tools: args.tools,
+        steps: args.steps,
+        workInstructions: args.workInstructions
+      }
     },
     region: FunctionRegion.UsEast1
   });

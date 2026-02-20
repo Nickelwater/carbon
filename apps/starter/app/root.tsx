@@ -6,7 +6,8 @@ import { useMode } from "@carbon/remix";
 import type { Theme } from "@carbon/utils";
 import { modeValidator, themes } from "@carbon/utils";
 import { Analytics } from "@vercel/analytics/react";
-import React, { useEffect } from "react";
+import type React from "react";
+import { useEffect } from "react";
 import type {
   ActionFunctionArgs,
   LoaderFunctionArgs,
@@ -98,7 +99,7 @@ function Document({
   children,
   title = "Carbon",
   mode = "light",
-  theme = "blue"
+  theme = "zinc"
 }: {
   children: React.ReactNode;
   title?: string;
@@ -130,7 +131,7 @@ function Document({
   // Combine the styles with proper selectors
   const themeStyle = {
     ...(mode === "dark" ? darkVars : lightVars),
-    "--radius": "0.5rem"
+    "--radius": "0.675rem"
   } as React.CSSProperties;
 
   return (

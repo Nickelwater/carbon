@@ -19,23 +19,21 @@
  * background job to prevent webhook timeouts and ensure reliability.
  */
 
-import {
-  getCarbonServiceRole,
-  XERO_CLIENT_ID,
-  XERO_CLIENT_SECRET,
-  XERO_WEBHOOK_SECRET
-} from "@carbon/auth";
-import {
+import { getCarbonServiceRole, XERO_WEBHOOK_SECRET } from "@carbon/auth";
+import type {
   AccountingEntity,
-  AccountingSyncPayload,
+  AccountingProvider,
+  AccountingSyncPayload
+} from "@carbon/ee/accounting";
+import {
+  getAccountingIntegration,
   getProviderIntegration,
-  ProviderCredentials,
   ProviderID
 } from "@carbon/ee/accounting";
-import { XeroProvider } from "@carbon/ee/xero";
 import { tasks } from "@trigger.dev/sdk/v3";
 import crypto from "crypto";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { z } from "zod";
 
 export const config = {
@@ -47,7 +45,7 @@ const WebhookSchema = z.object({
   events: z.array(
     z.object({
       tenantId: z.string(),
-      eventCategory: z.enum(["INVOICE", "CONTACT"]),
+      eventCategory: z.enum(["CONTACT", "INVOICE"]),
       eventType: z.enum(["CREATE", "UPDATE", "DELETE"]),
       resourceId: z.string(),
       eventDateUtc: z.string()
@@ -57,7 +55,7 @@ const WebhookSchema = z.object({
   lastEventSequence: z.number()
 });
 
-async function verifySignature(payload: string, header: string) {
+function verifySignature(payload: string, header: string) {
   if (!XERO_WEBHOOK_SECRET) {
     console.warn("XERO_WEBHOOK_SECRET is not configured");
     return payload;
@@ -69,165 +67,6 @@ async function verifySignature(payload: string, header: string) {
     .digest("base64");
 
   return crypto.timingSafeEqual(Buffer.from(hmac), Buffer.from(header));
-}
-
-async function fetchInvoiceAndDetermineContactType(
-  companyId: string,
-  tenantId: string,
-  invoiceId: string,
-  serviceRole: any
-): Promise<{
-  contactId: string;
-  entityType: "customer" | "vendor" | "both";
-  isCustomer: boolean;
-  isSupplier: boolean;
-  invoiceType: "ACCREC" | "ACCPAY";
-}> {
-  try {
-    // Get the Xero integration credentials
-    const integration = await serviceRole
-      .from("companyIntegration")
-      .select("*")
-      .eq("companyId", companyId)
-      .eq("id", "xero")
-      .single();
-
-    if (integration.error || !integration.data) {
-      throw new Error("Xero integration not found");
-    }
-
-    const { accessToken, tenantId } = integration.data.metadata || {};
-
-    if (!accessToken) {
-      throw new Error("No access token available for Xero integration");
-    }
-
-    const provider = new XeroProvider({
-      clientId: XERO_CLIENT_ID!,
-      clientSecret: XERO_CLIENT_SECRET!,
-      tenantId,
-      companyId
-    });
-
-    // Fetch the invoice to get the contact ID and type
-    const invoiceData = await provider.invoices.get(invoiceId);
-    const xeroInvoice = invoiceData.Invoices?.[0];
-
-    if (!xeroInvoice) {
-      throw new Error(`Invoice ${invoiceId} not found`);
-    }
-
-    const contactId = xeroInvoice.Contact?.ContactID;
-    const invoiceType = xeroInvoice.Type; // ACCREC (receivable/customer) or ACCPAY (payable/supplier)
-
-    if (!contactId) {
-      throw new Error(`No contact found for invoice ${invoiceId}`);
-    }
-
-    // Now fetch the contact details
-    const xeroContact = await provider.contacts.get(contactId);
-
-    if (!xeroContact) {
-      throw new Error(`Contact ${contactId} not found`);
-    }
-
-    // Check IsCustomer and IsSupplier fields from Xero
-    const isCustomer = xeroContact.IsCustomer === true;
-    const isSupplier = xeroContact.IsSupplier === true;
-
-    console.log(
-      `Invoice ${invoiceId} (${invoiceType}) - Contact ${contactId} (${xeroContact.Name}) - IsCustomer: ${isCustomer}, IsSupplier: ${isSupplier}`
-    );
-
-    // Determine entity type based on flags and invoice type
-    let entityType: "customer" | "vendor" | "both";
-
-    if (isCustomer && isSupplier) {
-      entityType = "both";
-    } else if (invoiceType === "ACCPAY" || isSupplier) {
-      // Accounts payable (bills) or supplier flag = vendor
-      entityType = "vendor";
-    } else {
-      // Accounts receivable (invoices) or customer flag = customer (default)
-      entityType = "customer";
-    }
-
-    return { contactId, entityType, isCustomer, isSupplier, invoiceType };
-  } catch (error) {
-    console.error(`Error fetching invoice ${invoiceId}:`, error);
-    // Default based on typical patterns
-    throw error;
-  }
-}
-
-async function fetchContactAndDetermineType(
-  companyId: string,
-  tenantId: string,
-  contactId: string,
-  serviceRole: any
-): Promise<{
-  entityType: "customer" | "vendor" | "both";
-  isCustomer: boolean;
-  isSupplier: boolean;
-}> {
-  try {
-    // Get the Xero integration credentials
-    const integration = await serviceRole
-      .from("companyIntegration")
-      .select("*")
-      .eq("companyId", companyId)
-      .eq("id", XeroProvider.id)
-      .single();
-
-    if (integration.error || !integration.data) {
-      throw new Error("Xero integration not found");
-    }
-
-    const metadata = integration.data.metadata || {};
-
-    const { accessToken, refreshToken } = metadata;
-
-    if (!accessToken) {
-      throw new Error("No access token available for Xero integration");
-    }
-
-    const creds: ProviderCredentials = {
-      type: "oauth2",
-      accessToken,
-      refreshToken,
-      tenantId
-    };
-
-    const provider = getProviderIntegration(
-      serviceRole,
-      companyId,
-      XeroProvider.id,
-      creds
-    );
-
-    const contact = await provider.contacts.get(contactId);
-
-    const isCustomer = contact.isCustomer;
-    const isSupplier = contact.isVendor;
-
-    // Determine entity type based on flags
-    let entityType: "customer" | "vendor" | "both";
-
-    if (isCustomer && isSupplier) {
-      entityType = "both";
-    } else if (isSupplier) {
-      entityType = "vendor";
-    } else {
-      // Default to customer if only customer or neither flag is set
-      entityType = "customer";
-    }
-
-    return { entityType, isCustomer, isSupplier };
-  } catch (error) {
-    console.error(`Error fetching contact ${contactId}:`, error);
-    // Default to customer if we can't fetch the contact
-    return { entityType: "customer", isCustomer: true, isSupplier: false };
-  }
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -274,7 +113,7 @@ export async function action({ request }: ActionFunctionArgs) {
         success: false,
         error: "Invalid JSON payload"
       },
-      { status: 400 }
+      { status: 401 }
     );
   }
 
@@ -287,7 +126,7 @@ export async function action({ request }: ActionFunctionArgs) {
         success: false,
         error: "Invalid payload format"
       },
-      { status: 400 }
+      { status: 401 }
     );
   }
 
@@ -297,7 +136,7 @@ export async function action({ request }: ActionFunctionArgs) {
     "events"
   );
 
-  const serviceRole = await getCarbonServiceRole();
+  const serviceRole = getCarbonServiceRole();
   const events = parsed.data.events;
   const syncJobs = [];
   const errors = [];
@@ -317,27 +156,13 @@ export async function action({ request }: ActionFunctionArgs) {
   // Process events for each tenant
   for (const [tenantId, tenantEvents] of Object.entries(eventsByTenant)) {
     try {
-      // Find the company integration for this Xero tenant by checking metadata
-      const { data: integrations } = await serviceRole
-        .from("companyIntegration")
-        .select("*")
-        .eq("id", "xero" as any);
-
-      if (!integrations || integrations.length === 0) {
-        console.error(`No Xero integration found for tenant ${tenantId}`);
-        errors.push({
-          tenantId,
-          error: "Integration not found"
-        });
-        continue;
-      }
-
-      // Find the integration that matches this tenant ID
-      const found = integrations.find(
-        (integration: any) => integration.metadata?.tenantId === tenantId
+      const integration = await getAccountingIntegration(
+        serviceRole,
+        tenantId,
+        ProviderID.XERO
       );
 
-      if (!found) {
+      if (!integration) {
         console.error(`No Xero integration found for tenant ${tenantId}`);
         errors.push({
           tenantId,
@@ -346,7 +171,14 @@ export async function action({ request }: ActionFunctionArgs) {
         continue;
       }
 
-      const companyId = found.companyId;
+      const companyId = integration.companyId;
+
+      const provider = getProviderIntegration(
+        serviceRole,
+        companyId,
+        ProviderID.XERO,
+        integration.metadata
+      );
 
       // Group entities by type for efficient batch processing
       const entities: Array<AccountingEntity> = [];
@@ -364,43 +196,51 @@ export async function action({ request }: ActionFunctionArgs) {
         );
 
         switch (eventCategory) {
-          case "CONTACT": {
-            // Fetch the contact from Xero to determine if it's a customer or vendor
-            const contactInfo = await fetchContactAndDetermineType(
-              companyId,
-              tenantId,
-              resourceId,
-              serviceRole
-            );
+          case "CONTACT":
+            const contactType = await fetchContactType(provider, resourceId);
 
-            // If the contact is both customer and supplier, sync to both tables
-            if (contactInfo.entityType === "both") {
+            if (!contactType) {
               console.log(
-                `Contact ${resourceId} is both customer and supplier, syncing to both`
+                `Skipping contact ${resourceId} with no customer/supplier role`
               );
+              continue;
+            }
 
-              // Add as customer
+            if (contactType === "customer" || contactType === "both") {
               entities.push({
-                operation,
                 entityType: "customer",
-                entityId: resourceId
-              });
-
-              // Add as vendor
-              entities.push({
-                operation,
-                entityType: "vendor",
-                entityId: resourceId
-              });
-            } else {
-              // Add as either customer or vendor based on the determination
-              entities.push({
-                operation,
-                entityType: contactInfo.entityType,
-                entityId: resourceId
+                entityId: resourceId,
+                operation: operation
               });
             }
-          }
+
+            if (contactType === "supplier" || contactType === "both") {
+              entities.push({
+                entityType: "vendor",
+                entityId: resourceId,
+                operation: operation
+              });
+            }
+
+            break;
+
+          case "INVOICE":
+            const invoiceType = await fetchInvoiceType(provider, resourceId);
+
+            if (!invoiceType) {
+              console.log(
+                `Skipping invoice ${resourceId} - could not determine type`
+              );
+              continue;
+            }
+
+            entities.push({
+              entityType: invoiceType,
+              entityId: resourceId,
+              operation: operation
+            });
+
+            break;
         }
       }
 
@@ -412,7 +252,7 @@ export async function action({ request }: ActionFunctionArgs) {
             companyId,
             provider: ProviderID.XERO,
             syncType: "webhook",
-            syncDirection: "from-accounting",
+            syncDirection: "pull-from-accounting",
             entities,
             metadata: {
               tenantId: tenantId,
@@ -423,9 +263,14 @@ export async function action({ request }: ActionFunctionArgs) {
           console.dir(payload, { depth: null });
 
           // Trigger the background job using Trigger.dev
-          const handle = await tasks.trigger("from-accounting-sync", payload, {
-            tags: [ProviderID.XERO, payload.syncType]
-          });
+          const handle = await tasks.trigger(
+            "sync-external-accounting",
+            payload,
+            {
+              tags: [ProviderID.XERO, payload.syncType],
+              concurrencyKey: `sync-external-accounting:${companyId}`
+            }
+          );
 
           console.log(
             `Triggered accounting sync job ${handle.id} for ${entities.length} entities`
@@ -455,6 +300,8 @@ export async function action({ request }: ActionFunctionArgs) {
     }
   }
 
+  console.log(`Processed Xero webhook: ${syncJobs.length} sync jobs triggered`);
+
   // Return detailed response
   return {
     success: errors.length === 0,
@@ -464,3 +311,52 @@ export async function action({ request }: ActionFunctionArgs) {
     timestamp: new Date().toISOString()
   };
 }
+
+const fetchContactType = async (
+  provider: AccountingProvider,
+  resourceId: string
+) => {
+  const res = await provider.request<{
+    Contacts: { IsSupplier: boolean; IsCustomer: boolean }[];
+  }>("GET", `/Contacts/${resourceId}`);
+
+  if (res.error || !res.data || res.data.Contacts.length === 0) {
+    throw new Error(`Failed to fetch contact ${resourceId}: ${res.message}`);
+  }
+
+  const contact = res.data.Contacts[0];
+
+  if (contact.IsSupplier && contact.IsCustomer) {
+    return "both";
+  } else if (contact.IsSupplier) {
+    return "supplier";
+  } else if (contact.IsCustomer) {
+    return "customer";
+  }
+
+  return null;
+};
+
+/**
+ * Fetches invoice from Xero to determine if it's a sales invoice or bill.
+ * - ACCREC (Accounts Receivable) = Sales Invoice -> maps to "invoice"
+ * - ACCPAY (Accounts Payable) = Purchase Invoice/Bill -> maps to "bill"
+ */
+const fetchInvoiceType = async (
+  provider: AccountingProvider,
+  resourceId: string
+): Promise<"invoice" | "bill" | null> => {
+  const res = await provider.request<{
+    Invoices: { Type: "ACCREC" | "ACCPAY" }[];
+  }>("GET", `/Invoices/${resourceId}`);
+
+  if (res.error || !res.data || res.data.Invoices.length === 0) {
+    throw new Error(`Failed to fetch invoice ${resourceId}: ${res.message}`);
+  }
+
+  const invoice = res.data.Invoices[0];
+
+  // ACCREC = Accounts Receivable = Sales Invoice
+  // ACCPAY = Accounts Payable = Bill/Purchase Invoice
+  return invoice.Type === "ACCREC" ? "invoice" : "bill";
+};

@@ -1,9 +1,9 @@
 import { cn } from "@carbon/react";
 import type { SVGProps } from "react";
 import { z } from "zod";
-import type { IntegrationConfig } from "../types";
+import { defineIntegration } from "../fns";
 
-export const ExchangeRates: IntegrationConfig = {
+export const ExchangeRates = defineIntegration({
   name: "Exchange Rates",
   id: "exchange-rates-v1",
   active: true,
@@ -16,7 +16,7 @@ export const ExchangeRates: IntegrationConfig = {
   images: [],
   settings: [],
   schema: z.object({})
-};
+});
 
 function Logo(props: SVGProps<SVGSVGElement>) {
   return (

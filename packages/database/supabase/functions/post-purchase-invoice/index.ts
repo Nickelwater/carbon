@@ -9,10 +9,7 @@ import type { Database } from "../lib/types.ts";
 import { credit, debit, journalReference } from "../lib/utils.ts";
 import { getCurrentAccountingPeriod } from "../shared/get-accounting-period.ts";
 import { getNextSequence } from "../shared/get-next-sequence.ts";
-import {
-  getInventoryPostingGroup,
-  getPurchasingPostingGroup,
-} from "../shared/get-posting-group.ts";
+import { getDefaultPostingGroup } from "../shared/get-posting-group.ts";
 
 const pool = getConnectionPool(1);
 const db = getDatabaseClient<DB>(pool);
@@ -256,17 +253,11 @@ serve(async (req: Request) => {
       return acc;
     }, {});
 
-    // save the posting groups in memory to avoid unnecessary queries
-    const inventoryPostingGroups: Record<
-      string,
-      Database["public"]["Tables"]["postingGroupInventory"]["Row"] | null
-    > = {};
-
-    // purchasing posting group
-    const purchasingPostingGroups: Record<
-      string,
-      Database["public"]["Tables"]["postingGroupPurchasing"]["Row"] | null
-    > = {};
+    // Get account defaults (once for all lines)
+    const accountDefaults = await getDefaultPostingGroup(client, companyId);
+    if (accountDefaults.error || !accountDefaults.data) {
+      throw new Error("Error getting account defaults");
+    }
 
     for await (const invoiceLine of purchaseInvoiceLines.data) {
       const invoiceLineQuantityInInventoryUnit =
@@ -288,22 +279,6 @@ serve(async (req: Request) => {
         totalLineCostWithWeightedShipping /
         (invoiceLine.quantity * (invoiceLine.conversionFactor ?? 1));
 
-      // declaring shared variables between part and service cases
-      // outside of the switch case to avoid redeclaring them
-      let postingGroupInventory:
-        | Database["public"]["Tables"]["postingGroupInventory"]["Row"]
-        | null = null;
-
-      let itemPostingGroupId: string | null = null;
-
-      let postingGroupPurchasing:
-        | Database["public"]["Tables"]["postingGroupPurchasing"]["Row"]
-        | null = null;
-
-      const locationId = invoiceLine.locationId ?? null;
-      const supplierTypeId: string | null =
-        supplier.data.supplierTypeId ?? null;
-
       let journalLineReference: string;
 
       switch (invoiceLine.invoiceLineType) {
@@ -314,7 +289,9 @@ serve(async (req: Request) => {
         case "Material":
         case "Tool":
           {
-            const item = items.data.find((item) => item.id === invoiceLine.itemId);
+            const item = items.data.find(
+              (item) => item.id === invoiceLine.itemId
+            );
             const itemTrackingType = item?.itemTrackingType ?? "Inventory";
 
             console.log({
@@ -324,74 +301,6 @@ serve(async (req: Request) => {
               requiresSerialTracking: itemTrackingType === "Serial",
               requiresBatchTracking: itemTrackingType === "Batch",
             });
-
-            itemPostingGroupId =
-              itemCosts.data.find((item) => item.itemId === invoiceLine.itemId)
-                ?.itemPostingGroupId ?? null;
-
-            // inventory posting group
-            if (
-              `${itemPostingGroupId}-${locationId}` in inventoryPostingGroups
-            ) {
-              postingGroupInventory =
-                inventoryPostingGroups[`${itemPostingGroupId}-${locationId}`];
-            } else {
-              const inventoryPostingGroup = await getInventoryPostingGroup(
-                client,
-                companyId,
-                {
-                  itemPostingGroupId,
-                  locationId,
-                }
-              );
-
-              if (inventoryPostingGroup.error || !inventoryPostingGroup.data) {
-                throw new Error("Error getting inventory posting group");
-              }
-
-              postingGroupInventory = inventoryPostingGroup.data ?? null;
-              inventoryPostingGroups[`${itemPostingGroupId}-${locationId}`] =
-                postingGroupInventory;
-            }
-
-            if (!postingGroupInventory) {
-              throw new Error("No inventory posting group found");
-            }
-
-            if (
-              `${itemPostingGroupId}-${supplierTypeId}` in
-              purchasingPostingGroups
-            ) {
-              postingGroupPurchasing =
-                purchasingPostingGroups[
-                  `${itemPostingGroupId}-${supplierTypeId}`
-                ];
-            } else {
-              const purchasingPostingGroup = await getPurchasingPostingGroup(
-                client,
-                companyId,
-                {
-                  itemPostingGroupId,
-                  supplierTypeId,
-                }
-              );
-
-              if (
-                purchasingPostingGroup.error ||
-                !purchasingPostingGroup.data
-              ) {
-                throw new Error("Error getting purchasing posting group");
-              }
-
-              postingGroupPurchasing = purchasingPostingGroup.data ?? null;
-              purchasingPostingGroups[
-                `${itemPostingGroupId}-${supplierTypeId}`
-              ] = postingGroupPurchasing;
-            }
-
-            if (!postingGroupPurchasing) {
-              throw new Error("No purchasing posting group found");
-            }
 
             // if the purchase order line is null, we receive the part, do the normal entries and do not use accrual/reversing
             if (invoiceLine.purchaseOrderLineId === null) {
@@ -458,7 +367,7 @@ serve(async (req: Request) => {
               if (itemTrackingType === "Inventory" && !skipReceiptPost) {
                 // debit the inventory account
                 journalLineInserts.push({
-                  accountNumber: postingGroupInventory.inventoryAccount,
+                  accountNumber: accountDefaults.data.inventoryAccount,
                   description: "Inventory Account",
                   amount: debit("asset", totalLineCostWithWeightedShipping),
                   quantity: invoiceLineQuantityInInventoryUnit,
@@ -471,7 +380,7 @@ serve(async (req: Request) => {
 
                 // creidt the direct cost applied account
                 journalLineInserts.push({
-                  accountNumber: postingGroupInventory.directCostAppliedAccount,
+                  accountNumber: accountDefaults.data.directCostAppliedAccount,
                   description: "Direct Cost Applied",
                   amount: credit("expense", totalLineCostWithWeightedShipping),
                   quantity: invoiceLineQuantityInInventoryUnit,
@@ -484,7 +393,7 @@ serve(async (req: Request) => {
               } else {
                 // debit the overhead account
                 journalLineInserts.push({
-                  accountNumber: postingGroupInventory.overheadAccount,
+                  accountNumber: accountDefaults.data.overheadAccount,
                   description: "Overhead Account",
                   amount: debit("asset", totalLineCostWithWeightedShipping),
                   quantity: invoiceLineQuantityInInventoryUnit,
@@ -498,7 +407,7 @@ serve(async (req: Request) => {
                 // creidt the overhead cost applied account
                 journalLineInserts.push({
                   accountNumber:
-                    postingGroupInventory.overheadCostAppliedAccount,
+                    accountDefaults.data.overheadCostAppliedAccount,
                   description: "Overhead Cost Applied",
                   amount: credit("expense", totalLineCostWithWeightedShipping),
                   quantity: invoiceLineQuantityInInventoryUnit,
@@ -514,7 +423,7 @@ serve(async (req: Request) => {
 
               // debit the purchase account
               journalLineInserts.push({
-                accountNumber: postingGroupPurchasing.purchaseAccount,
+                accountNumber: accountDefaults.data.purchaseAccount,
                 description: "Purchase Account",
                 amount: debit("expense", totalLineCostWithWeightedShipping),
                 quantity: invoiceLineQuantityInInventoryUnit,
@@ -530,7 +439,7 @@ serve(async (req: Request) => {
 
               // credit the accounts payable account
               journalLineInserts.push({
-                accountNumber: postingGroupPurchasing.payablesAccount,
+                accountNumber: accountDefaults.data.payablesAccount,
                 description: "Accounts Payable",
                 amount: credit("liability", totalLineCostWithWeightedShipping),
                 quantity: invoiceLineQuantityInInventoryUnit,
@@ -722,8 +631,8 @@ serve(async (req: Request) => {
                   // debit the inventory account
                   journalLineInserts.push({
                     accountNumber: isOutsideProcessing
-                      ? postingGroupInventory.workInProgressAccount
-                      : postingGroupInventory.inventoryAccount,
+                      ? accountDefaults.data.workInProgressAccount
+                      : accountDefaults.data.inventoryAccount,
                     description: isOutsideProcessing
                       ? "WIP Account"
                       : "Inventory Account",
@@ -745,7 +654,7 @@ serve(async (req: Request) => {
                   // creidt the direct cost applied account
                   journalLineInserts.push({
                     accountNumber:
-                      postingGroupInventory.directCostAppliedAccount,
+                      accountDefaults.data.directCostAppliedAccount,
                     description: "Direct Cost Applied",
                     amount: credit(
                       "expense",
@@ -764,7 +673,7 @@ serve(async (req: Request) => {
                 } else {
                   // debit the overhead account
                   journalLineInserts.push({
-                    accountNumber: postingGroupInventory.overheadAccount,
+                    accountNumber: accountDefaults.data.overheadAccount,
                     description: "Overhead Account",
                     amount: debit(
                       "asset",
@@ -784,7 +693,7 @@ serve(async (req: Request) => {
                   // creidt the overhead cost applied account
                   journalLineInserts.push({
                     accountNumber:
-                      postingGroupInventory.overheadCostAppliedAccount,
+                      accountDefaults.data.overheadCostAppliedAccount,
                     description: "Overhead Cost Applied",
                     amount: credit(
                       "expense",
@@ -806,7 +715,7 @@ serve(async (req: Request) => {
 
                 // debit the purchase account
                 journalLineInserts.push({
-                  accountNumber: postingGroupPurchasing.purchaseAccount,
+                  accountNumber: accountDefaults.data.purchaseAccount,
                   description: "Purchase Account",
                   amount: debit(
                     "expense",
@@ -825,7 +734,7 @@ serve(async (req: Request) => {
 
                 // credit the accounts payable account
                 journalLineInserts.push({
-                  accountNumber: postingGroupPurchasing.payablesAccount,
+                  accountNumber: accountDefaults.data.payablesAccount,
                   description: "Accounts Payable",
                   amount: credit(
                     "liability",
@@ -853,7 +762,7 @@ serve(async (req: Request) => {
                 // debit the inventory invoiced not received account
                 journalLineInserts.push({
                   accountNumber:
-                    postingGroupInventory.inventoryInvoicedNotReceivedAccount,
+                    accountDefaults.data.inventoryInvoicedNotReceivedAccount,
                   description: "Inventory Invoiced Not Received",
                   accrual: true,
                   amount: debit(
@@ -876,7 +785,7 @@ serve(async (req: Request) => {
                 // credit the inventory interim accrual account
                 journalLineInserts.push({
                   accountNumber:
-                    postingGroupInventory.inventoryInterimAccrualAccount,
+                    accountDefaults.data.inventoryInterimAccrualAccount,
                   accrual: true,
                   description: "Interim Inventory Accrual",
                   amount: credit(

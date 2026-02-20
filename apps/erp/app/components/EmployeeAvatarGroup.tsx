@@ -1,8 +1,8 @@
+import type { AvatarProps } from "@carbon/react";
 import {
   AvatarGroup,
   AvatarGroupList,
-  AvatarOverflowIndicator,
-  type AvatarProps
+  AvatarOverflowIndicator
 } from "@carbon/react";
 import { usePeople } from "~/stores";
 import Avatar from "./Avatar";

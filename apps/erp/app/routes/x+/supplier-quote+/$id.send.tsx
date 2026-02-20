@@ -4,9 +4,11 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { sendEmailResendTask } from "@carbon/jobs/trigger/send-email-resend";
 import { tasks } from "@trigger.dev/sdk";
-import { type ActionFunctionArgs, redirect } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import {
   getSupplierContact,
+  getSupplierInteractionDocuments,
   getSupplierInteractionLineDocuments,
   getSupplierQuote,
   getSupplierQuoteLines,
@@ -115,6 +117,35 @@ export async function action(args: ActionFunctionArgs) {
         const attachments: Array<{ filename: string; content: string }> = [];
 
         if (sendAttachments) {
+          // Fetch top-level supplier interaction documents
+          const interactionId = supplierQuote.data.supplierInteractionId;
+          if (interactionId) {
+            const topDocs = await getSupplierInteractionDocuments(
+              client,
+              companyId,
+              interactionId
+            );
+
+            for (const doc of topDocs) {
+              const { data: fileData } = await client.storage
+                .from("private")
+                .download(
+                  `${companyId}/supplier-interaction/${interactionId}/${doc.name}`
+                );
+
+              if (fileData) {
+                const arrayBuffer = await fileData.arrayBuffer();
+                const base64 = Buffer.from(arrayBuffer).toString("base64");
+
+                attachments.push({
+                  filename: doc.name,
+                  content: base64
+                });
+              }
+            }
+          }
+
+          // Fetch line-level supplier interaction documents
           const lines = await getSupplierQuoteLines(client, id);
 
           if (lines.data) {

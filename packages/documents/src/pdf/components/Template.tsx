@@ -1,10 +1,15 @@
 import { Document, Font, Page, StyleSheet } from "@react-pdf/renderer";
 import type { PropsWithChildren } from "react";
 import type { Meta } from "../../types";
+import Footer from "./Footer";
 
-type TemplateProps = PropsWithChildren<{ title: string; meta: Meta }>;
+type TemplateProps = PropsWithChildren<{
+  title: string;
+  meta: Meta;
+  footerLabel?: string;
+}>;
 
-const Template = ({ title, meta, children }: TemplateProps) => {
+const Template = ({ title, meta, footerLabel, children }: TemplateProps) => {
   Font.register({
     family: "Inter",
     fonts: [
@@ -48,6 +53,7 @@ const Template = ({ title, meta, children }: TemplateProps) => {
     >
       <Page size="A4" style={styles.body}>
         {children}
+        <Footer label={footerLabel} />
       </Page>
     </Document>
   );

@@ -1,5 +1,5 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { Database } from "@carbon/database";
+import type { Database } from "@carbon/database";
 import { Hidden, ValidatedForm } from "@carbon/form";
 import {
   Button,

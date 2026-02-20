@@ -142,7 +142,7 @@ const SelectLabel = forwardRef<
   <SelectPrimitive.Label
     ref={ref}
     className={cn(
-      "px-2 py-1.5 text-xs font-semibold text-muted-foreground uppercase",
+      "px-2 py-1.5 text-xs font-medium text-muted-foreground uppercase",
       className
     )}
     {...props}

@@ -7,7 +7,8 @@ import {
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { getLocalTimeZone, now } from "@internationalized/date";
-import { type ActionFunctionArgs, data, redirect } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data, redirect } from "react-router";
 import {
   endMaintenanceEvent,
   startMaintenanceEvent,

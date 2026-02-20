@@ -1,7 +1,14 @@
 import { error, useCarbon } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import { Select, Submit, ValidatedForm, validator } from "@carbon/form";
+// biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
+import {
+  Boolean,
+  Select,
+  Submit,
+  ValidatedForm,
+  validator
+} from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import {
   Badge,
@@ -33,11 +40,13 @@ import {
   defaultSupplierCcValidator,
   getCompanySettings,
   getTerms,
+  includeThumbnailsOnPurchasingPdfsValidator,
   purchasePriceUpdateTimingTypes,
   purchasePriceUpdateTimingValidator,
   supplierQuoteNotificationValidator,
   updateDefaultSupplierCc,
   updatePurchasePriceUpdateTimingSetting,
+  updatePurchasingPdfThumbnails,
   updateSupplierQuoteNotificationSetting
 } from "~/modules/settings";
 import type { Handle } from "~/utils/handle";
@@ -138,7 +147,27 @@ export async function action({ request }: ActionFunctionArgs) {
         message: "Supplier quote notification setting updated"
       };
 
-    case "defaultSupplierCc":
+    case "pdfs":
+      const thumbnailsValidation = await validator(
+        includeThumbnailsOnPurchasingPdfsValidator
+      ).validate(formData);
+
+      if (thumbnailsValidation.error) {
+        return { success: false, message: "Invalid form data" };
+      }
+
+      const thumbnailsResult = await updatePurchasingPdfThumbnails(
+        client,
+        companyId,
+        thumbnailsValidation.data.includeThumbnailsOnPurchasingPdfs
+      );
+
+      if (thumbnailsResult.error)
+        return { success: false, message: thumbnailsResult.error.message };
+
+      return { success: true, message: "PDF settings updated" };
+
+    case "emails":
       const defaultSupplierCcValidation = await validator(
         defaultSupplierCcValidator
       ).validate(formData);
@@ -162,7 +191,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
       return {
         success: true,
-        message: "Default supplier CC updated"
+        message: "Supplier email settings updated"
       };
   }
 
@@ -334,9 +363,9 @@ export default function PurchasingSettingsRoute() {
             }}
             fetcher={fetcher}
           >
-            <input type="hidden" name="intent" value="defaultSupplierCc" />
+            <input type="hidden" name="intent" value="emails" />
             <CardHeader>
-              <CardTitle>Default CC for Supplier Emails</CardTitle>
+              <CardTitle>Emails</CardTitle>
               <CardDescription>
                 These email addresses will be automatically CC'd on all emails
                 sent to suppliers (quotes, purchase orders, etc.).
@@ -356,6 +385,45 @@ export default function PurchasingSettingsRoute() {
                 isLoading={
                   fetcher.state !== "idle" &&
                   fetcher.formData?.get("intent") === "defaultSupplierCc"
+                }
+              >
+                Save
+              </Submit>
+            </CardFooter>
+          </ValidatedForm>
+        </Card>
+        <Card>
+          <ValidatedForm
+            method="post"
+            validator={includeThumbnailsOnPurchasingPdfsValidator}
+            defaultValues={{
+              includeThumbnailsOnPurchasingPdfs:
+                companySettings.includeThumbnailsOnPurchasingPdfs ?? true
+            }}
+            fetcher={fetcher}
+          >
+            <input type="hidden" name="intent" value="pdfs" />
+            <CardHeader>
+              <CardTitle>PDFs</CardTitle>
+              <CardDescription>
+                Show part thumbnails on purchase orders.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-2 max-w-[400px]">
+                <Boolean
+                  name="includeThumbnailsOnPurchasingPdfs"
+                  description="Include Thumbnails in PDFs"
+                />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Submit
+                isDisabled={fetcher.state !== "idle"}
+                isLoading={
+                  fetcher.state !== "idle" &&
+                  fetcher.formData?.get("intent") ===
+                    "includeThumbnailsOnPurchasingPdfs"
                 }
               >
                 Save

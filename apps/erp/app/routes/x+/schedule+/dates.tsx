@@ -33,8 +33,8 @@ import {
 } from "@internationalized/date";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuChevronLeft, LuChevronRight, LuSettings2 } from "react-icons/lu";
+import type { LoaderFunctionArgs } from "react-router";
 import {
-  type LoaderFunctionArgs,
   redirect,
   useLoaderData,
   useNavigate,

@@ -46,6 +46,7 @@ import {
 } from "~/modules/shared";
 import { getUser } from "~/modules/users/users.server";
 import { loader as pdfLoader } from "~/routes/file+/purchase-order+/$orderId[.]pdf";
+import { getDatabaseClient } from "~/services/database.server";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 import { stripSpecialCharacters } from "~/utils/string";
@@ -74,8 +75,13 @@ export async function action(args: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const { approvalRequestId, decision, notification, supplierContact } =
-    validation.data;
+  const {
+    approvalRequestId,
+    decision,
+    notification,
+    supplierContact,
+    cc: ccSelections
+  } = validation.data;
 
   const serviceRole = getCarbonServiceRole();
 
@@ -114,10 +120,11 @@ export async function action(args: ActionFunctionArgs) {
   }
 
   // Process approval decision
+  const db = getDatabaseClient();
   const result =
     decision === "Approved"
-      ? await approveRequest(serviceRole, approvalRequestId, userId)
-      : await rejectRequest(serviceRole, approvalRequestId, userId);
+      ? await approveRequest(db, approvalRequestId, userId)
+      : await rejectRequest(db, approvalRequestId, userId);
 
   if (result.error) {
     throw redirect(
@@ -256,6 +263,7 @@ export async function action(args: ActionFunctionArgs) {
               "send-email-resend",
               {
                 to: [buyer.data.email, supplierEmail],
+                cc: ccSelections?.length ? ccSelections : undefined,
                 from: buyer.data.email,
                 subject: `Purchase Order ${purchaseOrder.data.purchaseOrderId} from ${company.data.name}`,
                 html,
@@ -352,20 +360,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   const serviceRole = getCarbonServiceRole();
-  const [supplier, interaction, approvalRequest] = await Promise.all([
-    purchaseOrder.data?.supplierId
-      ? getSupplier(client, purchaseOrder.data.supplierId)
-      : null,
-    getSupplierInteraction(client, purchaseOrder.data.supplierInteractionId),
-    // Only fetch approval request if status is "Needs Approval"
-    purchaseOrder.data?.status === "Needs Approval"
-      ? getLatestApprovalRequestForDocument(
-          serviceRole,
-          "purchaseOrder",
-          orderId
-        )
-      : Promise.resolve({ data: null, error: null })
-  ]);
+  const [supplier, interaction, approvalRequest, companySettings] =
+    await Promise.all([
+      purchaseOrder.data?.supplierId
+        ? getSupplier(client, purchaseOrder.data.supplierId)
+        : null,
+      getSupplierInteraction(client, purchaseOrder.data.supplierInteractionId),
+      // Only fetch approval request if status is "Needs Approval"
+      purchaseOrder.data?.status === "Needs Approval"
+        ? getLatestApprovalRequestForDocument(
+            serviceRole,
+            "purchaseOrder",
+            orderId
+          )
+        : Promise.resolve({ data: null, error: null }),
+      getCompanySettings(serviceRole, companyId)
+    ]);
+
+  const defaultCc = supplier?.data?.defaultCc?.length
+    ? supplier.data.defaultCc
+    : (companySettings.data?.defaultSupplierCc ?? []);
 
   // Check if user can approve the request
   let canApprove = false;
@@ -421,7 +435,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     approvalRequest: approvalRequest.data,
     canApprove,
     canReopen,
-    canDelete
+    canDelete,
+    defaultCc
   };
 }
 

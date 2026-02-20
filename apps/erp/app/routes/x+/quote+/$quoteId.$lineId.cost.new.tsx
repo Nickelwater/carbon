@@ -1,7 +1,8 @@
 import { assertIsPost } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { nanoid } from "nanoid";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import {
   quoteLineAdditionalChargesValidator,
   upsertQuoteLineAdditionalCharges

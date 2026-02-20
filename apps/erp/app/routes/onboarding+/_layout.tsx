@@ -3,8 +3,11 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { VStack } from "@carbon/react";
 import { getStripeCustomerByCompanyId } from "@carbon/stripe/stripe.server";
 import { Edition } from "@carbon/utils";
-import type { ShouldRevalidateFunction } from "react-router";
-import { type LoaderFunctionArgs, Outlet, redirect } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, redirect } from "react-router";
 import { getLocationsList } from "~/modules/resources";
 import { getCompany } from "~/modules/settings";
 import { onboardingSequence, path } from "~/utils/path";

@@ -6,11 +6,11 @@
     ".": "./src/index.ts",
     "./accounting": "./src/accounting/index.ts",
     "./exchange-rates.server": "./src/exchange-rates/exchange-rates.server.ts",
+    "./jira": "./src/jira/lib/index.ts",
+    "./linear": "./src/linear/lib/index.ts",
     "./notifications": "./src/notifications/index.ts",
     "./onshape": "./src/onshape/lib/index.ts",
-    "./linear": "./src/linear/lib/index.ts",
     "./paperless-parts": "./src/paperless-parts/lib/index.ts",
-    "./quickbooks": "./src/accounting/providers/quickbooks.ts",
     "./slack.server": "./src/slack.server.ts",
     "./slack/messages": "./src/slack/lib/messages.ts",
     "./xero": "./src/accounting/providers/xero.ts"

@@ -1,6 +1,7 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { generateQRCodeBuffer } from "@carbon/documents/qr";
-import { data, type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { getKanban } from "~/modules/inventory/inventory.service";
 import { path } from "~/utils/path";
 

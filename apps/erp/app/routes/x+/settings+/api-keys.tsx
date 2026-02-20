@@ -1,12 +1,8 @@
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import {
-  type LoaderFunctionArgs,
-  Outlet,
-  redirect,
-  useLoaderData
-} from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { Outlet, redirect, useLoaderData } from "react-router";
 import { ApiKeysTable, getApiKeys } from "~/modules/settings";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";

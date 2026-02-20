@@ -8,7 +8,8 @@ import {
   VStack
 } from "@carbon/react";
 import { useLocale } from "@react-aria/i18n";
-import React, { useMemo } from "react";
+import type React from "react";
+import { useMemo } from "react";
 import { LuInfo, LuLoaderCircle } from "react-icons/lu";
 import { NumberControlled } from "~/components/Form";
 

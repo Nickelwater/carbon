@@ -1,4 +1,4 @@
-import { LabelSize, ProductLabelItem } from "@carbon/utils";
+import type { LabelSize, ProductLabelItem } from "@carbon/utils";
 
 export function generateProductLabelZPL(
   item: ProductLabelItem,

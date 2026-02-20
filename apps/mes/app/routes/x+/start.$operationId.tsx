@@ -2,7 +2,8 @@ import { error, getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { getLocalTimeZone, now } from "@internationalized/date";
-import { type LoaderFunctionArgs, redirect } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { getWorkCenterWithBlockingStatus } from "~/services/maintenance.service";
 import {
   getTrackedEntitiesByMakeMethodId,

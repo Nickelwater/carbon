@@ -10,7 +10,8 @@ import {
   VStack
 } from "@carbon/react";
 import { LuMoon, LuSun } from "react-icons/lu";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { useRouteData } from "~/hooks";
 import type { Company } from "~/modules/settings";
 import {

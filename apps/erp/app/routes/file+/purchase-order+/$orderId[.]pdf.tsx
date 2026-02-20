@@ -2,14 +2,15 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { PurchaseOrderPDF } from "@carbon/documents/pdf";
 import type { JSONContent } from "@carbon/react";
 import { renderToStream } from "@react-pdf/renderer";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import {
   getPurchaseOrder,
   getPurchaseOrderLines,
   getPurchaseOrderLocations,
   getPurchasingTerms
 } from "~/modules/purchasing";
-import { getCompany } from "~/modules/settings";
+import { getCompany, getCompanySettings } from "~/modules/settings";
+import { getBase64ImageFromSupabase } from "~/modules/shared";
 import { getLocale } from "~/utils/request";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -22,12 +23,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const [
     company,
+    companySettings,
     purchaseOrder,
     purchaseOrderLines,
     purchaseOrderLocations,
     terms
   ] = await Promise.all([
     getCompany(client, companyId),
+    getCompanySettings(client, companyId),
     getPurchaseOrder(client, orderId),
     getPurchaseOrderLines(client, orderId),
     getPurchaseOrderLocations(client, orderId),
@@ -64,6 +67,43 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Error("Failed to load purchase order");
   }
 
+  const showThumbnails =
+    companySettings.data?.includeThumbnailsOnPurchasingPdfs ?? true;
+
+  let thumbnails: Record<string, string | null> = {};
+
+  if (showThumbnails) {
+    const thumbnailPaths = purchaseOrderLines.data?.reduce<
+      Record<string, string | null>
+    >((acc, line) => {
+      if (line.thumbnailPath) {
+        acc[line.id!] = line.thumbnailPath;
+      }
+      return acc;
+    }, {});
+
+    thumbnails =
+      (thumbnailPaths
+        ? await Promise.all(
+            Object.entries(thumbnailPaths).map(([id, path]) => {
+              if (!path) {
+                return null;
+              }
+              return getBase64ImageFromSupabase(client, path).then((data) => ({
+                id,
+                data
+              }));
+            })
+          )
+        : []
+      )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
+        if (thumbnail) {
+          acc[thumbnail.id] = thumbnail.data;
+        }
+        return acc;
+      }, {}) ?? {};
+  }
+
   const locale = getLocale(request);
 
   const stream = await renderToStream(
@@ -74,6 +114,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       purchaseOrderLines={purchaseOrderLines.data ?? []}
       purchaseOrderLocations={purchaseOrderLocations.data}
       terms={(terms?.data?.purchasingTerms || {}) as JSONContent}
+      thumbnails={thumbnails}
     />
   );
 
@@ -90,7 +131,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="${purchaseOrder.data.purchaseOrderId}.pdf"`
+    "Content-Disposition": `inline; filename="${company.data.name} - ${purchaseOrder.data.purchaseOrderId}.pdf"`
   });
   return new Response(body, { status: 200, headers });
 }

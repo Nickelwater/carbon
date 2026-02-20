@@ -19,6 +19,7 @@ import {
   AlertTitle,
   Button,
   Heading,
+  Separator,
   toast,
   VStack
 } from "@carbon/react";
@@ -185,18 +186,6 @@ export default function LoginRoute() {
                 </Alert>
               )}
 
-              <Input name="email" label="" placeholder="Email Address" />
-
-              <Submit
-                isDisabled={fetcher.state !== "idle"}
-                isLoading={fetcher.state === "submitting"}
-                size="lg"
-                className="w-full"
-                withBlocker={false}
-              >
-                Sign in with Email
-              </Submit>
-
               {hasGoogleAuth && (
                 <Button
                   type="button"
@@ -223,6 +212,25 @@ export default function LoginRoute() {
                   Sign in with Outlook
                 </Button>
               )}
+
+              {(hasGoogleAuth || hasOutlookAuth) && (
+                <div className="py-3 w-full">
+                  <Separator />
+                </div>
+              )}
+
+              <Input name="email" label="" placeholder="Email Address" />
+
+              <Submit
+                isDisabled={fetcher.state !== "idle"}
+                isLoading={fetcher.state === "submitting"}
+                size="lg"
+                className="w-full"
+                withBlocker={false}
+                variant="secondary"
+              >
+                Sign in with Email
+              </Submit>
             </VStack>
           </ValidatedForm>
         )}

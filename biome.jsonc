@@ -72,7 +72,15 @@
         "noDangerouslySetInnerHtmlWithChildren": "warn",
         "noGlobalEval": "error"
       },
-      "style": { "useArrayLiterals": "warn" },
+      "style": {
+        "useArrayLiterals": "warn",
+        "useImportType": {
+          "level": "error",
+          "options": {
+            "style": "auto"
+          }
+        }
+      },
       "suspicious": {
         "noCatchAssign": "warn",
         "noCommentText": "warn",

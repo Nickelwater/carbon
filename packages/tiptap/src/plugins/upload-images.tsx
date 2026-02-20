@@ -1,5 +1,7 @@
-import { type EditorState, Plugin, PluginKey } from "@tiptap/pm/state";
-import { Decoration, DecorationSet, type EditorView } from "@tiptap/pm/view";
+import type { EditorState } from "@tiptap/pm/state";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import type { EditorView } from "@tiptap/pm/view";
+import { Decoration, DecorationSet } from "@tiptap/pm/view";
 
 const uploadKey = new PluginKey("upload-image");
 

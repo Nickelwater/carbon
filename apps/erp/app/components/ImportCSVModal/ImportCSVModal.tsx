@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { useFetcher } from "react-router";
 import { z } from "zod";
-import {
-  type fieldMappings,
-  importSchemas
-} from "~/modules/shared/imports.models";
+import type { fieldMappings } from "~/modules/shared/imports.models";
+import { importSchemas } from "~/modules/shared/imports.models";
 import type { action } from "~/routes/x+/shared+/import.$tableId";
 import { path } from "~/utils/path";
 import { AnimatedSizeContainer } from "../AnimatedSizeContainer";

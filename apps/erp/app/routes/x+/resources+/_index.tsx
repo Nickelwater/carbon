@@ -5,7 +5,6 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Combobox,
@@ -26,10 +25,11 @@ import {
   Td,
   Th,
   Thead,
-  Tr
+  Tr,
+  VStack
 } from "@carbon/react";
+import type { ChartConfig } from "@carbon/react/Chart";
 import {
-  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent
@@ -42,28 +42,19 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { CSVLink } from "react-csv";
 import {
   LuArrowUpRight,
-  LuCalendarCheck,
   LuChevronDown,
   LuEllipsisVertical,
   LuFile,
-  LuTriangleAlert,
   LuWrench
 } from "react-icons/lu";
-import {
-  Await,
-  Link,
-  type LoaderFunctionArgs,
-  useFetcher,
-  useLoaderData
-} from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { Await, Link, useFetcher, useLoaderData } from "react-router";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Empty, Hyperlink } from "~/components";
 import { useWorkCenters } from "~/components/Form/WorkCenters";
 import { useCurrencyFormatter } from "~/hooks/useCurrencyFormatter";
-import {
-  MaintenanceKPIs,
-  maintenanceSource
-} from "~/modules/resources/resources.models";
+import type { maintenanceSource } from "~/modules/resources/resources.models";
+import { MaintenanceKPIs } from "~/modules/resources/resources.models";
 import MaintenanceSource from "~/modules/resources/ui/Maintenance/MaintenanceSource";
 import MaintenanceStatus from "~/modules/resources/ui/Maintenance/MaintenanceStatus";
 import { chartIntervals } from "~/modules/shared/shared.models";
@@ -73,7 +64,11 @@ import { path } from "~/utils/path";
 
 const OPEN_STATUSES = ["Open", "Assigned", "In Progress"] as const;
 
-const chartConfig = {} satisfies ChartConfig;
+const chartConfig = {
+  value: {
+    color: "hsl(var(--primary))"
+  }
+} satisfies ChartConfig;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { client, userId, companyId } = await requirePermissions(request, {
@@ -289,7 +284,7 @@ export default function MaintenanceDashboard() {
   const formatValue = (value: number) => {
     // Time-based KPIs (MTTR, MTBF) - value is in seconds
     if (selectedKpi === "mttr" || selectedKpi === "mtbf") {
-      return formatDurationMilliseconds(value * 1000);
+      return formatDurationMilliseconds(value * 1000, { style: "short" });
     }
     // Cost-based KPIs
     if (selectedKpi === "sparePartCost") {
@@ -345,100 +340,88 @@ export default function MaintenanceDashboard() {
   return (
     <div className="flex flex-col gap-4 w-full p-4 h-[calc(100dvh-var(--header-height))] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-muted-foreground">
       <div className="grid w-full gap-4 grid-cols-1 lg:grid-cols-3">
-        <Card className="p-6 rounded-xl items-start justify-start gap-y-4">
-          <HStack className="justify-between w-full items-start mb-4">
-            <div className="bg-muted/80 border border-border rounded-xl p-2 text-foreground dark:shadow-md">
-              <LuWrench className="size-5" />
-            </div>
-            <Button
-              size="sm"
-              rightIcon={<LuArrowUpRight />}
-              variant="secondary"
-              asChild
-            >
-              <Link
-                to={`${
-                  path.to.maintenanceDispatches
-                }?filter=status:in:${OPEN_STATUSES.join(",")}`}
+        <Card>
+          <CardHeader>
+            <CardTitle>Open Dispatches</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HStack className="justify-between w-full items-center">
+              <h3 className="text-5xl font-medium tracking-tighter">
+                {openDispatches}
+              </h3>
+              <Button
+                rightIcon={<LuArrowUpRight />}
+                variant="secondary"
+                asChild
               >
-                View Open
-              </Link>
-            </Button>
-          </HStack>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-3xl font-medium tracking-tight">
-              {openDispatches}
-            </h3>
-            <p className="text-sm text-muted-foreground tracking-tight">
-              Open Dispatches
-            </p>
-          </div>
+                <Link
+                  to={`${
+                    path.to.maintenanceDispatches
+                  }?filter=status:in:${OPEN_STATUSES.join(",")}`}
+                >
+                  View Open
+                </Link>
+              </Button>
+            </HStack>
+          </CardContent>
         </Card>
 
-        <Card className="p-6 items-start justify-start gap-y-4">
-          <HStack className="justify-between w-full items-start mb-4">
-            <div className="bg-muted/80 border border-border rounded-xl p-2 text-foreground dark:shadow-md">
-              <LuCalendarCheck className="size-5" />
-            </div>
-            <Button
-              size="sm"
-              rightIcon={<LuArrowUpRight />}
-              variant="secondary"
-              asChild
-            >
-              <Link
-                to={`${
-                  path.to.maintenanceDispatches
-                }?filter=status:in:${OPEN_STATUSES.join(",")}&filter=source:eq:Scheduled`}
+        <Card>
+          <CardHeader>
+            <CardTitle>Open Scheduled</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HStack className="justify-between w-full items-center">
+              <h3 className="text-5xl font-medium tracking-tighter">
+                {openScheduled}
+              </h3>
+              <Button
+                rightIcon={<LuArrowUpRight />}
+                variant="secondary"
+                asChild
               >
-                View Scheduled
-              </Link>
-            </Button>
-          </HStack>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-3xl font-medium tracking-tight">
-              {openScheduled}
-            </h3>
-            <p className="text-sm text-muted-foreground tracking-tight">
-              Open Scheduled
-            </p>
-          </div>
+                <Link
+                  to={`${
+                    path.to.maintenanceDispatches
+                  }?filter=status:in:${OPEN_STATUSES.join(",")}&filter=source:eq:Scheduled`}
+                >
+                  View Scheduled
+                </Link>
+              </Button>
+            </HStack>
+          </CardContent>
         </Card>
 
-        <Card className="p-6 items-start justify-start gap-y-4">
-          <HStack className="justify-between w-full items-start mb-4">
-            <div className="bg-muted/80 border border-border rounded-xl p-2 text-foreground dark:shadow-md">
-              <LuTriangleAlert className="size-5" />
-            </div>
-            <Button
-              size="sm"
-              rightIcon={<LuArrowUpRight />}
-              variant="secondary"
-              asChild
-            >
-              <Link
-                to={`${
-                  path.to.maintenanceDispatches
-                }?filter=status:in:${OPEN_STATUSES.join(",")}&filter=source:eq:Reactive`}
+        <Card>
+          <CardHeader>
+            <CardTitle>Open Reactive</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HStack className="justify-between w-full items-center">
+              <h3 className="text-5xl font-medium tracking-tighter">
+                {openReactive}
+              </h3>
+              <Button
+                rightIcon={<LuArrowUpRight />}
+                variant="secondary"
+                asChild
               >
-                View Reactive
-              </Link>
-            </Button>
-          </HStack>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-3xl font-medium tracking-tight">
-              {openReactive}
-            </h3>
-            <p className="text-sm text-muted-foreground tracking-tight">
-              Open Reactive
-            </p>
-          </div>
+                <Link
+                  to={`${
+                    path.to.maintenanceDispatches
+                  }?filter=status:in:${OPEN_STATUSES.join(",")}&filter=source:eq:Reactive`}
+                >
+                  View Reactive
+                </Link>
+              </Button>
+            </HStack>
+          </CardContent>
         </Card>
       </div>
 
-      <Card className="p-0">
-        <HStack className="justify-between items-start">
-          <CardHeader className="pb-0">
+      <Card>
+        <HStack className="justify-between items-center">
+          <CardHeader>
             <div className="flex w-full justify-start items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -507,30 +490,8 @@ export default function MaintenanceDashboard() {
                 className="min-w-[160px] gap-4"
               />
             </div>
-            <HStack className="pl-[3px] pt-1">
-              {isFetching ? (
-                <Skeleton className="h-8 w-1/2" />
-              ) : (
-                <>
-                  <p className="text-xl font-semibold tracking-tight">
-                    {formatValue(total)}
-                  </p>
-                  {isBadgePositive ? (
-                    <Badge variant="green">
-                      {percentageChange >= 0 ? "+" : ""}
-                      {percentageChange.toFixed(0)}%
-                    </Badge>
-                  ) : (
-                    <Badge variant="red">
-                      {percentageChange >= 0 ? "+" : ""}
-                      {percentageChange.toFixed(0)}%
-                    </Badge>
-                  )}
-                </>
-              )}
-            </HStack>
           </CardHeader>
-          <CardAction className="py-6 px-6">
+          <CardAction>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <IconButton
@@ -554,7 +515,32 @@ export default function MaintenanceDashboard() {
             </DropdownMenu>
           </CardAction>
         </HStack>
-        <CardContent className="p-6">
+        <CardContent className="flex-col gap-4">
+          <VStack className="pl-[3px]" spacing={0}>
+            {isFetching ? (
+              <div className="flex flex-col gap-0.5 w-full">
+                <Skeleton className="h-8 w-[120px]" />
+                <Skeleton className="h-4 w-[50px]" />
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-medium tracking-tighter">
+                  {formatValue(total)}
+                </p>
+                {isBadgePositive ? (
+                  <Badge variant="green">
+                    {percentageChange >= 0 ? "+" : ""}
+                    {percentageChange.toFixed(0)}%
+                  </Badge>
+                ) : (
+                  <Badge variant="red">
+                    {percentageChange >= 0 ? "+" : ""}
+                    {percentageChange.toFixed(0)}%
+                  </Badge>
+                )}
+              </>
+            )}
+          </VStack>
           <Loading
             isLoading={isFetching}
             className="h-[30dvw] md:h-[23dvw] w-full"
@@ -588,7 +574,7 @@ export default function MaintenanceDashboard() {
                       />
                     }
                   />
-                  <Bar dataKey="value" className="fill-red-500" radius={2} />
+                  <Bar dataKey="value" fill="var(--color-value)" radius={2} />
                 </BarChart>
               </ChartContainer>
             ) : (
@@ -659,19 +645,7 @@ export default function MaintenanceDashboard() {
                       />
                     }
                   />
-                  <Bar
-                    dataKey="value"
-                    className={
-                      ["mttr", "mtbf"].includes(selectedKpiData.key)
-                        ? "fill-blue-500"
-                        : ["sparePartCost", "sparePartConsumption"].includes(
-                              selectedKpiData.key
-                            )
-                          ? "fill-amber-500"
-                          : "fill-teal-500"
-                    }
-                    radius={2}
-                  />
+                  <Bar dataKey="value" fill="var(--color-value)" radius={2} />
                 </BarChart>
               </ChartContainer>
             )}
@@ -680,11 +654,8 @@ export default function MaintenanceDashboard() {
       </Card>
       <div className="grid w-full gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
-          <CardHeader className="px-6 pb-0">
+          <CardHeader>
             <CardTitle>Recently Created</CardTitle>
-            <CardDescription className="text-sm">
-              Newly created maintenance dispatches
-            </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
             <div className="min-h-[200px] max-h-[360px] w-full overflow-y-auto">
@@ -700,13 +671,10 @@ export default function MaintenanceDashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="px-6 pb-0">
+          <CardHeader>
             <CardTitle>Assigned to Me</CardTitle>
-            <CardDescription className="text-sm">
-              Dispatches currently assigned to you
-            </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 min-h-[200px]">
+          <CardContent className="min-h-[200px]">
             <Suspense fallback={<Loading isLoading />}>
               <Await
                 resolve={assignedToMe}

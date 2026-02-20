@@ -34,6 +34,69 @@ const importCsvValidator = z.object({
 
 const EXTERNAL_ID_KEY = "csv";
 
+/**
+ * Build a map of CSV external IDs → entity IDs from the externalIntegrationMapping table.
+ */
+async function getCsvExternalIdMap(
+  entityType: string,
+  cId: string
+): Promise<Map<string, string>> {
+  const result = await db
+    .selectFrom("externalIntegrationMapping")
+    .select(["externalId", "entityId"])
+    .where("entityType", "=", entityType)
+    .where("integration", "=", EXTERNAL_ID_KEY)
+    .where("companyId", "=", cId)
+    .execute();
+
+  return new Map(
+    result
+      .filter((r): r is typeof r & { externalId: string } => r.externalId !== null)
+      .map((r) => [r.externalId, r.entityId])
+  );
+}
+
+/**
+ * Upsert CSV external ID mappings into the externalIntegrationMapping table.
+ * Uses ON CONFLICT to handle re-imports idempotently.
+ */
+async function upsertCsvMappings(
+  trx: typeof db,
+  entityType: string,
+  mappings: Array<{ entityId: string; externalId: string }>,
+  cId: string,
+  userId: string
+): Promise<void> {
+  if (mappings.length === 0) return;
+
+  const now = new Date().toISOString();
+
+  await trx
+    .insertInto("externalIntegrationMapping")
+    .values(
+      mappings.map((m) => ({
+        entityType,
+        entityId: m.entityId,
+        integration: EXTERNAL_ID_KEY,
+        externalId: m.externalId,
+        companyId: cId,
+        allowDuplicateExternalId: false,
+        createdBy: userId,
+        createdAt: now,
+        updatedAt: now,
+      }))
+    )
+    .onConflict((oc) =>
+      oc
+        .columns(["entityType", "entityId", "integration", "companyId"])
+        .doUpdateSet((eb) => ({
+          externalId: eb.ref("excluded.externalId"),
+          updatedAt: eb.ref("excluded.updatedAt"),
+        }))
+    )
+    .execute();
+}
+
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -119,33 +182,13 @@ serve(async (req: Request) => {
 
     switch (table) {
       case "customer": {
-        const currentCustomers = await db
-          .selectFrom(table)
-          .where("companyId", "=", companyId)
-          .select(["id", "externalId"])
-          .execute();
-
-        const externalIdMap = new Map(
-          currentCustomers.reduce((acc, customer) => {
-            if (
-              customer.externalId &&
-              typeof customer.externalId === "object" &&
-              EXTERNAL_ID_KEY in customer.externalId
-            ) {
-              acc.set(customer.externalId[EXTERNAL_ID_KEY] as string, {
-                id: customer.id!,
-                externalId: customer.externalId as Record<string, string>,
-              });
-            }
-            return acc;
-          }, new Map<string, { id: string; externalId: Record<string, string> }>())
-        );
-
+        const externalIdMap = await getCsvExternalIdMap("customer", companyId);
         const customerIds = new Set();
 
         await db.transaction().execute(async (trx) => {
           const customerInserts: Database["public"]["Tables"]["customer"]["Insert"][] =
             [];
+          const csvIdsForInserts: string[] = [];
           const customerUpdates: {
             id: string;
             data: Database["public"]["Tables"]["customer"]["Update"];
@@ -160,18 +203,15 @@ serve(async (req: Request) => {
           for (const record of mappedRecords) {
             const { id, ...rest } = record;
             if (externalIdMap.has(id)) {
-              const existingCustomer = externalIdMap.get(id)!;
+              const existingEntityId = externalIdMap.get(id)!;
               if (isCustomerValid(rest) && !customerIds.has(id)) {
                 customerIds.add(id);
                 customerUpdates.push({
-                  id: existingCustomer.id,
+                  id: existingEntityId,
                   data: {
                     ...rest,
                     updatedAt: new Date().toISOString(),
                     updatedBy: userId,
-                    externalId: {
-                      ...existingCustomer.externalId,
-                    },
                   },
                 });
               }
@@ -182,10 +222,8 @@ serve(async (req: Request) => {
                 companyId,
                 createdAt: new Date().toISOString(),
                 createdBy: userId,
-                externalId: {
-                  [EXTERNAL_ID_KEY]: id,
-                },
               });
+              csvIdsForInserts.push(id);
             }
           }
 
@@ -196,7 +234,21 @@ serve(async (req: Request) => {
           });
 
           if (customerInserts.length > 0) {
-            await trx.insertInto(table).values(customerInserts).execute();
+            const inserted = await trx
+              .insertInto(table)
+              .values(customerInserts)
+              .returning(["id"])
+              .execute();
+            await upsertCsvMappings(
+              trx,
+              "customer",
+              inserted.map((row, i) => ({
+                entityId: row.id!,
+                externalId: csvIdsForInserts[i],
+              })),
+              companyId,
+              userId
+            );
           }
           if (customerUpdates.length > 0) {
             for (const update of customerUpdates) {
@@ -211,33 +263,13 @@ serve(async (req: Request) => {
         break;
       }
       case "supplier": {
-        const currentSuppliers = await db
-          .selectFrom(table)
-          .where("companyId", "=", companyId)
-          .select(["id", "externalId"])
-          .execute();
-
-        const externalIdMap = new Map(
-          currentSuppliers.reduce((acc, supplier) => {
-            if (
-              supplier.externalId &&
-              typeof supplier.externalId === "object" &&
-              EXTERNAL_ID_KEY in supplier.externalId
-            ) {
-              acc.set(supplier.externalId[EXTERNAL_ID_KEY] as string, {
-                id: supplier.id!,
-                externalId: supplier.externalId as Record<string, string>,
-              });
-            }
-            return acc;
-          }, new Map<string, { id: string; externalId: Record<string, string> }>())
-        );
-
+        const externalIdMap = await getCsvExternalIdMap("supplier", companyId);
         const supplierIds = new Set();
 
         await db.transaction().execute(async (trx) => {
           const supplierInserts: Database["public"]["Tables"]["supplier"]["Insert"][] =
             [];
+          const csvIdsForInserts: string[] = [];
           const supplierUpdates: {
             id: string;
             data: Database["public"]["Tables"]["supplier"]["Update"];
@@ -253,17 +285,14 @@ serve(async (req: Request) => {
             const { id, ...rest } = record;
             if (externalIdMap.has(id) && !supplierIds.has(id)) {
               supplierIds.add(id);
-              const existingSupplier = externalIdMap.get(id)!;
+              const existingEntityId = externalIdMap.get(id)!;
               if (isSupplierValid(rest)) {
                 supplierUpdates.push({
-                  id: existingSupplier.id,
+                  id: existingEntityId,
                   data: {
                     ...rest,
                     updatedAt: new Date().toISOString(),
                     updatedBy: userId,
-                    externalId: {
-                      ...existingSupplier.externalId,
-                    },
                   },
                 });
               }
@@ -274,10 +303,8 @@ serve(async (req: Request) => {
                 companyId,
                 createdAt: new Date().toISOString(),
                 createdBy: userId,
-                externalId: {
-                  [EXTERNAL_ID_KEY]: id,
-                },
               });
+              csvIdsForInserts.push(id);
             }
           }
 
@@ -288,7 +315,21 @@ serve(async (req: Request) => {
           });
 
           if (supplierInserts.length > 0) {
-            await trx.insertInto(table).values(supplierInserts).execute();
+            const inserted = await trx
+              .insertInto(table)
+              .values(supplierInserts)
+              .returning(["id"])
+              .execute();
+            await upsertCsvMappings(
+              trx,
+              "supplier",
+              inserted.map((row, i) => ({
+                entityId: row.id!,
+                externalId: csvIdsForInserts[i],
+              })),
+              companyId,
+              userId
+            );
           }
           if (supplierUpdates.length > 0) {
             for (const update of supplierUpdates) {
@@ -311,33 +352,13 @@ serve(async (req: Request) => {
           return `${table}:${id}`;
         };
 
-        const currentItems = await db
-          .selectFrom("item")
-          .where("companyId", "=", companyId)
-          .select(["id", "externalId"])
-          .execute();
-
+        const externalIdMap = await getCsvExternalIdMap("item", companyId);
         const readableIds = new Set();
-
-        const externalIdMap = new Map(
-          currentItems.reduce((acc, item) => {
-            if (
-              item.externalId &&
-              typeof item.externalId === "object" &&
-              EXTERNAL_ID_KEY in item.externalId
-            ) {
-              acc.set(item.externalId[EXTERNAL_ID_KEY] as string, {
-                id: item.id!,
-                externalId: item.externalId as Record<string, string>,
-              });
-            }
-            return acc;
-          }, new Map<string, { id: string; externalId: Record<string, string> }>())
-        );
 
         await db.transaction().execute(async (trx) => {
           const itemInserts: Database["public"]["Tables"]["item"]["Insert"][] =
             [];
+          const csvIdsForInserts: string[] = [];
           const itemUpdates: {
             id: string;
             data: Database["public"]["Tables"]["item"]["Update"];
@@ -398,11 +419,11 @@ serve(async (req: Request) => {
               externalIdMap.has(getExternalId(id)) &&
               !readableIds.has(readableIdWithRevision)
             ) {
-              const existingItem = externalIdMap.get(getExternalId(id))!;
+              const existingEntityId = externalIdMap.get(getExternalId(id))!;
 
               readableIds.add(readableIdWithRevision);
               itemUpdates.push({
-                id: existingItem.id,
+                id: existingEntityId,
                 data: {
                   ...rest,
                   revision: rest.revision ?? "0",
@@ -413,9 +434,6 @@ serve(async (req: Request) => {
                   defaultMethodType: rest.defaultMethodType || undefined,
                   updatedAt: new Date().toISOString(),
                   updatedBy: userId,
-                  externalId: {
-                    ...existingItem.externalId,
-                  },
                 },
               });
 
@@ -458,11 +476,9 @@ serve(async (req: Request) => {
                 revision: rest.revision ?? "0",
                 createdAt: new Date().toISOString(),
                 createdBy: userId,
-                externalId: {
-                  [EXTERNAL_ID_KEY]: getExternalId(id),
-                },
               };
               itemInserts.push(newItem);
+              csvIdsForInserts.push(getExternalId(id));
 
               if (table === "material") {
                 const material = materialValidator.safeParse(record);
@@ -477,9 +493,6 @@ serve(async (req: Request) => {
                     companyId,
                     createdAt: new Date().toISOString(),
                     createdBy: userId,
-                    externalId: {
-                      [EXTERNAL_ID_KEY]: getExternalId(id),
-                    },
                   };
                 }
               }
@@ -501,17 +514,27 @@ serve(async (req: Request) => {
                   replenishmentSystem: sql`EXCLUDED."replenishmentSystem"`,
                   defaultMethodType: sql`EXCLUDED."defaultMethodType"`,
                   itemTrackingType: sql`EXCLUDED."itemTrackingType"`,
-                  externalId: sql`EXCLUDED."externalId"`,
                 })
               )
-              .returning(["id", "externalId", "readableId"])
+              .returning(["id", "readableId"])
               .execute();
+
+            // Create CSV mappings for newly inserted items
+            await upsertCsvMappings(
+              trx,
+              "item",
+              insertedItems.map((item, i) => ({
+                entityId: item.id!,
+                externalId: csvIdsForInserts[i],
+              })),
+              companyId,
+              userId
+            );
 
             if (["part", "fixture", "tool", "consumable"].includes(table)) {
               const specificInserts = insertedItems.map((item) => ({
                 id: item.readableId,
                 approved: true,
-                externalId: item.externalId,
                 companyId,
                 createdAt: new Date().toISOString(),
                 createdBy: userId,
@@ -540,7 +563,6 @@ serve(async (req: Request) => {
                     dimensionId: materialData.dimensionId || undefined,
                     gradeId: materialData.gradeId || undefined,
                     finishId: materialData.finishId || undefined,
-                    externalId: item.externalId,
                     companyId,
                     createdAt: new Date().toISOString(),
                     createdBy: userId,
@@ -565,12 +587,44 @@ serve(async (req: Request) => {
           });
 
           if (itemUpdates.length > 0) {
+            // Get current readableIds to detect changes
+            const currentItems = await trx
+              .selectFrom("item")
+              .select(["id", "readableId"])
+              .where(
+                "id",
+                "in",
+                itemUpdates.map((u) => u.id)
+              )
+              .execute();
+            const currentReadableIdMap = new Map(
+              currentItems.map((i) => [i.id, i.readableId])
+            );
+
             for (const update of itemUpdates) {
               await trx
                 .updateTable("item")
                 .set(update.data)
                 .where("id", "=", update.id)
                 .execute();
+            }
+
+            // Update type-specific table id when readableId changes
+            for (const update of itemUpdates) {
+              const oldReadableId = currentReadableIdMap.get(update.id);
+              const newReadableId = update.data.readableId;
+              if (
+                newReadableId &&
+                oldReadableId &&
+                oldReadableId !== newReadableId
+              ) {
+                await trx
+                  .updateTable(table)
+                  .set({ id: newReadableId } as never)
+                  .where("id", "=", oldReadableId)
+                  .where("companyId", "=", companyId)
+                  .execute();
+              }
             }
 
             if (materialUpdates.length > 0) {
@@ -588,53 +642,13 @@ serve(async (req: Request) => {
         break;
       }
       case "customerContact": {
-        const currentContacts = await db
-          .selectFrom("contact")
-          .where("companyId", "=", companyId)
-          .select(["id", "externalId"])
-          .execute();
-
-        const currentCustomers = await db
-          .selectFrom("customer")
-          .where("companyId", "=", companyId)
-          .select(["id", "externalId"])
-          .execute();
-
-        const externalCustomerIdMap = new Map(
-          currentCustomers.reduce((acc, customer) => {
-            if (
-              customer.externalId &&
-              typeof customer.externalId === "object" &&
-              EXTERNAL_ID_KEY in customer.externalId
-            ) {
-              acc.set(customer.externalId[EXTERNAL_ID_KEY] as string, {
-                id: customer.id!,
-                externalId: customer.externalId as Record<string, string>,
-              });
-            }
-            return acc;
-          }, new Map<string, { id: string; externalId: Record<string, string> }>())
-        );
-
-        const externalContactIdMap = new Map(
-          currentContacts.reduce((acc, contact) => {
-            if (
-              contact.externalId &&
-              typeof contact.externalId === "object" &&
-              EXTERNAL_ID_KEY in contact.externalId
-            ) {
-              acc.set(contact.externalId[EXTERNAL_ID_KEY] as string, {
-                id: contact.id!,
-                externalId: contact.externalId as Record<string, string>,
-              });
-            }
-            return acc;
-          }, new Map<string, { id: string; externalId: Record<string, string> }>())
-        );
+        const externalContactIdMap = await getCsvExternalIdMap("contact", companyId);
+        const externalCustomerIdMap = await getCsvExternalIdMap("customer", companyId);
 
         await db.transaction().execute(async (trx) => {
           const contactInserts: Database["public"]["Tables"]["contact"]["Insert"][] =
             [];
+          const csvIdsForContactInserts: string[] = [];
           const contactUpdates: {
             id: string;
             data: Database["public"]["Tables"]["contact"]["Update"];
@@ -656,15 +670,12 @@ serve(async (req: Request) => {
             const { id, companyId: customerId, ...contactData } = record;
 
             if (externalContactIdMap.has(id)) {
-              const existingContact = externalContactIdMap.get(id)!;
+              const existingEntityId = externalContactIdMap.get(id)!;
               if (isContactValid(contactData)) {
                 contactUpdates.push({
-                  id: existingContact.id,
+                  id: existingEntityId,
                   data: {
                     ...contactData,
-                    externalId: {
-                      ...existingContact.externalId,
-                    },
                   },
                 });
               }
@@ -672,21 +683,19 @@ serve(async (req: Request) => {
               isContactValid(contactData) &&
               externalCustomerIdMap.has(customerId)
             ) {
-              const existingCustomer = externalCustomerIdMap.get(customerId)!;
+              const existingCustomerId = externalCustomerIdMap.get(customerId)!;
               const contactId = nanoid();
               const newContact = {
                 id: contactId,
                 ...contactData,
                 companyId,
-                externalId: {
-                  [EXTERNAL_ID_KEY]: id,
-                },
               };
 
               contactInserts.push(newContact);
+              csvIdsForContactInserts.push(id);
               customerContactInserts.push({
                 contactId,
-                customerId: existingCustomer.id,
+                customerId: existingCustomerId,
                 customFields: {},
               });
             }
@@ -700,11 +709,21 @@ serve(async (req: Request) => {
           });
 
           if (contactInserts.length > 0) {
-            await trx
+            const inserted = await trx
               .insertInto("contact")
               .values(contactInserts)
               .returning(["id"])
               .execute();
+            await upsertCsvMappings(
+              trx,
+              "contact",
+              inserted.map((row, i) => ({
+                entityId: row.id!,
+                externalId: csvIdsForContactInserts[i],
+              })),
+              companyId,
+              userId
+            );
           }
 
           if (contactUpdates.length > 0) {
@@ -728,53 +747,13 @@ serve(async (req: Request) => {
         break;
       }
       case "supplierContact": {
-        const currentContacts = await db
-          .selectFrom("contact")
-          .where("companyId", "=", companyId)
-          .select(["id", "externalId"])
-          .execute();
-
-        const currentSuppliers = await db
-          .selectFrom("supplier")
-          .where("companyId", "=", companyId)
-          .select(["id", "externalId"])
-          .execute();
-
-        const externalSupplierIdMap = new Map(
-          currentSuppliers.reduce((acc, supplier) => {
-            if (
-              supplier.externalId &&
-              typeof supplier.externalId === "object" &&
-              EXTERNAL_ID_KEY in supplier.externalId
-            ) {
-              acc.set(supplier.externalId[EXTERNAL_ID_KEY] as string, {
-                id: supplier.id!,
-                externalId: supplier.externalId as Record<string, string>,
-              });
-            }
-            return acc;
-          }, new Map<string, { id: string; externalId: Record<string, string> }>())
-        );
-
-        const externalContactIdMap = new Map(
-          currentContacts.reduce((acc, contact) => {
-            if (
-              contact.externalId &&
-              typeof contact.externalId === "object" &&
-              EXTERNAL_ID_KEY in contact.externalId
-            ) {
-              acc.set(contact.externalId[EXTERNAL_ID_KEY] as string, {
-                id: contact.id!,
-                externalId: contact.externalId as Record<string, string>,
-              });
-            }
-            return acc;
-          }, new Map<string, { id: string; externalId: Record<string, string> }>())
-        );
+        const externalContactIdMap = await getCsvExternalIdMap("contact", companyId);
+        const externalSupplierIdMap = await getCsvExternalIdMap("supplier", companyId);
 
         await db.transaction().execute(async (trx) => {
           const contactInserts: Database["public"]["Tables"]["contact"]["Insert"][] =
             [];
+          const csvIdsForContactInserts: string[] = [];
           const contactUpdates: {
             id: string;
             data: Database["public"]["Tables"]["contact"]["Update"];
@@ -796,15 +775,12 @@ serve(async (req: Request) => {
             const { id, companyId: supplierId, ...contactData } = record;
 
             if (externalContactIdMap.has(id)) {
-              const existingContact = externalContactIdMap.get(id)!;
+              const existingEntityId = externalContactIdMap.get(id)!;
               if (isContactValid(contactData)) {
                 contactUpdates.push({
-                  id: existingContact.id,
+                  id: existingEntityId,
                   data: {
                     ...contactData,
-                    externalId: {
-                      ...existingContact.externalId,
-                    },
                   },
                 });
               }
@@ -812,20 +788,18 @@ serve(async (req: Request) => {
               isContactValid(contactData) &&
               externalSupplierIdMap.has(supplierId)
             ) {
-              const existingSupplier = externalSupplierIdMap.get(supplierId)!;
+              const existingSupplierId = externalSupplierIdMap.get(supplierId)!;
               const contactId = nanoid();
               const newContact = {
                 id: contactId,
                 ...contactData,
                 companyId,
-                externalId: {
-                  [EXTERNAL_ID_KEY]: id,
-                },
               };
               contactInserts.push(newContact);
+              csvIdsForContactInserts.push(id);
               supplierContactInserts.push({
                 contactId,
-                supplierId: existingSupplier.id,
+                supplierId: existingSupplierId,
                 customFields: {},
               });
             }
@@ -839,11 +813,21 @@ serve(async (req: Request) => {
           });
 
           if (contactInserts.length > 0) {
-            await trx
+            const inserted = await trx
               .insertInto("contact")
               .values(contactInserts)
               .returning(["id"])
               .execute();
+            await upsertCsvMappings(
+              trx,
+              "contact",
+              inserted.map((row, i) => ({
+                entityId: row.id!,
+                externalId: csvIdsForContactInserts[i],
+              })),
+              companyId,
+              userId
+            );
           }
 
           if (contactUpdates.length > 0) {

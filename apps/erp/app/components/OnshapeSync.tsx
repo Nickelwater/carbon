@@ -72,16 +72,18 @@ export const OnshapeSync = ({
       return;
     }
     carbon
-      ?.from("item")
-      .select("externalId")
-      .eq("id", itemId)
-      .single()
+      .from("externalIntegrationMapping")
+      .select("metadata, lastSyncedAt")
+      .eq("entityType", "item")
+      .eq("entityId", itemId)
+      .eq("integration", "onshape")
+      .maybeSingle()
       .then(({ data }) => {
-        const externalId = data?.externalId as Record<string, any>;
-        setDocumentId(externalId.onshape?.documentId);
-        setVersionId(externalId.onshape?.versionId);
-        setElementId(externalId.onshape?.elementId);
-        setLastSyncedAt(externalId.onshape?.lastSyncedAt);
+        const metadata = data?.metadata as Record<string, any> | null;
+        setDocumentId(metadata?.documentId ?? null);
+        setVersionId(metadata?.versionId ?? null);
+        setElementId(metadata?.elementId ?? null);
+        setLastSyncedAt(data?.lastSyncedAt ?? null);
       });
   });
 
@@ -401,7 +403,7 @@ export const OnshapeSync = ({
                 <div
                   key={row.index}
                   className={cn(
-                    "flex min-h-8 cursor-pointer items-center overflow-hidden rounded-sm pr-2 w-full gap-1 hover:bg-muted/90"
+                    "flex min-h-8 cursor-pointer items-center overflow-hidden rounded-sm pr-2 w-full gap-1 hover:bg-accent"
                   )}
                   style={{
                     paddingLeft: `${row.level * 12}px`

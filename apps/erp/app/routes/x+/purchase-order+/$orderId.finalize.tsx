@@ -8,13 +8,14 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { PurchaseOrderEmail } from "@carbon/documents/email";
 import { validationError, validator } from "@carbon/form";
-import type { sendEmailResendTask } from "@carbon/jobs/trigger/send-email-resend"; // Assuming you have a sendEmail task defined
+import type { sendEmailResendTask } from "@carbon/jobs/trigger/send-email-resend";
 import { NotificationEvent } from "@carbon/notifications";
 import { renderAsync } from "@react-email/components";
 import { FunctionRegion } from "@supabase/supabase-js";
 import { tasks } from "@trigger.dev/sdk";
 import { parseAcceptLanguage } from "intl-parse-accept-language";
-import { type ActionFunctionArgs, redirect } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { getPaymentTermsList } from "~/modules/accounting";
 import { upsertDocument } from "~/modules/documents";
 import {
@@ -251,7 +252,7 @@ export async function action(args: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const { notification, supplierContact } = validation.data;
+  const { notification, supplierContact, cc: ccSelections } = validation.data;
 
   switch (notification) {
     case "Email":
@@ -312,6 +313,7 @@ export async function action(args: ActionFunctionArgs) {
           await Promise.all([
             tasks.trigger<typeof sendEmailResendTask>("send-email-resend", {
               to: [buyer.data.email, supplier.data.contact.email],
+              cc: ccSelections?.length ? ccSelections : undefined,
               from: buyer.data.email,
               subject: `Purchase Order ${purchaseOrder.data.purchaseOrderId} from ${company.data.name}`,
               html,

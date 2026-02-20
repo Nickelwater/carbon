@@ -1,7 +1,9 @@
 import { redis } from "@carbon/kv";
+import { Edition } from "@carbon/utils";
 import { createCookieSessionStorage, redirect } from "react-router";
 
 import {
+  CarbonEdition,
   DOMAIN,
   REFRESH_ACCESS_TOKEN_THRESHOLD,
   SESSION_KEY,
@@ -31,12 +33,14 @@ async function assertAuthSession(
   return authSession;
 }
 
+const isTestEdition = CarbonEdition === Edition.Test;
+
 const sessionStorage = createCookieSessionStorage({
   cookie: {
     name: "carbon",
     httpOnly: VERCEL_ENV === "production",
     path: "/",
-    sameSite: "lax",
+    sameSite: isTestEdition ? "none" : "lax",
     secrets: [SESSION_SECRET],
     secure: VERCEL_ENV === "production",
     domain: VERCEL_ENV === "production" ? DOMAIN : undefined // eg. carbon.ms

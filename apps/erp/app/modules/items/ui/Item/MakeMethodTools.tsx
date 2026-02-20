@@ -6,6 +6,9 @@ import {
   Badge,
   Button,
   Checkbox,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
   cn,
   DropdownMenu,
   DropdownMenuContent,
@@ -36,13 +39,12 @@ import { flushSync } from "react-dom";
 import {
   LuCheck,
   LuChevronDown,
+  LuChevronRight,
   LuCirclePlus,
   LuCopy,
-  LuEye,
   LuGitBranch,
   LuGitFork,
   LuGitMerge,
-  LuPencil,
   LuStar,
   LuTriangleAlert
 } from "react-icons/lu";
@@ -65,17 +67,20 @@ type MakeMethodToolsProps = {
   itemId: string;
   type: MethodItemType;
   makeMethods: MakeMethod[];
+  currentMethodId?: string;
 };
 
 const MakeMethodTools = ({
   itemId,
   makeMethods,
-  type
+  type,
+  currentMethodId
 }: MakeMethodToolsProps) => {
   const permissions = usePermissions();
   const fetcher = useFetcher<{ error: string | null }>();
   const params = useParams();
   const { methodId, makeMethodId } = params;
+  const activeMethodId = currentMethodId ?? makeMethodId ?? methodId;
 
   const isGetMethodLoading =
     fetcher.state !== "idle" && fetcher.formAction === path.to.makeMethodGet;
@@ -93,11 +98,11 @@ const MakeMethodTools = ({
 
   const getMethodModal = useDisclosure();
   const saveMethodModal = useDisclosure();
+  const [hasMethodParts, setHasMethodParts] = useState(true);
   const newVersionModal = useDisclosure();
   const activeMethodModal = useDisclosure();
   const itemLink = type && itemId ? getLinkToItemDetails(type, itemId) : null;
 
-  const activeMethodId = makeMethodId ?? methodId;
   const activeMethod =
     makeMethods.find((m) => m.id === activeMethodId) ?? makeMethods[0];
 
@@ -154,46 +159,36 @@ const MakeMethodTools = ({
                   {makeMethods
                     .sort((a, b) => b.version - a.version)
                     .map((makeMethod) => {
-                      const isCurrent =
-                        (makeMethod.id === methodId &&
-                          makeMethodId === undefined) ||
-                        makeMethod.id === makeMethodId;
-
-                      const isReadOnly = makeMethod.status !== "Draft";
+                      const isCurrent = makeMethod.id === activeMethodId;
 
                       return (
                         <DropdownMenuSub key={makeMethod.id}>
-                          <DropdownMenuSubTrigger className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-2">
-                              <LuCheck
-                                className={cn(!isCurrent && "opacity-0")}
+                          <DropdownMenuSubTrigger>
+                            <Link
+                              to={getPathToMakeMethod(
+                                type,
+                                itemId,
+                                makeMethod.id
+                              )}
+                              className="flex items-center justify-between gap-4"
+                            >
+                              <div className="flex items-center gap-2">
+                                <LuCheck
+                                  className={cn(!isCurrent && "opacity-0")}
+                                />
+                                <span>Version {makeMethod.version}</span>
+                              </div>
+                              <MakeMethodVersionStatus
+                                status={makeMethod.status}
+                                isActive={
+                                  makeMethod.status === "Active" ||
+                                  makeMethods.length === 1
+                                }
                               />
-                              <span>Version {makeMethod.version}</span>
-                            </div>
-                            <MakeMethodVersionStatus
-                              status={makeMethod.status}
-                              isActive={
-                                makeMethod.status === "Active" ||
-                                makeMethods.length === 1
-                              }
-                            />
+                            </Link>
                           </DropdownMenuSubTrigger>
                           <DropdownMenuPortal>
                             <DropdownMenuSubContent>
-                              <DropdownMenuItem asChild>
-                                <Link
-                                  to={getPathToMakeMethod(
-                                    type,
-                                    itemId,
-                                    makeMethod.id
-                                  )}
-                                >
-                                  <DropdownMenuIcon
-                                    icon={isReadOnly ? <LuEye /> : <LuPencil />}
-                                  />
-                                  {isReadOnly ? "View Version" : "Edit Version"}
-                                </Link>
-                              </DropdownMenuItem>
                               <DropdownMenuItem
                                 onClick={() => {
                                   flushSync(() => {
@@ -205,7 +200,7 @@ const MakeMethodTools = ({
                                 <DropdownMenuIcon icon={<LuCopy />} />
                                 Copy Version
                               </DropdownMenuItem>
-                              <DropdownMenuSeparator />
+
                               {/* <DropdownMenuItem
                                 destructive
                                 disabled={
@@ -274,6 +269,12 @@ const MakeMethodTools = ({
               <ModalBody>
                 <Hidden name="targetId" value={itemId} />
                 <VStack spacing={4}>
+                  <Alert variant="destructive" className="mt-4">
+                    <LuTriangleAlert className="h-4 w-4" />
+                    <AlertTitle>
+                      This will overwrite the existing manufacturing method
+                    </AlertTitle>
+                  </Alert>
                   <Item
                     name="sourceId"
                     label="Source Method"
@@ -298,19 +299,16 @@ const MakeMethodTools = ({
                     </label>
                   </div>
 
-                  <Alert variant="destructive" className="mt-4">
-                    <LuTriangleAlert className="h-4 w-4" />
-                    <AlertTitle>
-                      This will overwrite the existing manufacturing method
-                    </AlertTitle>
-                  </Alert>
+                  <AdvancedSection onChange={setHasMethodParts} />
                 </VStack>
               </ModalBody>
               <ModalFooter>
                 <Button onClick={getMethodModal.onClose} variant="secondary">
                   Cancel
                 </Button>
-                <Submit variant="destructive">Confirm</Submit>
+                <Submit isDisabled={!hasMethodParts} variant="destructive">
+                  Confirm
+                </Submit>
               </ModalFooter>
             </ValidatedForm>
           </ModalContent>
@@ -366,13 +364,14 @@ const MakeMethodTools = ({
                       Include Inactive
                     </label>
                   </div>
+                  <AdvancedSection onChange={setHasMethodParts} />
                 </VStack>
               </ModalBody>
               <ModalFooter>
                 <Button onClick={saveMethodModal.onClose} variant="secondary">
                   Cancel
                 </Button>
-                <Submit>Confirm</Submit>
+                <Submit isDisabled={!hasMethodParts}>Confirm</Submit>
               </ModalFooter>
             </ValidatedForm>
           </ModalContent>
@@ -462,5 +461,111 @@ const MakeMethodTools = ({
     </>
   );
 };
+
+function AdvancedSection({
+  onChange
+}: {
+  onChange?: (hasSelection: boolean) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [billOfMaterial, setBillOfMaterial] = useState(true);
+  const [billOfProcess, setBillOfProcess] = useState(true);
+  const [parameters, setParameters] = useState(true);
+  const [tools, setTools] = useState(true);
+  const [steps, setSteps] = useState(true);
+  const [workInstructions, setWorkInstructions] = useState(true);
+
+  const hasSelection =
+    billOfMaterial ||
+    (billOfProcess && (parameters || tools || steps || workInstructions));
+
+  useEffect(() => {
+    onChange?.(hasSelection);
+  }, [hasSelection, onChange]);
+
+  const processChildren = [
+    {
+      name: "parameters",
+      label: "Parameters",
+      checked: parameters,
+      onChange: setParameters
+    },
+    { name: "tools", label: "Tools", checked: tools, onChange: setTools },
+    { name: "steps", label: "Steps", checked: steps, onChange: setSteps },
+    {
+      name: "workInstructions",
+      label: "Work Instructions",
+      checked: workInstructions,
+      onChange: setWorkInstructions
+    }
+  ];
+
+  return (
+    <Collapsible className="w-full" open={open} onOpenChange={setOpen}>
+      <CollapsibleTrigger asChild>
+        <Button variant="ghost" className="w-full justify-start gap-2 px-0">
+          <LuChevronRight
+            className={cn("h-4 w-4 transition-transform", open && "rotate-90")}
+          />
+          Advanced
+        </Button>
+      </CollapsibleTrigger>
+      <CollapsibleContent forceMount className={cn(!open && "hidden")}>
+        <VStack spacing={2} className="pt-2">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="billOfMaterial"
+              name="billOfMaterial"
+              checked={billOfMaterial}
+              onCheckedChange={(checked) => setBillOfMaterial(!!checked)}
+            />
+            <label
+              htmlFor="billOfMaterial"
+              className="text-sm font-medium leading-none"
+            >
+              Bill of Material
+            </label>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="billOfProcess"
+              name="billOfProcess"
+              checked={billOfProcess}
+              onCheckedChange={(checked) => setBillOfProcess(!!checked)}
+            />
+            <label
+              htmlFor="billOfProcess"
+              className="text-sm font-medium leading-none"
+            >
+              Bill of Process
+            </label>
+          </div>
+          <VStack spacing={2} className="pl-6">
+            {processChildren.map(({ name, label, checked, onChange }) => (
+              <div key={name} className="flex items-center space-x-2">
+                <Checkbox
+                  id={name}
+                  name={name}
+                  disabled={!billOfProcess}
+                  checked={billOfProcess ? checked : false}
+                  onCheckedChange={(val) => onChange(!!val)}
+                />
+                <label
+                  htmlFor={name}
+                  className={cn(
+                    "text-sm font-medium leading-none",
+                    !billOfProcess && "text-muted-foreground"
+                  )}
+                >
+                  {label}
+                </label>
+              </div>
+            ))}
+          </VStack>
+        </VStack>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
 
 export default MakeMethodTools;

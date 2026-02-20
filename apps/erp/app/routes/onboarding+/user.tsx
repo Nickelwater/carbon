@@ -1,4 +1,4 @@
-import { assertIsPost } from "@carbon/auth";
+import { assertIsPost, getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { destroyAuthSession } from "@carbon/auth/session.server";
 import { ValidatedForm, validationError, validator } from "@carbon/form";
@@ -12,12 +12,8 @@ import {
   HStack,
   VStack
 } from "@carbon/react";
-import {
-  type ActionFunctionArgs,
-  Link,
-  redirect,
-  useLoaderData
-} from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { Link, redirect, useLoaderData } from "react-router";
 import type { z } from "zod";
 import { Hidden, Input, Submit } from "~/components/Form";
 import { useOnboarding } from "~/hooks";
@@ -28,9 +24,9 @@ import {
 import { getUser } from "~/modules/users/users.server";
 
 export async function loader({ request }: ActionFunctionArgs) {
-  const { client, userId } = await requirePermissions(request, {});
+  const { userId } = await requirePermissions(request, {});
 
-  const user = await getUser(client, userId);
+  const user = await getUser(getCarbonServiceRole(), userId);
   if (user.error || !user.data) {
     await destroyAuthSession(request);
   }
@@ -40,7 +36,7 @@ export async function loader({ request }: ActionFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId } = await requirePermissions(request, {});
+  const { userId } = await requirePermissions(request, {});
 
   const validation = await validator(onboardingUserValidator).validate(
     await request.formData()
@@ -52,7 +48,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const { firstName, lastName, next } = validation.data;
 
-  const updateAccount = await updatePublicAccount(client, {
+  const updateAccount = await updatePublicAccount(getCarbonServiceRole(), {
     id: userId,
     firstName,
     lastName

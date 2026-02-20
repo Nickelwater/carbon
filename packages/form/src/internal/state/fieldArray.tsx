@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
-import React, { useCallback, useMemo, useRef } from "react";
+import type React from "react";
+import { useCallback, useMemo, useRef } from "react";
 import invariant from "tiny-invariant";
 import type { InternalFormContextValue } from "../formContext";
 import {

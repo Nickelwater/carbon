@@ -1,6 +1,6 @@
 import { assertIsPost } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { updateItemCost } from "~/modules/items";
 
 export async function action({ request, params }: ActionFunctionArgs) {

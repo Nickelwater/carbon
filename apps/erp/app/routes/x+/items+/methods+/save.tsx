@@ -1,7 +1,8 @@
 import { getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { validationError, validator } from "@carbon/form";
-import { type ActionFunctionArgs, redirect } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { copyItem, getMethodValidator } from "~/modules/items";
 import { path, requestReferrer } from "~/utils/path";
 

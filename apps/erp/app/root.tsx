@@ -15,7 +15,8 @@ import { modeValidator, themes } from "@carbon/utils";
 import { I18nProvider } from "@react-aria/i18n";
 import { QueryClient } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
-import React, { useEffect } from "react";
+import type React from "react";
+import { useEffect } from "react";
 import type {
   ActionFunctionArgs,
   LinksFunction,
@@ -61,8 +62,12 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     CARBON_EDITION,
     CLOUDFLARE_TURNSTILE_SITE_KEY,
     CONTROLLED_ENVIRONMENT,
+    ERP_URL,
     GOOGLE_PLACES_API_KEY,
+    JIRA_CLIENT_ID,
+    MES_URL,
     NOVU_APPLICATION_ID,
+    ONSHAPE_CLIENT_ID,
     POSTHOG_API_HOST,
     POSTHOG_PROJECT_PUBLIC_KEY,
     QUICKBOOKS_CLIENT_ID,
@@ -81,8 +86,12 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
         CARBON_EDITION,
         CLOUDFLARE_TURNSTILE_SITE_KEY,
         CONTROLLED_ENVIRONMENT,
+        ERP_URL,
         GOOGLE_PLACES_API_KEY,
+        JIRA_CLIENT_ID,
+        MES_URL,
         NOVU_APPLICATION_ID,
+        ONSHAPE_CLIENT_ID,
         POSTHOG_API_HOST,
         POSTHOG_PROJECT_PUBLIC_KEY,
         QUICKBOOKS_CLIENT_ID,
@@ -126,7 +135,7 @@ export function Document({
   children,
   title = "Carbon",
   mode = "light",
-  theme = "blue"
+  theme = "zinc"
 }: {
   children: React.ReactNode;
   title?: string;
@@ -158,7 +167,7 @@ export function Document({
   // Combine the styles with proper selectors
   const themeStyle = {
     ...(mode === "light" ? lightVars : darkVars),
-    "--radius": "0.5rem"
+    "--radius": "0.675rem"
   } as React.CSSProperties;
 
   return (
@@ -190,7 +199,7 @@ export default function App() {
   const loaderData = useLoaderData<typeof loader>();
   const env = loaderData?.env ?? {};
   const result = loaderData?.result;
-  const theme = loaderData?.theme ?? "blue";
+  const theme = loaderData?.theme ?? "zinc";
   const prefs = loaderData?.preferences;
   const mode = useMode();
 

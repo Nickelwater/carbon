@@ -215,7 +215,7 @@ const RiskRegistersTable = memo(({ data, count }: RiskRegistersTableProps) => {
       }
     ];
     return defaultColumns;
-  }, [people, items]);
+  }, [people, items, workCenters.options.map]);
 
   const renderContextMenu = useCallback<(row: Risk) => JSX.Element>(
     (row) => (

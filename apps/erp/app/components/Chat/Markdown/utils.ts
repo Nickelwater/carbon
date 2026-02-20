@@ -1,8 +1,6 @@
 import rehypeRaw from "rehype-raw";
-import rehypeSanitize, {
-  defaultSchema,
-  type Options as RehypeSanitizeOptions
-} from "rehype-sanitize";
+import type { Options as RehypeSanitizeOptions } from "rehype-sanitize";
+import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import remarkGfm from "remark-gfm";
 import type { PluggableList, Plugin } from "unified";
 import { SKIP, visit } from "unist-util-visit";

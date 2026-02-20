@@ -1,4 +1,5 @@
-import { type LoaderFunctionArgs, redirect } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { path } from "~/utils/path";
 
 export async function loader({ params }: LoaderFunctionArgs) {

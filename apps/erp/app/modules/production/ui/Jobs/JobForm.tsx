@@ -40,7 +40,7 @@ import type {
   ConfigurationParameter,
   ConfigurationParameterGroup
 } from "~/modules/items/types";
-import { type MethodItemType } from "~/modules/shared";
+import type { MethodItemType } from "~/modules/shared";
 import { path } from "~/utils/path";
 import type { jobStatus } from "../../production.models";
 import {
@@ -214,7 +214,7 @@ const JobForm = ({ initialValues }: JobFormProps) => {
       <Tabs defaultValue="job">
         <VStack className="w-full items-center relative">
           {!isEditing && (
-            <TabsList className="absolute top-10 right-8 z-50">
+            <TabsList className="absolute top-6 right-4 z-50">
               <TabsTrigger value="job">
                 <LuDiamond className="mr-1" />
                 Single Job

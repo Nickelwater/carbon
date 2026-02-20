@@ -1,7 +1,8 @@
 import { assertIsPost, getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { FunctionRegion } from "@supabase/supabase-js";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { convertEntityValidator } from "~/services/models";
 
 export async function action({ request, params }: ActionFunctionArgs) {

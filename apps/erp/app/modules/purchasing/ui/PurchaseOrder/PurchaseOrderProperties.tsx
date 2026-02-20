@@ -14,9 +14,9 @@ import {
 import { useLocale } from "@react-aria/i18n";
 import { useCallback, useEffect, useMemo } from "react";
 import {
+  LuCirclePlay,
   LuCopy,
   LuExternalLink,
-  LuHardHat,
   LuInfo,
   LuLink,
   LuRefreshCcw
@@ -24,7 +24,12 @@ import {
 import { Link, useFetcher, useParams } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
-import { Assignee, Hyperlink, useOptimisticAssignment } from "~/components";
+import {
+  Assignee,
+  EmployeeAvatar,
+  Hyperlink,
+  useOptimisticAssignment
+} from "~/components";
 import {
   Currency,
   Location,
@@ -129,7 +134,9 @@ const PurchaseOrderProperties = () => {
     >
       <VStack spacing={4}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xs text-muted-foreground">Properties</h3>
+          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+            Properties
+          </h3>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -185,7 +192,7 @@ const PurchaseOrderProperties = () => {
 
           <Hyperlink to={path.to.jobDetails(routeData?.purchaseOrder?.jobId)}>
             <Badge variant="secondary">
-              <LuHardHat className="w-3 h-3 mr-1" />
+              <LuCirclePlay className="w-3 h-3 mr-1" />
               {routeData?.purchaseOrder?.jobReadableId ?? "Job"}
             </Badge>
           </Hyperlink>
@@ -468,6 +475,16 @@ const PurchaseOrderProperties = () => {
             </HStack>
           </VStack>
         )}
+
+      <VStack spacing={2}>
+        <span className="text-xs font-medium text-muted-foreground">
+          Created By
+        </span>
+        <EmployeeAvatar
+          employeeId={routeData?.purchaseOrder?.createdBy ?? null}
+        />
+      </VStack>
+
       <CustomFormInlineFields
         customFields={
           (routeData?.purchaseOrder?.customFields ?? {}) as Record<string, Json>

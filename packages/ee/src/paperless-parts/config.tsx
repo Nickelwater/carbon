@@ -3,9 +3,9 @@ import { isBrowser } from "@carbon/utils";
 import type { SVGProps } from "react";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
-import type { IntegrationConfig } from "../types";
+import { defineIntegration } from "../fns";
 
-export const PaperlessParts: IntegrationConfig = {
+export const PaperlessParts = defineIntegration({
   name: "Paperless Parts",
   id: "paperless-parts",
   active: true,
@@ -73,7 +73,7 @@ export const PaperlessParts: IntegrationConfig = {
     billOfProcessBlackList: z.array(z.string()).optional(),
     usePaperlessOrderNumber: zfd.checkbox()
   })
-};
+});
 
 function SetupInstructions({ companyId }: { companyId: string }) {
   const webhookUrl = isBrowser

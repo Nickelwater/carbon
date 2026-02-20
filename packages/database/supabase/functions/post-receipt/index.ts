@@ -13,10 +13,7 @@ import {
   TrackedEntityAttributes,
 } from "../lib/utils.ts";
 import { getCurrentAccountingPeriod } from "../shared/get-accounting-period.ts";
-import {
-  getInventoryPostingGroup,
-  getPurchasingPostingGroup,
-} from "../shared/get-posting-group.ts";
+import { getDefaultPostingGroup } from "../shared/get-posting-group.ts";
 
 const pool = getConnectionPool(1);
 const db = getDatabaseClient<DB>(pool);
@@ -327,95 +324,16 @@ serve(async (req: Request) => {
           return acc;
         }, {});
 
-        // save the posting groups in memory to avoid unnecessary queries
-        const inventoryPostingGroups: Record<
-          string,
-          Database["public"]["Tables"]["postingGroupInventory"]["Row"] | null
-        > = {};
+        // Get account defaults (once for all lines)
+        const accountDefaults = await getDefaultPostingGroup(client, companyId);
+        if (accountDefaults.error || !accountDefaults.data) {
+          throw new Error("Error getting account defaults");
+        }
 
         for await (const receiptLine of receiptLines.data) {
-          let postingGroupInventory:
-            | Database["public"]["Tables"]["postingGroupInventory"]["Row"]
-            | null = null;
-
           const itemTrackingType =
             items.data.find((item) => item.id === receiptLine.itemId)
               ?.itemTrackingType ?? "Inventory";
-
-          const itemPostingGroupId =
-            itemCosts.data.find((item) => item.itemId === receiptLine.itemId)
-              ?.itemPostingGroupId ?? null;
-
-          const locationId = receiptLine.locationId ?? null;
-          const supplierTypeId: string | null =
-            supplier.data.supplierTypeId ?? null;
-
-          // inventory posting group
-          if (`${itemPostingGroupId}-${locationId}` in inventoryPostingGroups) {
-            postingGroupInventory =
-              inventoryPostingGroups[`${itemPostingGroupId}-${locationId}`];
-          } else {
-            const inventoryPostingGroup = await getInventoryPostingGroup(
-              client,
-              companyId,
-              {
-                itemPostingGroupId,
-                locationId,
-              }
-            );
-
-            if (inventoryPostingGroup.error || !inventoryPostingGroup.data) {
-              throw new Error("Error getting inventory posting group");
-            }
-
-            postingGroupInventory = inventoryPostingGroup.data ?? null;
-            inventoryPostingGroups[`${itemPostingGroupId}-${locationId}`] =
-              postingGroupInventory;
-          }
-
-          if (!postingGroupInventory) {
-            throw new Error("No inventory posting group found");
-          }
-
-          // purchasing posting group
-          const purchasingPostingGroups: Record<
-            string,
-            Database["public"]["Tables"]["postingGroupPurchasing"]["Row"] | null
-          > = {};
-
-          let postingGroupPurchasing:
-            | Database["public"]["Tables"]["postingGroupPurchasing"]["Row"]
-            | null = null;
-
-          if (
-            `${itemPostingGroupId}-${supplierTypeId}` in purchasingPostingGroups
-          ) {
-            postingGroupPurchasing =
-              purchasingPostingGroups[
-                `${itemPostingGroupId}-${supplierTypeId}`
-              ];
-          } else {
-            const purchasingPostingGroup = await getPurchasingPostingGroup(
-              client,
-              companyId,
-              {
-                itemPostingGroupId,
-                supplierTypeId,
-              }
-            );
-
-            if (purchasingPostingGroup.error || !purchasingPostingGroup.data) {
-              throw new Error("Error getting purchasing posting group");
-            }
-
-            postingGroupPurchasing = purchasingPostingGroup.data ?? null;
-            purchasingPostingGroups[`${itemPostingGroupId}-${supplierTypeId}`] =
-              postingGroupPurchasing;
-          }
-
-          if (!postingGroupPurchasing) {
-            throw new Error("No purchasing posting group found");
-          }
 
           // determine the journal lines that should be reversed
           const existingJournalLines = receiptLine.lineId
@@ -581,8 +499,8 @@ serve(async (req: Request) => {
               // debit the inventory account
               journalLineInserts.push({
                 accountNumber: isOutsideProcessing
-                  ? postingGroupInventory.workInProgressAccount
-                  : postingGroupInventory.inventoryAccount,
+                  ? accountDefaults.data.workInProgressAccount
+                  : accountDefaults.data.inventoryAccount,
                 description: isOutsideProcessing
                   ? "WIP Account"
                   : "Inventory Account",
@@ -600,7 +518,7 @@ serve(async (req: Request) => {
 
               // credit the direct cost applied account
               journalLineInserts.push({
-                accountNumber: postingGroupInventory.directCostAppliedAccount,
+                accountNumber: accountDefaults.data.directCostAppliedAccount,
                 description: "Direct Cost Applied",
                 amount: credit("expense", reversedValue),
                 quantity: quantityToReverse,
@@ -616,7 +534,7 @@ serve(async (req: Request) => {
             } else {
               // debit the overhead account
               journalLineInserts.push({
-                accountNumber: postingGroupInventory.overheadAccount,
+                accountNumber: accountDefaults.data.overheadAccount,
                 description: "Overhead Account",
                 amount: debit("asset", reversedValue),
                 quantity: quantityToReverse,
@@ -632,7 +550,7 @@ serve(async (req: Request) => {
 
               // credit the overhead cost applied account
               journalLineInserts.push({
-                accountNumber: postingGroupInventory.overheadCostAppliedAccount,
+                accountNumber: accountDefaults.data.overheadCostAppliedAccount,
                 description: "Overhead Cost Applied",
                 amount: credit("expense", reversedValue),
                 quantity: quantityToReverse,
@@ -651,7 +569,7 @@ serve(async (req: Request) => {
 
             // debit the purchase account
             journalLineInserts.push({
-              accountNumber: postingGroupPurchasing.purchaseAccount,
+              accountNumber: accountDefaults.data.purchaseAccount,
               description: "Purchase Account",
               amount: debit("expense", reversedValue),
               quantity: quantityToReverse,
@@ -667,7 +585,7 @@ serve(async (req: Request) => {
 
             // credit the accounts payable account
             journalLineInserts.push({
-              accountNumber: postingGroupPurchasing.payablesAccount,
+              accountNumber: accountDefaults.data.payablesAccount,
               description: "Accounts Payable",
               amount: credit("liability", reversedValue),
               quantity: quantityToReverse,
@@ -710,7 +628,7 @@ serve(async (req: Request) => {
             if (isNegativeReceipt) {
               journalLineInserts.push({
                 accountNumber:
-                  postingGroupInventory.inventoryInterimAccrualAccount,
+                  accountDefaults.data.inventoryInterimAccrualAccount,
                 description: "Interim Inventory Accrual",
                 accrual: true,
                 amount: credit("asset", expectedValueWithShipping),
@@ -726,7 +644,7 @@ serve(async (req: Request) => {
 
               journalLineInserts.push({
                 accountNumber:
-                  postingGroupInventory.inventoryReceivedNotInvoicedAccount,
+                  accountDefaults.data.inventoryReceivedNotInvoicedAccount,
                 description: "Inventory Received Not Invoiced",
                 accrual: true,
                 amount: debit("liability", expectedValueWithShipping),
@@ -742,7 +660,7 @@ serve(async (req: Request) => {
             } else {
               journalLineInserts.push({
                 accountNumber:
-                  postingGroupInventory.inventoryInterimAccrualAccount,
+                  accountDefaults.data.inventoryInterimAccrualAccount,
                 description: "Interim Inventory Accrual",
                 accrual: true,
                 amount: debit("asset", expectedValueWithShipping),
@@ -758,7 +676,7 @@ serve(async (req: Request) => {
 
               journalLineInserts.push({
                 accountNumber:
-                  postingGroupInventory.inventoryReceivedNotInvoicedAccount,
+                  accountDefaults.data.inventoryReceivedNotInvoicedAccount,
                 description: "Inventory Received Not Invoiced",
                 accrual: true,
                 amount: credit("liability", expectedValueWithShipping),
@@ -1076,11 +994,11 @@ serve(async (req: Request) => {
           Database["public"]["Tables"]["warehouseTransferLine"]["Update"]
         > = {};
 
-        // Cache for inventory posting groups to avoid repeated queries
-        const inventoryPostingGroups: Record<
-          string,
-          Database["public"]["Tables"]["postingGroupInventory"]["Row"] | null
-        > = {};
+        // Get account defaults (once for all lines)
+        const accountDefaults = await getDefaultPostingGroup(client, companyId);
+        if (accountDefaults.error || !accountDefaults.data) {
+          throw new Error("Error getting account defaults");
+        }
 
         // Process each receipt line
         for await (const receiptLine of receiptLines.data) {
@@ -1128,75 +1046,36 @@ serve(async (req: Request) => {
           });
 
           // Create journal entries for inventory movement if there's value
-          if (totalValue > 0 && itemCost?.itemPostingGroupId) {
-            const fromLocationId = warehouseTransferLine.fromLocationId;
-            const toLocationId = receiptLine.locationId;
+          if (totalValue > 0) {
+            const journalLineReference = nanoid();
 
-            // Get inventory posting groups for both locations
-            const fromGroupKey = `${itemCost.itemPostingGroupId}-${fromLocationId}`;
-            const toGroupKey = `${itemCost.itemPostingGroupId}-${toLocationId}`;
+            // Credit (subtract) inventory from source location
+            journalLineInserts.push({
+              accountNumber: accountDefaults.data.inventoryAccount,
+              description: `Transfer Out - ${warehouseTransfer.data?.transferId}`,
+              amount: credit("asset", totalValue),
+              quantity: Math.abs(receivedQuantity),
+              documentType: "Receipt",
+              documentId: receipt.data?.id,
+              externalDocumentId: warehouseTransfer.data?.transferId,
+              documentLineReference: `transfer-receipt:${receiptLine.lineId}`,
+              journalLineReference,
+              companyId,
+            });
 
-            // Fetch from location posting group if not cached
-            if (!(fromGroupKey in inventoryPostingGroups)) {
-              const fromPostingGroup = await getInventoryPostingGroup(
-                client,
-                companyId,
-                {
-                  itemPostingGroupId: itemCost.itemPostingGroupId,
-                  locationId: fromLocationId,
-                }
-              );
-              inventoryPostingGroups[fromGroupKey] =
-                fromPostingGroup.data ?? null;
-            }
-
-            // Fetch to location posting group if not cached
-            if (!(toGroupKey in inventoryPostingGroups)) {
-              const toPostingGroup = await getInventoryPostingGroup(
-                client,
-                companyId,
-                {
-                  itemPostingGroupId: itemCost.itemPostingGroupId,
-                  locationId: toLocationId,
-                }
-              );
-              inventoryPostingGroups[toGroupKey] = toPostingGroup.data ?? null;
-            }
-
-            const fromPostingGroup = inventoryPostingGroups[fromGroupKey];
-            const toPostingGroup = inventoryPostingGroups[toGroupKey];
-
-            if (fromPostingGroup && toPostingGroup) {
-              const journalLineReference = nanoid();
-
-              // Credit (subtract) inventory from source location
-              journalLineInserts.push({
-                accountNumber: fromPostingGroup.inventoryAccount,
-                description: `Transfer Out - ${warehouseTransfer.data?.transferId}`,
-                amount: credit("asset", totalValue),
-                quantity: Math.abs(receivedQuantity),
-                documentType: "Receipt",
-                documentId: receipt.data?.id,
-                externalDocumentId: warehouseTransfer.data?.transferId,
-                documentLineReference: `transfer-receipt:${receiptLine.lineId}`,
-                journalLineReference,
-                companyId,
-              });
-
-              // Debit (add) inventory to destination location
-              journalLineInserts.push({
-                accountNumber: toPostingGroup.inventoryAccount,
-                description: `Transfer In - ${warehouseTransfer.data?.transferId}`,
-                amount: debit("asset", totalValue),
-                quantity: Math.abs(receivedQuantity),
-                documentType: "Receipt",
-                documentId: receipt.data?.id,
-                externalDocumentId: warehouseTransfer.data?.transferId,
-                documentLineReference: `transfer-receipt:${receiptLine.lineId}`,
-                journalLineReference,
-                companyId,
-              });
-            }
+            // Debit (add) inventory to destination location
+            journalLineInserts.push({
+              accountNumber: accountDefaults.data.inventoryAccount,
+              description: `Transfer In - ${warehouseTransfer.data?.transferId}`,
+              amount: debit("asset", totalValue),
+              quantity: Math.abs(receivedQuantity),
+              documentType: "Receipt",
+              documentId: receipt.data?.id,
+              externalDocumentId: warehouseTransfer.data?.transferId,
+              documentLineReference: `transfer-receipt:${receiptLine.lineId}`,
+              journalLineReference,
+              companyId,
+            });
           }
         }
 

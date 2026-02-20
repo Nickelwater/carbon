@@ -1,9 +1,9 @@
 import { cn } from "@carbon/react";
 import type { SVGProps } from "react";
 import { z } from "zod";
-import type { IntegrationConfig } from "../types";
+import { defineIntegration } from "../fns";
 
-export const Resend: IntegrationConfig = {
+export const Resend = defineIntegration({
   name: "Resend",
   id: "resend",
   active: true,
@@ -34,7 +34,7 @@ export const Resend: IntegrationConfig = {
     apiKey: z.string().min(1, { message: "API Key is required" }),
     fromEmail: z.string().email()
   })
-};
+});
 
 function Logo(props: SVGProps<SVGSVGElement>) {
   return (

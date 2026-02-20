@@ -1,7 +1,8 @@
 import { cn, Heading } from "@carbon/react";
 import { getLocalTimeZone } from "@internationalized/date";
 import { useLocale } from "@react-aria/i18n";
-import { type ComponentProps, useMemo } from "react";
+import type { ComponentProps } from "react";
+import { useMemo } from "react";
 import { useUser } from "~/hooks";
 
 export default function AppIndexRoute() {

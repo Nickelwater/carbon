@@ -25,7 +25,7 @@ import { useEffect, useMemo } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
 import { useFetcher, useNavigate } from "react-router";
 import { useItems } from "~/stores";
-import { Result } from "~/types";
+import type { Result } from "~/types";
 import { path } from "~/utils/path";
 
 type PurchaseInvoicePostModalProps = {

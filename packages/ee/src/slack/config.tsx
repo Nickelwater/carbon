@@ -1,8 +1,8 @@
 import { CONTROLLED_ENVIRONMENT } from "@carbon/auth";
 import { z } from "zod";
-import type { IntegrationConfig } from "../types";
+import { defineIntegration } from "../fns";
 
-export const Slack: IntegrationConfig = {
+export const Slack = defineIntegration({
   name: "Slack",
   id: "slack",
   category: "Assistant",
@@ -14,7 +14,7 @@ export const Slack: IntegrationConfig = {
   images: [],
   settings: [],
   schema: z.object({}),
-  onInitialize: async () => {
+  onClientInstall: async () => {
     const response = await fetch("/api/integrations/slack/install").then(
       (res) => res.json()
     );
@@ -46,10 +46,8 @@ export const Slack: IntegrationConfig = {
     };
 
     window.addEventListener("message", listener);
-  },
-  // biome-ignore lint/suspicious/noEmptyBlockStatements: suppressed due to migration
-  onUninstall: () => {}
-};
+  }
+});
 
 function Logo() {
   return (

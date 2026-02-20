@@ -4,9 +4,9 @@ import { useDisclosure } from "@carbon/react";
 import { formatAddress } from "@carbon/utils";
 import { useEffect, useMemo, useRef } from "react";
 import { useFetcher } from "react-router";
-import {
-  type getSupplierLocations,
-  type SupplierLocation as SupplierLocationType
+import type {
+  getSupplierLocations,
+  SupplierLocation as SupplierLocationType
 } from "~/modules/purchasing";
 import { SupplierLocationForm } from "~/modules/purchasing/ui/Supplier";
 import { path } from "~/utils/path";
@@ -43,7 +43,6 @@ const SupplierLocation = (props: SupplierLocationSelectProps) => {
         path.to.api.supplierLocations(props.supplier)
       );
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [props.supplier]);
 
   const options = useMemo(

@@ -99,8 +99,8 @@ const fade = {
   animate: { opacity: 1 }
 };
 
-const Heading = motion(_Heading);
-const Button = motion(_Button);
+const Heading = motion.create(_Heading);
+const Button = motion.create(_Button);
 
 export default function Invite() {
   const { success, company } = useLoaderData<typeof loader>();

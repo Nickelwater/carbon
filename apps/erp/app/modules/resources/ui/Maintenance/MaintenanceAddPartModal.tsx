@@ -40,7 +40,7 @@ import {
 import { useFetcher } from "react-router";
 import { z } from "zod";
 import { Item, UnitOfMeasure } from "~/components/Form";
-import { MethodItemType } from "~/modules/shared/types";
+import type { MethodItemType } from "~/modules/shared/types";
 import { path } from "~/utils/path";
 
 export const maintenanceAddPartValidator = z.object({

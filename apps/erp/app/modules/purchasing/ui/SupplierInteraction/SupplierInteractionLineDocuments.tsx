@@ -3,7 +3,6 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   DropdownMenu,
@@ -37,6 +36,7 @@ import { path } from "~/utils/path";
 import { stripSpecialCharacters } from "~/utils/string";
 
 type SupportedDocument =
+  | "Purchasing Request for Quote"
   | "Supplier Quote"
   | "Purchase Order"
   | "Purchase Invoice";
@@ -226,9 +226,6 @@ const SupplierInteractionLineDocuments = ({
         <HStack className="justify-between items-start">
           <CardHeader>
             <CardTitle>Files</CardTitle>
-            <CardDescription>
-              Supplier interaction line documents
-            </CardDescription>
           </CardHeader>
           <CardAction>
             <SupplierInteractionLineDocumentForm

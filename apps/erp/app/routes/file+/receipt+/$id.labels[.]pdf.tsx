@@ -3,8 +3,10 @@ import { ProductLabelPDF } from "@carbon/documents/pdf";
 import type { TrackedEntityAttributes } from "@carbon/utils";
 import { labelSizes } from "@carbon/utils";
 import { renderToStream } from "@react-pdf/renderer";
-import { type LoaderFunctionArgs, redirect } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import { getReceiptTracking } from "~/modules/inventory";
+import { getCompany } from "~/modules/settings";
 import { getCompanySettings } from "~/modules/settings/settings.service";
 import { path } from "~/utils/path";
 
@@ -16,10 +18,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { id } = params;
   if (!id) throw new Error("Could not find id");
 
-  const [companySettings, receiptLineTracking] = await Promise.all([
+  const [company, companySettings, receiptLineTracking] = await Promise.all([
+    getCompany(client, companyId),
     getCompanySettings(client, companyId),
     getReceiptTracking(client, id, companyId)
   ]);
+
+  if (company.error) {
+    console.error(company.error);
+    throw new Error("Failed to load company");
+  }
 
   // Get the label size from query params or default to avery5160
   const url = new URL(request.url);
@@ -97,6 +105,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     stream.on("error", reject);
   });
 
-  const headers = new Headers({ "Content-Type": "application/pdf" });
+  const headers = new Headers({
+    "Content-Type": "application/pdf",
+    "Content-Disposition": `inline; filename="${company.data.name} - Receipt Labels.pdf"`
+  });
   return new Response(body, { status: 200, headers });
 }

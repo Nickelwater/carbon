@@ -2,7 +2,7 @@ import { getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import type { recalculateTask } from "@carbon/jobs/trigger/recalculate";
 import { tasks } from "@trigger.dev/sdk";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import {
   calculateJobPriority,
   recalculateJobRequirements,

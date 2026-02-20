@@ -1,8 +1,8 @@
 import type { SVGProps } from "react";
 import { z } from "zod";
-import type { IntegrationConfig } from "../types";
+import { defineIntegration } from "../fns";
 
-export const Radan: IntegrationConfig = {
+export const Radan = defineIntegration({
   name: "Radan",
   id: "radan",
   active: true,
@@ -29,7 +29,7 @@ export const Radan: IntegrationConfig = {
       .min(1, { message: "Processes are required" })
       .optional()
   })
-};
+});
 
 function SetupInstructions({ companyId }: { companyId: string }) {
   return (

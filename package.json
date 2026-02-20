@@ -10,11 +10,13 @@
     "patch-package": "^8.0.1",
     "postcss-nesting": "12.1.5",
     "prettier": "^2.8.0",
+
     "rimraf": "^5.0.5",
     "supabase": "2.54.11",
     "ts-morph": "^22.0.0",
     "tsx": "^4.13.2",
-    "turbo": "^2.6.3"
+    "turbo": "^2.6.3",
+    "typescript": "5.8"
   },
   "lint-staged": {
     "(apps|packages)/**/*.{js,ts,jsx,tsx}": [
@@ -43,6 +45,7 @@
     "db:push": "turbo run db:push",
     "db:restart": "run-s db:stop db:start",
     "db:seed": "turbo run db:seed --no-cache",
+    "db:seed:dev": "npm run db:seed:dev -w @carbon/database --",
     "db:start": "npm run db:start -w @carbon/database",
     "db:start:redis": "npm run db:start -w @carbon/kv",
     "db:stop": "npm run db:stop -w @carbon/database",

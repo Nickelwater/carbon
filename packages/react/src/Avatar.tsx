@@ -20,7 +20,7 @@ import {
 import { cn } from "./utils/cn";
 
 export const avatarVariants = cva(
-  "flex flex-shrink-0 overflow-hidden rounded-full items-center justify-center font-semibold transition-transform duration-200 ease-in-out",
+  "flex flex-shrink-0 overflow-hidden rounded-full items-center justify-center font-medium transition-transform duration-200 ease-in-out",
   {
     variants: {
       size: {

@@ -103,7 +103,9 @@ const SalesRFQProperties = () => {
     >
       <VStack spacing={4}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xs text-muted-foreground">Properties</h3>
+          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+            Properties
+          </h3>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>

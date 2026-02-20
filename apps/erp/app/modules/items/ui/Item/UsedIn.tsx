@@ -97,15 +97,20 @@ export function UsedInTree({
   revisions: revisionsJson,
   itemReadableId,
   itemReadableIdWithRevision,
-  hasSizesInsteadOfRevisions = false
+  hasSizesInsteadOfRevisions = false,
+  filterText: filterTextProp,
+  hideSearch
 }: {
   tree: UsedInNode[];
   revisions?: Json;
   itemReadableId: string;
   itemReadableIdWithRevision: string;
   hasSizesInsteadOfRevisions?: boolean;
+  filterText?: string;
+  hideSearch?: boolean;
 }) {
-  const [filterText, setFilterText] = useState("");
+  const [filterTextInternal, setFilterTextInternal] = useState("");
+  const filterText = filterTextProp ?? filterTextInternal;
 
   const revisions = (
     revisionValidator.safeParse(revisionsJson)?.data ?? []
@@ -118,19 +123,21 @@ export function UsedInTree({
   }));
 
   return (
-    <VStack className="w-full p-2 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent h-full">
-      <HStack className="w-full py">
-        <InputGroup size="sm" className="flex flex-grow">
-          <InputLeftElement>
-            <LuSearch className="h-4 w-4" />
-          </InputLeftElement>
-          <Input
-            placeholder="Search..."
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-          />
-        </InputGroup>
-      </HStack>
+    <VStack className="w-full p-2">
+      {!hideSearch && (
+        <HStack className="w-full py">
+          <InputGroup size="sm" className="flex flex-grow">
+            <InputLeftElement>
+              <LuSearch className="h-4 w-4" />
+            </InputLeftElement>
+            <Input
+              placeholder="Search..."
+              value={filterText}
+              onChange={(e) => setFilterTextInternal(e.target.value)}
+            />
+          </InputGroup>
+        </HStack>
+      )}
       <VStack spacing={0}>
         <RevisionsItem
           filterText={filterText}
@@ -190,7 +197,7 @@ export function RevisionsItem({
     <>
       <div className="relative w-full">
         <button
-          className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-2 gap-2 text-sm hover:bg-muted/90 w-full font-medium"
+          className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-2 gap-2 text-sm hover:bg-accent w-full font-medium"
           onClick={(e) => {
             e.stopPropagation();
             setIsExpanded(!isExpanded);
@@ -248,8 +255,8 @@ export function RevisionsItem({
                   <Hyperlink
                     to={getUseInLink(child, node.key, "")}
                     className={cn(
-                      "pr-6 flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-1 gap-4 text-sm hover:bg-muted/90 w-full font-medium whitespace-nowrap",
-                      isActive && "bg-muted/90"
+                      "pr-6 flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-1 gap-4 text-sm hover:bg-accent w-full font-medium whitespace-nowrap",
+                      isActive && "bg-accent"
                     )}
                   >
                     <LevelLine isSelected={isActive} className="mr-2" />
@@ -387,7 +394,7 @@ export function UsedInItem({
   return (
     <>
       <button
-        className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-2 gap-2 text-sm hover:bg-muted/90 w-full font-medium"
+        className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-2 gap-2 text-sm hover:bg-accent w-full font-medium"
         onClick={(e) => {
           e.stopPropagation();
           setIsExpanded(!isExpanded);
@@ -417,7 +424,7 @@ export function UsedInItem({
               <Hyperlink
                 key={index}
                 to={getUseInLink(child, node.key, itemReadableIdWithRevision)}
-                className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-1 gap-4 text-sm hover:bg-muted/90 w-full font-medium whitespace-nowrap"
+                className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-1 gap-4 text-sm hover:bg-accent w-full font-medium whitespace-nowrap"
               >
                 <LevelLine isSelected={false} className="mr-2" />
                 {child.methodType === "Shipment" ? (

@@ -2,7 +2,7 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { SalesInvoicePDF } from "@carbon/documents/pdf";
 import type { JSONContent } from "@carbon/react";
 import { renderToStream } from "@react-pdf/renderer";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { getPaymentTermsList } from "~/modules/accounting";
 import { getShippingMethodsList } from "~/modules/inventory";
 import {
@@ -12,7 +12,7 @@ import {
   getSalesInvoiceShipment
 } from "~/modules/invoicing";
 import { getSalesTerms } from "~/modules/sales";
-import { getCompany } from "~/modules/settings";
+import { getCompany, getCompanySettings } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
 import { getLocale } from "~/utils/request";
 
@@ -26,6 +26,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const [
     company,
+    companySettings,
     salesInvoice,
     salesInvoiceLines,
     salesInvoiceLocations,
@@ -35,6 +36,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     shippingMethods
   ] = await Promise.all([
     getCompany(client, companyId),
+    getCompanySettings(client, companyId),
     getSalesInvoice(client, id),
     getSalesInvoiceLines(client, id),
     getSalesInvoiceCustomerDetails(client, id),
@@ -79,35 +81,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Error("Failed to load sales order");
   }
 
-  const thumbnailPaths = salesInvoiceLines.data?.reduce<
-    Record<string, string | null>
-  >((acc, line) => {
-    if (line.thumbnailPath) {
-      acc[line.id!] = line.thumbnailPath;
-    }
-    return acc;
-  }, {});
+  const showThumbnails =
+    companySettings.data?.includeThumbnailsOnSalesPdfs ?? true;
 
-  const thumbnails: Record<string, string | null> =
-    (thumbnailPaths
-      ? await Promise.all(
-          Object.entries(thumbnailPaths).map(([id, path]) => {
-            if (!path) {
-              return null;
-            }
-            return getBase64ImageFromSupabase(client, path).then((data) => ({
-              id,
-              data
-            }));
-          })
-        )
-      : []
-    )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
-      if (thumbnail) {
-        acc[thumbnail.id] = thumbnail.data;
+  let thumbnails: Record<string, string | null> = {};
+
+  if (showThumbnails) {
+    const thumbnailPaths = salesInvoiceLines.data?.reduce<
+      Record<string, string | null>
+    >((acc, line) => {
+      if (line.thumbnailPath) {
+        acc[line.id!] = line.thumbnailPath;
       }
       return acc;
-    }, {}) ?? {};
+    }, {});
+
+    thumbnails =
+      (thumbnailPaths
+        ? await Promise.all(
+            Object.entries(thumbnailPaths).map(([id, path]) => {
+              if (!path) {
+                return null;
+              }
+              return getBase64ImageFromSupabase(client, path).then((data) => ({
+                id,
+                data
+              }));
+            })
+          )
+        : []
+      )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
+        if (thumbnail) {
+          acc[thumbnail.id] = thumbnail.data;
+        }
+        return acc;
+      }, {}) ?? {};
+  }
 
   const locale = getLocale(request);
 
@@ -145,7 +154,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="${salesInvoice.data.invoiceId}.pdf"`
+    "Content-Disposition": `inline; filename="${company.data.name} - ${salesInvoice.data.invoiceId}.pdf"`
   });
   return new Response(body, { status: 200, headers });
 }

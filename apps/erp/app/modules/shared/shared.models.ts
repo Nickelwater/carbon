@@ -44,8 +44,7 @@ export const approvalRequestValidator = z.object({
   documentId: zfd.text(
     z.string().min(1, { message: "Document ID is required" })
   ),
-  approverGroupIds: zfd.repeatableOfType(z.string()).optional(),
-  approverId: zfd.text(z.string().optional())
+  approverGroupIds: zfd.repeatableOfType(z.string()).optional()
 });
 
 export const approvalRuleValidator = z.object({

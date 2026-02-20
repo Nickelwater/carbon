@@ -8,10 +8,10 @@ import type {
 import { redirect, useNavigate, useParams } from "react-router";
 import { ConfirmDelete } from "~/components/Modals";
 import { useRouteData } from "~/hooks";
+import type { SupplierProcess } from "~/modules/purchasing";
 import {
   deleteSupplierProcess,
-  getSupplierProcessById,
-  type SupplierProcess
+  getSupplierProcessById
 } from "~/modules/purchasing";
 import { path } from "~/utils/path";
 import { supplierProcessesQuery } from "~/utils/react-query";

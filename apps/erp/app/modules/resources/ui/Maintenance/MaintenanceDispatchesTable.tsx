@@ -20,7 +20,7 @@ import { Enumerable } from "~/components/Enumerable";
 import { useWorkCenters } from "~/components/Form/WorkCenters";
 import { usePermissions, useUrlParams } from "~/hooks";
 import { usePeople } from "~/stores";
-import { ListItem } from "~/types";
+import type { ListItem } from "~/types";
 import { path } from "~/utils/path";
 import {
   maintenanceDispatchPriority,
@@ -326,7 +326,7 @@ const MaintenanceDispatchesTable = memo(
           }
         }
       ];
-    }, [workCenters]);
+    }, [workCenters, failureModes.find, failureModes?.map, people.map]);
 
     const renderContextMenu = useCallback(
       (row: MaintenanceDispatch) => {

@@ -7,6 +7,10 @@ declare global {
       CARBON_EDITION: string;
       CLOUDFLARE_TURNSTILE_SITE_KEY: string;
       CONTROLLED_ENVIRONMENT: string;
+      ERP_URL: string;
+      JIRA_CLIENT_ID: string;
+      MES_URL: string;
+      ONSHAPE_CLIENT_ID: string;
       POSTHOG_API_HOST: string;
       POSTHOG_PROJECT_PUBLIC_KEY: string;
       SUPABASE_URL: string;
@@ -26,7 +30,16 @@ declare global {
       CLOUDFLARE_TURNSTILE_SITE_KEY: string;
       CLOUDFLARE_TURNSTILE_SECRET_KEY: string;
       DOMAIN: string;
+      ERP_URL: string;
+      JIRA_CLIENT_ID: string;
+      JIRA_CLIENT_SECRET: string;
+      JIRA_OAUTH_REDIRECT_URL: string;
+      JIRA_STATE_SECRET: string;
+      MES_URL: string;
       NOVU_SECRET_KEY: string;
+      ONSHAPE_CLIENT_ID: string;
+      ONSHAPE_CLIENT_SECRET: string;
+      ONSHAPE_OAUTH_REDIRECT_URL: string;
       POSTHOG_API_HOST: string;
       POSTHOG_PROJECT_PUBLIC_KEY: string;
       QUICKBOOKS_CLIENT_SECRET: string;
@@ -105,6 +118,9 @@ const getEdition = () => {
   if (CARBON_EDITION === "enterprise") {
     return Edition.Enterprise;
   }
+  if (CARBON_EDITION === "test") {
+    return Edition.Test;
+  }
   return Edition.Community;
 };
 
@@ -125,6 +141,13 @@ export const EXCHANGE_RATES_API_KEY = getEnv("EXCHANGE_RATES_API_KEY", {
   isSecret: true
 });
 
+export const ERP_URL =
+  getEnv("ERP_URL", { isRequired: false, isSecret: false }) ??
+  "https://app.carbon.ms";
+export const MES_URL =
+  getEnv("MES_URL", { isRequired: false, isSecret: false }) ??
+  "https://mes.carbon.ms";
+
 export const GOOGLE_PLACES_API_KEY = getEnv("GOOGLE_PLACES_API_KEY", {
   isRequired: false
 });
@@ -143,6 +166,17 @@ export const NOVU_APPLICATION_ID = getEnv("NOVU_APPLICATION_ID", {
 export const NOVU_SECRET_KEY = getEnv("NOVU_SECRET_KEY", {
   isRequired: false,
   isSecret: true
+});
+
+export const ONSHAPE_CLIENT_ID = getEnv("ONSHAPE_CLIENT_ID", {
+  isRequired: false
+});
+export const ONSHAPE_CLIENT_SECRET = getEnv("ONSHAPE_CLIENT_SECRET", {
+  isRequired: false,
+  isSecret: true
+});
+export const ONSHAPE_OAUTH_REDIRECT_URL = getEnv("ONSHAPE_OAUTH_REDIRECT_URL", {
+  isRequired: false
 });
 
 export const QUICKBOOKS_CLIENT_ID = getEnv("QUICKBOOKS_CLIENT_ID", {
@@ -243,6 +277,21 @@ export const XERO_WEBHOOK_SECRET = getEnv("XERO_WEBHOOK_SECRET", {
   isSecret: true
 });
 
+export const JIRA_CLIENT_ID = getEnv("JIRA_CLIENT_ID", {
+  isRequired: false
+});
+export const JIRA_CLIENT_SECRET = getEnv("JIRA_CLIENT_SECRET", {
+  isRequired: false,
+  isSecret: true
+});
+export const JIRA_OAUTH_REDIRECT_URL = getEnv("JIRA_OAUTH_REDIRECT_URL", {
+  isRequired: false
+});
+export const JIRA_STATE_SECRET = getEnv("JIRA_STATE_SECRET", {
+  isRequired: false,
+  isSecret: true
+});
+
 /**
  * Shared envs
  */
@@ -272,9 +321,11 @@ export const RATE_LIMIT = parseInt(
 
 export function getAppUrl() {
   if (VERCEL_ENV === "production" || NODE_ENV === "production") {
-    return CONTROLLED_ENVIRONMENT
-      ? "https://itar.carbon.ms"
-      : "https://app.carbon.ms";
+    return ERP_URL
+      ? ERP_URL
+      : CONTROLLED_ENVIRONMENT
+        ? "https://itar.carbon.ms"
+        : "https://app.carbon.ms";
   }
 
   if (VERCEL_ENV === "preview") {
@@ -286,9 +337,11 @@ export function getAppUrl() {
 
 export function getMESUrl() {
   if (VERCEL_ENV === "production" || NODE_ENV === "production") {
-    return CONTROLLED_ENVIRONMENT
-      ? "https://mes.itar.carbon.ms"
-      : "https://mes.carbon.ms";
+    return MES_URL
+      ? MES_URL
+      : CONTROLLED_ENVIRONMENT
+        ? "https://mes.itar.carbon.ms"
+        : "https://mes.carbon.ms";
   }
 
   if (VERCEL_ENV === "preview") {
@@ -301,16 +354,20 @@ export function getMESUrl() {
 export function getBrowserEnv() {
   return {
     CARBON_EDITION,
-    CONTROLLED_ENVIRONMENT,
     CLOUDFLARE_TURNSTILE_SITE_KEY,
+    CONTROLLED_ENVIRONMENT,
+    ERP_URL,
     GOOGLE_PLACES_API_KEY,
-    POSTHOG_API_HOST,
-    POSTHOG_PROJECT_PUBLIC_KEY,
+    JIRA_CLIENT_ID,
+    MES_URL,
     NODE_ENV,
     NOVU_APPLICATION_ID,
+    ONSHAPE_CLIENT_ID,
+    POSTHOG_API_HOST,
+    POSTHOG_PROJECT_PUBLIC_KEY,
     QUICKBOOKS_CLIENT_ID,
-    SUPABASE_URL,
     SUPABASE_ANON_KEY,
+    SUPABASE_URL,
     VERCEL_ENV,
     VERCEL_URL,
     XERO_CLIENT_ID

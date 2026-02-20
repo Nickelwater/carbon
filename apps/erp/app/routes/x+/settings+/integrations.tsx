@@ -2,12 +2,8 @@ import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { integrations as availableIntegrations } from "@carbon/ee";
-import {
-  type LoaderFunctionArgs,
-  Outlet,
-  redirect,
-  useLoaderData
-} from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { Outlet, redirect, useLoaderData } from "react-router";
 import { IntegrationsList } from "~/modules/settings";
 import { getIntegrationsWithHealth } from "~/modules/settings/settings.server";
 import { path } from "~/utils/path";

@@ -8,7 +8,7 @@ import {
   toast,
   VStack
 } from "@carbon/react";
-import { type ChangeEvent } from "react";
+import type { ChangeEvent } from "react";
 import { useSubmit } from "react-router";
 import type { Company } from "~/modules/settings";
 import { path } from "~/utils/path";

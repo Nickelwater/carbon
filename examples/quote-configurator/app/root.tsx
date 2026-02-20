@@ -1,5 +1,5 @@
 import { Toaster } from "@carbon/react";
-import React from "react";
+import type React from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import {
   isRouteErrorResponse,

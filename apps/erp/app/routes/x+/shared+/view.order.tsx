@@ -1,7 +1,8 @@
 import { assertIsPost, error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { updateSavedViewOrder } from "~/modules/shared/shared.service";
 
 export async function action({ request }: ActionFunctionArgs) {

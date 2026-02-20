@@ -69,14 +69,24 @@ export type Workspace = {
 async function deploy(): Promise<void> {
   console.log("✅ 🌱 Starting deployment");
 
+  const imageTag = process.env.IMAGE_TAG;
+  if (!imageTag) {
+    console.error("🔴 🍳 Missing IMAGE_TAG environment variable");
+    process.exit(1);
+  }
+
+  console.log(`✅ 🏷️ Using image tag: ${imageTag}`);
+
   const { data: workspaces, error } = await client
     .from("workspaces")
     .select("*");
 
   if (error) {
     console.error("🔴 🍳 Failed to fetch workspaces", error);
-    return;
+    process.exit(1);
   }
+
+  let hasErrors = false;
 
   console.log("✅ 🛩️ Successfully retreived workspaces");
 
@@ -131,7 +141,7 @@ async function deploy(): Promise<void> {
         xero_webhook_secret,
       } = workspace;
 
-      if (slug === "app") {
+      if (["app", "staging"].includes(slug)) {
         continue;
       }
 
@@ -166,7 +176,9 @@ async function deploy(): Promise<void> {
       }
 
       if (!database_connection_pooler_url) {
-        console.log(`🔴🍳 Missing database connection pooler url for ${workspace.id}`);
+        console.log(
+          `🔴🍳 Missing database connection pooler url for ${workspace.id}`
+        );
         continue;
       }
 
@@ -256,6 +268,7 @@ async function deploy(): Promise<void> {
         env: {
           AWS_ACCOUNT_ID: aws_account_id,
           AWS_REGION: aws_region,
+          IMAGE_TAG: imageTag,
           CARBON_EDITION: carbon_edition ?? "enterprise",
           CERT_ARN_ERP: cert_arn_erp,
           CERT_ARN_MES: cert_arn_mes,
@@ -286,10 +299,7 @@ async function deploy(): Promise<void> {
           STRIPE_SECRET_KEY: stripe_secret_key ?? undefined,
           STRIPE_WEBHOOK_SECRET: stripe_webhook_secret ?? undefined,
           SUPABASE_ANON_KEY: anon_key,
-          SUPABASE_ANON_PUBLIC: anon_key,
-          SUPABASE_API_URL: database_url,
           SUPABASE_DB_URL: database_connection_pooler_url,
-          SUPABASE_SERVICE_ROLE: service_role_key,
           SUPABASE_SERVICE_ROLE_KEY: service_role_key,
           SUPABASE_URL: database_url,
           TRIGGER_API_URL: trigger_api_url,
@@ -306,18 +316,29 @@ async function deploy(): Promise<void> {
         },
         // Run SST from the repository root where sst.config.ts is located
         cwd: "..",
-        stdio: "pipe",
+        stdio: "inherit",
       });
 
       console.log(`🚀 🐓 Deploying apps for ${workspace.id} with SST`);
 
-      await $$`npx --yes sst deploy --stage prod`;
+      await $$`npx --yes sst@3.17.24 deploy --stage prod`;
 
       console.log(`✅ 🍗 Successfully deployed ${workspace.id}`);
     } catch (error) {
       console.error(`🔴 🍳 Failed to deploy ${workspace.id}`, error);
+      hasErrors = true;
     }
   }
+
+  if (hasErrors) {
+    console.error("🔴 Deployment completed with errors");
+    process.exit(1);
+  }
+
+  console.log("✅ All deployments completed successfully");
 }
 
-deploy();
+deploy().catch((error) => {
+  console.error("🔴 Unexpected error during deployment", error);
+  process.exit(1);
+});

@@ -26,10 +26,11 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-  useRealtimeChannel
+  useRealtimeChannel,
+  VStack
 } from "@carbon/react";
+import type { ChartConfig } from "@carbon/react/Chart";
 import {
-  type ChartConfig,
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
@@ -49,12 +50,11 @@ import { flushSync } from "react-dom";
 import {
   LuArrowUpRight,
   LuChevronDown,
+  LuCirclePlay,
   LuClipboardCheck,
   LuEllipsisVertical,
   LuFile,
-  LuHardHat,
-  LuSquareUser,
-  LuUserRoundCheck
+  LuSquareUser
 } from "react-icons/lu";
 import { RiProgress8Line } from "react-icons/ri";
 import type { LoaderFunctionArgs } from "react-router";
@@ -176,52 +176,63 @@ export default function ProductionDashboard() {
     setInterval(value);
   };
 
-  const getTotal = (
-    key: string,
-    data?: { value: number }[] | { actual: number; estimate: number }[]
-  ) => {
-    if (!data) return 0;
-    switch (key) {
-      case "utilization":
-        return data.reduce((acc, item) => {
-          // @ts-expect-error
-          return acc + item.value;
-        }, 0);
-      case "completionTime":
-        return data.length === 0
-          ? 0
-          : data.reduce((acc, item) => {
-              // @ts-expect-error
-              return acc + item.value;
-            }, 0) / data.length;
-      case "estimate":
-        return data.reduce((acc, item) => {
-          // @ts-expect-error
-          return acc + item.estimate;
-        }, 0);
-      case "actual":
-        return data.reduce((acc, item) => {
-          // @ts-expect-error
-          return acc + item.actual;
-        }, 0);
-      default:
-        return 0;
+  const totalData = useMemo(() => {
+    if (!kpiFetcher.data?.data) return null;
+    const data = kpiFetcher.data.data;
+
+    if (selectedKpi === "utilization") {
+      return {
+        // @ts-expect-error
+        value: data.reduce((acc, item) => acc + item.value, 0)
+      };
     }
-  };
+    if (selectedKpi === "completionTime") {
+      if (data.length === 0) return { value: 0 };
+      return {
+        // @ts-expect-error
+        value: data.reduce((acc, item) => acc + item.value, 0) / data.length
+      };
+    }
+    if (selectedKpi === "estimatesVsActuals") {
+      return {
+        // @ts-expect-error
+        value: data.reduce((acc, item) => acc + item.actual, 0)
+      };
+    }
+    return { value: 0 };
+  }, [kpiFetcher.data?.data, selectedKpi]);
 
-  const total = getTotal(
-    selectedKpi === "estimatesVsActuals" ? "actual" : selectedKpi,
-    kpiFetcher.data?.data
-  );
+  const previousTotalData = useMemo(() => {
+    if (selectedKpi === "estimatesVsActuals") {
+      if (!kpiFetcher.data?.data) return null;
+      return {
+        // @ts-expect-error
+        value: kpiFetcher.data.data.reduce(
+          (acc, item) => acc + item.estimate,
+          0
+        )
+      };
+    }
 
-  const previousTotal = getTotal(
-    selectedKpi === "estimatesVsActuals" ? "estimate" : selectedKpi,
-    selectedKpi === "estimatesVsActuals"
-      ? kpiFetcher.data?.data
-      : (kpiFetcher.data?.previousPeriodData as {
-          value: number;
-        }[])
-  );
+    if (!kpiFetcher.data?.previousPeriodData) return null;
+    const data = kpiFetcher.data.previousPeriodData as { value: number }[];
+
+    if (selectedKpi === "utilization") {
+      return {
+        value: data.reduce((acc, item) => acc + item.value, 0)
+      };
+    }
+    if (selectedKpi === "completionTime") {
+      if (data.length === 0) return { value: 0 };
+      return {
+        value: data.reduce((acc, item) => acc + item.value, 0) / data.length
+      };
+    }
+    return { value: 0 };
+  }, [kpiFetcher.data?.data, kpiFetcher.data?.previousPeriodData, selectedKpi]);
+
+  const total = totalData?.value ?? 0;
+  const previousTotal = previousTotalData?.value ?? 0;
 
   const percentageChange =
     previousTotal === 0
@@ -229,6 +240,10 @@ export default function ProductionDashboard() {
         ? 100
         : 0
       : ((total - previousTotal) / previousTotal) * 100;
+
+  const formatValue = (value: number) => {
+    return formatDurationMilliseconds(value);
+  };
 
   const csvData = useMemo(() => {
     if (!kpiFetcher.data?.data) return [];
@@ -276,64 +291,58 @@ export default function ProductionDashboard() {
   return (
     <div className="flex flex-col gap-4 w-full p-4 h-[calc(100dvh-var(--header-height))] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-muted-foreground">
       <div className="grid w-full gap-y-4 lg:gap-x-4 grid-cols-1 lg:grid-cols-6">
-        <Card className="col-span-3 p-6 rounded-xl items-start justify-start gap-y-4">
-          <HStack className="justify-between w-full items-start mb-4">
-            <div className="bg-muted/80 border border-border rounded-xl p-2 text-foreground dark:shadow-md">
-              <LuHardHat className="size-5" />
-            </div>
-            <Button
-              size="sm"
-              rightIcon={<LuArrowUpRight />}
-              variant="secondary"
-              asChild
-            >
-              <Link
-                to={`${path.to.jobs}?filter=status:in:${OPEN_JOB_STATUSES.join(
-                  ","
-                )}`}
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Active Jobs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HStack className="justify-between w-full items-center">
+              <h3 className="text-5xl font-medium tracking-tighter">
+                {activeJobs}
+              </h3>
+              <Button
+                rightIcon={<LuArrowUpRight />}
+                variant="secondary"
+                asChild
               >
-                View Active Jobs
-              </Link>
-            </Button>
-          </HStack>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-3xl font-medium tracking-tight">
-              {activeJobs}
-            </h3>
-            <p className="text-sm text-muted-foreground tracking-tight">
-              Active Jobs
-            </p>
-          </div>
+                <Link
+                  to={`${path.to.jobs}?filter=status:in:${OPEN_JOB_STATUSES.join(
+                    ","
+                  )}`}
+                >
+                  View Active Jobs
+                </Link>
+              </Button>
+            </HStack>
+          </CardContent>
         </Card>
 
-        <Card className="col-span-3 p-6 items-start justify-start gap-y-4">
-          <HStack className="justify-between w-full items-start mb-4">
-            <div className="bg-muted/80 border border-border rounded-xl p-2 text-foreground dark:shadow-md">
-              <LuUserRoundCheck className="size-5" />
-            </div>
-            <Button
-              size="sm"
-              rightIcon={<LuArrowUpRight />}
-              variant="secondary"
-            >
-              <Link to={`${path.to.jobs}?filter=assignee:eq:${user.id}`}>
-                View Assigned Jobs
-              </Link>
-            </Button>
-          </HStack>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-3xl font-medium tracking-tight">
-              {assignedJobs}
-            </h3>
-            <p className="text-sm text-muted-foreground tracking-tight">
-              Jobs Assigned to Me
-            </p>
-          </div>
+        <Card className="col-span-3">
+          <CardHeader>
+            <CardTitle>Jobs Assigned to Me</CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <HStack className="justify-between w-full items-center">
+              <h3 className="text-5xl font-medium tracking-tighter">
+                {assignedJobs}
+              </h3>
+              <Button
+                rightIcon={<LuArrowUpRight />}
+                variant="secondary"
+                asChild
+              >
+                <Link to={`${path.to.jobs}?filter=assignee:eq:${user.id}`}>
+                  View Assigned Jobs
+                </Link>
+              </Button>
+            </HStack>
+          </CardContent>
         </Card>
 
-        <Card className="col-span-6 p-0">
-          <HStack className="justify-between items-start">
-            <CardHeader className="pb-0">
+        <Card className="col-span-6">
+          <HStack className="justify-between items-center">
+            <CardHeader>
               <div className="flex w-full justify-start items-center gap-2">
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -395,29 +404,8 @@ export default function ProductionDashboard() {
                   />
                 )}
               </div>
-              <HStack className="pl-[3px] pt-1">
-                {isFetching ? (
-                  <Skeleton className="h-8 w-1/2" />
-                ) : (
-                  <>
-                    <p className="text-xl font-semibold tracking-tight">
-                      {formatDurationMilliseconds(total)}
-                    </p>
-
-                    {percentageChange >= 0 ? (
-                      <Badge variant="green">
-                        +{percentageChange.toFixed(0)}%
-                      </Badge>
-                    ) : (
-                      <Badge variant="red">
-                        {percentageChange.toFixed(0)}%
-                      </Badge>
-                    )}
-                  </>
-                )}
-              </HStack>
             </CardHeader>
-            <CardAction className="py-6 px-6">
+            <CardAction>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <IconButton
@@ -441,7 +429,28 @@ export default function ProductionDashboard() {
               </DropdownMenu>
             </CardAction>
           </HStack>
-          <CardContent className="max-h-[600px] min-h-[320px] p-6 pb-12">
+          <CardContent className="max-h-[600px] min-h-[320px] flex-col gap-4">
+            <VStack className="pl-[3px]" spacing={0}>
+              {isFetching ? (
+                <div className="flex flex-col gap-0.5 w-full">
+                  <Skeleton className="h-8 w-[120px]" />
+                  <Skeleton className="h-4 w-[50px]" />
+                </div>
+              ) : (
+                <>
+                  <p className="text-3xl font-medium tracking-tighter">
+                    {formatValue(total)}
+                  </p>
+                  {percentageChange >= 0 ? (
+                    <Badge variant="green">
+                      +{percentageChange.toFixed(0)}%
+                    </Badge>
+                  ) : (
+                    <Badge variant="red">{percentageChange.toFixed(0)}%</Badge>
+                  )}
+                </>
+              )}
+            </VStack>
             {kpiFetcher.state === "idle" &&
             kpiFetcher.data?.data?.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full">
@@ -879,7 +888,7 @@ function WorkCenterCards({
                 <div className="flex flex-col gap-2 items-start justify-start text-sm">
                   {jobId && jobReadableId && (
                     <HStack className="justify-start space-x-2">
-                      <LuHardHat className="text-muted-foreground flex-shrink-0" />
+                      <LuCirclePlay className="text-muted-foreground flex-shrink-0" />
                       <Hyperlink to={path.to.job(jobId)} className="truncate">
                         {jobReadableId}
                       </Hyperlink>

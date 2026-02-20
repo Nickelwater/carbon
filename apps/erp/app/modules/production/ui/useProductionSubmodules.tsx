@@ -1,13 +1,10 @@
 import {
-  LuCalendarClock,
   LuChartLine,
-  LuCircleAlert,
-  LuHardHat,
+  LuCirclePlay,
   LuListChecks,
   LuSquareChartGantt,
   LuSquareKanban,
-  LuTrash,
-  LuWrench
+  LuTrash
 } from "react-icons/lu";
 import { usePermissions } from "~/hooks";
 import { useSavedViews } from "~/hooks/useSavedViews";
@@ -21,7 +18,7 @@ const productionRoutes: AuthenticatedRouteGroup[] = [
       {
         name: "Jobs",
         to: path.to.jobs,
-        icon: <LuHardHat />,
+        icon: <LuCirclePlay />,
         table: "job"
       },
       {

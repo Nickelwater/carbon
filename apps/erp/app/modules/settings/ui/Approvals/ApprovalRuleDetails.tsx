@@ -57,7 +57,7 @@ const ApprovalRuleDetails = memo(
           )}
 
           {/* Approver Groups */}
-          <FieldItem icon={LuUsers} label="Approvers">
+          <FieldItem icon={LuUsers} label="Who Can Approve">
             {rule.approverGroupIds && rule.approverGroupIds.length > 0 ? (
               <UserSelect
                 value={rule.approverGroupIds ?? []}

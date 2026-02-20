@@ -65,14 +65,13 @@ import { useShelves } from "~/components/Form/Shelf";
 import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";
 import { ConfirmDelete } from "~/components/Modals";
 import { useRouteData, useUser } from "~/hooks";
-import {
-  type BatchProperty,
-  type ItemTracking,
-  type Receipt,
-  type ReceiptLine,
-  ShelfForm,
-  splitValidator
+import type {
+  BatchProperty,
+  ItemTracking,
+  Receipt,
+  ReceiptLine
 } from "~/modules/inventory";
+import { ShelfForm, splitValidator } from "~/modules/inventory";
 import { getDocumentType } from "~/modules/shared/shared.service";
 import type { action as receiptLinesUpdateAction } from "~/routes/x+/receipt+/lines.update";
 import { useItems } from "~/stores";

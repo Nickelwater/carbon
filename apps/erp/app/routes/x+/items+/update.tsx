@@ -1,7 +1,7 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import type { Database } from "@carbon/database";
 import { getMaterialDescription, getMaterialId } from "@carbon/utils";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 
 import { getCompanySettings } from "~/modules/settings";
 

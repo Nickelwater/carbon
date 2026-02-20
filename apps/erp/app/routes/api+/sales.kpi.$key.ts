@@ -1,7 +1,7 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { parseDateTime, toCalendarDateTime } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { KPIs } from "~/modules/sales/sales.models";
 import { months } from "~/modules/shared/shared.models";
 import { groupDataByDay, groupDataByMonth } from "~/utils/chart";

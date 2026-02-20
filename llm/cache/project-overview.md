@@ -28,7 +28,7 @@ Carbon is a manufacturing system built with modern web technologies. It consists
 
 - **Monorepo**: NPM workspaces with Turbo
 - **Bundler**: Vite
-- **Linting**: ESLint with custom config
+- **Linting**: Biome with custom config
 - **Formatting**: Prettier
 
 ## Package Structure

@@ -582,7 +582,7 @@ const KanbansTable = memo(
           </>
         );
       },
-      [params, permissions]
+      [params, permissions, items.find]
     );
 
     const renderActions = useCallback((selectedRows: typeof data) => {

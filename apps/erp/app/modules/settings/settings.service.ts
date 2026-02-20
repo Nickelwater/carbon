@@ -1,7 +1,8 @@
 import { SUPABASE_URL } from "@carbon/auth";
 
 import type { Database } from "@carbon/database";
-import { FunctionRegion, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { FunctionRegion } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 import type { z } from "zod";
 import type { GenericQueryFilters } from "~/utils/query";
@@ -563,6 +564,39 @@ export async function updateProductLabelSize(
   return client
     .from("companySettings")
     .update(sanitize({ productLabelSize }))
+    .eq("id", companyId);
+}
+
+export async function updatePurchasingPdfThumbnails(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  includeThumbnailsOnPurchasingPdfs: boolean
+) {
+  return client
+    .from("companySettings")
+    .update(sanitize({ includeThumbnailsOnPurchasingPdfs }))
+    .eq("id", companyId);
+}
+
+export async function updateSalesPdfThumbnails(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  includeThumbnailsOnSalesPdfs: boolean
+) {
+  return client
+    .from("companySettings")
+    .update(sanitize({ includeThumbnailsOnSalesPdfs }))
+    .eq("id", companyId);
+}
+
+export async function updateJobTravelerWorkInstructions(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  jobTravelerIncludeWorkInstructions: boolean
+) {
+  return client
+    .from("companySettings")
+    .update(sanitize({ jobTravelerIncludeWorkInstructions }))
     .eq("id", companyId);
 }
 

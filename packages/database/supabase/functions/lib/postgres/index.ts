@@ -5,15 +5,18 @@ import {
   PostgresDialectConfig,
   PostgresIntrospector,
   PostgresQueryCompiler,
-  Transaction
+  Transaction,
 } from "kysely";
 import type { KyselifyDatabase } from "kysely-supabase";
 // Aliased it as pg so can be imported as-is in Node environment
 import { Pool } from "pg";
-import type { Database as SupabaseDatabase } from "../types.ts";
+import type { Database as SupabaseDatabase } from "../../../../src/types.ts";
 
 export type KyselyDatabase = KyselifyDatabase<SupabaseDatabase>;
 export type KyselyTx = Transaction<KyselyDatabase>;
+export type KyselyDbTx = KyselyDatabase | KyselyTx;
+
+export type { Kysely } from "kysely";
 
 export function getRuntime() {
   if (typeof globalThis.Deno !== "undefined") {
@@ -27,7 +30,7 @@ export function getRuntime() {
   return "node";
 }
 
-export function getPostgresConnectionPool(connections: number) {
+export function getPostgresConnectionPool(connections: number): Pool {
   const runtime = getRuntime();
 
   switch (runtime) {
@@ -40,14 +43,15 @@ export function getPostgresConnectionPool(connections: number) {
     }
     case "node": {
       // @ts-expect-error process.env is not available in Deno with ESM
-      const url = process.env.SUPABASE_DB_URL! ?? import.meta.env.SUPABASE_DB_URL;
+      const url =
+        process.env.SUPABASE_DB_URL! ?? import.meta.env.SUPABASE_DB_URL;
       const connectionPoolerUrl = url.includes("supabase.co")
         ? url.replace("5432", "6543")
         : url;
       // @ts-expect-error -- Kysely uses a subset of the pg Pool type
       return new Pool({
         connectionString: connectionPoolerUrl,
-        max: connections
+        max: connections,
       });
     }
 
@@ -62,13 +66,16 @@ interface PgDriverConstructor {
   new (config: PostgresDialectConfig): Driver;
 }
 
-export function getPostgresClient(pool: Pool, driver: PgDriverConstructor) {
+export function getPostgresClient<D = KyselyDatabase>(
+  pool: Pool,
+  driver: PgDriverConstructor
+): Kysely<D> {
   const runtime = getRuntime();
 
   switch (runtime) {
     case "node":
     case "deno": {
-      return new Kysely<KyselyDatabase>({
+      return new Kysely<D>({
         dialect: {
           createAdapter() {
             return new PostgresAdapter();
@@ -82,8 +89,8 @@ export function getPostgresClient(pool: Pool, driver: PgDriverConstructor) {
           },
           createQueryCompiler() {
             return new PostgresQueryCompiler();
-          }
-        }
+          },
+        },
       });
     }
 

@@ -1,8 +1,10 @@
-import { cn, HStack, Spinner } from "@carbon/react";
+import { cn, Spinner } from "@carbon/react";
 import { FaChevronRight } from "react-icons/fa";
-import { RxCheck } from "react-icons/rx";
+import { LuCheck, LuUsers } from "react-icons/lu";
+import { Avatar } from "~/components";
 import useUserSelectContext from "../provider";
 import type { IndividualOrGroup, OptionGroup } from "../types";
+import { isGroup } from "../useUserSelect";
 
 const UserTreeSelect = () => {
   const {
@@ -21,26 +23,29 @@ const UserTreeSelect = () => {
       aria-multiselectable={isMulti}
       ref={listBoxRef}
       onMouseOver={onMouseOver}
-      className="overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent max-h-[300px] my-1 flex flex-col"
+      className="overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent max-h-[300px] my-1 flex flex-col gap-1"
     >
       {loading ? (
-        <Spinner />
+        <div className="flex items-center justify-center py-4">
+          <Spinner />
+        </div>
       ) : groups.length > 0 ? (
         groups.map((group) => <Group key={group.uid} group={group} />)
       ) : (
-        <p className="text-center">No options found</p>
+        <p className="text-center text-sm text-muted-foreground py-4">
+          No options found
+        </p>
       )}
     </div>
   );
 };
 
-const MoreIcon = ({ isExpanded }: { isExpanded: boolean }) => (
+const ExpandIcon = ({ isExpanded }: { isExpanded: boolean }) => (
   <FaChevronRight
-    className="h-3 w-3"
-    style={{
-      transition: "transform .25s ease",
-      transform: isExpanded ? "rotate(0.25turn)" : undefined
-    }}
+    className={cn(
+      "h-3 w-3 text-muted-foreground transition-transform duration-200",
+      isExpanded && "rotate-90"
+    )}
   />
 );
 
@@ -66,6 +71,7 @@ const Group = ({ group }: { group: OptionGroup }) => {
       className="rounded-md outline-none"
       aria-expanded={isExpanded}
     >
+      {/* Group Header */}
       <div
         role="treeitem"
         aria-selected={isExpanded ? "true" : "false"}
@@ -73,17 +79,20 @@ const Group = ({ group }: { group: OptionGroup }) => {
           group.expanded ? onGroupCollapse(group.uid) : onGroupExpand(group.uid)
         }
         className={cn(
-          "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50 w-full",
-          isFocused && "bg-accent text-accent-foreground"
+          "flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-2 text-xs font-semibold tracking-wide text-muted-foreground transition-colors hover:bg-muted/50",
+          isFocused && "bg-muted/50"
         )}
       >
-        <HStack className="w-full justify-between items-center">
-          <span className="line-clamp-1">{group.name}</span>
-          <MoreIcon isExpanded={isExpanded} />
-        </HStack>
+        <ExpandIcon isExpanded={isExpanded} />
+        <span className="flex-1 truncate">{group.name}</span>
+        <span className="text-[10px] font-normal tabular-nums">
+          {group.items.length}
+        </span>
       </div>
+
+      {/* Group Items */}
       {isExpanded && (
-        <ul role="group" className="flex flex-col">
+        <ul role="group" className="flex flex-col gap-0.5 py-1 pl-2">
           {group.items.map((item) => {
             const isDisabled = item.id in []; // TODO
             const isFocused = item.uid === focusedId;
@@ -127,13 +136,25 @@ const Option = ({
   onClick?: () => void;
 }) => {
   const name = item.label;
+  const itemIsGroup = isGroup(item);
+  const memberCount =
+    itemIsGroup && "users" in item
+      ? (item.users?.length ?? 0) +
+        ("children" in item ? (item.children?.length ?? 0) : 0)
+      : 0;
+
+  // Get avatar info for individuals
+  const avatarUrl = "avatarUrl" in item ? item.avatarUrl : null;
+  const fullName = "fullName" in item ? item.fullName : null;
 
   return (
     <li
       id={id}
       className={cn(
-        "relative flex cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none transition-colors focus:bg-accent focus:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50",
-        (isSelected || isFocused) && "bg-accent text-accent-foreground",
+        "relative flex cursor-pointer select-none items-center gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+        "hover:bg-accent/50",
+        isFocused && "bg-accent/50",
+        isSelected && "bg-accent",
         isDisabled && "opacity-50 pointer-events-none"
       )}
       tabIndex={0}
@@ -142,15 +163,43 @@ const Option = ({
       role="treeitem"
       onClick={onClick}
     >
-      <HStack spacing={1} className="w-full items-center">
-        <RxCheck
-          className={cn(
-            "block mr-[0.75rem] text-[0.8rem] w-4 h-4",
-            isSelected ? "opacity-100" : "opacity-0"
-          )}
-        />
-        <span className="line-clamp-1">{name}</span>
-      </HStack>
+      {/* Selection indicator */}
+      <div
+        className={cn(
+          "flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors",
+          isSelected
+            ? "border-primary bg-primary text-primary-foreground"
+            : "border-muted-foreground/30 bg-background"
+        )}
+      >
+        {isSelected && <LuCheck className="h-3 w-3" />}
+      </div>
+
+      {/* Avatar or Group Icon */}
+      {itemIsGroup ? (
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted">
+          <LuUsers className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
+      ) : (
+        <Avatar name={fullName ?? name} path={avatarUrl} size="sm" />
+      )}
+
+      {/* Content */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <span className="truncate font-medium">{name}</span>
+        {itemIsGroup && memberCount > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {memberCount} {memberCount === 1 ? "member" : "members"}
+          </span>
+        )}
+      </div>
+
+      {/* Group indicator badge */}
+      {itemIsGroup && (
+        <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium uppercase text-muted-foreground">
+          Group
+        </span>
+      )}
     </li>
   );
 };

@@ -1,5 +1,6 @@
 import { cn, useDisclosure, VStack } from "@carbon/react";
-import { type AnchorHTMLAttributes, forwardRef, memo } from "react";
+import type { AnchorHTMLAttributes } from "react";
+import { forwardRef, memo } from "react";
 import { Link, useMatches } from "react-router";
 import { useModules, useOptimisticLocation } from "~/hooks";
 import type { Authenticated, NavItem } from "~/types";
@@ -72,26 +73,28 @@ const NavigationIconLink = forwardRef<
   NavigationIconButtonProps
 >(({ link, isActive = false, isOpen = false, onClick, ...props }, ref) => {
   const iconClasses = [
-    "absolute left-3 top-3 flex rounded-md items-center items-center justify-center" // Layout
+    "absolute left-3 top-3 flex items-center items-center justify-center" // Layout
   ];
 
   const classes = [
+    // Layout
     "relative",
     "h-10 w-10 group-data-[state=expanded]:w-full",
-    "transition-all duration-200",
     "flex items-center rounded-md",
     "group-data-[state=collapsed]:justify-center",
     "group-data-[state=expanded]:-space-x-2",
-    "hover:bg-active/80 hover:text-active-foreground",
-    "font-medium shrink-0 group inline-flex items-center justify-center select-none transform-gpu initial:border-none disabled:opacity-50",
+    // Typography & base styles
+    "font-medium shrink-0 inline-flex items-center justify-center select-none",
+    "disabled:opacity-50",
+    // Animation: snappy 100ms ease-out
+    "transition-[background-color,color,width] duration-100 ease-out",
+    // Focus ring (after: pseudo-element)
     "focus:!outline-none focus:!ring-0 active:!outline-none active:!ring-0",
     "after:pointer-events-none after:absolute after:-inset-[3px] after:rounded-lg after:border after:border-blue-500 after:opacity-0 after:ring-2 after:ring-blue-500/20 after:transition-opacity focus-visible:after:opacity-100 active:after:opacity-0",
-    "before:pointer-events-none before:bg-gradient-to-b before:transition-opacity before:from-white/[0.12] before:absolute before:inset-0 before:z-[1] before:rounded before:opacity-0",
-    `${
-      isActive
-        ? "bg-active text-active-foreground hover:text-active-foreground hover:bg-active/90 shadow-button-base"
-        : "hover:text-active-foreground"
-    }`,
+    // Hover state (non-active items)
+    !isActive && "hover:bg-accent hover:text-accent-foreground",
+    // Active/selected state - solid background, no gradient overlay
+    isActive && "bg-active text-active-foreground dark:shadow-button-base",
     "group/item"
   ];
 

@@ -1,4 +1,4 @@
-import { getCarbonServiceRole } from "@carbon/auth";
+import { ERP_URL, getCarbonServiceRole } from "@carbon/auth";
 import type { Database } from "@carbon/database";
 import {
   createIssueSlackThread,
@@ -8,7 +8,8 @@ import {
 } from "@carbon/ee/slack.server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { FunctionRegion } from "@supabase/supabase-js";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { z } from "zod";
 import {
   getIssueTypesList,
@@ -441,7 +442,7 @@ async function handleViewSubmission(
       createIssueSlackThread(
         serviceRole,
         {
-          carbonUrl: `https://app.carbon.ms${path.to.issue(ncrId)}`,
+          carbonUrl: `${ERP_URL}${path.to.issue(ncrId)}`,
           companyId,
           description,
           id: ncrId,

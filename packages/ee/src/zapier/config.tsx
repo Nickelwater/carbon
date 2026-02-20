@@ -1,8 +1,8 @@
 import type { ComponentProps } from "react";
 import { z } from "zod";
-import type { IntegrationConfig } from "../types";
+import { defineIntegration } from "../fns";
 
-export const Zapier: IntegrationConfig = {
+export const Zapier = defineIntegration({
   name: "Zapier",
   id: "zapier",
   active: false,
@@ -14,7 +14,7 @@ export const Zapier: IntegrationConfig = {
   images: [],
   settings: [],
   schema: z.object({})
-};
+});
 
 function Logo(props: ComponentProps<"svg">) {
   return (

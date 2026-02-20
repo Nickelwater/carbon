@@ -2,7 +2,7 @@ import { assertIsPost, getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { validator } from "@carbon/form";
 import { FunctionRegion } from "@supabase/supabase-js";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { splitValidator } from "~/modules/inventory";
 
 export async function action({ request }: ActionFunctionArgs) {

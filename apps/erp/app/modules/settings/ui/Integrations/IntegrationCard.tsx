@@ -1,4 +1,4 @@
-import type { IntegrationConfig } from "@carbon/ee";
+import type { Integration } from "@carbon/ee";
 import {
   Badge,
   Button,
@@ -23,14 +23,14 @@ export function IntegrationCard({
   integration,
   installed
 }: {
-  integration: IntegrationConfig;
+  integration: Integration;
   installed: IntegrationHealth | null;
 }) {
   const fetcher = useFetcher<{}>();
   const navigate = useNavigate();
   const routeData = useRouteData<{ state: string }>(path.to.integrations);
 
-  const getOauthUrl = (integration: IntegrationConfig) => {
+  const getOauthUrl = (integration: Integration) => {
     if ("oauth" in integration && !!integration.oauth) {
       const { clientId, redirectUri, scopes } = integration.oauth;
       const encodedRedirectUri = encodeURIComponent(
@@ -53,8 +53,8 @@ export function IntegrationCard({
       window.open(oauthUrl);
     } else if (integration.settings.some((setting) => setting.required)) {
       navigate(path.to.integration(integration.id));
-    } else if (integration.onInitialize) {
-      await integration.onInitialize?.();
+    } else if (integration.onClientInstall) {
+      await integration.onClientInstall?.();
     } else {
       const formData = new FormData();
       fetcher.submit(formData, {
@@ -65,7 +65,7 @@ export function IntegrationCard({
   };
 
   const handleUninstall = async () => {
-    await integration?.onUninstall?.();
+    await integration?.onClientUninstall?.();
   };
 
   return (

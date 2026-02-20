@@ -5,9 +5,9 @@ import type { IconType } from "react-icons";
 import { BsBarChartFill, BsCheckLg } from "react-icons/bs";
 import { FaThumbsUp } from "react-icons/fa";
 import { Link } from "react-router";
+import type { EmployeeAbility } from "~/modules/resources/types";
 import {
   AbilityEmployeeStatus,
-  type EmployeeAbility,
   getTrainingStatus
 } from "~/modules/resources/types";
 import { path } from "~/utils/path";

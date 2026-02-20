@@ -1,13 +1,20 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { KanbanLabelPDF } from "@carbon/documents/pdf";
 import { renderToStream } from "@react-pdf/renderer";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { getCompany } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const { client } = await requirePermissions(request, {
+  const { client, companyId } = await requirePermissions(request, {
     view: "inventory"
   });
+
+  const company = await getCompany(client, companyId);
+  if (company.error) {
+    console.error(company.error);
+    throw new Error("Failed to load company");
+  }
 
   const { action } = params;
   if (!action) throw new Error("Could not find kanban action");
@@ -119,7 +126,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="Kanban Labels.pdf"`
+    "Content-Disposition": `inline; filename="${company.data.name} - Kanban Labels.pdf"`
   });
 
   // @ts-ignore

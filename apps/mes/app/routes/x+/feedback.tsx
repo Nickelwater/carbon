@@ -2,7 +2,7 @@ import { getCarbonServiceRole, SUPABASE_URL } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { validator } from "@carbon/form";
 import { getSlackClient } from "@carbon/lib/slack.server";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { feedbackValidator } from "~/services/models";
 
 export async function action({ request }: ActionFunctionArgs) {

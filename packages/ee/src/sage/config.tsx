@@ -1,8 +1,8 @@
 import type { ComponentProps } from "react";
 import { z } from "zod";
-import type { IntegrationConfig } from "../types";
+import { defineIntegration } from "../fns";
 
-export const Sage: IntegrationConfig = {
+export const Sage = defineIntegration({
   name: "Sage Intacct",
   id: "sage",
   active: false,
@@ -15,7 +15,7 @@ export const Sage: IntegrationConfig = {
   images: [],
   settings: [],
   schema: z.object({})
-};
+});
 
 function Logo(props: ComponentProps<"svg">) {
   return (

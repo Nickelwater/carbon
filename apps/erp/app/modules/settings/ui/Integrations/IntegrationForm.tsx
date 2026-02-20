@@ -1,3 +1,9 @@
+import type {
+  IntegrationAction,
+  IntegrationSetting,
+  IntegrationSettingGroup,
+  IntegrationSettingOption
+} from "@carbon/ee";
 import { integrations as availableIntegrations } from "@carbon/ee";
 import {
   // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
@@ -12,6 +18,9 @@ import {
 import {
   Badge,
   Button,
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
   Drawer,
   DrawerBody,
   DrawerContent,
@@ -24,22 +33,253 @@ import {
   VStack
 } from "@carbon/react";
 import { SUPPORT_EMAIL } from "@carbon/utils";
+import { useCallback, useMemo, useState } from "react";
+import { LuChevronDown } from "react-icons/lu";
 import { useParams } from "react-router";
 import { Processes } from "~/components/Form";
 import { MethodIcon, TrackingTypeIcon } from "~/components/Icons";
 import { usePermissions, useUser } from "~/hooks";
 import { path } from "~/utils/path";
 
+function IntegrationActionButton({
+  action,
+  isDisabled
+}: {
+  action: IntegrationAction;
+  isDisabled: boolean;
+}) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [status, setStatus] = useState<"idle" | "running" | "completed">(
+    "idle"
+  );
+
+  const handleClick = useCallback(async () => {
+    setIsLoading(true);
+    setStatus("running");
+
+    try {
+      const response = await fetch(action.endpoint, { method: "POST" });
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success(`${action.label} started`);
+        setStatus("completed");
+      } else {
+        setStatus("idle");
+        toast.error(data.error || `Failed to start ${action.label}`);
+      }
+    } catch {
+      setStatus("idle");
+      toast.error(`Failed to start ${action.label}`);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [action]);
+
+  return (
+    <div className="flex items-center justify-between gap-4 p-3 border rounded-lg w-full">
+      <div className="flex flex-col flex-1 min-w-0">
+        <p className="text-sm font-medium">{action.label}</p>
+        <p className="text-xs text-muted-foreground">{action.description}</p>
+      </div>
+      <div className="shrink-0">
+        <Button
+          variant="secondary"
+          size="sm"
+          onClick={handleClick}
+          isLoading={isLoading}
+          isDisabled={isDisabled || status === "running"}
+        >
+          {status === "completed" ? "Started" : "Run"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Helper to normalize option to consistent format
+ */
+function normalizeOption(option: IntegrationSettingOption): {
+  value: string;
+  label: string;
+  description?: string;
+} {
+  if (typeof option === "string") {
+    return { value: option, label: option };
+  }
+  return option;
+}
+
+/**
+ * Renders a single setting field based on its type
+ */
+function SettingField({ setting }: { setting: IntegrationSetting }) {
+  switch (setting.type) {
+    case "text":
+      return (
+        <div className="w-full">
+          <Input
+            name={setting.name}
+            label={setting.label}
+            isOptional={!setting.required}
+          />
+          {setting.description && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {setting.description}
+            </p>
+          )}
+        </div>
+      );
+
+    case "switch":
+      return (
+        <div className="flex items-center justify-between gap-4 w-full py-2">
+          <div className="flex flex-col flex-1">
+            <span className="text-sm font-medium">{setting.label}</span>
+            {setting.description && (
+              <span className="text-xs text-muted-foreground">
+                {setting.description}
+              </span>
+            )}
+          </div>
+          <div className="shrink-0">
+            <Boolean name={setting.name} />
+          </div>
+        </div>
+      );
+
+    case "processes":
+      return (
+        <div className="w-full">
+          <Processes name={setting.name} label={setting.label} />
+          {setting.description && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {setting.description}
+            </p>
+          )}
+        </div>
+      );
+
+    case "array":
+      return (
+        <div className="w-full">
+          <Array name={setting.name} label={setting.label} />
+          {setting.description && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {setting.description}
+            </p>
+          )}
+        </div>
+      );
+
+    case "options": {
+      const options =
+        setting.listOptions?.map((option) => {
+          const normalized = normalizeOption(option);
+          let icon: JSX.Element | null = null;
+
+          // Legacy icon support for specific field names
+          if (setting.name === "methodType") {
+            // @ts-ignore
+            icon = <MethodIcon type={normalized.value} />;
+          } else if (setting.name === "trackingType") {
+            // @ts-ignore
+            icon = <TrackingTypeIcon type={normalized.value} />;
+          }
+
+          // Build a simpler label that works well with Radix Select
+          const label = (
+            <span key={normalized.value} className="flex items-center gap-2">
+              {icon}
+              <span className="font-medium">{normalized.label}</span>
+              {normalized.description && (
+                <span className="text-muted-foreground text-xs">
+                  — {normalized.description}
+                </span>
+              )}
+            </span>
+          );
+
+          return {
+            label,
+            value: normalized.value
+          };
+        }) ?? [];
+
+      return (
+        <div className="w-full">
+          <Select name={setting.name} label={setting.label} options={options} />
+          {setting.description && (
+            <p className="text-xs text-muted-foreground mt-1">
+              {setting.description}
+            </p>
+          )}
+        </div>
+      );
+    }
+
+    default:
+      return null;
+  }
+}
+
+/**
+ * Renders a collapsible group of settings
+ */
+function SettingsGroup({
+  name,
+  description,
+  settings
+}: {
+  name: string;
+  description?: string;
+  settings: IntegrationSetting[];
+}) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  return (
+    <Collapsible open={isOpen} onOpenChange={setIsOpen} className="w-full">
+      <CollapsibleTrigger className="flex items-center justify-between w-full py-2 group">
+        <Heading size="h4" className="text-left">
+          {name}
+        </Heading>
+        <LuChevronDown
+          className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+        />
+      </CollapsibleTrigger>
+      {description && (
+        <p className="text-sm text-muted-foreground">{description}</p>
+      )}
+      <CollapsibleContent>
+        <VStack spacing={4} className="pt-2">
+          {settings.map((setting) => (
+            <SettingField key={setting.name} setting={setting} />
+          ))}
+        </VStack>
+      </CollapsibleContent>
+    </Collapsible>
+  );
+}
+
 interface IntegrationFormProps {
   metadata: Record<string, unknown>;
   installed: boolean;
   onClose: () => void;
+  /** Dynamic options to merge into settings (e.g., fetched from external APIs) */
+  dynamicOptions?: Record<
+    string,
+    Array<{ value: string; label: string; description?: string }>
+  >;
 }
 
 export function IntegrationForm({
   installed,
   metadata,
-  onClose
+  onClose,
+  dynamicOptions = {}
 }: IntegrationFormProps) {
   const permissions = usePermissions();
   const isDisabled = !permissions.can("update", "settings");
@@ -48,23 +288,87 @@ export function IntegrationForm({
   } = useUser();
 
   const { id: integrationId } = useParams();
+
+  const integration = integrationId
+    ? availableIntegrations.find((i) => i.id === integrationId)
+    : undefined;
+
+  // Extract connected organisation name from metadata (e.g. Xero tenant name)
+  const connectedOrgName = (metadata?.credentials as Record<string, unknown>)
+    ?.tenantName as string | undefined;
+
+  // Group settings by their group property
+  // Settings without a group appear first (ungrouped)
+  // Also merges dynamic options into settings that have them
+  const { ungroupedSettings, groupedSettings, groupNames, groupDescriptions } =
+    useMemo(() => {
+      if (!integration) {
+        return {
+          ungroupedSettings: [] as IntegrationSetting[],
+          groupedSettings: new Map<string, IntegrationSetting[]>(),
+          groupNames: [] as string[],
+          groupDescriptions: new Map<string, string | undefined>()
+        };
+      }
+
+      const ungrouped: IntegrationSetting[] = [];
+      const grouped = new Map<string, IntegrationSetting[]>();
+
+      for (const baseSetting of integration.settings) {
+        // Merge dynamic options if available for this setting
+        const setting: IntegrationSetting = dynamicOptions[baseSetting.name]
+          ? {
+              ...baseSetting,
+              listOptions: dynamicOptions[baseSetting.name]
+            }
+          : (baseSetting as IntegrationSetting);
+
+        if (!setting.group) {
+          ungrouped.push(setting);
+        } else {
+          const existing = grouped.get(setting.group) ?? [];
+          grouped.set(setting.group, [...existing, setting]);
+        }
+      }
+
+      // Build group descriptions map from settingGroups
+      const descriptions = new Map<string, string | undefined>();
+      const settingGroups =
+        (integration as { settingGroups?: IntegrationSettingGroup[] })
+          .settingGroups ?? [];
+      for (const group of settingGroups) {
+        descriptions.set(group.name, group.description);
+      }
+
+      return {
+        ungroupedSettings: ungrouped,
+        groupedSettings: grouped,
+        groupNames: [...grouped.keys()],
+        groupDescriptions: descriptions
+      };
+    }, [integration, dynamicOptions]);
+
+  const initialValues = useMemo(() => {
+    if (!integration) return {};
+    return integration.settings.reduce(
+      (acc, setting) => {
+        return {
+          ...acc,
+          [setting.name]: metadata[setting.name] ?? setting.value
+        };
+      },
+      {} as Record<string, unknown>
+    );
+  }, [integration, metadata]);
+
   if (!integrationId) {
     throw new Error("Integration ID is required");
   }
-
-  const integration = availableIntegrations.find((i) => i.id === integrationId);
 
   if (!integration) {
     toast.error("Integration not found");
     return null;
   }
-
-  const initialValues = integration.settings.reduce((acc, setting) => {
-    return {
-      ...acc,
-      [setting.name]: metadata[setting.name]
-    };
-  }, {});
 
   return (
     <Drawer
@@ -89,12 +393,21 @@ export function IntegrationForm({
                   <Heading size="h3">{integration.name}</Heading>
 
                   {installed && <Badge variant="green">Installed</Badge>}
+
+                  <span className="text-xs text-[#878787] text-right">
+                    <Badge variant="secondary">{integration.category}</Badge> •
+                    Published by Carbon
+                  </span>
                 </div>
 
-                <span className="text-xs text-[#878787] text-right">
-                  <Badge variant="secondary">{integration.category}</Badge> •
-                  Published by Carbon
-                </span>
+                {installed && connectedOrgName && (
+                  <div className="text-sm text-muted-foreground">
+                    Connected to{" "}
+                    <span className="font-medium text-foreground">
+                      {connectedOrgName}
+                    </span>
+                  </div>
+                )}
               </div>
             </VStack>
           </DrawerHeader>
@@ -113,78 +426,41 @@ export function IntegrationForm({
                   </>
                 )}
 
-                {integration.settings.map((setting) => {
-                  switch (setting.type) {
-                    case "text":
-                      return (
-                        <Input
-                          key={setting.name}
-                          name={setting.name}
-                          label={setting.label}
-                          isOptional={!setting.required}
-                        />
-                      );
-                    case "switch":
-                      return (
-                        <Boolean
-                          key={setting.name}
-                          name={setting.name}
-                          label={setting.label}
-                          description={setting.label}
-                        />
-                      );
-                    case "processes":
-                      return (
-                        <Processes
-                          key={setting.name}
-                          name={setting.name}
-                          label={setting.label}
-                        />
-                      );
-                    case "array":
-                      return (
-                        <Array
-                          key={setting.name}
-                          name={setting.name}
-                          label={setting.label}
-                        />
-                      );
-                    case "options":
-                      return (
-                        <Select
-                          key={setting.name}
-                          name={setting.name}
-                          label={setting.label}
-                          options={
-                            setting.listOptions?.map((option) => {
-                              let icon: JSX.Element | null = null;
-                              if (setting.name === "methodType") {
-                                // @ts-ignore
-                                icon = <MethodIcon type={option} />;
-                              } else if (setting.name === "trackingType") {
-                                // @ts-ignore
-                                icon = <TrackingTypeIcon type={option} />;
-                              }
+                {/* Ungrouped settings appear first */}
+                {ungroupedSettings.length > 0 && (
+                  <VStack spacing={4} className="w-full">
+                    {ungroupedSettings.map((setting) => (
+                      <SettingField key={setting.name} setting={setting} />
+                    ))}
+                  </VStack>
+                )}
 
-                              return {
-                                label: (
-                                  <Badge
-                                    variant="secondary"
-                                    className="flex items-center gap-2"
-                                  >
-                                    {icon ? icon : null} {option}
-                                  </Badge>
-                                ),
-                                value: option
-                              };
-                            }) ?? []
-                          }
-                        />
-                      );
-                    default:
-                      return null;
-                  }
-                })}
+                {/* Grouped settings in collapsible sections */}
+                {groupNames.map((groupName) => (
+                  <SettingsGroup
+                    key={groupName}
+                    name={groupName}
+                    description={groupDescriptions.get(groupName)}
+                    settings={groupedSettings.get(groupName) ?? []}
+                  />
+                ))}
+
+                {installed &&
+                  integration.actions &&
+                  integration.actions.length > 0 && (
+                    <>
+                      <Heading size="h3">Actions</Heading>
+                      <VStack spacing={2} className="w-full">
+                        {integration.actions.map((action) => (
+                          <IntegrationActionButton
+                            key={action.id}
+                            action={action}
+                            isDisabled={isDisabled}
+                          />
+                        ))}
+                      </VStack>
+                    </>
+                  )}
               </VStack>
             </ScrollArea>
             <p className="text-sm text-muted-foreground">

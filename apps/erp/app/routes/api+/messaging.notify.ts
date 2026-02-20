@@ -4,7 +4,8 @@ import { flash } from "@carbon/auth/session.server";
 import type { notifyTask } from "@carbon/jobs/trigger/notify";
 import { NotificationEvent } from "@carbon/notifications";
 import { tasks } from "@trigger.dev/sdk";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { z } from "zod";
 
 export const messagingNotifySchema = z.discriminatedUnion("type", [

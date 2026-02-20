@@ -238,7 +238,8 @@ export const purchaseOrderPaymentValidator = z.object({
 export const purchaseOrderFinalizeValidator = z
   .object({
     notification: z.enum(["Email", "None"]).optional(),
-    supplierContact: zfd.text(z.string().optional())
+    supplierContact: zfd.text(z.string().optional()),
+    cc: z.array(z.string()).optional()
   })
   .refine(
     (data) => (data.notification === "Email" ? data.supplierContact : true),
@@ -255,7 +256,8 @@ export const purchaseOrderApprovalValidator = z
       .min(1, { message: "Approval request is required" }),
     decision: z.enum(["Approved", "Rejected"]),
     notification: z.enum(["Email", "None"]).optional(),
-    supplierContact: zfd.text(z.string().optional())
+    supplierContact: zfd.text(z.string().optional()),
+    cc: z.array(z.string()).optional()
   })
   .refine(
     (data) => (data.notification === "Email" ? data.supplierContact : true),
@@ -286,8 +288,8 @@ export const supplierValidator = z.object({
   currencyCode: zfd.text(z.string().optional()),
   purchasingContactId: zfd.text(z.string().optional()),
   invoicingContactId: zfd.text(z.string().optional()),
-  website: zfd.text(z.string().optional()),
-  defaultCc: z.array(z.string().email()).default([])
+  website: zfd.text(z.string().optional())
+  // defaultCc: z.array(z.string().email()).default([])
 });
 
 export const supplierContactValidator = z.object({
@@ -402,3 +404,123 @@ export const supplierQuoteLineValidator = z.object({
     zfd.numeric(z.number().min(0.00001, { message: "Quantity is required" }))
   )
 });
+
+export const purchasingRfqStatusType = [
+  "Draft",
+  "Requested",
+  "Closed"
+] as const;
+
+export const purchasingRfqValidator = z.object({
+  id: zfd.text(z.string().optional()),
+  rfqId: zfd.text(z.string().optional()),
+  rfqDate: z.string().min(1, { message: "RFQ Date is required" }),
+  expirationDate: zfd.text(z.string().optional()),
+  locationId: zfd.text(z.string().optional()),
+  employeeId: zfd.text(z.string().optional()),
+  status: z.enum(purchasingRfqStatusType).optional(),
+  supplierIds: z
+    .array(z.string())
+    .min(1, { message: "At least one supplier is required" })
+});
+
+export const purchasingRfqLineValidator = z.object({
+  id: zfd.text(z.string().optional()),
+  purchasingRfqId: z.string().min(1, { message: "RFQ is required" }),
+  itemId: z.string().min(1, { message: "Part is required" }),
+  description: zfd.text(z.string().optional()),
+  quantity: z.array(
+    zfd.numeric(z.number().min(0.00001, { message: "Quantity is required" }))
+  ),
+  purchaseUnitOfMeasureCode: zfd.text(
+    z.string().min(1, { message: "Unit of measure is required" })
+  ),
+  inventoryUnitOfMeasureCode: zfd.text(
+    z.string().min(1, { message: "Unit of measure is required" })
+  ),
+  conversionFactor: zfd.numeric(z.number().optional()),
+  order: zfd.numeric(z.number().min(0))
+});
+
+export const purchasingRfqSuppliersValidator = z.object({
+  purchasingRfqId: z.string().min(1, { message: "RFQ is required" }),
+  supplierIds: z
+    .array(z.string())
+    .min(1, { message: "At least one supplier is required" })
+});
+
+export const purchasingRfqFinalizeValidator = z.object({
+  suppliers: z.array(
+    z.object({
+      supplierId: z.string().min(1),
+      rfqSupplierId: z.string().min(1),
+      contactId: zfd.text(z.string().optional())
+    })
+  )
+});
+
+// RFQ Status Helpers
+export const PURCHASING_RFQ_EDITABLE_STATUSES = ["Draft"] as const;
+export const PURCHASING_RFQ_LOCKED_STATUSES = ["Requested", "Closed"] as const;
+
+export function isRfqEditable(status: string | null | undefined): boolean {
+  return PURCHASING_RFQ_EDITABLE_STATUSES.includes(
+    status as (typeof PURCHASING_RFQ_EDITABLE_STATUSES)[number]
+  );
+}
+
+export function isRfqLocked(status: string | null | undefined): boolean {
+  return PURCHASING_RFQ_LOCKED_STATUSES.includes(
+    status as (typeof PURCHASING_RFQ_LOCKED_STATUSES)[number]
+  );
+}
+
+// Purchase Order Locked Status Validation
+
+/**
+ * Purchase Order statuses that indicate the PO has been finalized/approved
+ * and is now "locked" - meaning only privileged users can make limited edits
+ */
+export const PURCHASE_ORDER_LOCKED_STATUSES = [
+  "To Receive",
+  "To Receive and Invoice",
+  "To Invoice",
+  "Completed"
+] as const;
+
+/**
+ * Purchase Order statuses that allow normal editing
+ */
+export const PURCHASE_ORDER_EDITABLE_STATUSES = [
+  "Draft",
+  "Planned",
+  "Needs Approval",
+  "Rejected"
+] as const;
+
+export type PurchaseOrderLockedStatus =
+  (typeof PURCHASE_ORDER_LOCKED_STATUSES)[number];
+export type PurchaseOrderEditableStatus =
+  (typeof PURCHASE_ORDER_EDITABLE_STATUSES)[number];
+
+/**
+ * Check if a PO status is "locked" (finalized/approved)
+ */
+export function isPurchaseOrderLocked(
+  status: (typeof purchaseOrderStatusType)[number] | null | undefined
+): boolean {
+  return PURCHASE_ORDER_LOCKED_STATUSES.includes(
+    status as PurchaseOrderLockedStatus
+  );
+}
+
+/**
+ * Check if a PO status allows normal editing
+ */
+export function isPurchaseOrderEditable(
+  status: (typeof purchaseOrderStatusType)[number] | null | undefined
+): boolean {
+  return PURCHASE_ORDER_EDITABLE_STATUSES.includes(
+    status as PurchaseOrderEditableStatus
+  );
+}

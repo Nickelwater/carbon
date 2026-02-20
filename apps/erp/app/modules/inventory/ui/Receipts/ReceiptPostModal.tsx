@@ -92,7 +92,7 @@ const ReceiptPostModal = ({ onClose }: { onClose: () => void }) => {
           return attributes["Receipt Line"] === line.id;
         });
 
-        const attributes = trackedEntity?.attributes as
+        const _attributes = trackedEntity?.attributes as
           | TrackedEntityAttributes
           | undefined;
         if (!trackedEntity?.readableId) {
@@ -112,7 +112,7 @@ const ReceiptPostModal = ({ onClose }: { onClose: () => void }) => {
         });
 
         const quantityWithSerial = trackedEntities?.reduce((acc, tracking) => {
-          const attributes = tracking.attributes as TrackedEntityAttributes;
+          const _attributes = tracking.attributes as TrackedEntityAttributes;
           const serialNumber = tracking.readableId;
 
           return acc + (serialNumber ? 1 : 0);

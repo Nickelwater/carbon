@@ -1686,11 +1686,11 @@ function useSerialNumbers(itemId?: string) {
   const serialNumbersFetcher =
     useFetcher<Awaited<ReturnType<typeof getSerialNumbersForItem>>>();
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
   useEffect(() => {
     if (itemId) {
       serialNumbersFetcher.load(path.to.api.serialNumbers(itemId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [itemId]);
 
   return { data: serialNumbersFetcher.data };
@@ -1705,8 +1705,7 @@ function useBatchNumbers(itemId?: string) {
     if (itemId) {
       batchNumbersFetcher.load(path.to.api.batchNumbers(itemId));
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [itemId]);
+  }, [itemId, batchNumbersFetcher.load]);
 
   return { data: batchNumbersFetcher.data };
 }

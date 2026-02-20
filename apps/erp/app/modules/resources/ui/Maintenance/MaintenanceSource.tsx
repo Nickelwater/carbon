@@ -1,10 +1,5 @@
 import { Badge, cn } from "@carbon/react";
-import {
-  LuCalendarClock,
-  LuRefreshCcwDot,
-  LuShieldX,
-  LuTriangleAlert
-} from "react-icons/lu";
+import { LuCalendarClock, LuRefreshCcwDot, LuShieldX } from "react-icons/lu";
 import type { maintenanceSource } from "../../resources.models";
 
 type MaintenanceSourceProps = {

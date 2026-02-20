@@ -35,10 +35,12 @@ import {
   digitalQuoteValidator,
   getCompanySettings,
   getTerms,
+  includeThumbnailsOnSalesPdfsValidator,
   rfqReadyValidator,
   updateDefaultCustomerCc,
   updateDigitalQuoteSetting,
-  updateRfqReadySetting
+  updateRfqReadySetting,
+  updateSalesPdfThumbnails
 } from "~/modules/settings";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
@@ -96,6 +98,28 @@ export async function action({ request }: ActionFunctionArgs) {
       if (digitalQuote.error)
         return { success: false, message: digitalQuote.error.message };
 
+      return { success: true, message: "Digital quote setting updated" };
+
+    case "pdfs":
+      const thumbnailsValidation = await validator(
+        includeThumbnailsOnSalesPdfsValidator
+      ).validate(formData);
+
+      if (thumbnailsValidation.error) {
+        return { success: false, message: "Invalid form data" };
+      }
+
+      const thumbnailsResult = await updateSalesPdfThumbnails(
+        client,
+        companyId,
+        thumbnailsValidation.data.includeThumbnailsOnSalesPdfs
+      );
+
+      if (thumbnailsResult.error)
+        return { success: false, message: thumbnailsResult.error.message };
+
+      return { success: true, message: "PDF settings updated" };
+
     case "rfq":
       const rfqValidation =
         await validator(rfqReadyValidator).validate(formData);
@@ -115,7 +139,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
       return { success: true, message: "RFQ setting updated" };
 
-    case "defaultCustomerCc":
+    case "emails":
       const defaultCustomerCcValidation = await validator(
         defaultCustomerCcValidator
       ).validate(formData);
@@ -139,11 +163,11 @@ export async function action({ request }: ActionFunctionArgs) {
 
       return {
         success: true,
-        message: "Default customer CC updated"
+        message: "Customer email settings updated"
       };
   }
 
-  return { success: true, message: "Digital quote setting updated" };
+  return { success: false, message: "Unknown intent" };
 }
 
 export default function SalesSettingsRoute() {
@@ -325,9 +349,9 @@ export default function SalesSettingsRoute() {
             }}
             fetcher={fetcher}
           >
-            <input type="hidden" name="intent" value="defaultCustomerCc" />
+            <input type="hidden" name="intent" value="emails" />
             <CardHeader>
-              <CardTitle>Default CC for Customer Emails</CardTitle>
+              <CardTitle>Emails</CardTitle>
               <CardDescription>
                 These email addresses will be automatically CC'd on all quote
                 emails sent to customers.
@@ -355,6 +379,46 @@ export default function SalesSettingsRoute() {
           </ValidatedForm>
         </Card>
 
+        <Card>
+          <ValidatedForm
+            method="post"
+            validator={includeThumbnailsOnSalesPdfsValidator}
+            defaultValues={{
+              includeThumbnailsOnSalesPdfs:
+                companySettings.includeThumbnailsOnSalesPdfs ?? true
+            }}
+            fetcher={fetcher}
+          >
+            <input type="hidden" name="intent" value="pdfs" />
+            <CardHeader>
+              <CardTitle>PDFs</CardTitle>
+              <CardDescription>
+                Show part thumbnails on quotes, sales orders, sales invoices,
+                and shipments.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-2 max-w-[400px]">
+                <Boolean
+                  name="includeThumbnailsOnSalesPdfs"
+                  description="Include Thumbnails in PDFs"
+                />
+              </div>
+            </CardContent>
+            <CardFooter>
+              <Submit
+                isDisabled={fetcher.state !== "idle"}
+                isLoading={
+                  fetcher.state !== "idle" &&
+                  fetcher.formData?.get("intent") ===
+                    "includeThumbnailsOnSalesPdfs"
+                }
+              >
+                Save
+              </Submit>
+            </CardFooter>
+          </ValidatedForm>
+        </Card>
         <Card>
           <HStack className="justify-between items-start">
             <CardHeader>

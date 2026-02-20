@@ -17,19 +17,14 @@ import { Edition } from "@carbon/utils";
 import { useLocale } from "@react-aria/i18n";
 import { useMemo } from "react";
 import { LuGraduationCap, LuMoveLeft, LuPhoneCall } from "react-icons/lu";
-import {
-  type ActionFunctionArgs,
-  Form,
-  redirect,
-  useFetcher,
-  useLoaderData
-} from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { Form, redirect, useFetcher, useLoaderData } from "react-router";
 import { getCompany, getPlans } from "~/modules/settings";
 import { path } from "~/utils/path";
 
 const PLANS = {
   STARTER: {
-    price: 35,
+    price: 33,
     userMinimum: 0,
     talkToSales: false,
     description: "Perfect for tech-forward businesses and small teams",
@@ -40,7 +35,7 @@ const PLANS = {
     ]
   },
   BUSINESS: {
-    price: 90,
+    price: 92,
     userMinimum: 5,
     talkToSales: true,
     description: "For growing businesses that need support",
@@ -57,7 +52,7 @@ const PLANS = {
     ]
   },
   GOVCLOUD: {
-    price: 90,
+    price: 92,
     userMinimum: 5,
     talkToSales: true,
     description: "For US companies handling ITAR data",

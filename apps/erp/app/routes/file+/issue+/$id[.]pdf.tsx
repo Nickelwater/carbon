@@ -1,7 +1,7 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { IssuePDF } from "@carbon/documents/pdf";
 import { renderToStream } from "@react-pdf/renderer";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import {
   getIssue,
   getIssueActionTasks,
@@ -187,7 +187,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="${nonConformance.data.nonConformanceId}.pdf"`
+    "Content-Disposition": `inline; filename="${company.data.name} - ${nonConformance.data.nonConformanceId}.pdf"`
   });
   return new Response(body, { status: 200, headers });
 }

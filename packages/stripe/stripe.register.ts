@@ -5,6 +5,7 @@ config();
 
 const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
 const VERCEL_URL = process.env.VERCEL_URL;
+const ERP_URL = process.env.ERP_URL;
 
 if (!STRIPE_SECRET_KEY) {
   console.error("❌ STRIPE_SECRET_KEY is required");
@@ -44,7 +45,7 @@ const events: Stripe.WebhookEndpointCreateParams.EnabledEvent[] = [
 ];
 
 // const webhookUrl = `https://${VERCEL_URL}/api/webhook/stripe`;
-const webhookUrl = `https://app.carbon.ms/api/webhook/stripe`;
+const webhookUrl = `${ERP_URL}/api/webhook/stripe`;
 if (webhookUrl.includes("localhost")) {
   throw new Error("Cannot register webhook in local development mode");
 }

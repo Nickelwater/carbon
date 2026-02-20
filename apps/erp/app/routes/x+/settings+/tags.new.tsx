@@ -1,5 +1,6 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { type ActionFunctionArgs, data } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { insertTag } from "~/modules/shared";
 
 export async function action({ request }: ActionFunctionArgs) {

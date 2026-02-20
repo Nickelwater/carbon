@@ -191,10 +191,29 @@ $ cp ./.env.example ./.env
 - `STRIPE_SECRET_KEY="sk_test_*************"`
 - `STRIPE_WEBHOOK_SECRET="whsec_************"`
 
-6. Signing in requires you to setup one of two methods:
-   - Email requires a Resend API key:
-     - `RESEND_API_KEY="re_**********"`
-     - `RESEND_DOMAIN="carbon.ms"`
+6. **Resend** (Email service) - [Create a Resend account](https://resend.com) and configure:
+
+- `RESEND_API_KEY="re_**********"`
+- `RESEND_DOMAIN="carbon.ms"` (or your domain, no trailing slashes or protocols)
+- `RESEND_AUDIENCE_ID="*****"` (Optional - required for contact management in `packages/jobs`)
+
+Resend is used for transactional emails (user invitations, email verification, onboarding). All three variables are stored in `packages/auth/src/config/env.ts`.
+
+7. **Novu** (In-app notifications) - [Create a Novu account](https://novu.co) and configure:
+
+- `NOVU_APPLICATION_ID="********************"` (Client-side, public)
+- `NOVU_SECRET_KEY="********************"` (Server-side secret, backend only)
+
+Novu is used for in-app notifications and notification workflows. After setup, sync your Novu workflows:
+
+```bash
+npm run novu:sync
+```
+
+This command syncs your Novu workflows with the Carbon application using the bridge URL.
+
+8. Signing in requires you to setup one of two methods:
+   - Email requires a Resend API key (configured in step 6 above)
    - Sign-in with Google requires a [Google auth client](https://supabase.com/docs/guides/auth/social-login/auth-google) with these variables:
      - `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID="******.apps.googleusercontent.com"`
      - `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET="GOCSPX-****************"`

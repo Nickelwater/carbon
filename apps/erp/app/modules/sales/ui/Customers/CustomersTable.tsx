@@ -14,7 +14,6 @@ import {
   LuCalendar,
   LuEuro,
   LuGlobe,
-  LuGroup,
   LuPencil,
   LuPhone,
   LuPrinter,

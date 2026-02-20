@@ -28,12 +28,8 @@ import {
 } from "@internationalized/date";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuCirclePlus, LuSettings2, LuTriangleAlert } from "react-icons/lu";
-import {
-  Link,
-  type LoaderFunctionArgs,
-  redirect,
-  useLoaderData
-} from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { Link, redirect, useLoaderData } from "react-router";
 import { SearchFilter } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { useLocations } from "~/components/Form/Location";

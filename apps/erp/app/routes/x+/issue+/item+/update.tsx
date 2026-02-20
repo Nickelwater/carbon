@@ -1,5 +1,5 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { disposition } from "~/modules/quality/quality.models";
 
 export async function action({ request }: ActionFunctionArgs) {

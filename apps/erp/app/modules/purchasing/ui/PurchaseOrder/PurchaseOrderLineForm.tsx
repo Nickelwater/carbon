@@ -42,7 +42,10 @@ import {
   useUser
 } from "~/hooks";
 import type { PurchaseOrder, PurchaseOrderLine } from "~/modules/purchasing";
-import { purchaseOrderLineValidator } from "~/modules/purchasing";
+import {
+  isPurchaseOrderLocked,
+  purchaseOrderLineValidator
+} from "~/modules/purchasing";
 import type { MethodItemType } from "~/modules/shared";
 import type { action } from "~/routes/x+/purchase-order+/$orderId.$lineId.details";
 import { useItems } from "~/stores";
@@ -75,7 +78,8 @@ const PurchaseOrderLineForm = ({
 
   const isOutsideProcessing =
     routeData?.purchaseOrder?.purchaseOrderType === "Outside Processing";
-  const isEditable = ["Draft"].includes(routeData?.purchaseOrder?.status ?? "");
+  const isLocked = isPurchaseOrderLocked(routeData?.purchaseOrder?.status);
+  const isClosed = routeData?.purchaseOrder?.status === "Closed";
 
   const [itemType, setItemType] = useState<MethodItemType>(
     initialValues.purchaseOrderLineType as MethodItemType
@@ -137,10 +141,12 @@ const PurchaseOrderLineForm = ({
   ]);
 
   const isEditing = initialValues.id !== undefined;
-  const isDisabled = !isEditable
+  const isDisabled = isClosed
     ? true
     : isEditing
-      ? !permissions.can("update", "purchasing")
+      ? isLocked
+        ? !permissions.can("delete", "purchasing")
+        : !permissions.can("update", "purchasing")
       : !permissions.can("create", "purchasing");
 
   const deleteDisclosure = useDisclosure();

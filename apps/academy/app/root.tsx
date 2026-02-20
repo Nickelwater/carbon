@@ -26,7 +26,8 @@ import { modeValidator } from "@carbon/utils";
 import { I18nProvider } from "@react-aria/i18n";
 import { Analytics } from "@vercel/analytics/react";
 import { motion } from "framer-motion";
-import React, { useEffect } from "react";
+import type React from "react";
+import { useEffect } from "react";
 import { LuChevronDown, LuFingerprint, LuMoon, LuSun } from "react-icons/lu";
 import type {
   ActionFunctionArgs,
@@ -194,7 +195,7 @@ export default function App() {
   const env = loaderData?.env ?? {};
   const result = loaderData?.result;
   const prefs = loaderData?.preferences;
-  const theme = "blue";
+  const theme = "zinc";
 
   const challengeAttempts = loaderData?.challengeAttempts ?? [];
 
@@ -248,9 +249,11 @@ export default function App() {
         <Document mode={mode} theme={theme}>
           <header className="flex select-none items-center py-4 pl-5 pr-2 h-[var(--header-height)]">
             <div className="max-w-5xl mx-auto px-4 flex items-center justify-between gap-2 z-logo text-foreground w-full">
-              <Link
-                to="/"
-                className="cursor-pointer flex flex-row items-end gap-2 flex-shrink-0 font-display"
+              <a
+                href="https://carbon.ms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="cursor-pointer inline-flex flex-row items-end gap-2 flex-shrink-0 font-display"
               >
                 <img
                   src="/carbon-word-light.svg"
@@ -262,7 +265,7 @@ export default function App() {
                   alt="Carbon"
                   className="h-7 w-auto hidden dark:block"
                 />
-              </Link>
+              </a>
               <div className="flex items-center">
                 <div className="items-center gap-1 hidden md:flex">
                   <Button variant="ghost" asChild>

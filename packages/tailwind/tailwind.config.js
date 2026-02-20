@@ -4,8 +4,9 @@ import { fontFamily } from "tailwindcss/defaultTheme";
 export default {
   darkMode: ["class"],
   content: [
-    "../../apps/**/*.{ts,tsx}", // include packages if not transpiling
+    "../../apps/**/*.{ts,tsx}",
     "../../packages/**/*.{ts,tsx}",
+    "!**/node_modules/**",
   ],
   theme: {
     container: {
@@ -54,6 +55,10 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+        },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
@@ -99,6 +104,9 @@ export default {
         sans: ["Geist Variable", ...fontFamily.sans],
         mono: ["Geist Mono Variable", ...fontFamily.mono],
         headline: ["Geist Variable", ...fontFamily.sans],
+      },
+      letterSpacing: {
+        normal: "-0.02em",
       },
       keyframes: {
         "accordion-down": {

@@ -2,7 +2,7 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { QuotePDF } from "@carbon/documents/pdf";
 import type { JSONContent } from "@carbon/react";
 import { renderToStream } from "@react-pdf/renderer";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 import { getCurrencyByCode, getPaymentTermsList } from "~/modules/accounting";
 import { getShippingMethodsList } from "~/modules/inventory";
 import {
@@ -14,7 +14,7 @@ import {
   getQuoteShipment,
   getSalesTerms
 } from "~/modules/sales";
-import { getCompany } from "~/modules/settings";
+import { getCompany, getCompanySettings } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
 import { getLocale } from "~/utils/request";
 
@@ -30,6 +30,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const [
     company,
+    companySettings,
     quote,
     quoteLines,
     quoteLinePrices,
@@ -41,6 +42,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     shippingMethods
   ] = await Promise.all([
     getCompany(client, companyId),
+    getCompanySettings(client, companyId),
     getQuote(client, id),
     getQuoteLines(client, id),
     getQuoteLinePricesByQuoteId(client, id),
@@ -76,36 +78,42 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Error("Failed to load quote");
   }
 
-  const thumbnailPaths = quoteLines.data?.reduce<Record<string, string | null>>(
-    (acc, line) => {
+  const showThumbnails =
+    companySettings.data?.includeThumbnailsOnSalesPdfs ?? true;
+
+  let thumbnails: Record<string, string | null> = {};
+
+  if (showThumbnails) {
+    const thumbnailPaths = quoteLines.data?.reduce<
+      Record<string, string | null>
+    >((acc, line) => {
       if (line.thumbnailPath) {
         acc[line.id!] = line.thumbnailPath;
       }
       return acc;
-    },
-    {}
-  );
+    }, {});
 
-  const thumbnails: Record<string, string | null> =
-    (thumbnailPaths
-      ? await Promise.all(
-          Object.entries(thumbnailPaths).map(([id, path]) => {
-            if (!path) {
-              return null;
-            }
-            return getBase64ImageFromSupabase(client, path).then((data) => ({
-              id,
-              data
-            }));
-          })
-        )
-      : []
-    )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
-      if (thumbnail) {
-        acc[thumbnail.id] = thumbnail.data;
-      }
-      return acc;
-    }, {}) ?? {};
+    thumbnails =
+      (thumbnailPaths
+        ? await Promise.all(
+            Object.entries(thumbnailPaths).map(([id, path]) => {
+              if (!path) {
+                return null;
+              }
+              return getBase64ImageFromSupabase(client, path).then((data) => ({
+                id,
+                data
+              }));
+            })
+          )
+        : []
+      )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
+        if (thumbnail) {
+          acc[thumbnail.id] = thumbnail.data;
+        }
+        return acc;
+      }, {}) ?? {};
+  }
 
   let exchangeRate = 1;
   if (quote.data?.currencyCode) {
@@ -150,7 +158,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="${quote.data.quoteId}.pdf"`
+    "Content-Disposition": `inline; filename="${company.data.name} - ${quote.data.quoteId}.pdf"`
   });
   return new Response(body, { status: 200, headers });
 }

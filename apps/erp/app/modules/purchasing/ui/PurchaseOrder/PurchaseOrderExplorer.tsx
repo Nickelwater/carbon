@@ -15,9 +15,10 @@ import {
   useDisclosure,
   useKeyboardShortcuts,
   useMount,
+  usePrettifyShortcut,
   VStack
 } from "@carbon/react";
-import { getItemReadableId, prettifyKeyboardShortcut } from "@carbon/utils";
+import { getItemReadableId } from "@carbon/utils";
 import { useRef, useState } from "react";
 import { LuCirclePlus, LuEllipsisVertical, LuTrash } from "react-icons/lu";
 import { Link, useParams } from "react-router";
@@ -33,11 +34,13 @@ import type { MethodItemType } from "~/modules/shared";
 import { methodItemType } from "~/modules/shared";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
+import { isPurchaseOrderLocked } from "../../purchasing.models";
 import type { PurchaseOrder, PurchaseOrderLine, Supplier } from "../../types";
 import DeletePurchaseOrderLine from "./DeletePurchaseOrderLine";
 import PurchaseOrderLineForm from "./PurchaseOrderLineForm";
 
 export default function PurchaseOrderExplorer() {
+  const prettifyShortcut = usePrettifyShortcut();
   const { defaults } = useUser();
   const { orderId } = useParams();
   if (!orderId) throw new Error("Could not find orderId");
@@ -63,7 +66,16 @@ export default function PurchaseOrderExplorer() {
   const newPurchaseOrderLineDisclosure = useDisclosure();
   const deleteLineDisclosure = useDisclosure();
   const [deleteLine, setDeleteLine] = useState<PurchaseOrderLine | null>(null);
-  const isDisabled = purchaseOrderData?.purchaseOrder?.status !== "Draft";
+
+  // Check if PO is in a locked state (finalized/approved)
+  const isLocked = isPurchaseOrderLocked(
+    purchaseOrderData?.purchaseOrder?.status
+  );
+  // Adding new lines is NOT allowed on locked POs (would increase total)
+  // For unlocked POs, only Draft status allows adding new lines
+  const isDisabled = isLocked
+    ? true // No new lines on locked POs
+    : purchaseOrderData?.purchaseOrder?.status !== "Draft";
 
   const onDeleteLine = (line: PurchaseOrderLine) => {
     setDeleteLine(line);
@@ -131,7 +143,7 @@ export default function PurchaseOrderExplorer() {
             <TooltipContent>
               <HStack>
                 <span>New Line Item</span>
-                <Kbd>{prettifyKeyboardShortcut("Command+Shift+l")}</Kbd>
+                <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
               </HStack>
             </TooltipContent>
           </Tooltip>
@@ -188,7 +200,7 @@ function PurchaseOrderLineItem({
         <HStack
           className={cn(
             "group w-full p-2 items-center hover:bg-accent/30 cursor-pointer relative",
-            isSelected && "bg-accent/60 hover:bg-accent/50 shadow-inner"
+            isSelected && "bg-accent/60 hover:bg-accent/50"
           )}
         >
           <HStack spacing={2} className="flex-grow min-w-0 pr-10">
@@ -220,7 +232,7 @@ function PurchaseOrderLineItem({
               <DropdownMenuContent>
                 <DropdownMenuItem
                   destructive
-                  disabled={isDisabled || !permissions.can("update", "sales")}
+                  disabled={!permissions.can("delete", "purchasing")}
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete(line);

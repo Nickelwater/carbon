@@ -16,17 +16,20 @@ import {
 } from "@carbon/react";
 import type { ChatStatus, FileUIPart } from "ai";
 import { nanoid } from "nanoid";
+import type {
+  ChangeEventHandler,
+  ComponentProps,
+  FormEvent,
+  FormEventHandler,
+  HTMLAttributes,
+  KeyboardEventHandler,
+  RefObject
+} from "react";
 import {
-  type ChangeEventHandler,
   Children,
-  type ComponentProps,
   createContext,
-  type FormEvent,
-  type FormEventHandler,
   Fragment,
-  type HTMLAttributes,
-  type KeyboardEventHandler,
-  type RefObject,
+  forwardRef,
   useCallback,
   useContext,
   useEffect,
@@ -34,7 +37,7 @@ import {
   useRef,
   useState
 } from "react";
-import { LuPaperclip, LuPlus, LuSend, LuSquare, LuX } from "react-icons/lu";
+import { LuArrowUp, LuPaperclip, LuPlus, LuSquare, LuX } from "react-icons/lu";
 
 type AttachmentsContextType = {
   files: (FileUIPart & { id: string })[];
@@ -441,52 +444,56 @@ export const PromptInputBody = ({
 
 export type PromptInputTextareaProps = ComponentProps<typeof Textarea>;
 
-export const PromptInputTextarea = ({
-  onChange,
-  className,
-  placeholder = "You can just do things",
-  ...props
-}: PromptInputTextareaProps) => {
-  const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
-    if (e.key === "Enter") {
-      // Don't submit if IME composition is in progress
-      if (e.nativeEvent.isComposing) {
-        return;
-      }
+export const PromptInputTextarea = forwardRef<
+  HTMLTextAreaElement,
+  PromptInputTextareaProps
+>(
+  (
+    { onChange, className, placeholder = "You can just do things", ...props },
+    ref
+  ) => {
+    const handleKeyDown: KeyboardEventHandler<HTMLTextAreaElement> = (e) => {
+      if (e.key === "Enter") {
+        // Don't submit if IME composition is in progress
+        if (e.nativeEvent.isComposing) {
+          return;
+        }
 
-      if (e.shiftKey) {
-        // Allow newline
-        return;
-      }
+        if (e.shiftKey) {
+          // Allow newline
+          return;
+        }
 
-      // Submit on Enter (without Shift)
-      e.preventDefault();
-      const form = e.currentTarget.form;
-      if (form) {
-        form.requestSubmit();
+        // Submit on Enter (without Shift)
+        e.preventDefault();
+        const form = e.currentTarget.form;
+        if (form) {
+          form.requestSubmit();
+        }
       }
-    }
-  };
+    };
 
-  return (
-    <Textarea
-      className={cn(
-        "w-full resize-none rounded-none border-none p-3 pt-4 shadow-none outline-none ring-0 text-base",
-        "field-sizing-content bg-transparent placeholder:text-muted-foreground",
-        "max-h-[55px] min-h-[55px]",
-        "focus-visible:ring-0",
-        className
-      )}
-      name="message"
-      onChange={(e) => {
-        onChange?.(e);
-      }}
-      onKeyDown={handleKeyDown}
-      placeholder={placeholder}
-      {...props}
-    />
-  );
-};
+    return (
+      <Textarea
+        ref={ref}
+        className={cn(
+          "w-full resize-none rounded-none border-none p-3 pt-4 shadow-none outline-none ring-0 text-base",
+          "field-sizing-content bg-transparent placeholder:text-muted-foreground",
+          "max-h-[55px] min-h-[55px]",
+          "focus-visible:ring-0",
+          className
+        )}
+        name="message"
+        onChange={(e) => {
+          onChange?.(e);
+        }}
+        onKeyDown={handleKeyDown}
+        placeholder={placeholder}
+        {...props}
+      />
+    );
+  }
+);
 
 export type PromptInputToolbarProps = HTMLAttributes<HTMLDivElement>;
 
@@ -599,7 +606,7 @@ export const PromptInputSubmit = ({
   children,
   ...props
 }: PromptInputSubmitProps) => {
-  let Icon = <LuSend />;
+  let Icon = <LuArrowUp />;
 
   if (status === "streaming") {
     Icon = <LuSquare />;

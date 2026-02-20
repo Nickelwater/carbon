@@ -11,7 +11,7 @@ import { Document, Page, pdfjs } from "react-pdf";
 import { useNavigate } from "react-router";
 import DocumentIcon from "~/components/DocumentIcon";
 import { path } from "~/utils/path";
-import { type Document as DocumentType } from "../../types";
+import type { Document as DocumentType } from "../../types";
 import { useDocument } from "./useDocument";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;

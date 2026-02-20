@@ -109,9 +109,10 @@ const ApprovalRuleForm = ({
 
               <Users
                 name="approverGroupIds"
-                label="Approvers"
+                label="Who Can Approve"
                 type="employee"
-                placeholder="Select approver groups"
+                placeholder="Select groups or individuals"
+                helperText="All members of selected groups and selected individuals will be able to approve requests"
               />
 
               <Employee

@@ -3,6 +3,7 @@
     "lib": ["ES2015"],
     "outDir": "./dist",
     "rootDir": "./trigger",
+    "sourceMap": true,
     "allowImportingTsExtensions": true
   },
   "references": [

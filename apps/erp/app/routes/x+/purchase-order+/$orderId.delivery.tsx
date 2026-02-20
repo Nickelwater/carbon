@@ -5,6 +5,8 @@ import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 import {
+  getPurchaseOrder,
+  isPurchaseOrderLocked,
   purchaseOrderDeliveryValidator,
   upsertPurchaseOrderDelivery
 } from "~/modules/purchasing";
@@ -13,12 +15,32 @@ import { path } from "~/utils/path";
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId } = await requirePermissions(request, {
-    update: "purchasing"
-  });
 
   const { orderId } = params;
   if (!orderId) throw new Error("Could not find orderId");
+
+  // First check with view permission to get PO status
+  const { client: viewClient } = await requirePermissions(request, {
+    view: "purchasing"
+  });
+
+  const purchaseOrder = await getPurchaseOrder(viewClient, orderId);
+  if (purchaseOrder.error) {
+    throw redirect(
+      path.to.purchaseOrderDetails(orderId),
+      await flash(
+        request,
+        error(purchaseOrder.error, "Failed to load purchase order")
+      )
+    );
+  }
+
+  const isLocked = isPurchaseOrderLocked(purchaseOrder.data?.status);
+
+  // If locked, require delete permission; otherwise require update permission
+  const { client, userId } = await requirePermissions(request, {
+    ...(isLocked ? { delete: "purchasing" } : { update: "purchasing" })
+  });
 
   const formData = await request.formData();
   const validation = await validator(purchaseOrderDeliveryValidator).validate(

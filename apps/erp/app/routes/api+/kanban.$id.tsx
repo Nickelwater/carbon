@@ -3,10 +3,12 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import type { Database } from "@carbon/database";
 import { Loading } from "@carbon/react";
 import { getLocalTimeZone, today } from "@internationalized/date";
-import { FunctionRegion, type SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { FunctionRegion } from "@supabase/supabase-js";
 import { tasks } from "@trigger.dev/sdk";
 import { Suspense } from "react";
-import { Await, type LoaderFunctionArgs, useLoaderData } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { Await, useLoaderData } from "react-router";
 import { Redirect } from "~/components/Redirect";
 
 import { getDefaultShelfForJob, getKanban } from "~/modules/inventory";

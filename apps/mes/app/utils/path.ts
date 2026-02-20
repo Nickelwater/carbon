@@ -144,7 +144,7 @@ export const path = {
     workCenter: (workCenter: string) =>
       generatePath(`${x}/operations/${workCenter}`),
     itemMaster: (itemId: string, type: string) =>
-      `${getAppUrl()}${x}/${type.toLowerCase()}/${itemId}/view/details`,
+      `${getAppUrl()}${x}/${type.toLowerCase()}/${itemId}/details`,
     jobDetail: (id: string) => `${getAppUrl()}${x}/job/${id}/details`
   }
 } as const;

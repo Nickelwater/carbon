@@ -5,10 +5,10 @@ import { VStack } from "@carbon/react";
 
 import type { LoaderFunctionArgs } from "react-router";
 import { data, Outlet, useLoaderData } from "react-router";
+import type { MaintenanceSchedule } from "~/modules/resources";
 import {
   getLocationsList,
-  getMaintenanceSchedulesByLocation,
-  MaintenanceSchedule
+  getMaintenanceSchedulesByLocation
 } from "~/modules/resources";
 import MaintenanceSchedulesTable from "~/modules/resources/ui/MaintenanceSchedule/MaintenanceSchedulesTable";
 import type { Handle } from "~/utils/handle";

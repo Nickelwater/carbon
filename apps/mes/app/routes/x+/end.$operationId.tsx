@@ -2,7 +2,8 @@ import { error, getCarbonServiceRole, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { FunctionRegion } from "@supabase/supabase-js";
-import { type LoaderFunctionArgs, redirect } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { redirect } from "react-router";
 import {
   finishJobOperation,
   getTrackedEntitiesByMakeMethodId,

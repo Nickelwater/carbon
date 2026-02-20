@@ -1,44 +1,54 @@
 import type { Database } from "@carbon/database";
-import type { KyselyTx } from "@carbon/database/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { Accounting, TablesWithExternalId } from "../entities";
-import { XeroProvider } from "../providers";
+import { XeroProvider } from "../providers/xero";
+import type { ProviderID } from "./models";
 import {
-  ExternalIdSchema,
-  ProviderCredentials,
-  ProviderCredentialsSchema,
-  ProviderID
+  DEFAULT_SYNC_CONFIG,
+  ProviderIntegrationMetadataSchema
 } from "./models";
-import { AccountingSyncPayload } from "./sync";
+import type { ProviderCredentials, ProviderIntegrationMetadata } from "./types";
 
 export const getAccountingIntegration = async <T extends ProviderID>(
   client: SupabaseClient<Database>,
-  companyId: string,
+  companyOrTenantId: string,
   provider: T
 ) => {
   const integration = await client
     .from("companyIntegration")
     .select("*")
-    .eq("companyId", companyId)
     .eq("id", provider)
+    .or(
+      `companyId.eq.${companyOrTenantId},metadata->credentials->>tenantId.eq.${companyOrTenantId}`
+    )
     .single();
+
+  console.log(
+    "Fetched integration for",
+    provider,
+    "and ID",
+    companyOrTenantId,
+    integration
+  );
 
   if (integration.error || !integration.data) {
     throw new Error(
-      `No ${provider} integration found for company ${companyId}`
+      `No ${provider} integration found for company or tenant ${companyOrTenantId}`
     );
   }
 
-  const config = ProviderCredentialsSchema.safeParse(integration.data.metadata);
+  const config = ProviderIntegrationMetadataSchema.safeParse(
+    integration.data.metadata
+  );
 
   if (!config.success) {
-    console.error(integration.error);
+    console.dir(config.error, { depth: null });
     throw new Error("Invalid provider config");
   }
 
   return {
+    ...integration.data,
     id: provider as T,
-    config: config.data
+    metadata: config.data
   } as const;
 };
 
@@ -46,9 +56,12 @@ export const getProviderIntegration = (
   client: SupabaseClient<Database>,
   companyId: string,
   provider: ProviderID,
-  config?: ProviderCredentials
+  config?: ProviderIntegrationMetadata
 ) => {
-  const { accessToken, refreshToken, tenantId } = config ?? {};
+  const { accessToken, refreshToken, tenantId } = config?.credentials || {};
+
+  // For now don't use the company level sync config
+  const syncConfig = DEFAULT_SYNC_CONFIG;
 
   // Create a callback function to update the integration metadata when tokens are refreshed
   const onTokenRefresh = async (auth: ProviderCredentials) => {
@@ -63,14 +76,9 @@ export const getProviderIntegration = (
 
       await client
         .from("companyIntegration")
-        .update({ metadata: update })
+        .update({ metadata: { ...config, credentials: update } })
         .eq("companyId", companyId)
         .eq("id", provider);
-
-      console.log(
-        `Updated ${provider} integration metadata for company ${companyId}`,
-        config
-      );
     } catch (error) {
       console.error(
         `Failed to update ${provider} integration metadata:`,
@@ -94,7 +102,16 @@ export const getProviderIntegration = (
     //     onTokenRefresh
     //   });
     // }
-    case "xero":
+    case "xero": {
+      const settings = {
+        defaultSalesAccountCode: config?.defaultSalesAccountCode,
+        defaultPurchaseAccountCode: config?.defaultPurchaseAccountCode
+      };
+      console.log(
+        "[getProviderIntegration] Creating XeroProvider with settings:",
+        settings
+      );
+      console.log("[getProviderIntegration] Full config received:", config);
       return new XeroProvider({
         companyId,
         tenantId,
@@ -103,8 +120,11 @@ export const getProviderIntegration = (
         clientId: process.env.XERO_CLIENT_ID!,
         clientSecret: process.env.XERO_CLIENT_SECRET!,
         redirectUri: process.env.XERO_REDIRECT_URI,
-        onTokenRefresh
+        syncConfig,
+        onTokenRefresh,
+        settings
       });
+    }
     // Add other providers as needed
     // case "sage":
     //   return new SageProvider(config);
@@ -112,93 +132,3 @@ export const getProviderIntegration = (
       throw new Error(`Unsupported provider: ${provider}`);
   }
 };
-
-export const getContactFromExternalId = async (
-  client: SupabaseClient<Database>,
-  companyId: string,
-  provider: ProviderID,
-  id: string
-) => {
-  const contact = await client
-    .from("contact")
-    .select("*")
-    .eq("companyId", companyId)
-    .eq("externalId->>provider", provider)
-    .eq("externalId->>id", id)
-    .single();
-
-  if (contact.error || !contact.data) {
-    return null;
-  }
-
-  const externalId = await ExternalIdSchema.safeParseAsync(
-    contact.data.externalId
-  );
-
-  if (!externalId.success) {
-    throw new Error("Invalid external ID format");
-  }
-
-  return {
-    ...contact.data,
-    externalId
-  };
-};
-
-export const getEntityWithExternalId = async <T extends TablesWithExternalId>(
-  client: SupabaseClient<Database>,
-  table: T,
-  companyId: string,
-  provider: ProviderID,
-  select: { externalId: string } | { id: string }
-) => {
-  let query = client
-    .from(table as any) // Supabase typing issue
-    .select("*")
-    .eq("companyId", companyId)
-    .eq(`externalId->${provider}->>provider`, provider);
-
-  if ("id" in select) {
-    query = query.eq("id", select.id);
-  }
-
-  if ("externalId" in select) {
-    query = query.eq(`externalId->${provider}->>id`, select.externalId);
-  }
-
-  const entry = await query.maybeSingle();
-
-  if (!entry.data) {
-    return null;
-  }
-
-  const externalId = await ExternalIdSchema.safeParseAsync(
-    // @ts-expect-error Supabase typing issue
-    entry.data.externalId
-  );
-
-  if (!externalId.success) {
-    throw new Error("Invalid external ID format");
-  }
-
-  return {
-    ...(entry.data as unknown as Omit<
-      Database["public"]["Tables"][T]["Row"],
-      "externalId"
-    >),
-    externalId: externalId.data
-  };
-};
-
-export const upsertAccountingCustomer = async (
-  client: SupabaseClient<Database>,
-  remote: Accounting.Contact,
-  payload: AccountingSyncPayload
-) => {};
-
-export const upsertAccountingContact = async (
-  tx: KyselyTx,
-  remote: Accounting.Contact,
-  customerId: string,
-  payload: AccountingSyncPayload
-) => {};

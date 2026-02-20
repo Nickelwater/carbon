@@ -1,5 +1,5 @@
 import * as R from "remeda";
-import { z } from "zod";
+import type { z } from "zod";
 import { stringToPathArray } from "./utils";
 import { createValidator } from "./validation/createValidator";
 import type { FieldErrors, Validator } from "./validation/types";

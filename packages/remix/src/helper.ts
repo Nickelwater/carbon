@@ -1,4 +1,4 @@
-import { OperatingSystemPlatform } from "@carbon/react";
+import type { OperatingSystemPlatform } from "@carbon/react";
 import { parseAcceptLanguage } from "intl-parse-accept-language";
 
 export const getPreferenceHeaders = (request: Request) => {

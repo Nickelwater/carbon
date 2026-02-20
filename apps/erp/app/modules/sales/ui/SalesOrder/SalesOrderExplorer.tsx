@@ -19,9 +19,10 @@ import {
   useDisclosure,
   useKeyboardShortcuts,
   useMount,
+  usePrettifyShortcut,
   VStack
 } from "@carbon/react";
-import { getItemReadableId, prettifyKeyboardShortcut } from "@carbon/utils";
+import { getItemReadableId } from "@carbon/utils";
 import { Suspense, useRef, useState } from "react";
 import {
   LuChevronDown,
@@ -114,6 +115,7 @@ function getRelatedItems(
 }
 
 export default function SalesOrderExplorer() {
+  const prettifyShortcut = usePrettifyShortcut();
   const { defaults } = useUser();
   const { orderId } = useParams();
   if (!orderId) throw new Error("Could not find orderId");
@@ -216,7 +218,7 @@ export default function SalesOrderExplorer() {
             <TooltipContent>
               <HStack>
                 <span>New Line Item</span>
-                <Kbd>{prettifyKeyboardShortcut("Command+Shift+l")}</Kbd>
+                <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
               </HStack>
             </TooltipContent>
           </Tooltip>
@@ -277,7 +279,7 @@ function SalesOrderLineItem({
       <HStack
         className={cn(
           "group w-full p-2 items-center hover:bg-accent/30 cursor-pointer relative",
-          isSelected && "bg-accent/60 hover:bg-accent/50 shadow-inner"
+          isSelected && "bg-accent/60 hover:bg-accent/50"
         )}
         onClick={onLineClick}
       >
@@ -473,7 +475,7 @@ function RelatedItemTreeNode({
   return (
     <>
       <button
-        className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-2 gap-2 text-sm hover:bg-muted/90 w-full font-medium"
+        className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-2 gap-2 text-sm hover:bg-accent w-full font-medium"
         onClick={(e) => {
           e.stopPropagation();
           setIsExpanded(!isExpanded);
@@ -546,7 +548,7 @@ function RelatedItemLink({
   return (
     <Hyperlink
       to={getLinkForItem()}
-      className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-1 gap-4 text-sm hover:bg-muted/90 w-full font-medium whitespace-nowrap"
+      className="flex h-8 cursor-pointer items-center overflow-hidden rounded-sm px-1 gap-4 text-sm hover:bg-accent w-full font-medium whitespace-nowrap"
     >
       <LevelLine isSelected={false} className="mr-2" />
       <div className="mr-2">{getIcon()}</div>

@@ -5,7 +5,8 @@ import {
   getLinearClient,
   linkActionToLinearIssue
 } from "@carbon/ee/linear";
-import { type ActionFunction, data, type LoaderFunction } from "react-router";
+import type { ActionFunction, LoaderFunction } from "react-router";
+import { data } from "react-router";
 import { getIssueAction } from "~/modules/quality/quality.service";
 
 const linear = getLinearClient();

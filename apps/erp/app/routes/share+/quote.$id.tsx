@@ -92,7 +92,7 @@ enum QuoteState {
 const translations = {
   en: {
     "Accept Quote": "Accept Quote",
-    "Add-Ons": "Add-Ons",
+    Fees: "Fees",
     "Are you sure you want to accept this quote?": (
       id: string,
       amount: string
@@ -132,7 +132,7 @@ const translations = {
   },
   es: {
     "Accept Quote": "Aceptar Cotización",
-    "Add-Ons": "Complementos",
+    Fees: "Tarifas",
     "Are you sure you want to accept this quote?": (
       id: string,
       amount: string
@@ -175,7 +175,7 @@ const translations = {
   },
   de: {
     "Accept Quote": "Angebot Annehmen",
-    "Add-Ons": "Zusätze",
+    Fees: "Gebühren",
     "Are you sure you want to accept this quote?": (
       id: string,
       amount: string
@@ -365,8 +365,8 @@ const Header = ({
   customer: QuoteData["customerDetails"];
   strings: (typeof translations)["en"];
 }) => (
-  <CardHeader className="flex flex-col sm:flex-row items-start sm:items-start justify-between space-y-4 sm:space-y-2 pb-7">
-    <div className="flex items-center space-x-4">
+  <div className="flex justify-between">
+    <div className="flex items-center space-x-4 tracking-tight">
       <div>
         <CardTitle className="text-3xl">{company?.name ?? ""}</CardTitle>
         {quote?.quoteId && (
@@ -411,7 +411,7 @@ const Header = ({
         </div>
       )}
     </div>
-  </CardHeader>
+  </div>
 );
 
 type SelectedLine = {
@@ -696,11 +696,11 @@ const LinePricingOptions = ({
   );
 
   const hasAnyDiscount = options.some((option) => option.discountPercent > 0);
-  const hasAnyAddOns = options.some(
-    (option) =>
-      (convertedAdditionalChargesByQuantity[option.quantity] ?? 0) +
-        (option.convertedShippingCost ?? 0) >
-      0
+  const hasAnyShipping = options.some(
+    (option) => (option.convertedShippingCost ?? 0) > 0
+  );
+  const hasAnyFees = options.some(
+    (option) => (convertedAdditionalChargesByQuantity[option.quantity] ?? 0) > 0
   );
 
   return (
@@ -752,7 +752,8 @@ const LinePricingOptions = ({
               <Th>{strings.Quantity}</Th>
               <Th>{strings["Unit Price"]}</Th>
               {hasAnyDiscount && <Th>Discount</Th>}
-              {hasAnyAddOns && <Th>{strings["Add-Ons"]}</Th>}
+              {hasAnyShipping && <Th>{strings.Shipping}</Th>}
+              {hasAnyFees && <Th>{strings.Fees}</Th>}
               <Th>{strings["Lead Time"]}</Th>
               <Th>{strings.Subtotal}</Th>
             </Tr>
@@ -762,7 +763,10 @@ const LinePricingOptions = ({
               <Tr>
                 <Td
                   colSpan={
-                    5 + (hasAnyDiscount ? 1 : 0) + (hasAnyAddOns ? 1 : 0)
+                    5 +
+                    (hasAnyDiscount ? 1 : 0) +
+                    (hasAnyShipping ? 1 : 0) +
+                    (hasAnyFees ? 1 : 0)
                   }
                   className="text-center py-8"
                 >
@@ -800,13 +804,26 @@ const LinePricingOptions = ({
                             : "-"}
                         </Td>
                       )}
-                      {hasAnyAddOns && (
+                      {hasAnyShipping && (
                         <Td>
-                          {formatter.format(
-                            convertedAdditionalChargesByQuantity[
-                              option.quantity
-                            ] + (option.convertedShippingCost ?? 0)
-                          )}
+                          {(option.convertedShippingCost ?? 0) > 0
+                            ? formatter.format(
+                                option.convertedShippingCost ?? 0
+                              )
+                            : "-"}
+                        </Td>
+                      )}
+                      {hasAnyFees && (
+                        <Td>
+                          {(convertedAdditionalChargesByQuantity[
+                            option.quantity
+                          ] ?? 0) > 0
+                            ? formatter.format(
+                                convertedAdditionalChargesByQuantity[
+                                  option.quantity
+                                ]
+                              )
+                            : "-"}
                         </Td>
                       )}
                       <Td>
@@ -1176,18 +1193,21 @@ const Quote = ({
         />
       )}
       <Card className="w-full max-w-5xl mx-auto">
-        <div className="w-full text-center">
-          {!["Sent", "Lost"].includes(quote.status) && (
-            <QuoteStatus status={quote.status} />
-          )}
-          {quote?.status === "Lost" && <Badge variant="red">Rejected</Badge>}
-        </div>
-        <Header
-          company={company}
-          quote={quote}
-          customer={customerDetails}
-          strings={strings}
-        />
+        <CardHeader>
+          <div className="w-full text-center">
+            {!["Sent", "Lost"].includes(quote.status) && (
+              <QuoteStatus status={quote.status} />
+            )}
+            {quote?.status === "Lost" && <Badge variant="red">Rejected</Badge>}
+          </div>
+
+          <Header
+            company={company}
+            quote={quote}
+            customer={customerDetails}
+            strings={strings}
+          />
+        </CardHeader>
         <CardContent>
           <LineItems
             currencyCode={quote.currencyCode ?? "USD"}

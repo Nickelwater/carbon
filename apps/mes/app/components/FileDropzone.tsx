@@ -1,5 +1,5 @@
 import { cn } from "@carbon/react";
-import React from "react";
+import type React from "react";
 import { useDropzone } from "react-dropzone";
 import { LuCloudUpload } from "react-icons/lu";
 

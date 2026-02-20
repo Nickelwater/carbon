@@ -14,7 +14,7 @@ export const weekly = schedules.task({
     console.log(`📅 Starting weekly tasks: ${new Date().toISOString()}`);
 
     try {
-      if (process.env.CARBON_EDITION === Edition.Cloud || true) {
+      if (process.env.CARBON_EDITION === Edition.Cloud) {
         const bypassUrl = `${process.env.VERCEL_URL}/api/settings/bypass`;
         const bypassResponse = await fetch(bypassUrl);
         if (!bypassResponse.ok) {

@@ -1,6 +1,6 @@
 import { getCarbonServiceRole, notFound } from "@carbon/auth";
 import { supportedModelTypes } from "@carbon/utils";
-import { type LoaderFunctionArgs } from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
 
 const supportedFileTypes: Record<string, string> = {
   pdf: "application/pdf",

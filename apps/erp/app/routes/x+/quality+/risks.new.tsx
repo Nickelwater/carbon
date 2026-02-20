@@ -5,11 +5,11 @@ import { validationError, validator } from "@carbon/form";
 import { NotificationEvent } from "@carbon/notifications";
 import { useDisclosure } from "@carbon/react";
 import { tasks } from "@trigger.dev/sdk";
-import { type ActionFunctionArgs, data, useNavigate } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
+import { data } from "react-router";
 import { riskRegisterValidator } from "~/modules/quality/quality.models";
 import { upsertRisk } from "~/modules/quality/quality.service";
 import RiskRegisterForm from "~/modules/quality/ui/RiskRegister/RiskRegisterForm";
-import { path } from "~/utils/path";
 
 export const action = async ({ request }: ActionFunctionArgs) => {
   const { client, userId, companyId } = await requirePermissions(request, {

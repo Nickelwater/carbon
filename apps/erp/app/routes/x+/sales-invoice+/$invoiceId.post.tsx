@@ -7,7 +7,7 @@ import { renderAsync } from "@react-email/components";
 import { FunctionRegion } from "@supabase/supabase-js";
 import { tasks } from "@trigger.dev/sdk";
 import { parseAcceptLanguage } from "intl-parse-accept-language";
-import { type ActionFunctionArgs } from "react-router";
+import type { ActionFunctionArgs } from "react-router";
 import { getPaymentTermsList } from "~/modules/accounting";
 import { upsertDocument } from "~/modules/documents";
 import {
@@ -195,7 +195,7 @@ export async function action(args: ActionFunctionArgs) {
     };
   }
 
-  const { notification, customerContact } = validation.data;
+  const { notification, customerContact, cc: ccSelections } = validation.data;
 
   switch (notification) {
     case "Email":
@@ -295,6 +295,7 @@ export async function action(args: ActionFunctionArgs) {
 
         await tasks.trigger<typeof sendEmailResendTask>("send-email-resend", {
           to: [seller.data.email, customer.data.contact.email],
+          cc: ccSelections?.length ? ccSelections : undefined,
           from: seller.data.email,
           subject: `Invoice ${salesInvoice.data.invoiceId} from ${company.data.name}`,
           html,

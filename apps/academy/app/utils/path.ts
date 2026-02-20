@@ -1,4 +1,4 @@
-import { SUPABASE_URL } from "@carbon/auth";
+import { ERP_URL as ERP_URL_CONFIG, SUPABASE_URL } from "@carbon/auth";
 import { generatePath } from "react-router";
 
 const challenge = "/challenge"; // from ~/routes/challenge+ folder
@@ -7,7 +7,7 @@ const lesson = "/lesson"; // from ~/routes/lesson+ folder
 
 const ERP_URL = SUPABASE_URL?.includes("localhost")
   ? "http://localhost:3000"
-  : "https://app.carbon.ms";
+  : ERP_URL_CONFIG;
 
 export const path = {
   to: {

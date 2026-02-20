@@ -21,7 +21,6 @@
     "paths": {
       "~/*": ["./app/*"]
     },
-    "types": ["@react-router/react/future/single-fetch.d.ts"],
     "noEmit": true,
     "isolatedModules": true,
     "skipLibCheck": true,

@@ -1,6 +1,6 @@
 import { Button, cn } from "@carbon/react";
 import type { ComponentProps, PropsWithChildren } from "react";
-import { LuSquareArrowOutUpRight } from "react-icons/lu";
+import { LuPanelRight } from "react-icons/lu";
 import type { LinkProps } from "react-router";
 import { Link } from "react-router";
 
@@ -23,7 +23,7 @@ const Hyperlink = ({
       <span className="flex flex-row items-center gap-1">{children}</span>
       {props.to && props.to !== "#" && (
         <Button
-          leftIcon={<LuSquareArrowOutUpRight />}
+          rightIcon={<LuPanelRight />}
           variant="secondary"
           className="flex-shrink-0 opacity-0 transition-opacity duration-200 group-hover/hyperlink:opacity-100 no-underline"
           size="sm"

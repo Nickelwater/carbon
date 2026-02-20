@@ -12,6 +12,7 @@ export const modulesType = [
   "Production",
   // "Messaging",
   "Purchasing",
+  "Quality",
   "Resources",
   "Sales",
   "Users"
@@ -118,6 +119,14 @@ export const productLabelSizeValidator = z.object({
   )
 });
 
+export const includeThumbnailsOnPurchasingPdfsValidator = z.object({
+  includeThumbnailsOnPurchasingPdfs: zfd.checkbox()
+});
+
+export const includeThumbnailsOnSalesPdfsValidator = z.object({
+  includeThumbnailsOnSalesPdfs: zfd.checkbox()
+});
+
 export const rfqReadyValidator = z.object({
   rfqReadyNotificationGroup: z
     .array(z.string().min(1, { message: "Invalid selection" }))
@@ -172,11 +181,10 @@ export const themes = [
   "zinc",
   "neutral",
   "red",
-  "rose",
   "orange",
+  "yellow",
   "green",
   "blue",
-  "yellow",
   "violet"
 ] as const;
 export type Theme = (typeof themes)[number];
@@ -209,3 +217,7 @@ export const webhookValidator = z
       path: ["onDelete"]
     }
   );
+
+export const jobTravelerSettingsValidator = z.object({
+  jobTravelerIncludeWorkInstructions: zfd.checkbox()
+});

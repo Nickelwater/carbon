@@ -4,9 +4,9 @@ import { useDisclosure } from "@carbon/react";
 import { formatAddress } from "@carbon/utils";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFetcher } from "react-router";
-import {
-  type CustomerLocation as CustomerLocationType,
-  type getCustomerLocations
+import type {
+  CustomerLocation as CustomerLocationType,
+  getCustomerLocations
 } from "~/modules/sales";
 import CustomerLocationForm from "~/modules/sales/ui/Customer/CustomerLocationForm";
 import { path } from "~/utils/path";

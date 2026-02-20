@@ -1,9 +1,9 @@
 import {
   getCarbonServiceRole,
+  ERP_URL,
   NOVU_SECRET_KEY,
   VERCEL_URL,
 } from "@carbon/auth";
-
 import type { Database } from "@carbon/database";
 import { notifyTaskAssigned } from "@carbon/ee/notifications";
 import {
@@ -538,7 +538,7 @@ export const notifyTask = task({
           await notifyTaskAssigned({ client }, integrationsResult.data, {
             companyId: payload.companyId,
             userId: payload.from || "system",
-            carbonUrl: `https://app.carbon.ms/x/issue/${payload.documentId}`,
+            carbonUrl: `${ERP_URL}/x/issue/${payload.documentId}`,
             task: {
               id: payload.documentId,
               table: "nonConformance",

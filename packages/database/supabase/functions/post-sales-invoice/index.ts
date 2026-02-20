@@ -9,10 +9,7 @@ import type { Database } from "../lib/types.ts";
 import { credit, debit, journalReference } from "../lib/utils.ts";
 import { getCurrentAccountingPeriod } from "../shared/get-accounting-period.ts";
 import { getNextSequence } from "../shared/get-next-sequence.ts";
-import {
-  getInventoryPostingGroup,
-  getSalesPostingGroup,
-} from "../shared/get-posting-group.ts";
+import { getDefaultPostingGroup } from "../shared/get-posting-group.ts";
 
 const pool = getConnectionPool(1);
 const db = getDatabaseClient<DB>(pool);
@@ -214,17 +211,11 @@ serve(async (req: Request) => {
           return acc;
         }, {});
 
-        // save the posting groups in memory to avoid unnecessary queries
-        const inventoryPostingGroups: Record<
-          string,
-          Database["public"]["Tables"]["postingGroupInventory"]["Row"] | null
-        > = {};
-
-        // sales posting group
-        const salesPostingGroups: Record<
-          string,
-          Database["public"]["Tables"]["postingGroupSales"]["Row"] | null
-        > = {};
+        // Get account defaults (once for all lines)
+        const accountDefaults = await getDefaultPostingGroup(client, companyId);
+        if (accountDefaults.error || !accountDefaults.data) {
+          throw new Error("Error getting account defaults");
+        }
 
         for await (const invoiceLine of salesInvoiceLines.data) {
           const invoiceLineQuantityInInventoryUnit = invoiceLine.quantity;
@@ -245,22 +236,6 @@ serve(async (req: Request) => {
           const invoiceLineUnitCostInInventoryUnit =
             totalLineCostWithWeightedShipping / invoiceLine.quantity;
 
-          // declaring shared variables between part and service cases
-          // outside of the switch case to avoid redeclaring them
-          let postingGroupInventory:
-            | Database["public"]["Tables"]["postingGroupInventory"]["Row"]
-            | null = null;
-
-          let itemPostingGroupId: string | null = null;
-
-          let postingGroupSales:
-            | Database["public"]["Tables"]["postingGroupSales"]["Row"]
-            | null = null;
-
-          const locationId = invoiceLine.locationId ?? null;
-          const customerTypeId: string | null =
-            customer.data.customerTypeId ?? null;
-
           let journalLineReference: string;
 
           switch (invoiceLine.invoiceLineType) {
@@ -274,79 +249,6 @@ serve(async (req: Request) => {
                 const itemTrackingType =
                   items.data.find((item) => item.id === invoiceLine.itemId)
                     ?.itemTrackingType ?? "Inventory";
-
-                itemPostingGroupId =
-                  itemCosts.data.find(
-                    (item) => item.itemId === invoiceLine.itemId
-                  )?.itemPostingGroupId ?? null;
-
-                // inventory posting group
-                if (
-                  `${itemPostingGroupId}-${locationId}` in
-                  inventoryPostingGroups
-                ) {
-                  postingGroupInventory =
-                    inventoryPostingGroups[
-                      `${itemPostingGroupId}-${locationId}`
-                    ];
-                } else {
-                  const inventoryPostingGroup = await getInventoryPostingGroup(
-                    client,
-                    companyId,
-                    {
-                      itemPostingGroupId,
-                      locationId,
-                    }
-                  );
-
-                  if (
-                    inventoryPostingGroup.error ||
-                    !inventoryPostingGroup.data
-                  ) {
-                    throw new Error("Error getting inventory posting group");
-                  }
-
-                  postingGroupInventory = inventoryPostingGroup.data ?? null;
-                  inventoryPostingGroups[
-                    `${itemPostingGroupId}-${locationId}`
-                  ] = postingGroupInventory;
-                }
-
-                if (!postingGroupInventory) {
-                  throw new Error("No inventory posting group found");
-                }
-
-                if (
-                  `${itemPostingGroupId}-${customerTypeId}` in
-                  salesPostingGroups
-                ) {
-                  postingGroupSales =
-                    salesPostingGroups[
-                      `${itemPostingGroupId}-${customerTypeId}`
-                    ];
-                } else {
-                  const salesPostingGroup = await getSalesPostingGroup(
-                    client,
-                    companyId,
-                    {
-                      itemPostingGroupId,
-                      customerTypeId,
-                    }
-                  );
-
-                  if (salesPostingGroup.error || !salesPostingGroup.data) {
-                    throw new Error("Error getting sales posting group");
-                  }
-
-                  postingGroupSales = salesPostingGroup.data ?? null;
-                  salesPostingGroups[
-                    `${itemPostingGroupId}-${customerTypeId}`
-                  ] = postingGroupSales;
-                }
-
-                if (!postingGroupSales) {
-                  throw new Error("No sales posting group found");
-                }
 
                 // if the sales order line is null, we ship the part, do the normal entries and do not use accrual/reversing
                 if (
@@ -393,7 +295,7 @@ serve(async (req: Request) => {
                   if (itemTrackingType === "Inventory") {
                     // debit the inventory account
                     journalLineInserts.push({
-                      accountNumber: postingGroupInventory.inventoryAccount,
+                      accountNumber: accountDefaults.data.inventoryAccount,
                       description: "Inventory Account",
                       amount: credit(
                         "asset",
@@ -410,7 +312,7 @@ serve(async (req: Request) => {
                     // creidt the cost of goods sold account
                     journalLineInserts.push({
                       accountNumber:
-                        postingGroupInventory.costOfGoodsSoldAccount,
+                        accountDefaults.data.costOfGoodsSoldAccount,
                       description: "Cost of Goods Sold",
                       amount: debit(
                         "expense",
@@ -429,7 +331,7 @@ serve(async (req: Request) => {
 
                   // credit the sales account
                   journalLineInserts.push({
-                    accountNumber: postingGroupSales.salesAccount,
+                    accountNumber: accountDefaults.data.salesAccount,
                     description: "Sales Account",
                     amount: credit(
                       "revenue",
@@ -448,7 +350,7 @@ serve(async (req: Request) => {
 
                   // debit the accounts receivable account
                   journalLineInserts.push({
-                    accountNumber: postingGroupSales.receivablesAccount,
+                    accountNumber: accountDefaults.data.receivablesAccount,
                     description: "Accounts Receivable",
                     amount: debit("asset", totalLineCostWithWeightedShipping),
                     quantity: invoiceLineQuantityInInventoryUnit,
@@ -468,7 +370,7 @@ serve(async (req: Request) => {
 
                   // Credit the sales account
                   journalLineInserts.push({
-                    accountNumber: postingGroupSales.salesAccount,
+                    accountNumber: accountDefaults.data.salesAccount,
                     description: "Sales Account",
                     amount: credit(
                       "revenue",
@@ -489,7 +391,7 @@ serve(async (req: Request) => {
 
                   // Debit the accounts receivable account
                   journalLineInserts.push({
-                    accountNumber: postingGroupSales.receivablesAccount,
+                    accountNumber: accountDefaults.data.receivablesAccount,
                     description: "Accounts Receivable",
                     amount: debit("asset", totalLineCostWithWeightedShipping),
                     quantity: invoiceLineQuantityInInventoryUnit,
@@ -512,7 +414,7 @@ serve(async (req: Request) => {
                     // Debit cost of goods sold
                     journalLineInserts.push({
                       accountNumber:
-                        postingGroupInventory.costOfGoodsSoldAccount,
+                        accountDefaults.data.costOfGoodsSoldAccount,
                       description: "Cost of Goods Sold",
                       amount: debit(
                         "expense",
@@ -534,7 +436,7 @@ serve(async (req: Request) => {
 
                     // Credit inventory account
                     journalLineInserts.push({
-                      accountNumber: postingGroupInventory.inventoryAccount,
+                      accountNumber: accountDefaults.data.inventoryAccount,
                       description: "Inventory Account",
                       amount: credit(
                         "asset",

@@ -10,12 +10,11 @@
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.60",
-    "@trigger.dev/sdk": "4.0.6",
     "@carbon/auth": "*",
     "@carbon/database": "*",
     "@carbon/documents": "*",
-    "@carbon/lib": "*",
     "@carbon/ee": "*",
+    "@carbon/lib": "*",
     "@carbon/notifications": "*",
     "@internationalized/date": "^3.5.2",
     "@novu/node": "^2.0.1",
@@ -23,7 +22,9 @@
     "@slack/web-api": "~7.10.0",
     "@supabase/functions-js": "2.1.5",
     "@supabase/supabase-js": "2.80.0",
+    "@trigger.dev/sdk": "4.0.6",
     "ai": "^5.0.88",
+    "kysely": "^0.28.10",
     "nanoid": "5.0.4",
     "resend": "^3.1.0",
     "zod": "^3.25.76"

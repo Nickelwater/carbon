@@ -224,9 +224,10 @@ const Sidebar = React.forwardRef<
         data-side={side}
       >
         {/* This is what handles the sidebar gap on desktop */}
+        {/* ease-out-quint: fast start, smooth deceleration - feels snappy and responsive */}
         <div
           className={cn(
-            "duration-200 relative h-svh w-[--sidebar-width] bg-transparent transition-[width] ease-linear",
+            "relative h-svh w-[--sidebar-width] bg-transparent transition-[width] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none",
             "group-data-[collapsible=offcanvas]:w-0",
             "group-data-[side=right]:rotate-180",
             variant === "floating" || variant === "inset"
@@ -236,7 +237,8 @@ const Sidebar = React.forwardRef<
         />
         <div
           className={cn(
-            "duration-200 fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] ease-linear md:flex",
+            // ease-out-quint (0.23,1,0.32,1): strong deceleration curve for snappy, spring-like feel
+            "fixed inset-y-0 z-10 hidden h-svh w-[--sidebar-width] transition-[left,right,width] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none md:flex",
             side === "left"
               ? "left-0 group-data-[collapsible=offcanvas]:left-[calc(var(--sidebar-width)*-1)]"
               : "right-0 group-data-[collapsible=offcanvas]:right-[calc(var(--sidebar-width)*-1)]",
@@ -300,7 +302,7 @@ const SidebarRail = React.forwardRef<
       onClick={toggleSidebar}
       title="Toggle Sidebar"
       className={cn(
-        "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all ease-linear after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
+        "absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-all duration-150 ease-out motion-reduce:transition-none after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] hover:after:bg-sidebar-border group-data-[side=left]:-right-4 group-data-[side=right]:left-0 sm:flex",
         "[[data-side=left]_&]:cursor-w-resize [[data-side=right]_&]:cursor-e-resize",
         "[[data-side=left][data-state=collapsed]_&]:cursor-e-resize [[data-side=right][data-state=collapsed]_&]:cursor-w-resize",
         "group-data-[collapsible=offcanvas]:translate-x-0 group-data-[collapsible=offcanvas]:after:left-full group-data-[collapsible=offcanvas]:hover:bg-sidebar",
@@ -404,7 +406,8 @@ const SidebarContent = React.forwardRef<
       ref={ref}
       data-sidebar="content"
       className={cn(
-        "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
+        // Tighter gap between groups (Vercel style)
+        "flex min-h-0 flex-1 flex-col gap-1 overflow-auto group-data-[collapsible=icon]:overflow-hidden",
         className
       )}
       {...props}
@@ -421,7 +424,10 @@ const SidebarGroup = React.forwardRef<
     <div
       ref={ref}
       data-sidebar="group"
-      className={cn("relative flex w-full min-w-0 flex-col p-2", className)}
+      className={cn(
+        "relative flex w-full min-w-0 flex-col px-2 py-1.5",
+        className
+      )}
       {...props}
     />
   );
@@ -439,7 +445,9 @@ const SidebarGroupLabel = React.forwardRef<
       ref={ref}
       data-sidebar="group-label"
       className={cn(
-        "duration-200 flex h-8 shrink-0 items-center rounded-md px-2 text-xs font-medium text-sidebar-foreground/70 outline-none ring-sidebar-ring transition-[margin,opa] ease-linear focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+        // Vercel style: very muted, uppercase, smaller text
+        // ease-out-quint for consistent spring-like feel with sidebar expansion
+        "flex h-7 shrink-0 items-center rounded-md px-2 text-[11px] font-medium uppercase tracking-wider text-sidebar-foreground/50 outline-none ring-sidebar-ring transition-[margin,opacity] duration-150 ease-[cubic-bezier(0.23,1,0.32,1)] motion-reduce:transition-none focus-visible:ring-2 [&>svg]:size-3.5 [&>svg]:shrink-0",
         "group-data-[collapsible=icon]:-mt-8 group-data-[collapsible=icon]:opacity-0",
         className
       )}
@@ -460,7 +468,8 @@ const SidebarGroupAction = React.forwardRef<
       ref={ref}
       data-sidebar="group-action"
       className={cn(
-        "absolute right-3 top-3.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 [&>svg]:size-4 [&>svg]:shrink-0",
+        // Muted by default, brightens on hover (Vercel style)
+        "absolute right-3 top-3 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground/50 outline-none ring-sidebar-ring transition-[background-color,color] duration-100 ease-out hover:bg-sidebar-accent/50 hover:text-sidebar-foreground focus-visible:ring-2 motion-reduce:transition-none [&>svg]:size-3.5 [&>svg]:shrink-0",
         // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
         "group-data-[collapsible=icon]:hidden",
@@ -492,7 +501,7 @@ const SidebarMenu = React.forwardRef<
   <ul
     ref={ref}
     data-sidebar="menu"
-    className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+    className={cn("flex w-full min-w-0 flex-col gap-0.5", className)}
     {...props}
   />
 ));
@@ -511,14 +520,52 @@ const SidebarMenuItem = React.forwardRef<
 ));
 SidebarMenuItem.displayName = "SidebarMenuItem";
 
+/**
+ * SidebarMenuButton - Vercel-inspired design:
+ * - Muted text by default, brightens on hover/active
+ * - Subtle hover background (barely visible tint)
+ * - Active state: left accent border + brighter text (no heavy bg fill)
+ * - Tight padding for compact feel
+ * - Fast 100ms ease-out transitions
+ */
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md p-2 text-left text-sm outline-none ring-sidebar-ring transition-[width,height,padding] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0",
+  [
+    // Layout - tighter padding for Vercel-style compact feel
+    "peer/menu-button flex w-full items-center gap-2 overflow-hidden rounded-md px-2 py-1.5 text-left text-sm outline-none",
+    // Default: muted text color (Vercel style - text is subdued until interaction)
+    "text-sidebar-foreground/70",
+    // Icons inherit the muted color
+    "[&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-foreground/70",
+    // Focus ring
+    "ring-sidebar-ring focus-visible:ring-2",
+    // Transitions - fast and smooth
+    "transition-[background-color,color,border-color] duration-100 ease-out motion-reduce:transition-none",
+    // Hover: subtle background tint + brighten text
+    "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground [&:hover>svg]:text-sidebar-foreground",
+    // Active (pressed): same as hover
+    "active:bg-sidebar-accent/50 active:text-sidebar-foreground",
+    // Disabled states
+    "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+    // Menu action padding adjustment
+    "group-has-[[data-sidebar=menu-action]]/menu-item:pr-8",
+    // Active/selected state - Vercel style: subtle left border accent + bright text
+    "data-[active=true]:bg-sidebar-accent/50 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium",
+    "[&[data-active=true]>svg]:text-sidebar-foreground",
+    // Open state (for collapsible menus)
+    "data-[state=open]:bg-sidebar-accent/50 data-[state=open]:text-sidebar-foreground",
+    // Collapsed icon mode
+    "group-data-[collapsible=icon]:!size-8 group-data-[collapsible=icon]:!p-2",
+    // Text truncation
+    "[&>span:last-child]:truncate"
+  ].join(" "),
   {
     variants: {
       variant: {
-        default: "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-        outline:
-          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]"
+        default: "",
+        outline: [
+          "bg-background shadow-[0_0_0_1px_hsl(var(--sidebar-border))]",
+          "hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))]"
+        ]
       },
       size: {
         default: "h-8 text-sm",
@@ -606,15 +653,16 @@ const SidebarMenuAction = React.forwardRef<
       ref={ref}
       data-sidebar="menu-action"
       className={cn(
-        "absolute right-1 top-1.5 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-transform hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-4 [&>svg]:shrink-0",
+        // Muted by default (Vercel style)
+        "absolute right-1 top-1 flex aspect-square w-5 items-center justify-center rounded-md p-0 text-sidebar-foreground/50 outline-none ring-sidebar-ring transition-[background-color,color,opacity] duration-100 ease-out hover:bg-sidebar-accent/50 hover:text-sidebar-foreground focus-visible:ring-2 peer-hover/menu-button:text-sidebar-foreground motion-reduce:transition-none [&>svg]:size-3.5 [&>svg]:shrink-0",
         // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
-        "peer-data-[size=sm]/menu-button:top-1",
-        "peer-data-[size=default]/menu-button:top-1.5",
+        "peer-data-[size=sm]/menu-button:top-0.5",
+        "peer-data-[size=default]/menu-button:top-1",
         "peer-data-[size=lg]/menu-button:top-2.5",
         "group-data-[collapsible=icon]:hidden",
         showOnHover &&
-          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-accent-foreground md:opacity-0",
+          "group-focus-within/menu-item:opacity-100 group-hover/menu-item:opacity-100 data-[state=open]:opacity-100 peer-data-[active=true]/menu-button:text-sidebar-foreground md:opacity-0",
         className
       )}
       {...props}
@@ -631,10 +679,11 @@ const SidebarMenuBadge = React.forwardRef<
     ref={ref}
     data-sidebar="menu-badge"
     className={cn(
-      "absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-sidebar-foreground select-none pointer-events-none",
-      "peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground",
-      "peer-data-[size=sm]/menu-button:top-1",
-      "peer-data-[size=default]/menu-button:top-1.5",
+      // Muted by default, brightens with parent (Vercel style)
+      "absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-sidebar-foreground/50 select-none pointer-events-none transition-colors duration-100 ease-out",
+      "peer-hover/menu-button:text-sidebar-foreground peer-data-[active=true]/menu-button:text-sidebar-foreground",
+      "peer-data-[size=sm]/menu-button:top-0.5",
+      "peer-data-[size=default]/menu-button:top-1",
       "peer-data-[size=lg]/menu-button:top-2.5",
       "group-data-[collapsible=icon]:hidden",
       className
@@ -690,7 +739,8 @@ const SidebarMenuSub = React.forwardRef<
     ref={ref}
     data-sidebar="menu-sub"
     className={cn(
-      "text-sm ml-3.5 flex min-w-0 translate-x-px flex-col gap-1 border-l border-sidebar-border pl-2.5 py-0.5",
+      // Tighter spacing, subtle border (Vercel style)
+      "text-sm ml-3.5 flex min-w-0 translate-x-px flex-col gap-0.5 border-l border-sidebar-border/50 pl-2.5 py-0.5",
       "group-data-[collapsible=icon]:hidden",
       className
     )}
@@ -705,6 +755,11 @@ const SidebarMenuSubItem = React.forwardRef<
 >(({ ...props }, ref) => <li ref={ref} {...props} />);
 SidebarMenuSubItem.displayName = "SidebarMenuSubItem";
 
+/**
+ * SidebarMenuSubButton - Vercel-inspired nested menu items
+ * - Muted text by default, brightens on hover/active
+ * - Matches parent button styling
+ */
 const SidebarMenuSubButton = React.forwardRef<
   HTMLAnchorElement,
   React.ComponentProps<"a"> & {
@@ -722,12 +777,31 @@ const SidebarMenuSubButton = React.forwardRef<
       data-size={size}
       data-active={isActive}
       className={cn(
-        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground",
-        "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground",
+        // Layout - compact
+        "flex h-7 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2",
+        // Default: muted text (Vercel style)
+        "text-sidebar-foreground/70",
+        // Focus ring
+        "outline-none ring-sidebar-ring focus-visible:ring-2",
+        // Transitions
+        "transition-[background-color,color] duration-100 ease-out motion-reduce:transition-none",
+        // Hover: subtle tint + brighten
+        "hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+        // Active (pressed)
+        "active:bg-sidebar-accent/50 active:text-sidebar-foreground",
+        // Disabled
+        "disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50",
+        // Icons
+        "[&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-foreground/70",
+        "[&:hover>svg]:text-sidebar-foreground",
+        // Selected state
+        "data-[active=true]:bg-sidebar-accent/50 data-[active=true]:text-sidebar-foreground data-[active=true]:font-medium",
+        "[&[data-active=true]>svg]:text-sidebar-foreground",
+        // Size variants
         size === "sm" && "text-xs",
         size === "md" && "text-sm",
+        // Collapsed mode
         "group-data-[collapsible=icon]:hidden",
-        isActive && "bg-active text-active-foreground shadow-button-base",
         className
       )}
       {...props}

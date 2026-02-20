@@ -22,6 +22,7 @@ import {
   AlertTitle,
   Button,
   Heading,
+  Separator,
   toast,
   VStack
 } from "@carbon/react";
@@ -278,34 +279,6 @@ export default function LoginRoute() {
                 </Alert>
               )}
 
-              <Input name="email" label="" placeholder="Email Address" />
-
-              <Submit
-                isDisabled={
-                  fetcher.state !== "idle" ||
-                  (!!CLOUDFLARE_TURNSTILE_SITE_KEY && !turnstileToken)
-                }
-                isLoading={fetcher.state === "submitting"}
-                size="lg"
-                className="w-full"
-                withBlocker={false}
-              >
-                Sign in with Email
-              </Submit>
-              {!!CLOUDFLARE_TURNSTILE_SITE_KEY && (
-                <div className="w-full flex justify-center">
-                  <Turnstile
-                    siteKey={CLOUDFLARE_TURNSTILE_SITE_KEY}
-                    onSuccess={(token) => setTurnstileToken(token)}
-                    onError={() => setTurnstileToken("")}
-                    onExpire={() => setTurnstileToken("")}
-                    options={{
-                      theme: theme === "dark" ? "dark" : "light"
-                    }}
-                  />
-                </div>
-              )}
-
               {hasGoogleAuth && (
                 <Button
                   type="button"
@@ -331,6 +304,41 @@ export default function LoginRoute() {
                 >
                   Sign in with Outlook
                 </Button>
+              )}
+
+              {(hasGoogleAuth || hasOutlookAuth) && (
+                <div className="py-3 w-full">
+                  <Separator />
+                </div>
+              )}
+
+              <Input name="email" label="" placeholder="Email Address" />
+
+              <Submit
+                isDisabled={
+                  fetcher.state !== "idle" ||
+                  (!!CLOUDFLARE_TURNSTILE_SITE_KEY && !turnstileToken)
+                }
+                isLoading={fetcher.state === "submitting"}
+                size="lg"
+                className="w-full"
+                withBlocker={false}
+                variant="secondary"
+              >
+                Sign in with Email
+              </Submit>
+              {!!CLOUDFLARE_TURNSTILE_SITE_KEY && (
+                <div className="w-full flex justify-center">
+                  <Turnstile
+                    siteKey={CLOUDFLARE_TURNSTILE_SITE_KEY}
+                    onSuccess={(token) => setTurnstileToken(token)}
+                    onError={() => setTurnstileToken("")}
+                    onExpire={() => setTurnstileToken("")}
+                    options={{
+                      theme: theme === "dark" ? "dark" : "light"
+                    }}
+                  />
+                </div>
               )}
             </VStack>
           </ValidatedForm>

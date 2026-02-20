@@ -33,7 +33,8 @@ import ConsumableForm from "~/modules/items/ui/Consumables/ConsumableForm";
 import MaterialForm from "~/modules/items/ui/Materials/MaterialForm";
 import PartForm from "~/modules/items/ui/Parts/PartForm";
 import ToolForm from "~/modules/items/ui/Tools/ToolForm";
-import { type MethodItemType, methodItemType } from "~/modules/shared";
+import type { MethodItemType } from "~/modules/shared";
+import { methodItemType } from "~/modules/shared";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import { MethodItemTypeIcon } from "../Icons";
@@ -105,7 +106,11 @@ const Item = ({
       .map((item) => ({
         value: item.id,
         label: item.readableIdWithRevision,
-        helper: item.name
+        helper: item.name,
+        helperRight:
+          item.quantityOnHand !== undefined
+            ? `${item.quantityOnHand} ${item.unitOfMeasureCode}`
+            : undefined
       }));
 
     if (props.whitelist) {

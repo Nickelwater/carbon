@@ -1,6 +1,7 @@
 import { useChatActions, useChatId } from "@ai-sdk-tools/store";
 import { cn } from "@carbon/react";
-import { type RefObject, useEffect, useRef } from "react";
+import type { RefObject } from "react";
+import { useEffect, useRef } from "react";
 import { LuArrowRight } from "react-icons/lu";
 import { useOnClickOutside } from "~/hooks/useOnClickOutside";
 import { AnimatedSizeContainer } from "./AnimatedSizeContainer";

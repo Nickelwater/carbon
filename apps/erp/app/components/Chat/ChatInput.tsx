@@ -8,19 +8,20 @@ import { cn } from "@carbon/react";
 import { forwardRef, useRef } from "react";
 import { CommandMenu } from "./CommandMenu";
 import { useChatStore } from "./lib/store";
+import type { PromptInputMessage } from "./PromptInput";
 import {
   PromptInput,
   PromptInputActionAddAttachments,
   PromptInputAttachment,
   PromptInputAttachments,
   PromptInputBody,
-  type PromptInputMessage,
   PromptInputSubmit,
   PromptInputTextarea,
   PromptInputToolbar,
   PromptInputTools
 } from "./PromptInput";
-import { RecordButton, type RecordButtonRef } from "./RecordButton";
+import type { RecordButtonRef } from "./RecordButton";
+import { RecordButton } from "./RecordButton";
 import { SuggestedActionsButton } from "./SuggestedActions";
 import { SuggestedPrompts } from "./SuggestedPrompts";
 import { WebSearchButton } from "./WebSearch";

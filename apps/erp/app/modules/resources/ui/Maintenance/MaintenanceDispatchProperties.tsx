@@ -67,7 +67,9 @@ const MaintenanceDispatchProperties = () => {
   const assignee =
     optimisticAssignment !== undefined
       ? optimisticAssignment
-      : routeData?.dispatch?.assignee;
+      : (routeData?.dispatch?.assignee?.id ?? null);
+
+  console.log({ optimisticAssignment, routeData: routeData?.dispatch });
 
   const fetcher = useFetcher<{ error?: { message: string } }>();
   const eventFetcher = useFetcher<{ error?: { message: string } }>();
@@ -122,7 +124,9 @@ const MaintenanceDispatchProperties = () => {
     >
       <VStack spacing={2}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xs text-muted-foreground">Properties</h3>
+          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+            Properties
+          </h3>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>

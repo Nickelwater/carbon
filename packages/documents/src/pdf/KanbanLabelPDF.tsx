@@ -1,6 +1,7 @@
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { createTw } from "react-pdf-tailwind";
 import { generateQRCode } from "../qr/qr-code";
+import Footer from "./components/Footer";
 
 interface KanbanLabel {
   id: string;
@@ -226,6 +227,7 @@ const KanbanLabelPDF = ({
               </View>
             ))}
           </View>
+          <Footer />
         </Page>
       ))}
     </Document>

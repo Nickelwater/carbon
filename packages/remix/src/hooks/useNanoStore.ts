@@ -1,5 +1,5 @@
 import { useStore } from "@nanostores/react";
-import { type WritableAtom } from "nanostores";
+import type { WritableAtom } from "nanostores";
 import { useCallback } from "react";
 
 export function useNanoStore<T>(atom: WritableAtom<T>, idbKey?: string) {

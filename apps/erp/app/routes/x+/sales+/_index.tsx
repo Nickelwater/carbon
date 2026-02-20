@@ -5,11 +5,9 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
   Combobox,
-  cn,
   DateRangePicker,
   DropdownMenu,
   DropdownMenuContent,
@@ -27,10 +25,11 @@ import {
   Td,
   Th,
   Thead,
-  Tr
+  Tr,
+  VStack
 } from "@carbon/react";
+import type { ChartConfig } from "@carbon/react/Chart";
 import {
-  type ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent
@@ -52,13 +51,8 @@ import {
   RiProgress4Line,
   RiProgress8Line
 } from "react-icons/ri";
-import {
-  Await,
-  Link,
-  type LoaderFunctionArgs,
-  useFetcher,
-  useLoaderData
-} from "react-router";
+import type { LoaderFunctionArgs } from "react-router";
+import { Await, Link, useFetcher, useLoaderData } from "react-router";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { CustomerAvatar, Empty, Hyperlink } from "~/components";
 import { useCurrencyFormatter } from "~/hooks/useCurrencyFormatter";
@@ -85,7 +79,11 @@ const OPEN_SALES_ORDER_STATUSES = [
   "Draft"
 ] as const;
 
-const chartConfig = {} satisfies ChartConfig;
+const chartConfig = {
+  value: {
+    color: "hsl(var(--primary))"
+  }
+} satisfies ChartConfig;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { client, userId, companyId } = await requirePermissions(request, {
@@ -313,6 +311,13 @@ export default function SalesDashboard() {
         : 0
       : ((total - previousTotal) / previousTotal) * 100;
 
+  const formatValue = (value: number) => {
+    if (["salesOrderRevenue", "salesFunnel"].includes(selectedKpiData.key)) {
+      return currencyFormatter.format(value);
+    }
+    return numberFormatter.format(value);
+  };
+
   const csvData = useMemo(() => {
     if (!kpiFetcher.data?.data) return [];
 
@@ -360,99 +365,88 @@ export default function SalesDashboard() {
   return (
     <div className="flex flex-col gap-4 w-full p-4 h-[calc(100dvh-var(--header-height))] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-muted-foreground">
       <div className="grid w-full gap-4 grid-cols-1 lg:grid-cols-3">
-        <Card className="p-6 rounded-xl items-start justify-start gap-y-4">
-          <HStack className="justify-between w-full items-start mb-4">
-            <div className="bg-muted/80 border border-border rounded-xl p-2 text-foreground dark:shadow-md">
-              <RiProgress2Line className="size-5" />
-            </div>
-            <Button
-              size="sm"
-              rightIcon={<LuArrowUpRight />}
-              variant="secondary"
-              asChild
-            >
-              <Link
-                to={`${
-                  path.to.salesRfqs
-                }?filter=status:in:${OPEN_RFQ_STATUSES.join(",")}`}
+        <Card>
+          <CardHeader>
+            <CardTitle>Open RFQs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HStack className="justify-between w-full items-center">
+              <h3 className="text-5xl font-medium tracking-tighter">
+                {openRFQs.count ?? 0}
+              </h3>
+              <Button
+                rightIcon={<LuArrowUpRight />}
+                variant="secondary"
+                asChild
               >
-                View Open RFQs
-              </Link>
-            </Button>
-          </HStack>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-3xl font-medium tracking-tight">
-              {openRFQs.count ?? 0}
-            </h3>
-            <p className="text-sm text-muted-foreground tracking-tight">
-              Open RFQs
-            </p>
-          </div>
+                <Link
+                  to={`${
+                    path.to.salesRfqs
+                  }?filter=status:in:${OPEN_RFQ_STATUSES.join(",")}`}
+                >
+                  View Open RFQs
+                </Link>
+              </Button>
+            </HStack>
+          </CardContent>
         </Card>
 
-        <Card className="p-6 items-start justify-start gap-y-4">
-          <HStack className="justify-between w-full items-start mb-4">
-            <div className="bg-muted/80 border border-border rounded-xl p-2 text-foreground dark:shadow-md">
-              <RiProgress4Line className="size-5" />
-            </div>
-            <Button
-              size="sm"
-              rightIcon={<LuArrowUpRight />}
-              variant="secondary"
-            >
-              <Link
-                to={`${
-                  path.to.quotes
-                }?filter=status:in:${OPEN_QUOTE_STATUSES.join(",")}`}
+        <Card>
+          <CardHeader>
+            <CardTitle>Open Quotes</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HStack className="justify-between w-full items-center">
+              <h3 className="text-5xl font-medium tracking-tighter">
+                {openQuotes.count ?? 0}
+              </h3>
+              <Button
+                rightIcon={<LuArrowUpRight />}
+                variant="secondary"
+                asChild
               >
-                View Open Quotes
-              </Link>
-            </Button>
-          </HStack>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-3xl font-medium tracking-tight">
-              {openQuotes.count ?? 0}
-            </h3>
-            <p className="text-sm text-muted-foreground tracking-tight">
-              Open Quotes
-            </p>
-          </div>
+                <Link
+                  to={`${
+                    path.to.quotes
+                  }?filter=status:in:${OPEN_QUOTE_STATUSES.join(",")}`}
+                >
+                  View Open Quotes
+                </Link>
+              </Button>
+            </HStack>
+          </CardContent>
         </Card>
 
-        <Card className="p-6 items-start justify-start gap-y-4">
-          <HStack className="justify-between w-full items-start mb-4">
-            <div className="bg-muted/80 border border-border rounded-xl p-2 text-foreground dark:shadow-md">
-              <RiProgress8Line className="size-5" />
-            </div>
-            <Button
-              size="sm"
-              rightIcon={<LuArrowUpRight />}
-              variant="secondary"
-              asChild
-            >
-              <Link
-                to={`${
-                  path.to.salesOrders
-                }?filter=status:in:${OPEN_SALES_ORDER_STATUSES.join(",")}`}
+        <Card>
+          <CardHeader>
+            <CardTitle>Open Sales Orders</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <HStack className="justify-between w-full items-center">
+              <h3 className="text-5xl font-medium tracking-tighter">
+                {openSalesOrders.count ?? 0}
+              </h3>
+              <Button
+                rightIcon={<LuArrowUpRight />}
+                variant="secondary"
+                asChild
               >
-                View Open Orders
-              </Link>
-            </Button>
-          </HStack>
-          <div className="flex flex-col gap-2">
-            <h3 className="text-3xl font-medium tracking-tight">
-              {openSalesOrders.count ?? 0}
-            </h3>
-            <p className="text-sm text-muted-foreground tracking-tight">
-              Open Sales Orders
-            </p>
-          </div>
+                <Link
+                  to={`${
+                    path.to.salesOrders
+                  }?filter=status:in:${OPEN_SALES_ORDER_STATUSES.join(",")}`}
+                >
+                  View Open Orders
+                </Link>
+              </Button>
+            </HStack>
+          </CardContent>
         </Card>
       </div>
 
-      <Card className="p-0">
-        <HStack className="justify-between items-start">
-          <CardHeader className="pb-0">
+      <Card>
+        <HStack className="justify-between items-center">
+          <CardHeader>
             <div className="flex w-full justify-start items-center gap-2">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -521,30 +515,8 @@ export default function SalesDashboard() {
                 className="min-w-[160px] gap-4"
               />
             </div>
-            <HStack className="pl-[3px] pt-1">
-              {isFetching ? (
-                <Skeleton className="h-8 w-1/2" />
-              ) : (
-                <>
-                  <p className="text-xl font-semibold tracking-tight">
-                    {["salesOrderRevenue", "salesFunnel"].includes(
-                      selectedKpiData.key
-                    )
-                      ? currencyFormatter.format(total)
-                      : numberFormatter.format(total)}
-                  </p>
-                  {percentageChange >= 0 ? (
-                    <Badge variant="green">
-                      +{percentageChange.toFixed(0)}%
-                    </Badge>
-                  ) : (
-                    <Badge variant="red">{percentageChange.toFixed(0)}%</Badge>
-                  )}
-                </>
-              )}
-            </HStack>
           </CardHeader>
-          <CardAction className="py-6 px-6">
+          <CardAction>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <IconButton
@@ -568,7 +540,26 @@ export default function SalesDashboard() {
             </DropdownMenu>
           </CardAction>
         </HStack>
-        <CardContent className="p-6">
+        <CardContent className="flex-col gap-4">
+          <VStack className="pl-[3px]" spacing={0}>
+            {isFetching ? (
+              <div className="flex flex-col gap-0.5 w-full">
+                <Skeleton className="h-8 w-[120px]" />
+                <Skeleton className="h-4 w-[50px]" />
+              </div>
+            ) : (
+              <>
+                <p className="text-3xl font-medium tracking-tighter">
+                  {formatValue(total)}
+                </p>
+                {percentageChange >= 0 ? (
+                  <Badge variant="green">+{percentageChange.toFixed(0)}%</Badge>
+                ) : (
+                  <Badge variant="red">{percentageChange.toFixed(0)}%</Badge>
+                )}
+              </>
+            )}
+          </VStack>
           <Loading
             isLoading={isFetching}
             className="h-[30dvw] md:h-[23dvw] w-full"
@@ -634,19 +625,7 @@ export default function SalesDashboard() {
                       />
                     }
                   />
-                  <Bar
-                    dataKey="value"
-                    className={cn(
-                      ["salesOrderRevenue", "salesOrderCount"].includes(
-                        selectedKpiData.key
-                      ) && "fill-teal-400",
-                      ["quoteCount"].includes(selectedKpiData.key) &&
-                        "fill-blue-600",
-                      ["rfqCount"].includes(selectedKpiData.key) &&
-                        "fill-violet-600"
-                    )}
-                    radius={2}
-                  />
+                  <Bar dataKey="value" fill="var(--color-value)" radius={2} />
                 </BarChart>
               </ChartContainer>
             )}
@@ -655,11 +634,8 @@ export default function SalesDashboard() {
       </Card>
       <div className="grid w-full gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
-          <CardHeader className="px-6 pb-0">
+          <CardHeader>
             <CardTitle>Recently Created</CardTitle>
-            <CardDescription className="text-sm">
-              Newly created sales documents
-            </CardDescription>
           </CardHeader>
           <CardContent className="p-6">
             <div className="min-h-[200px] max-h-[360px] w-full overflow-y-auto">
@@ -712,13 +688,10 @@ export default function SalesDashboard() {
         </Card>
 
         <Card>
-          <CardHeader className="px-6 pb-0">
+          <CardHeader>
             <CardTitle>Assigned to Me</CardTitle>
-            <CardDescription className="text-sm">
-              Sales documents currently assigned to me
-            </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 min-h-[200px]">
+          <CardContent className="min-h-[200px]">
             <Suspense fallback={<Loading isLoading />}>
               <Await
                 resolve={assignedToMe}

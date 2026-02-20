@@ -1,7 +1,8 @@
 import { error, getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import { type JSONContent, VStack } from "@carbon/react";
+import type { JSONContent } from "@carbon/react";
+import { VStack } from "@carbon/react";
 import { supportedModelTypes } from "@carbon/utils";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { DndContext } from "@dnd-kit/core";

@@ -15,6 +15,7 @@ import { useState } from "react";
 import {
   LuCalendar,
   LuContainer,
+  LuFile,
   LuHash,
   LuList,
   LuSquareUser,
@@ -175,6 +176,8 @@ function CustomFieldDataTypeIcon({
       return (
         <LuContainer className={cn("w-4 h-4 text-emerald-600", className)} />
       );
+    case DataType.File:
+      return <LuFile className={cn("w-4 h-4 text-indigo-600", className)} />;
     default:
       return null;
   }

@@ -1,4 +1,9 @@
-import { assertIsPost, error, getCarbonServiceRole } from "@carbon/auth";
+import {
+  assertIsPost,
+  ERP_URL,
+  error,
+  getCarbonServiceRole
+} from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { notifyIssueCreated } from "@carbon/ee/notifications";
@@ -126,7 +131,7 @@ export async function action({ request }: ActionFunctionArgs) {
     await notifyIssueCreated({ client, serviceRole }, integrations, {
       companyId,
       userId,
-      carbonUrl: `https://app.carbon.ms${path.to.issue(ncrId)}`,
+      carbonUrl: `${ERP_URL}${path.to.issue(ncrId)}`,
       issue: {
         id: ncrId,
         nonConformanceId: nextSequence.data,
