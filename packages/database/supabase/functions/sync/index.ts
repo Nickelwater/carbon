@@ -379,7 +379,10 @@ serve(async (req: Request) => {
 
           // Track newly created items and make methods to avoid duplicate inserts
           const newlyCreatedItemsByPartId = new Map<string, string>();
-          const newlyCreatedMakeMethodsByItemId = new Map<string, MakeMethodInfo>();
+          const newlyCreatedMakeMethodsByItemId = new Map<
+            string,
+            MakeMethodInfo
+          >();
 
           async function traverseTree(
             node: TreeNode,
@@ -416,7 +419,6 @@ serve(async (req: Request) => {
                 .where("id", "=", itemId)
                 .execute();
 
-              // Upsert OnShape mapping — update if this entity already has a mapping
               await trx
                 .insertInto("externalIntegrationMapping")
                 .values({
@@ -430,10 +432,17 @@ serve(async (req: Request) => {
                 })
                 .onConflict((oc) =>
                   oc
-                    .columns(["entityType", "entityId", "integration", "companyId"])
+                    .columns([
+                      "integration",
+                      "externalId",
+                      "entityType",
+                      "companyId",
+                    ])
+                    .where("allowDuplicateExternalId", "=", false)
                     .doUpdateSet({
-                      externalId: externalPartId,
+                      entityId: itemId,
                       metadata: data.data,
+                      updatedAt: new Date().toISOString(),
                     })
                 )
                 .execute();
@@ -462,7 +471,7 @@ serve(async (req: Request) => {
 
                 itemId = item?.id;
 
-                // Upsert OnShape mapping for the new item
+                // Create OnShape mapping for the new item
                 if (itemId) {
                   await trx
                     .insertInto("externalIntegrationMapping")
@@ -477,10 +486,17 @@ serve(async (req: Request) => {
                     })
                     .onConflict((oc) =>
                       oc
-                        .columns(["integration", "externalId", "entityType", "companyId"])
+                        .columns([
+                          "integration",
+                          "externalId",
+                          "entityType",
+                          "companyId",
+                        ])
+                        .where("allowDuplicateExternalId", "=", false)
                         .doUpdateSet({
                           entityId: itemId,
                           metadata: data.data,
+                          updatedAt: new Date().toISOString(),
                         })
                     )
                     .execute();
@@ -626,8 +642,14 @@ serve(async (req: Request) => {
                         version: newVersion,
                         status: "Draft",
                       };
-                      newlyCreatedMakeMethodsByItemId.set(itemId, newMakeMethodInfo);
-                      existingMakeMethodsByItemId.set(itemId, newMakeMethodInfo);
+                      newlyCreatedMakeMethodsByItemId.set(
+                        itemId,
+                        newMakeMethodInfo
+                      );
+                      existingMakeMethodsByItemId.set(
+                        itemId,
+                        newMakeMethodInfo
+                      );
                     }
                   }
                 }
