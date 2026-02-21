@@ -309,6 +309,15 @@ export const sequences = [
     next: 0,
     size: 6,
     step: 1
+  },
+  {
+    table: "Part",
+    name: "Part Number",
+    prefix: "",
+    suffix: null,
+    next: 0,
+    size: 9,
+    step: 1
   }
 ] as const;
 

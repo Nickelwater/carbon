@@ -150,6 +150,213 @@ export default {
         tags: ["userToCompany"],
       },
     },
+    "/quotePart": {
+      get: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.quotePart.id",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.quoteId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.readableId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.name",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.description",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.defaultMethodType",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.unitOfMeasureCode",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.modelUploadId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.companyId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.createdAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.createdBy",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.updatedAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.updatedBy",
+          },
+          {
+            $ref: "#/parameters/select",
+          },
+          {
+            $ref: "#/parameters/order",
+          },
+          {
+            $ref: "#/parameters/range",
+          },
+          {
+            $ref: "#/parameters/rangeUnit",
+          },
+          {
+            $ref: "#/parameters/offset",
+          },
+          {
+            $ref: "#/parameters/limit",
+          },
+          {
+            $ref: "#/parameters/preferCount",
+          },
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+            schema: {
+              items: {
+                $ref: "#/definitions/quotePart",
+              },
+              type: "array",
+            },
+          },
+          "206": {
+            description: "Partial Content",
+          },
+        },
+        tags: ["quotePart"],
+      },
+      post: {
+        parameters: [
+          {
+            $ref: "#/parameters/body.quotePart",
+          },
+          {
+            $ref: "#/parameters/select",
+          },
+          {
+            $ref: "#/parameters/preferPost",
+          },
+        ],
+        responses: {
+          "201": {
+            description: "Created",
+          },
+        },
+        tags: ["quotePart"],
+      },
+      delete: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.quotePart.id",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.quoteId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.readableId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.name",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.description",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.defaultMethodType",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.unitOfMeasureCode",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.modelUploadId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.companyId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.createdAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.createdBy",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.updatedAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.updatedBy",
+          },
+          {
+            $ref: "#/parameters/preferReturn",
+          },
+        ],
+        responses: {
+          "204": {
+            description: "No Content",
+          },
+        },
+        tags: ["quotePart"],
+      },
+      patch: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.quotePart.id",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.quoteId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.readableId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.name",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.description",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.defaultMethodType",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.unitOfMeasureCode",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.modelUploadId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.companyId",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.createdAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.createdBy",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.updatedAt",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quotePart.updatedBy",
+          },
+          {
+            $ref: "#/parameters/body.quotePart",
+          },
+          {
+            $ref: "#/parameters/preferReturn",
+          },
+        ],
+        responses: {
+          "204": {
+            description: "No Content",
+          },
+        },
+        tags: ["quotePart"],
+      },
+    },
     "/procedures": {
       get: {
         parameters: [
@@ -1603,6 +1810,9 @@ export default {
             $ref: "#/parameters/rowFilter.quoteLine.configuration",
           },
           {
+            $ref: "#/parameters/rowFilter.quoteLine.quotePartId",
+          },
+          {
             $ref: "#/parameters/select",
           },
           {
@@ -1746,6 +1956,9 @@ export default {
             $ref: "#/parameters/rowFilter.quoteLine.configuration",
           },
           {
+            $ref: "#/parameters/rowFilter.quoteLine.quotePartId",
+          },
+          {
             $ref: "#/parameters/preferReturn",
           },
         ],
@@ -1841,6 +2054,9 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.quoteLine.configuration",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quoteLine.quotePartId",
           },
           {
             $ref: "#/parameters/body.quoteLine",
@@ -44773,6 +44989,9 @@ export default {
             $ref: "#/parameters/rowFilter.quoteLines.configuration",
           },
           {
+            $ref: "#/parameters/rowFilter.quoteLines.quotePartId",
+          },
+          {
             $ref: "#/parameters/rowFilter.quoteLines.itemReadableId",
           },
           {
@@ -54847,6 +55066,9 @@ export default {
             $ref: "#/parameters/rowFilter.quoteMakeMethod.version",
           },
           {
+            $ref: "#/parameters/rowFilter.quoteMakeMethod.quotePartId",
+          },
+          {
             $ref: "#/parameters/select",
           },
           {
@@ -54948,6 +55170,9 @@ export default {
             $ref: "#/parameters/rowFilter.quoteMakeMethod.version",
           },
           {
+            $ref: "#/parameters/rowFilter.quoteMakeMethod.quotePartId",
+          },
+          {
             $ref: "#/parameters/preferReturn",
           },
         ],
@@ -55001,6 +55226,9 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.quoteMakeMethod.version",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quoteMakeMethod.quotePartId",
           },
           {
             $ref: "#/parameters/body.quoteMakeMethod",
@@ -57077,6 +57305,9 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.quoteLinePrices.configuration",
+          },
+          {
+            $ref: "#/parameters/rowFilter.quoteLinePrices.quotePartId",
           },
           {
             $ref: "#/parameters/rowFilter.quoteLinePrices.itemReadableId",
@@ -68528,6 +68759,87 @@ export default {
       },
       type: "object",
     },
+    quotePart: {
+      required: [
+        "id",
+        "quoteId",
+        "name",
+        "defaultMethodType",
+        "companyId",
+        "createdAt",
+        "createdBy",
+      ],
+      properties: {
+        id: {
+          default: "public.xid()",
+          description: "Note:\nThis is a Primary Key.<pk/>",
+          format: "text",
+          type: "string",
+        },
+        quoteId: {
+          description:
+            "Note:\nThis is a Foreign Key to `quote.id`.<fk table='quote' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        readableId: {
+          format: "text",
+          type: "string",
+        },
+        name: {
+          format: "text",
+          type: "string",
+        },
+        description: {
+          format: "text",
+          type: "string",
+        },
+        defaultMethodType: {
+          default: "Make",
+          enum: ["Buy", "Make", "Pick"],
+          format: 'public."methodType"',
+          type: "string",
+        },
+        unitOfMeasureCode: {
+          format: "text",
+          type: "string",
+        },
+        modelUploadId: {
+          description:
+            "Note:\nThis is a Foreign Key to `modelUpload.id`.<fk table='modelUpload' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        companyId: {
+          description:
+            "Note:\nThis is a Foreign Key to `company.id`.<fk table='company' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        createdAt: {
+          default: "now()",
+          format: "timestamp with time zone",
+          type: "string",
+        },
+        createdBy: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+        updatedAt: {
+          format: "timestamp with time zone",
+          type: "string",
+        },
+        updatedBy: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string",
+        },
+      },
+      type: "object",
+    },
     procedures: {
       properties: {
         id: {
@@ -69213,7 +69525,6 @@ export default {
         "quoteId",
         "quoteRevisionId",
         "status",
-        "itemId",
         "itemType",
         "description",
         "methodType",
@@ -69361,6 +69672,12 @@ export default {
         },
         configuration: {
           format: "jsonb",
+        },
+        quotePartId: {
+          description:
+            "Note:\nThis is a Foreign Key to `quotePart.id`.<fk table='quotePart' column='id'/>",
+          format: "text",
+          type: "string",
         },
       },
       type: "object",
@@ -89413,6 +89730,12 @@ export default {
         configuration: {
           format: "jsonb",
         },
+        quotePartId: {
+          description:
+            "Note:\nThis is a Foreign Key to `quotePart.id`.<fk table='quotePart' column='id'/>",
+          format: "text",
+          type: "string",
+        },
         itemReadableId: {
           format: "text",
           type: "string",
@@ -94237,7 +94560,6 @@ export default {
         "id",
         "quoteId",
         "quoteLineId",
-        "itemId",
         "quantityPerParent",
         "companyId",
         "createdAt",
@@ -94321,6 +94643,12 @@ export default {
           default: 1,
           format: "numeric",
           type: "number",
+        },
+        quotePartId: {
+          description:
+            "Note:\nThis is a Foreign Key to `quotePart.id`.<fk table='quotePart' column='id'/>",
+          format: "text",
+          type: "string",
         },
       },
       type: "object",
@@ -95811,6 +96139,12 @@ export default {
         },
         configuration: {
           format: "jsonb",
+        },
+        quotePartId: {
+          description:
+            "Note:\nThis is a Foreign Key to `quotePart.id`.<fk table='quotePart' column='id'/>",
+          format: "text",
+          type: "string",
         },
         itemReadableId: {
           format: "text",
@@ -98573,6 +98907,93 @@ export default {
       in: "query",
       type: "string",
     },
+    "body.quotePart": {
+      name: "quotePart",
+      description: "quotePart",
+      required: false,
+      in: "body",
+      schema: {
+        $ref: "#/definitions/quotePart",
+      },
+    },
+    "rowFilter.quotePart.id": {
+      name: "id",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.quoteId": {
+      name: "quoteId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.readableId": {
+      name: "readableId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.name": {
+      name: "name",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.description": {
+      name: "description",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.defaultMethodType": {
+      name: "defaultMethodType",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.unitOfMeasureCode": {
+      name: "unitOfMeasureCode",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.modelUploadId": {
+      name: "modelUploadId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.companyId": {
+      name: "companyId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.createdAt": {
+      name: "createdAt",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.createdBy": {
+      name: "createdBy",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.updatedAt": {
+      name: "updatedAt",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quotePart.updatedBy": {
+      name: "updatedBy",
+      required: false,
+      in: "query",
+      type: "string",
+    },
     "body.procedures": {
       name: "procedures",
       description: "procedures",
@@ -99577,6 +99998,12 @@ export default {
     },
     "rowFilter.quoteLine.configuration": {
       name: "configuration",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quoteLine.quotePartId": {
+      name: "quotePartId",
       required: false,
       in: "query",
       type: "string",
@@ -122278,6 +122705,12 @@ export default {
       in: "query",
       type: "string",
     },
+    "rowFilter.quoteLines.quotePartId": {
+      name: "quotePartId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
     "rowFilter.quoteLines.itemReadableId": {
       name: "itemReadableId",
       required: false,
@@ -127761,6 +128194,12 @@ export default {
       in: "query",
       type: "string",
     },
+    "rowFilter.quoteMakeMethod.quotePartId": {
+      name: "quotePartId",
+      required: false,
+      in: "query",
+      type: "string",
+    },
     "body.purchaseOrders": {
       name: "purchaseOrders",
       description: "purchaseOrders",
@@ -129461,6 +129900,12 @@ export default {
     },
     "rowFilter.quoteLinePrices.configuration": {
       name: "configuration",
+      required: false,
+      in: "query",
+      type: "string",
+    },
+    "rowFilter.quoteLinePrices.quotePartId": {
+      name: "quotePartId",
       required: false,
       in: "query",
       type: "string",

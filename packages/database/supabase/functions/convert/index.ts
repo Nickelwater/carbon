@@ -487,6 +487,7 @@ serve(async (req: Request) => {
               .filter(
                 (line) =>
                   line.id &&
+                  line.itemId &&
                   selectedLines &&
                   line.id in selectedLines &&
                   selectedLines[line.id].quantity > 0

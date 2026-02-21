@@ -8,7 +8,7 @@ import { redirect } from "react-router";
 import { useUrlParams, useUser } from "~/hooks";
 import type { QuotationStatusType } from "~/modules/sales";
 import { quoteValidator, upsertQuote } from "~/modules/sales";
-import { QuoteForm } from "~/modules/sales/ui/Quotes";
+import QuoteForm from "~/modules/sales/ui/Quotes/QuoteForm";
 import { getNextSequence } from "~/modules/settings";
 import { setCustomFields } from "~/utils/form";
 import type { Handle } from "~/utils/handle";

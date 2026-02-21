@@ -79,7 +79,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     );
   }
 
-  const itemId = line.data.itemId!;
+  const itemId = line.data?.itemId ?? undefined;
 
   const rootMethod = await getRootQuoteMakeMethod(serviceRole, lineId);
 
@@ -128,14 +128,24 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   return {
     line: line.data,
     operations: operations?.data ?? [],
-    files: getOpportunityLineDocuments(serviceRole, companyId, lineId, itemId),
+    files: getOpportunityLineDocuments(
+      serviceRole,
+      companyId,
+      lineId,
+      itemId ?? null
+    ),
     pricesByQuantity: (prices?.data ?? []).reduce<
       Record<number, QuotationPrice>
     >((acc, price) => {
       acc[price.quantity] = price;
       return acc;
     }, {}),
-    relatedPrices: getRelatedPricesForQuoteLine(serviceRole, itemId, quoteId),
+    relatedPrices: itemId
+      ? getRelatedPricesForQuoteLine(serviceRole, itemId, quoteId)
+      : Promise.resolve({
+          historicalQuoteLinePrices: [],
+          relatedSalesOrderLines: []
+        }),
     methodData
   };
 };
@@ -222,6 +232,9 @@ export default function QuoteLine() {
     ...line,
     id: line.id ?? undefined,
     quoteId: line.quoteId ?? "",
+    quotePartId: (line as { quotePartId?: string }).quotePartId ?? undefined,
+    itemReadableId:
+      (line as { itemReadableId?: string }).itemReadableId ?? undefined,
     customerPartId: line.customerPartId ?? "",
     customerPartRevision: line.customerPartRevision ?? "",
     description: line.description ?? "",

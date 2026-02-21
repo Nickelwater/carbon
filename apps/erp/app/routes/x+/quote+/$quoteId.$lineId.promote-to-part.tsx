@@ -40,6 +40,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (!line?.quotePartId) {
     throw redirect(
       path.to.quoteLine(quoteId, quoteLineId),
+      quoteId,
       await flash(
         request,
         error(new Error("Line is not a quote-only part"), "Cannot promote")

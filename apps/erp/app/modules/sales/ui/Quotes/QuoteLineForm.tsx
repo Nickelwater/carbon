@@ -26,7 +26,7 @@ import {
 import { getItemReadableId } from "@carbon/utils";
 import { useState } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
-import { LuTrash } from "react-icons/lu";
+import { LuCircleArrowUp, LuTrash } from "react-icons/lu";
 import { Link, useFetcher, useParams } from "react-router";
 import type { z } from "zod";
 import { MethodIcon, MethodItemTypeIcon } from "~/components";
@@ -35,13 +35,15 @@ import {
   ArrayNumeric,
   CustomFormFields,
   Hidden,
+  Input,
   InputControlled,
   Item,
   // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
   Number,
   Select,
   SelectControlled,
-  Submit
+  Submit,
+  UnitOfMeasure
 } from "~/components/Form";
 import { QuoteLineStatusIcon } from "~/components/Icons";
 import {
@@ -59,9 +61,40 @@ import { methodType } from "~/modules/shared";
 import type { action } from "~/routes/x+/quote+/$quoteId.new";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
-import { quoteLineStatusType, quoteLineValidator } from "../../sales.models";
+import {
+  newQuotePartLineValidator,
+  quoteLineStatusType,
+  quoteLineValidator
+} from "../../sales.models";
 import type { Quotation, QuotationLine } from "../../types";
 import DeleteQuoteLine from "./DeleteQuoteLine";
+
+function PromoteQuotePartMenuItem({
+  quoteLineId,
+  quoteId
+}: {
+  quoteLineId: string;
+  quoteId: string;
+}) {
+  const fetcher = useFetcher();
+  return (
+    <DropdownMenuItem
+      onSelect={() =>
+        fetcher.submit(
+          {},
+          {
+            method: "post",
+            action: path.to.quoteLinePromoteToPart(quoteId, quoteLineId)
+          }
+        )
+      }
+      disabled={fetcher.state !== "idle"}
+    >
+      <DropdownMenuIcon icon={<LuCircleArrowUp />} />
+      Promote to part
+    </DropdownMenuItem>
+  );
+}
 
 type QuoteLineFormProps = {
   initialValues: z.infer<typeof quoteLineValidator>;
@@ -94,6 +127,13 @@ const QuoteLineForm = ({
 
   const isEditing = initialValues.id !== undefined;
 
+  const [partSourceState, setPartSourceState] = useState<"item" | "quotePart">(
+    "quotePart"
+  );
+  const isQuotePartLine = !isEditing && partSourceState === "quotePart";
+  const isEditingQuotePartLine =
+    isEditing && !!(initialValues as { quotePartId?: string }).quotePartId;
+
   const [itemData, setItemData] = useState<{
     customerPartId: string;
     customerPartRevision: string;
@@ -102,14 +142,18 @@ const QuoteLineForm = ({
     methodType: string;
     modelUploadId: string | null;
     uom: string;
+    quotePartName?: string;
+    quotePartDescription?: string;
   }>({
     customerPartId: initialValues.customerPartId ?? "",
     customerPartRevision: initialValues.customerPartRevision ?? "",
-    itemId: initialValues.itemId ?? "",
+    itemId: (initialValues as { itemId?: string }).itemId ?? "",
     description: initialValues.description ?? "",
     methodType: initialValues.methodType ?? "",
     uom: initialValues.unitOfMeasureCode ?? "",
-    modelUploadId: initialValues.modelUploadId ?? null
+    modelUploadId: initialValues.modelUploadId ?? null,
+    quotePartName: "",
+    quotePartDescription: ""
   });
 
   const configurationDisclosure = useDisclosure();
@@ -258,7 +302,9 @@ const QuoteLineForm = ({
             <ValidatedForm
               fetcher={fetcher}
               defaultValues={initialValues}
-              validator={quoteLineValidator}
+              validator={
+                isQuotePartLine ? newQuotePartLineValidator : quoteLineValidator
+              }
               method="post"
               action={
                 isEditing
@@ -274,7 +320,11 @@ const QuoteLineForm = ({
                 <ModalCardHeader>
                   <ModalCardTitle>
                     {isEditing
-                      ? (getItemReadableId(items, itemData?.itemId) ??
+                      ? (((initialValues as { quotePartId?: string })
+                          .quotePartId
+                          ? (initialValues as { itemReadableId?: string })
+                              .itemReadableId
+                          : getItemReadableId(items, itemData?.itemId)) ??
                         "Quote Line")
                       : "New Quote Line"}
                   </ModalCardTitle>
@@ -323,16 +373,29 @@ const QuoteLineForm = ({
                           <DropdownMenuIcon icon={<LuTrash />} />
                           Delete Line
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <Link
-                            to={getLinkToItemDetails("Part", itemData.itemId!)}
-                          >
-                            <DropdownMenuIcon
-                              icon={<MethodItemTypeIcon type="Part" />}
-                            />
-                            View Item Master
-                          </Link>
-                        </DropdownMenuItem>
+                        {(initialValues as { quotePartId?: string })
+                          .quotePartId ? (
+                          <PromoteQuotePartMenuItem
+                            quoteLineId={initialValues.id!}
+                            quoteId={quoteId}
+                          />
+                        ) : (
+                          itemData.itemId && (
+                            <DropdownMenuItem asChild>
+                              <Link
+                                to={getLinkToItemDetails(
+                                  "Part",
+                                  itemData.itemId
+                                )}
+                              >
+                                <DropdownMenuIcon
+                                  icon={<MethodItemTypeIcon type="Part" />}
+                                />
+                                View Item Master
+                              </Link>
+                            </DropdownMenuItem>
+                          )
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </CardAction>
@@ -341,11 +404,15 @@ const QuoteLineForm = ({
               <ModalCardBody>
                 <Hidden name="id" />
                 <Hidden name="quoteId" />
-                <Hidden name="unitOfMeasureCode" value={itemData?.uom} />
-                <Hidden
-                  name="modelUploadId"
-                  value={itemData?.modelUploadId ?? undefined}
-                />
+                {!isQuotePartLine && (
+                  <>
+                    <Hidden name="unitOfMeasureCode" value={itemData?.uom} />
+                    <Hidden
+                      name="modelUploadId"
+                      value={itemData?.modelUploadId ?? undefined}
+                    />
+                  </>
+                )}
                 {!isEditing && requiresConfiguration && (
                   <Hidden
                     name="configuration"
@@ -355,47 +422,151 @@ const QuoteLineForm = ({
                 <VStack>
                   <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3">
                     <div className="col-span-2 grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-2 auto-rows-min">
-                      <Item
-                        autoFocus
-                        name="itemId"
-                        label="Part"
-                        type="Part"
-                        value={itemData.itemId}
-                        includeInactive
-                        onChange={(value) => {
-                          onItemChange(value?.value as string);
-                        }}
-                      />
+                      {!isEditing && (
+                        <SelectControlled
+                          name="partSource"
+                          label="Part type"
+                          value={partSourceState}
+                          onChange={(v) => {
+                            const next = v?.value as "item" | "quotePart";
+                            if (next) setPartSourceState(next);
+                          }}
+                          options={[
+                            {
+                              label: "Existing part",
+                              value: "item"
+                            },
+                            {
+                              label: "Quote-only part",
+                              value: "quotePart"
+                            }
+                          ]}
+                        />
+                      )}
+                      {isQuotePartLine ? (
+                        <>
+                          <InputControlled
+                            name="quotePartName"
+                            label="Part name"
+                            value={itemData.quotePartName ?? ""}
+                            onChange={(v) =>
+                              setItemData((d) => ({
+                                ...d,
+                                quotePartName: v
+                              }))
+                            }
+                          />
+                          <InputControlled
+                            name="quotePartDescription"
+                            label="Short description"
+                            value={itemData.quotePartDescription ?? ""}
+                            onChange={(v) =>
+                              setItemData((d) => ({
+                                ...d,
+                                quotePartDescription: v
+                              }))
+                            }
+                          />
+                          <SelectControlled
+                            name="defaultMethodType"
+                            label="Method"
+                            options={methodType.map((m) => ({
+                              label: (
+                                <span className="flex items-center gap-2">
+                                  <MethodIcon type={m} />
+                                  {m}
+                                </span>
+                              ),
+                              value: m
+                            }))}
+                            value={itemData.methodType}
+                            onChange={(v) =>
+                              v &&
+                              setItemData((d) => ({
+                                ...d,
+                                methodType: v.value
+                              }))
+                            }
+                          />
+                          <UnitOfMeasure
+                            name="unitOfMeasureCode"
+                            label="Unit of measure"
+                          />
+                        </>
+                      ) : isEditingQuotePartLine ? (
+                        <>
+                          <Input
+                            name="partDisplay"
+                            label="Part"
+                            value={
+                              (initialValues as { itemReadableId?: string })
+                                .itemReadableId ?? "—"
+                            }
+                            readOnly
+                          />
+                          <div className="hidden">
+                            <Hidden
+                              name="quotePartId"
+                              value={
+                                (initialValues as { quotePartId?: string })
+                                  .quotePartId ?? ""
+                              }
+                            />
+                            <Hidden name="itemId" value="" />
+                          </div>
+                          <InputControlled
+                            name="description"
+                            label="Short Description"
+                            value={itemData.description}
+                          />
+                        </>
+                      ) : (
+                        <>
+                          <Item
+                            autoFocus
+                            name="itemId"
+                            label="Part"
+                            type="Part"
+                            value={itemData.itemId}
+                            includeInactive
+                            onChange={(value) => {
+                              onItemChange(value?.value as string);
+                            }}
+                          />
 
-                      <InputControlled
-                        name="description"
-                        label="Short Description"
-                        value={itemData.description}
-                      />
+                          <InputControlled
+                            name="description"
+                            label="Short Description"
+                            value={itemData.description}
+                          />
+                        </>
+                      )}
 
-                      <SelectControlled
-                        name="methodType"
-                        label="Method"
-                        options={
-                          methodType.map((m) => ({
-                            label: (
-                              <span className="flex items-center gap-2">
-                                <MethodIcon type={m} />
-                                {m}
-                              </span>
-                            ),
-                            value: m
-                          })) ?? []
-                        }
-                        value={itemData.methodType}
-                        onChange={(newValue) => {
-                          if (newValue)
-                            setItemData((d) => ({
-                              ...d,
-                              methodType: newValue?.value
-                            }));
-                        }}
-                      />
+                      {!isQuotePartLine && (
+                        <SelectControlled
+                          name="methodType"
+                          label="Method"
+                          options={
+                            methodType.map((m) => ({
+                              label: (
+                                <span className="flex items-center gap-2">
+                                  <MethodIcon type={m} />
+                                  {m}
+                                </span>
+                              ),
+                              value: m
+                            })) ?? []
+                          }
+                          value={itemData.methodType}
+                          onChange={(newValue) => {
+                            if (newValue)
+                              setItemData((d) => ({
+                                ...d,
+                                methodType: newValue?.value
+                              }));
+                          }}
+                        />
+                      )}
 
                       <Select
                         name="status"

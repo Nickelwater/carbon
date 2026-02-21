@@ -1,5 +1,8 @@
 import { useCarbon } from "@carbon/auth";
 import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
   Button,
   cn,
   Drawer,
@@ -79,6 +82,9 @@ const QuoteToOrderDrawer = ({
   pricing,
   onClose
 }: QuoteToOrderDrawerProps) => {
+  const linesWithItem = lines.filter((l) => (l as { itemId?: string }).itemId);
+  const quotePartOnlyCount = lines.length - linesWithItem.length;
+
   const [step, setStep] = useState(0);
   const [selectedLines, setSelectedLines] = useState<
     Record<string, SelectedLine>
@@ -277,9 +283,22 @@ const QuoteToOrderDrawer = ({
               />
             ) : null}
             <ScrollArea className="h-[calc(100dvh-145px)] flex-grow w-full">
+              {quotePartOnlyCount > 0 && (
+                <Alert variant="warning">
+                  <AlertTitle>Quote-only parts</AlertTitle>
+                  <AlertDescription>
+                    {quotePartOnlyCount} line
+                    {quotePartOnlyCount !== 1 ? "s" : ""}{" "}
+                    {quotePartOnlyCount !== 1 ? "are" : "is"} quote-only part
+                    {quotePartOnlyCount !== 1 ? "s" : ""} and must be promoted
+                    to parts from the quote line before they can be included in
+                    the order.
+                  </AlertDescription>
+                </Alert>
+              )}
               <LinePricingForm
                 quote={quote}
-                lines={lines}
+                lines={linesWithItem}
                 pricing={pricing}
                 setSelectedLines={setSelectedLines}
               />
@@ -595,7 +614,9 @@ const LinePricingOptions = ({
                           convertedAdditionalChargesByQuantity[option.quantity]
                         )}
                       </Td>
-                      <Td>{option.leadTime} {pluralize(option.leadTime, "day")}</Td>
+                      <Td>
+                        {option.leadTime} {pluralize(option.leadTime, "day")}
+                      </Td>
                       <Td>
                         {formatter.format(
                           (option.convertedNetExtendedPrice ?? 0) +

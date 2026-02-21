@@ -191,33 +191,83 @@ export const quoteLineAdditionalChargesValidator = z.record(
   })
 );
 
-export const quoteLineValidator = z.object({
+export const quotePartValidator = z.object({
   id: zfd.text(z.string().optional()),
   quoteId: z.string(),
-  itemId: z.string().min(1, { message: "Part is required" }),
+  name: z.string().min(1, { message: "Name is required" }),
+  description: zfd.text(z.string().optional()),
+  defaultMethodType: z.enum(methodType, {
+    errorMap: () => ({ message: "Method is required" })
+  }),
+  unitOfMeasureCode: zfd.text(z.string().optional()),
+  modelUploadId: zfd.text(z.string().optional())
+});
+
+/** Validator for creating a new quote line with a quote-only part (no existing item). */
+export const newQuotePartLineValidator = z.object({
+  partSource: z.literal("quotePart"),
+  quoteId: z.string(),
+  quotePartName: z.string().min(1, { message: "Name is required" }),
+  quotePartDescription: zfd.text(z.string().optional()),
+  defaultMethodType: z.enum(methodType, {
+    errorMap: () => ({ message: "Method is required" })
+  }),
+  unitOfMeasureCode: zfd.text(z.string().optional()),
+  modelUploadId: zfd.text(z.string().optional()),
+  customerPartId: zfd.text(z.string().optional()),
+  customerPartRevision: zfd.text(z.string().optional()),
   status: z.enum(quoteLineStatusType, {
     errorMap: () => ({ message: "Status is required" })
   }),
-  estimatorId: zfd.text(z.string().optional()),
-  description: z.string().min(1, { message: "Description is required" }),
-  methodType: z.enum(methodType, {
-    errorMap: () => ({ message: "Method is required" })
-  }),
-  customerPartId: zfd.text(z.string().optional()),
-  customerPartRevision: zfd.text(z.string().optional()),
-  unitOfMeasureCode: zfd.text(
-    z.string().min(1, { message: "Unit of measure is required" })
-  ),
   quantity: z.array(
     zfd.numeric(z.number().min(0.00001, { message: "Quantity is required" }))
   ),
-  modelUploadId: zfd.text(z.string().optional()),
-  noQuoteReason: zfd.text(z.string().optional()),
   taxPercent: zfd.numeric(
     z.number().min(0).max(1, { message: "Tax percent must be between 0 and 1" })
-  ),
-  configuration: z.any().optional()
+  )
 });
+
+export const quoteLineValidator = z
+  .object({
+    id: zfd.text(z.string().optional()),
+    quoteId: z.string(),
+    itemId: zfd.text(z.string().optional()),
+    quotePartId: zfd.text(z.string().optional()),
+    status: z.enum(quoteLineStatusType, {
+      errorMap: () => ({ message: "Status is required" })
+    }),
+    estimatorId: zfd.text(z.string().optional()),
+    description: z.string().min(1, { message: "Description is required" }),
+    methodType: z.enum(methodType, {
+      errorMap: () => ({ message: "Method is required" })
+    }),
+    customerPartId: zfd.text(z.string().optional()),
+    customerPartRevision: zfd.text(z.string().optional()),
+    unitOfMeasureCode: zfd.text(
+      z.string().min(1, { message: "Unit of measure is required" })
+    ),
+    quantity: z.array(
+      zfd.numeric(z.number().min(0.00001, { message: "Quantity is required" }))
+    ),
+    modelUploadId: zfd.text(z.string().optional()),
+    noQuoteReason: zfd.text(z.string().optional()),
+    taxPercent: zfd.numeric(
+      z
+        .number()
+        .min(0)
+        .max(1, { message: "Tax percent must be between 0 and 1" })
+    ),
+    configuration: z.any().optional()
+  })
+  .refine(
+    (data) =>
+      (!!data.itemId && !data.quotePartId) ||
+      (!data.itemId && !!data.quotePartId),
+    {
+      message: "Either Part or Quote Part is required",
+      path: ["itemId"]
+    }
+  );
 
 export const quoteMaterialValidator = z
   .object({

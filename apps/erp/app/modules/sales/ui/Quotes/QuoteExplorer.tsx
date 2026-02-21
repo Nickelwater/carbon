@@ -80,6 +80,7 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
   const { id: userId } = useUser();
   const quoteLineInitialValues = {
     quoteId,
+    partSource: "quotePart" as const,
     description: "",
     estimatorId: userId,
     itemId: "",

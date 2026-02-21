@@ -103,6 +103,7 @@ const QuoteForm = ({ initialValues }: QuoteFormProps) => {
     <Card>
       <ValidatedForm
         method="post"
+        action={isEditing ? undefined : path.to.newQuote}
         validator={quoteValidator}
         defaultValues={initialValues}
       >
