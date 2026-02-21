@@ -20,6 +20,7 @@ import {
   ModalCardHeader,
   ModalCardProvider,
   ModalCardTitle,
+  Switch,
   useDisclosure,
   VStack
 } from "@carbon/react";
@@ -201,9 +202,11 @@ const SalesOrderLineForm = ({
   const deleteDisclosure = useDisclosure();
   const [items] = useItems();
 
-  const isContractCustomer =
+  const canToggleCustomerParts =
     routeData?.customer?.contractCustomer &&
     (routeData?.customerParts?.length ?? 0) > 0;
+  const [useCustomerPartPicker, setUseCustomerPartPicker] = useState(true);
+
   const customerPartOptions = useMemo(
     () =>
       (routeData?.customerParts ?? []).map((cp) => ({
@@ -322,12 +325,30 @@ const SalesOrderLineForm = ({
                   name="modelUploadId"
                   value={itemData?.modelUploadId ?? undefined}
                 />
-                {isContractCustomer && (
+                {canToggleCustomerParts && useCustomerPartPicker && (
                   <Hidden name="salesOrderLineType" value="Part" />
                 )}
                 <VStack>
+                  {canToggleCustomerParts && !isEditing && (
+                    <HStack
+                      spacing={2}
+                      className="w-full items-center gap-2 pb-1"
+                    >
+                      <Switch
+                        variant="small"
+                        label="Customer part numbers"
+                        checked={useCustomerPartPicker}
+                        onCheckedChange={setUseCustomerPartPicker}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {useCustomerPartPicker
+                          ? "Showing this customer's part numbers"
+                          : "Showing internal part numbers"}
+                      </span>
+                    </HStack>
+                  )}
                   <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3">
-                    {isContractCustomer ? (
+                    {canToggleCustomerParts && useCustomerPartPicker ? (
                       <Combobox
                         name="itemId"
                         options={customerPartOptions}
@@ -340,8 +361,6 @@ const SalesOrderLineForm = ({
                               ? option.value
                               : option) ?? "";
                           if (!itemId) return;
-                          // Update itemId synchronously so Combobox's useEffect doesn't overwrite
-                          // the form value with "" before async onChange completes (fixes save + display)
                           setItemData((prev) => ({ ...prev, itemId }));
                           onChange(itemId);
                         }}

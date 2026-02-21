@@ -19,6 +19,7 @@ import {
   ModalCardHeader,
   ModalCardProvider,
   ModalCardTitle,
+  Switch,
   toast,
   useDisclosure,
   VStack
@@ -419,40 +420,62 @@ const QuoteLineForm = ({
                     value={JSON.stringify(configurationValues)}
                   />
                 )}
-                <VStack>
+                <VStack className="w-full">
+                  {!isEditing && (
+                    <HStack
+                      spacing={2}
+                      className="w-full items-center justify-start gap-2 pb-1"
+                    >
+                      <Switch
+                        variant="small"
+                        label="Quote-only part"
+                        checked={partSourceState === "quotePart"}
+                        onCheckedChange={(checked) =>
+                          setPartSourceState(checked ? "quotePart" : "item")
+                        }
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {partSourceState === "quotePart"
+                          ? "Creating a quote-only part"
+                          : "Selecting an existing internal part"}
+                      </span>
+                      <Hidden name="partSource" value={partSourceState} />
+                    </HStack>
+                  )}
                   <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3">
                     <div className="col-span-2 grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-2 auto-rows-min">
-                      {!isEditing && (
-                        <SelectControlled
-                          name="partSource"
-                          label="Part type"
-                          value={partSourceState}
-                          onChange={(v) => {
-                            const next = v?.value as "item" | "quotePart";
-                            if (next) setPartSourceState(next);
-                          }}
-                          options={[
-                            {
-                              label: "Existing part",
-                              value: "item"
-                            },
-                            {
-                              label: "Quote-only part",
-                              value: "quotePart"
-                            }
-                          ]}
-                        />
-                      )}
                       {isQuotePartLine ? (
                         <>
                           <InputControlled
                             name="quotePartName"
-                            label="Part name"
-                            value={itemData.quotePartName ?? ""}
+                            label="Part name / Customer part number"
+                            value={
+                              itemData.quotePartName ??
+                              itemData.customerPartId ??
+                              ""
+                            }
                             onChange={(v) =>
                               setItemData((d) => ({
                                 ...d,
-                                quotePartName: v
+                                quotePartName: v,
+                                customerPartId: v
+                              }))
+                            }
+                          />
+                          <div className="hidden">
+                            <Hidden
+                              name="customerPartId"
+                              value={itemData.customerPartId ?? ""}
+                            />
+                          </div>
+                          <InputControlled
+                            name="customerPartRevision"
+                            label="Customer Part Revision"
+                            value={itemData.customerPartRevision ?? ""}
+                            onChange={(v) =>
+                              setItemData((d) => ({
+                                ...d,
+                                customerPartRevision: v ?? ""
                               }))
                             }
                           />
@@ -582,32 +605,36 @@ const QuoteLineForm = ({
                         }))}
                       />
 
-                      <InputControlled
-                        name="customerPartId"
-                        label="Customer Part Number"
-                        value={itemData.customerPartId}
-                        onChange={(newValue) => {
-                          setItemData((d) => ({
-                            ...d,
-                            customerPartId: newValue
-                          }));
-                        }}
-                        onBlur={(e) => onCustomerPartChange(e.target.value)}
-                      />
-                      <InputControlled
-                        name="customerPartRevision"
-                        label="Customer Part Revision"
-                        value={itemData.customerPartRevision}
-                        onChange={(newValue) => {
-                          setItemData((d) => ({
-                            ...d,
-                            customerPartRevision: newValue
-                          }));
-                        }}
-                        onBlur={(e) =>
-                          onCustomerPartRevisionChange(e.target.value)
-                        }
-                      />
+                      {!isQuotePartLine && (
+                        <>
+                          <InputControlled
+                            name="customerPartId"
+                            label="Customer Part Number"
+                            value={itemData.customerPartId}
+                            onChange={(newValue) => {
+                              setItemData((d) => ({
+                                ...d,
+                                customerPartId: newValue
+                              }));
+                            }}
+                            onBlur={(e) => onCustomerPartChange(e.target.value)}
+                          />
+                          <InputControlled
+                            name="customerPartRevision"
+                            label="Customer Part Revision"
+                            value={itemData.customerPartRevision}
+                            onChange={(newValue) => {
+                              setItemData((d) => ({
+                                ...d,
+                                customerPartRevision: newValue
+                              }));
+                            }}
+                            onBlur={(e) =>
+                              onCustomerPartRevisionChange(e.target.value)
+                            }
+                          />
+                        </>
+                      )}
                       <Number
                         name="taxPercent"
                         label="Tax Percent"
