@@ -3,12 +3,12 @@ import type { Database } from "@carbon/database";
 export function getLineDescription(
   line: Database["public"]["Views"]["quoteLines"]["Row"]
 ) {
-  const customerPartNumber = line.customerPartId
-    ? ` (${line.customerPartId} ${
-        line.customerPartRevision ? `Rev ${line.customerPartRevision}` : ""
-      })`
-    : "";
-  return line?.itemReadableId + customerPartNumber;
+  if (line.customerPartId) {
+    return line.customerPartRevision
+      ? `${line.customerPartId} (Rev: ${line.customerPartRevision})`
+      : line.customerPartId;
+  }
+  return line?.itemReadableId ?? "";
 }
 
 export function getLineDescriptionDetails(

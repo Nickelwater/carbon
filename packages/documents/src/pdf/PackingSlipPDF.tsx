@@ -14,6 +14,8 @@ interface PackingSlipProps extends PDF {
     | Database["public"]["Tables"]["customer"]["Row"]
     | Database["public"]["Tables"]["supplier"]["Row"];
   customerReference?: string;
+  /** Map of source line id (e.g. salesOrderLine.id) -> customer PO for per-line display when multiple orders */
+  customerReferenceByLineId?: Record<string, string | null>;
   sourceDocument?: string;
   sourceDocumentId?: string;
   shipment: Database["public"]["Tables"]["shipment"]["Row"];
@@ -64,6 +66,7 @@ const PackingSlipPDF = ({
   customer,
   meta,
   customerReference,
+  customerReferenceByLineId,
   sourceDocument,
   sourceDocumentId,
   shipment,
@@ -117,9 +120,7 @@ const PackingSlipPDF = ({
               {customer.name && (
                 <Text style={tw("font-bold")}>{customer.name}</Text>
               )}
-              {addressLine1 && (
-                <Text style={tw("mt-1")}>{addressLine1}</Text>
-              )}
+              {addressLine1 && <Text style={tw("mt-1")}>{addressLine1}</Text>}
               {addressLine2 && <Text>{addressLine2}</Text>}
               {(city || stateProvince || postalCode) && (
                 <Text>
@@ -177,9 +178,7 @@ const PackingSlipPDF = ({
               Payment
             </Text>
             <View style={tw("text-[10px] text-gray-800")}>
-              {paymentTerm?.name && (
-                <Text>Terms: {paymentTerm.name}</Text>
-              )}
+              {paymentTerm?.name && <Text>Terms: {paymentTerm.name}</Text>}
             </View>
           </View>
         </View>
@@ -229,9 +228,7 @@ const PackingSlipPDF = ({
                 wrap={false}
               >
                 <View
-                  style={tw(
-                    `w-${hasTrackedEntities ? "5/12" : "7/12"} pr-2`
-                  )}
+                  style={tw(`w-${hasTrackedEntities ? "5/12" : "7/12"} pr-2`)}
                 >
                   <Text style={tw("text-gray-800")}>
                     {getLineDescription(line)}
@@ -239,6 +236,11 @@ const PackingSlipPDF = ({
                   <Text style={tw("text-[8px] text-gray-400 mt-0.5")}>
                     {getLineDescriptionDetails(line)}
                   </Text>
+                  {customerReferenceByLineId?.[line.lineId ?? ""] && (
+                    <Text style={tw("text-[8px] text-gray-600 mt-0.5")}>
+                      PO: {customerReferenceByLineId[line.lineId!]}
+                    </Text>
+                  )}
 
                   {thumbnails &&
                     line.id in thumbnails &&
@@ -252,10 +254,7 @@ const PackingSlipPDF = ({
                     )}
 
                   <View style={tw("mt-1")}>
-                    <Image
-                      src={barcodeDataUrl}
-                      style={tw("max-w-[50%]")}
-                    />
+                    <Image src={barcodeDataUrl} style={tw("max-w-[50%]")} />
                   </View>
                 </View>
                 <Text style={tw("w-2/12 text-right text-gray-600")}>

@@ -2397,6 +2397,26 @@ export async function promoteQuotePartToItem(
     }
   }
 
+  // Transfer quote line unit price to the new part's unit sale price
+  const quotePriceRes = await client
+    .from("quoteLinePrice")
+    .select("unitPrice")
+    .eq("quoteLineId", quoteLineId)
+    .order("quantity", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (quotePriceRes.data?.unitPrice != null) {
+    await client
+      .from("itemUnitSalePrice")
+      .update({
+        unitSalePrice: quotePriceRes.data.unitPrice,
+        updatedBy: userId,
+        updatedAt: today(getLocalTimeZone()).toString()
+      })
+      .eq("itemId", itemId)
+      .eq("companyId", companyId);
+  }
+
   if (
     payload.customerId &&
     payload.customerPartId &&

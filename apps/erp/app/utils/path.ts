@@ -1487,6 +1487,7 @@ export const path = {
       generatePath(`${x}/shipment/${id}/details`),
     shipmentLineDelete: (id: string) =>
       generatePath(`${x}/shipment/lines/${id}/delete`),
+    shipmentLinesAdd: `${x}/shipment/lines/add`,
     shipmentLineSplit: `${x}/shipment/lines/split`,
     shipmentLinesTracking: (id: string) =>
       generatePath(`${x}/shipment/lines/tracking`),

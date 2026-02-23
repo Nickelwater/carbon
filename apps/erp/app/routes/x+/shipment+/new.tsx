@@ -14,7 +14,20 @@ export const handle: Handle = {
   to: path.to.shipments
 };
 
+function isPrefetchRequest(request: Request): boolean {
+  const purpose =
+    request.headers.get("Purpose") ||
+    request.headers.get("X-Purpose") ||
+    request.headers.get("Sec-Purpose") ||
+    request.headers.get("X-Moz");
+  return purpose === "prefetch";
+}
+
 export async function loader({ request }: LoaderFunctionArgs) {
+  if (isPrefetchRequest(request)) {
+    throw redirect(path.to.shipments);
+  }
+
   const { client, companyId, userId } = await requirePermissions(request, {
     create: "inventory"
   });
@@ -108,16 +121,24 @@ export async function loader({ request }: LoaderFunctionArgs) {
       throw redirect(
         path.to.shipmentDetails(warehouseTransferShipment.data.id)
       );
-    default:
+    default: {
+      const body: {
+        type: "shipmentDefault";
+        companyId: string;
+        userId: string;
+        locationId?: string;
+      } = {
+        type: "shipmentDefault",
+        companyId,
+        userId: userId
+      };
+      if (defaults.data?.locationId) {
+        body.locationId = defaults.data.locationId;
+      }
       const defaultShipment = await serviceRole.functions.invoke<{
         id: string;
       }>("create", {
-        body: {
-          type: "shipmentDefault",
-          companyId,
-          locationId: defaults.data?.locationId,
-          userId: userId
-        },
+        body,
         region: FunctionRegion.UsEast1
       });
 
@@ -125,10 +146,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
         console.error(defaultShipment.error);
         throw redirect(
           path.to.shipments,
-          await flash(request, error(error, "Failed to create shipment"))
+          await flash(
+            request,
+            error(defaultShipment.error, "Failed to create shipment")
+          )
         );
       }
 
       throw redirect(path.to.shipmentDetails(defaultShipment.data.id));
+    }
   }
 }

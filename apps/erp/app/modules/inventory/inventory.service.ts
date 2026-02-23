@@ -579,8 +579,7 @@ export async function getShipments(
     .select("*", {
       count: "exact"
     })
-    .eq("companyId", companyId)
-    .neq("sourceDocumentId", "");
+    .eq("companyId", companyId);
 
   if (args.search) {
     query = query.or(
@@ -654,6 +653,50 @@ export async function getShipmentFiles(
     ),
     error: null
   };
+}
+
+export async function getAvailableSalesOrderLinesForCustomer(
+  client: SupabaseClient<Database>,
+  customerId: string,
+  companyId: string,
+  options: { excludeShipmentId?: string } = {}
+) {
+  const orders = await client
+    .from("salesOrder")
+    .select("id")
+    .eq("customerId", customerId)
+    .eq("companyId", companyId)
+    .in("status", ["To Ship", "To Ship and Invoice"]);
+
+  if (orders.error || !orders.data?.length) {
+    return { data: [], error: orders.error };
+  }
+
+  const orderIds = orders.data.map((o) => o.id);
+
+  let lineIdsOnShipment = new Set<string>();
+  if (options.excludeShipmentId) {
+    const existing = await client
+      .from("shipmentLine")
+      .select("lineId")
+      .eq("shipmentId", options.excludeShipmentId);
+    if (!existing.error && existing.data) {
+      existing.data.forEach((r) => lineIdsOnShipment.add(r.lineId));
+    }
+  }
+
+  const result = await client
+    .from("salesOrderLines")
+    .select("*")
+    .in("salesOrderId", orderIds)
+    .gt("quantityToSend", 0)
+    .order("promisedDate", { ascending: true, nullsFirst: false });
+
+  if (result.error) return result;
+  const filtered = lineIdsOnShipment.size
+    ? (result.data ?? []).filter((row) => !lineIdsOnShipment.has(row.id))
+    : (result.data ?? []);
+  return { data: filtered, error: null };
 }
 
 export async function getShipmentRelatedItems(

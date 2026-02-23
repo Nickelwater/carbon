@@ -390,6 +390,7 @@ export const quoteOperationValidator = z
     machineRate: zfd.numeric(z.number().min(0).optional()),
     overheadRate: zfd.numeric(z.number().min(0).optional()),
     laborRate: zfd.numeric(z.number().min(0).optional()),
+    cavityMultiplier: zfd.numeric(z.number().min(1).optional()),
     operationSupplierProcessId: zfd.text(z.string().optional()),
     operationMinimumCost: zfd.numeric(z.number().min(0).optional()),
     operationUnitCost: zfd.numeric(z.number().min(0).optional()),

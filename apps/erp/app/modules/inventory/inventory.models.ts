@@ -194,9 +194,7 @@ export const shipmentValidator = z.object({
   shipmentId: z.string().min(1, { message: "Receipt ID is required" }),
   locationId: zfd.text(z.string().optional()),
   sourceDocument: z.enum(shipmentSourceDocumentType).optional(),
-  sourceDocumentId: zfd.text(
-    z.string().min(1, { message: "Source Document ID is required" })
-  ),
+  sourceDocumentId: zfd.text(z.string().optional()),
   trackingNumber: zfd.text(z.string().optional()),
   shippingMethodId: zfd.text(z.string().optional()),
   sourceDocumentReadableId: zfd.text(z.string().optional()),
