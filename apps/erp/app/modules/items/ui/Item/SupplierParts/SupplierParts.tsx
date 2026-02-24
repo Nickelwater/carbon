@@ -19,8 +19,6 @@ type Part = Pick<
   | "minimumOrderQuantity"
   | "conversionFactor"
   | "customFields"
-  | "lastPurchaseDate"
-  | "lastPOQuantity"
 >;
 
 type SupplierPartsProps = {
@@ -61,24 +59,6 @@ const SupplierParts = ({
         meta: {
           formatter: formatter.format,
           renderTotal: true
-        }
-      },
-      {
-        accessorKey: "lastPurchaseDate",
-        header: "Last Purchase",
-        cell: (item) => {
-          const date = item.getValue<string>();
-          if (!date) return "—";
-          return new Date(date).toLocaleDateString();
-        }
-      },
-      {
-        accessorKey: "lastPOQuantity",
-        header: "Last PO Qty",
-        cell: (item) => {
-          const qty = item.getValue<number>();
-          if (qty == null) return "—";
-          return qty.toLocaleString();
         }
       },
       {

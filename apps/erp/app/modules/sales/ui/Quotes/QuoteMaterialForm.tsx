@@ -26,6 +26,7 @@ import {
   UnitOfMeasure
 } from "~/components/Form";
 import { usePermissions, useUrlParams } from "~/hooks";
+import { lookupBuyPrice as lookupBuyPriceAsync } from "~/modules/items";
 import type { MethodItemType, MethodType } from "~/modules/shared";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
@@ -88,39 +89,7 @@ const QuoteMaterialForm = ({
 
   const lookupBuyPrice = useCallback(
     async (itemId: string, qty: number, fallbackCost: number) => {
-      if (!carbon) return fallbackCost;
-
-      const supplierParts = await carbon
-        .from("supplierPart")
-        .select("id, unitPrice")
-        .eq("itemId", itemId);
-
-      if (!supplierParts.data?.length) return fallbackCost;
-
-      const supplierPartIds = supplierParts.data.map((sp) => sp.id);
-
-      const priceBreak = await carbon
-        .from("supplierPartPrice")
-        .select("unitPrice")
-        .in("supplierPartId", supplierPartIds)
-        .lte("quantity", qty)
-        .order("unitPrice", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (priceBreak.data?.unitPrice != null) {
-        return priceBreak.data.unitPrice;
-      }
-
-      const lowestSupplierPrice = supplierParts.data
-        .filter((sp) => sp.unitPrice != null)
-        .sort((a, b) => (a.unitPrice ?? 0) - (b.unitPrice ?? 0))[0];
-
-      if (lowestSupplierPrice?.unitPrice != null) {
-        return lowestSupplierPrice.unitPrice;
-      }
-
-      return fallbackCost;
+      return lookupBuyPriceAsync(carbon, itemId, qty, fallbackCost);
     },
     [carbon]
   );

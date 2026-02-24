@@ -54,6 +54,7 @@ import QuoteLineRiskRegister from "~/modules/sales/ui/Quotes/QuoteLineRiskRegist
 import { getTagsList } from "~/modules/shared";
 import { getCustomFields, setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
+import type { SupplierPriceMap } from "~/utils/pricing";
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { client, companyId } = await requirePermissions(request, {
@@ -205,6 +206,7 @@ export default function QuoteLine() {
   const quoteData = useRouteData<{
     methods: Tree<QuoteMethod>[];
     quote: Quotation;
+    supplierPriceMap: SupplierPriceMap;
   }>(path.to.quote(quoteId));
 
   const methodTree = useMemo(
@@ -215,7 +217,8 @@ export default function QuoteLine() {
   const getLineCosts = useLineCosts({
     methodTree,
     operations: operations as QuotationOperation[],
-    line
+    line,
+    supplierPriceMap: quoteData?.supplierPriceMap ?? {}
   });
 
   const initialValues = {

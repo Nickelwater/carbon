@@ -36106,9 +36106,6 @@ export type Database = {
           customFields: Json | null
           id: string
           itemId: string
-          lastPOId: string | null
-          lastPOQuantity: number | null
-          lastPurchaseDate: string | null
           minimumOrderQuantity: number | null
           supplierId: string
           supplierPartId: string | null
@@ -36127,9 +36124,6 @@ export type Database = {
           customFields?: Json | null
           id?: string
           itemId: string
-          lastPOId?: string | null
-          lastPOQuantity?: number | null
-          lastPurchaseDate?: string | null
           minimumOrderQuantity?: number | null
           supplierId: string
           supplierPartId?: string | null
@@ -36148,9 +36142,6 @@ export type Database = {
           customFields?: Json | null
           id?: string
           itemId?: string
-          lastPOId?: string | null
-          lastPOQuantity?: number | null
-          lastPurchaseDate?: string | null
           minimumOrderQuantity?: number | null
           supplierId?: string
           supplierPartId?: string | null
@@ -36336,27 +36327,6 @@ export type Database = {
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
           },
-          {
-            foreignKeyName: "supplierPart_lastPOId_fkey"
-            columns: ["lastPOId"]
-            isOneToOne: false
-            referencedRelation: "purchaseOrder"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supplierPart_lastPOId_fkey"
-            columns: ["lastPOId"]
-            isOneToOne: false
-            referencedRelation: "purchaseOrderLocations"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "supplierPart_lastPOId_fkey"
-            columns: ["lastPOId"]
-            isOneToOne: false
-            referencedRelation: "purchaseOrders"
-            referencedColumns: ["id"]
-          },
         ]
       }
       supplierPartPrice: {
@@ -36364,10 +36334,9 @@ export type Database = {
           companyId: string
           createdAt: string
           createdBy: string
-          leadTime: number | null
           quantity: number
           sourceDocumentId: string | null
-          sourceType: string
+          sourceType: Database["public"]["Enums"]["supplierPartPriceSourceType"]
           supplierPartId: string
           unitPrice: number
           updatedAt: string | null
@@ -36377,10 +36346,9 @@ export type Database = {
           companyId: string
           createdAt?: string
           createdBy: string
-          leadTime?: number | null
           quantity?: number
           sourceDocumentId?: string | null
-          sourceType?: string
+          sourceType?: Database["public"]["Enums"]["supplierPartPriceSourceType"]
           supplierPartId: string
           unitPrice: number
           updatedAt?: string | null
@@ -36390,10 +36358,9 @@ export type Database = {
           companyId?: string
           createdAt?: string
           createdBy?: string
-          leadTime?: number | null
           quantity?: number
           sourceDocumentId?: string | null
-          sourceType?: string
+          sourceType?: Database["public"]["Enums"]["supplierPartPriceSourceType"]
           supplierPartId?: string
           unitPrice?: number
           updatedAt?: string | null
@@ -57851,6 +57818,7 @@ export type Database = {
         | "Finance Charge Memo"
         | "Reminder"
         | "Refund"
+      supplierPartPriceSourceType: "Quote" | "Purchase Order" | "Manual Entry"
       supplierQuoteStatus:
         | "Active"
         | "Expired"
@@ -59006,6 +58974,7 @@ export const Constants = {
         "Reminder",
         "Refund",
       ],
+      supplierPartPriceSourceType: ["Quote", "Purchase Order", "Manual Entry"],
       supplierQuoteStatus: [
         "Active",
         "Expired",

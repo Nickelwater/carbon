@@ -65,6 +65,7 @@ import type {
 } from "~/components/SortableList";
 import { SortableList, SortableListItem } from "~/components/SortableList";
 import { usePermissions, useRouteData, useUrlParams, useUser } from "~/hooks";
+import { lookupBuyPrice as lookupBuyPriceAsync } from "~/modules/items";
 import { getLinkToItemDetails } from "~/modules/items/ui/Item/ItemForm";
 import type { MethodItemType, MethodType } from "~/modules/shared";
 import type { Item as ItemType } from "~/stores";
@@ -687,41 +688,10 @@ function MaterialForm({
     });
   };
 
-  const lookupBuyPrice = useCallback(
+  const lookupBuyPriceFn = useCallback(
     async (itemId: string, qty: number, fallbackCost: number) => {
       if (!carbon) return fallbackCost;
-
-      const supplierParts = await carbon
-        .from("supplierPart")
-        .select("id, unitPrice")
-        .eq("itemId", itemId);
-
-      if (!supplierParts.data?.length) return fallbackCost;
-
-      const supplierPartIds = supplierParts.data.map((sp) => sp.id);
-
-      const priceBreak = await carbon
-        .from("supplierPartPrice")
-        .select("unitPrice")
-        .in("supplierPartId", supplierPartIds)
-        .lte("quantity", qty)
-        .order("unitPrice", { ascending: true })
-        .limit(1)
-        .single();
-
-      if (priceBreak.data?.unitPrice != null) {
-        return priceBreak.data.unitPrice;
-      }
-
-      const lowestSupplierPrice = supplierParts.data
-        .filter((sp) => sp.unitPrice != null)
-        .sort((a, b) => (a.unitPrice ?? 0) - (b.unitPrice ?? 0))[0];
-
-      if (lowestSupplierPrice?.unitPrice != null) {
-        return lowestSupplierPrice.unitPrice;
-      }
-
-      return fallbackCost;
+      return lookupBuyPriceAsync(carbon, itemId, qty, fallbackCost);
     },
     [carbon]
   );
@@ -754,7 +724,11 @@ function MaterialForm({
     const isBuyPart = item.data?.defaultMethodType === "Buy";
 
     if (isBuyPart) {
-      unitCost = await lookupBuyPrice(itemId, itemData.quantity ?? 1, unitCost);
+      unitCost = await lookupBuyPriceFn(
+        itemId,
+        itemData.quantity ?? 1,
+        unitCost
+      );
     }
 
     setItemData((d) => ({
@@ -787,7 +761,7 @@ function MaterialForm({
         .single();
 
       const fallbackCost = itemCost.data?.unitCost ?? 0;
-      const unitCost = await lookupBuyPrice(
+      const unitCost = await lookupBuyPriceFn(
         itemData.itemId,
         newQty,
         fallbackCost
@@ -795,7 +769,7 @@ function MaterialForm({
 
       setItemData((d) => ({ ...d, unitCost }));
     },
-    [carbon, itemData.methodType, itemData.itemId, lookupBuyPrice]
+    [carbon, itemData.methodType, itemData.itemId, lookupBuyPriceFn]
   );
 
   const sourceDisclosure = useDisclosure();

@@ -19,21 +19,45 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { supplierPartId } = params;
   if (!supplierPartId) throw new Error("Could not find supplierPartId");
 
-  const supplierPart = await client
-    .from("supplierPart")
-    .select("*")
-    .eq("id", supplierPartId)
-    .eq("companyId", companyId)
-    .single();
+  const [supplierPartResult, priceBreaksResult] = await Promise.all([
+    client
+      .from("supplierPart")
+      .select("*")
+      .eq("id", supplierPartId)
+      .eq("companyId", companyId)
+      .single(),
+    client
+      .from("supplierPartPrice")
+      .select("quantity, unitPrice, sourceType, sourceDocumentId, createdAt")
+      .eq("supplierPartId", supplierPartId)
+      .order("quantity", { ascending: true })
+  ]);
 
-  if (!supplierPart?.data) throw new Error("Could not find supplier part");
+  if (!supplierPartResult?.data)
+    throw new Error("Could not find supplier part");
 
-  return { supplierPart: supplierPart.data };
+  const supplierPart = supplierPartResult.data;
+
+  const purchasingHistory = await client
+    .from("purchaseOrderLine")
+    .select(
+      "id, purchaseQuantity, unitPrice, purchaseOrderId, purchaseOrder!inner(purchaseOrderId, supplierId, orderDate)"
+    )
+    .eq("itemId", supplierPart.itemId)
+    .eq("purchaseOrder.supplierId", supplierPart.supplierId)
+    .order("createdAt", { ascending: false })
+    .limit(10);
+
+  return {
+    supplierPart,
+    priceBreaks: priceBreaksResult.data ?? [],
+    purchasingHistory: purchasingHistory.data ?? []
+  };
 }
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId } = await requirePermissions(request, {
+  const { client, userId, companyId } = await requirePermissions(request, {
     update: "parts"
   });
 
@@ -42,6 +66,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (!supplierPartId) throw new Error("Could not find supplierPartId");
 
   const formData = await request.formData();
+
   const validation = await validator(supplierPartValidator).validate(formData);
 
   if (validation.error) {
@@ -62,6 +87,31 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return { success: false, message: "Failed to update supplier part" };
   }
 
+  const priceBreaksRaw = formData.get("priceBreaks");
+  if (priceBreaksRaw) {
+    const priceBreaks = JSON.parse(priceBreaksRaw as string) as {
+      quantity: number;
+      unitPrice: number;
+    }[];
+    await client
+      .from("supplierPartPrice")
+      .delete()
+      .eq("supplierPartId", supplierPartId);
+    if (priceBreaks.length > 0) {
+      await client.from("supplierPartPrice").insert(
+        priceBreaks.map((pb) => ({
+          supplierPartId,
+          quantity: pb.quantity,
+          unitPrice: pb.unitPrice,
+          sourceType: "Manual Entry" as const,
+          companyId,
+          createdBy: userId,
+          updatedBy: userId
+        }))
+      );
+    }
+  }
+
   throw redirect(
     path.to.materialPurchasing(itemId),
     await flash(request, success("Supplier part updated"))
@@ -70,7 +120,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
 export default function EditMaterialSupplierRoute() {
   const { itemId } = useParams();
-  const { supplierPart } = useLoaderData<typeof loader>();
+  const { supplierPart, priceBreaks, purchasingHistory } =
+    useLoaderData<typeof loader>();
 
   if (!itemId) throw new Error("itemId not found");
 
@@ -89,10 +140,7 @@ export default function EditMaterialSupplierRoute() {
     unitPrice: supplierPart.unitPrice ?? 0,
     supplierUnitOfMeasureCode: supplierPart.supplierUnitOfMeasureCode ?? "EA",
     minimumOrderQuantity: supplierPart.minimumOrderQuantity ?? 1,
-    conversionFactor: supplierPart.conversionFactor ?? 1,
-    lastPurchaseDate: supplierPart.lastPurchaseDate,
-    lastPOQuantity: supplierPart.lastPOQuantity,
-    lastPOId: supplierPart.lastPOId
+    conversionFactor: supplierPart.conversionFactor ?? 1
   };
 
   return (
@@ -100,6 +148,8 @@ export default function EditMaterialSupplierRoute() {
       type="Material"
       initialValues={initialValues}
       unitOfMeasureCode={routeData?.materialSummary?.unitOfMeasureCode ?? ""}
+      priceBreaks={priceBreaks}
+      purchasingHistory={purchasingHistory}
       onClose={onClose}
     />
   );

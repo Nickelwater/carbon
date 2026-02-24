@@ -1508,9 +1508,6 @@ serve(async (req: Request) => {
                 (selectedLine.supplierUnitPrice /
                   (exchangeRate === 0 ? 1 : exchangeRate)) /
                 (line.conversionFactor ?? 1);
-              const quantityInInventoryUnits =
-                selectedLine.quantity * (line.conversionFactor ?? 1);
-
               supplierPartMap.set(key, {
                 companyId,
                 supplierId: quote.data?.supplierId!,
@@ -1520,9 +1517,6 @@ serve(async (req: Request) => {
                 itemId: line.itemId!,
                 createdBy: userId,
                 unitPrice: unitPriceInInventoryUnit,
-                lastPurchaseDate: new Date().toISOString(),
-                lastPOQuantity: quantityInInventoryUnits,
-                lastPOId: insertedPurchaseOrderId,
               });
             });
 
@@ -1540,9 +1534,6 @@ serve(async (req: Request) => {
                   .doUpdateSet((eb) => ({
                     supplierPartId: eb.ref("excluded.supplierPartId"),
                     unitPrice: eb.ref("excluded.unitPrice"),
-                    lastPurchaseDate: eb.ref("excluded.lastPurchaseDate"),
-                    lastPOQuantity: eb.ref("excluded.lastPOQuantity"),
-                    lastPOId: eb.ref("excluded.lastPOId"),
                   }))
               )
               .execute();
@@ -1588,7 +1579,7 @@ serve(async (req: Request) => {
                   quantity: selectedLine.quantity,
                   unitPrice: unitPriceInInventoryUnit,
                   leadTime: selectedLine.leadTime ?? 0,
-                  sourceType: "PurchaseOrder",
+                  sourceType: "Purchase Order",
                   sourceDocumentId: insertedPurchaseOrderId,
                   companyId,
                   createdBy: userId,

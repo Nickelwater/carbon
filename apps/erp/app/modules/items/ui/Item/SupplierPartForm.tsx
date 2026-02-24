@@ -1,20 +1,47 @@
-import { useCarbon } from "@carbon/auth";
 import { ValidatedForm } from "@carbon/form";
 import {
   Button,
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
   Drawer,
   DrawerBody,
   DrawerContent,
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuIcon,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
   HStack,
+  IconButton,
+  Table,
+  Tbody,
+  Td,
+  Th,
+  Thead,
+  Tr,
   toast,
   VStack
 } from "@carbon/react";
-import { useEffect, useState } from "react";
-import { useFetcher, useParams } from "react-router";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious
+} from "@carbon/react/Carousel";
+import { formatDate } from "@carbon/utils";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { LuEllipsisVertical, LuTrash } from "react-icons/lu";
+import { Link, useFetcher, useParams } from "react-router";
 import type { z } from "zod";
+import { EditableNumber } from "~/components/Editable";
 import {
   ConversionFactor,
   CustomFormFields,
@@ -26,14 +53,42 @@ import {
   Supplier,
   UnitOfMeasure
 } from "~/components/Form";
+import Grid from "~/components/Grid";
 import { useCurrencyFormatter, usePermissions, useUser } from "~/hooks";
 import { path } from "~/utils/path";
 import { supplierPartValidator } from "../../items.models";
+
+type PriceBreak = {
+  quantity: number;
+  unitPrice: number;
+  sourceType: string;
+  sourceDocumentId: string | null;
+  createdAt: string;
+};
+
+type PriceBreakRow = {
+  quantity: number;
+  unitPrice: number;
+};
+
+type PurchaseHistoryItem = {
+  id: string;
+  purchaseQuantity: number | null;
+  unitPrice: number | null;
+  purchaseOrderId: string;
+  purchaseOrder: {
+    purchaseOrderId: string;
+    supplierId: string;
+    orderDate: string | null;
+  };
+};
 
 type SupplierPartFormProps = {
   initialValues: z.infer<typeof supplierPartValidator>;
   type: "Part" | "Service" | "Tool" | "Consumable" | "Material";
   unitOfMeasureCode: string;
+  priceBreaks?: PriceBreak[];
+  purchasingHistory?: PurchaseHistoryItem[];
   onClose: () => void;
 };
 
@@ -41,11 +96,11 @@ const SupplierPartForm = ({
   initialValues,
   type,
   unitOfMeasureCode,
+  priceBreaks: initialPriceBreaks = [],
+  purchasingHistory = [],
   onClose
 }: SupplierPartFormProps) => {
-  const { carbon } = useCarbon();
   const permissions = usePermissions();
-  const formatter = useCurrencyFormatter();
 
   const { company } = useUser();
   const baseCurrency = company?.baseCurrencyCode ?? "USD";
@@ -60,6 +115,13 @@ const SupplierPartForm = ({
     string | undefined
   >(initialValues.supplierUnitOfMeasureCode);
 
+  const [priceBreaks, setPriceBreaks] = useState<PriceBreakRow[]>(
+    initialPriceBreaks.map((pb) => ({
+      quantity: pb.quantity,
+      unitPrice: pb.unitPrice
+    }))
+  );
+
   const isEditing = initialValues.id !== undefined;
   const isDisabled = isEditing
     ? !permissions.can("update", "parts")
@@ -67,29 +129,6 @@ const SupplierPartForm = ({
 
   const action = getAction(isEditing, type, itemId, initialValues.id);
   const fetcher = useFetcher<{ success: boolean; message: string }>();
-
-  // Fetch price breaks for existing supplier parts
-  const [priceBreaks, setPriceBreaks] = useState<
-    {
-      quantity: number;
-      unitPrice: number;
-      leadTime: number | null;
-      sourceType: string;
-    }[]
-  >([]);
-
-  useEffect(() => {
-    if (!carbon || !isEditing || !initialValues.id) return;
-
-    carbon
-      .from("supplierPartPrice")
-      .select("quantity, unitPrice, leadTime, sourceType")
-      .eq("supplierPartId", initialValues.id)
-      .order("quantity", { ascending: true })
-      .then(({ data }) => {
-        if (data?.length) setPriceBreaks(data);
-      });
-  }, [carbon, isEditing, initialValues.id]);
 
   useEffect(() => {
     if (fetcher.data?.success) {
@@ -123,6 +162,7 @@ const SupplierPartForm = ({
           <DrawerBody>
             <Hidden name="id" />
             <Hidden name="itemId" />
+            <Hidden name="priceBreaks" value={JSON.stringify(priceBreaks)} />
 
             <VStack spacing={4}>
               <Supplier name="supplierId" label="Supplier" />
@@ -136,64 +176,6 @@ const SupplierPartForm = ({
                   currency: baseCurrency
                 }}
               />
-              {/* last purchase info (read-only) */}
-              {initialValues.lastPurchaseDate && (
-                <div className="text-sm text-muted-foreground bg-muted/50 rounded-md p-3 space-y-1">
-                  <div className="font-medium text-foreground">
-                    Last Purchase Info
-                  </div>
-                  <div>
-                    Date:{" "}
-                    {new Date(
-                      initialValues.lastPurchaseDate
-                    ).toLocaleDateString()}
-                  </div>
-                  {initialValues.lastPOQuantity != null && (
-                    <div>
-                      Quantity: {initialValues.lastPOQuantity.toLocaleString()}
-                    </div>
-                  )}
-                </div>
-              )}
-              {/* Show quantity price breaks if available */}
-              {priceBreaks.length > 0 && (
-                <div className="text-sm bg-muted/50 rounded-md p-3 space-y-2 w-full">
-                  <div className="font-medium text-foreground">
-                    Price Breaks
-                  </div>
-                  <table className="w-full text-sm">
-                    <thead>
-                      <tr className="text-muted-foreground border-b">
-                        <th className="text-left py-1">Qty</th>
-                        <th className="text-right py-1">Unit Price</th>
-                        <th className="text-right py-1">Lead Time</th>
-                        <th className="text-right py-1">Source</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {priceBreaks.map((pb) => (
-                        <tr
-                          key={pb.quantity}
-                          className="border-b last:border-0"
-                        >
-                          <td className="py-1">
-                            {pb.quantity.toLocaleString()}
-                          </td>
-                          <td className="text-right py-1">
-                            {formatter.format(pb.unitPrice)}
-                          </td>
-                          <td className="text-right py-1">
-                            {pb.leadTime != null ? `${pb.leadTime}d` : "—"}
-                          </td>
-                          <td className="text-right py-1 text-muted-foreground">
-                            {pb.sourceType}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
               <UnitOfMeasure
                 name="supplierUnitOfMeasureCode"
                 label="Unit of Measure"
@@ -213,6 +195,16 @@ const SupplierPartForm = ({
                 minValue={0}
               />
               <CustomFormFields table="partSupplier" />
+              <PriceBreaks
+                priceBreaks={priceBreaks}
+                onChange={setPriceBreaks}
+                baseCurrency={baseCurrency}
+                isDisabled={isDisabled}
+              />
+              <PurchaseHistory
+                history={purchasingHistory}
+                baseCurrency={baseCurrency}
+              />
             </VStack>
           </DrawerBody>
           <DrawerFooter>
@@ -234,6 +226,197 @@ const SupplierPartForm = ({
     </Drawer>
   );
 };
+
+function PurchaseHistory({
+  history,
+  baseCurrency
+}: {
+  history: PurchaseHistoryItem[];
+  baseCurrency: string;
+}) {
+  if (history.length === 0) return null;
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Purchase History</CardTitle>
+        <CardDescription>
+          <span className="text-sm text-muted-foreground">
+            {history.length} order{history.length !== 1 ? "s" : ""}
+          </span>
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Carousel className="w-full">
+          <CarouselContent className="-ml-4">
+            {history.map((line) => (
+              <CarouselItem
+                key={line.id}
+                className="pl-4 basis-full lg:basis-1/2"
+              >
+                <Card className="w-full p-0">
+                  <CardContent className="p-4">
+                    <HStack className="flex justify-between">
+                      <Link
+                        to={path.to.purchaseOrder(line.purchaseOrderId)}
+                        className="text-sm font-medium hover:underline"
+                      >
+                        {line.purchaseOrder.purchaseOrderId}
+                      </Link>
+                      <span className="text-xs text-muted-foreground">
+                        {line.purchaseOrder.orderDate
+                          ? formatDate(line.purchaseOrder.orderDate)
+                          : "—"}
+                      </span>
+                    </HStack>
+                    <div className="my-4">
+                      <Table>
+                        <Thead>
+                          <Tr className="border-b border-border">
+                            <Th>
+                              <span className="font-medium">Quantity</span>
+                            </Th>
+                            <Th>
+                              <span className="font-medium">Price</span>
+                            </Th>
+                          </Tr>
+                        </Thead>
+                        <Tbody>
+                          <Tr>
+                            <Td>{line.purchaseQuantity}</Td>
+                            <Td>
+                              {new Intl.NumberFormat("en-US", {
+                                style: "currency",
+                                currency: baseCurrency
+                              }).format(line.unitPrice ?? 0)}
+                            </Td>
+                          </Tr>
+                        </Tbody>
+                      </Table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </CarouselItem>
+            ))}
+          </CarouselContent>
+          {history.length > 1 && (
+            <div className="flex justify-between mt-4">
+              <CarouselPrevious />
+              <CarouselNext />
+            </div>
+          )}
+        </Carousel>
+      </CardContent>
+    </Card>
+  );
+}
+
+function PriceBreaks({
+  priceBreaks,
+  onChange,
+  baseCurrency,
+  isDisabled
+}: {
+  priceBreaks: PriceBreakRow[];
+  onChange: React.Dispatch<React.SetStateAction<PriceBreakRow[]>>;
+  baseCurrency: string;
+  isDisabled: boolean;
+}) {
+  const formatter = useCurrencyFormatter();
+
+  const removeRow = useCallback(
+    (index: number) => {
+      onChange((prev) => prev.filter((_, i) => i !== index));
+    },
+    [onChange]
+  );
+
+  const addRow = useCallback(() => {
+    onChange((prev) => [...prev, { quantity: 0, unitPrice: 0 }]);
+  }, [onChange]);
+
+  const noOpMutation = useCallback(
+    async (_accessorKey: string, _newValue: unknown, _row: PriceBreakRow) =>
+      ({
+        data: null,
+        error: null,
+        count: null,
+        status: 200,
+        statusText: "OK"
+      }) as const,
+    []
+  );
+
+  const editableComponents = useMemo(
+    () => ({
+      quantity: EditableNumber(noOpMutation),
+      unitPrice: EditableNumber(noOpMutation, {
+        formatOptions: { style: "currency", currency: baseCurrency }
+      })
+    }),
+    [noOpMutation, baseCurrency]
+  );
+
+  const columns = useMemo<ColumnDef<PriceBreakRow>[]>(
+    () => [
+      {
+        accessorKey: "quantity",
+        header: "Quantity",
+        cell: ({ row }) => (
+          <HStack className="justify-between min-w-[80px]">
+            <span>{row.original.quantity}</span>
+            {!isDisabled && (
+              <div className="relative w-6 h-5">
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <IconButton
+                      aria-label="Price break actions"
+                      icon={<LuEllipsisVertical />}
+                      size="md"
+                      className="absolute right-[-1px] top-[-6px]"
+                      variant="ghost"
+                      onClick={(e) => e.stopPropagation()}
+                    />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <DropdownMenuItem
+                      onClick={() => removeRow(row.index)}
+                      destructive
+                    >
+                      <DropdownMenuIcon icon={<LuTrash />} />
+                      Delete Price Break
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            )}
+          </HStack>
+        )
+      },
+      {
+        accessorKey: "unitPrice",
+        header: "Unit Price",
+        cell: ({ row }) => formatter.format(row.original.unitPrice)
+      }
+    ],
+    [isDisabled, removeRow, formatter]
+  );
+
+  return (
+    <div className="space-y-3 w-full">
+      <span className="font-medium text-sm">Price Breaks</span>
+      <Grid<PriceBreakRow>
+        data={priceBreaks}
+        columns={columns}
+        canEdit={!isDisabled}
+        editableComponents={editableComponents}
+        onDataChange={onChange}
+        onNewRow={!isDisabled ? addRow : undefined}
+        contained={false}
+      />
+    </div>
+  );
+}
 
 export default SupplierPartForm;
 
