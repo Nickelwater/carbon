@@ -123,7 +123,9 @@ export async function linkActionToJiraIssue(
     .select("nonConformanceId");
 
   // Delete any existing Jira mapping for this action
-  await client
+  // Use service role to bypass RLS (no DELETE policy for authenticated users)
+  const serviceRoleForLink = getCarbonServiceRole();
+  await serviceRoleForLink
     .from("externalIntegrationMapping")
     .delete()
     .eq("entityType", "nonConformanceActionTask")

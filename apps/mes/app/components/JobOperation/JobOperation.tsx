@@ -447,7 +447,7 @@ export const JobOperation = ({
                 Schedule
               </Button>
             </div>
-            <div className="hidden md:flex flex-shrink-0 items-center justify-end gap-2">
+            <div className="flex flex-shrink-0 items-center justify-end gap-2">
               <TabsList className="md:ml-auto">
                 <TabsTrigger value="details">Details</TabsTrigger>
                 <TabsTrigger
@@ -471,7 +471,7 @@ export const JobOperation = ({
           </HStack>
         </header>
 
-        <div className="hidden md:flex items-center justify-between px-4 lg:pl-6 py-2 h-[var(--header-height)] bg-background gap-4 max-w-[100vw] overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent">
+        <div className="flex flex-wrap items-center justify-between px-4 lg:pl-6 py-2 min-h-[var(--header-height)] bg-background gap-2 md:gap-4 max-w-[100vw] overflow-x-hidden scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent">
           <HStack className="min-w-22 justify-between">
             <Heading size="h4">{operation.jobReadableId}</Heading>
 
@@ -514,7 +514,7 @@ export const JobOperation = ({
             </DropdownMenu>
           </HStack>
 
-          <HStack className="justify-end items-center gap-2">
+          <HStack className="hidden md:flex justify-end items-center gap-2">
             {job.customer?.name && (
               <HStack className="justify-start space-x-2">
                 <LuSquareUser className="text-muted-foreground" />
@@ -580,8 +580,8 @@ export const JobOperation = ({
         </div>
         <Separator />
 
-        <TabsContent value="details" className="flex-col hidden md:flex">
-          <ScrollArea className="w-full pr-[calc(var(--controls-width))] h-[calc(100dvh-var(--header-height)*2-var(--controls-height)-2rem)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent">
+        <TabsContent value="details" className="flex flex-col">
+          <ScrollArea className="w-full md:pr-[calc(var(--controls-width))] h-[calc(100dvh-var(--header-height)*2-var(--controls-height)-2rem)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent">
             <div className="flex items-start justify-between p-4 lg:p-6">
               <HStack>
                 {thumbnailPath && (
@@ -1051,32 +1051,34 @@ export const JobOperation = ({
                                             ) : null}
                                           </HStack>
                                         </Td>
-                                        <Td className="flex flex-row items-center gap-1">
-                                          <Badge variant="secondary">
-                                            <MethodIcon
-                                              type={material.methodType ?? ""}
-                                              isKit={material.kit ?? false}
-                                              className="mr-2"
+                                        <Td className="hidden lg:table-cell">
+                                          <div className="flex flex-row items-center gap-1">
+                                            <Badge variant="secondary">
+                                              <MethodIcon
+                                                type={material.methodType ?? ""}
+                                                isKit={material.kit ?? false}
+                                                className="mr-2"
+                                              />
+                                              {material.methodType === "Make" &&
+                                              material.kit
+                                                ? "Kit"
+                                                : material.methodType}
+                                            </Badge>
+                                            <LuArrowLeft
+                                              className={cn(
+                                                material.methodType === "Make"
+                                                  ? "rotate-180"
+                                                  : ""
+                                              )}
                                             />
-                                            {material.methodType === "Make" &&
-                                            material.kit
-                                              ? "Kit"
-                                              : material.methodType}
-                                          </Badge>
-                                          <LuArrowLeft
-                                            className={cn(
-                                              material.methodType === "Make"
-                                                ? "rotate-180"
-                                                : ""
-                                            )}
-                                          />
-                                          <Badge variant="secondary">
-                                            <LuGitPullRequest className="size-3 mr-1" />
-                                            {material.shelfName ??
-                                              (material.methodType === "Make"
-                                                ? "WIP"
-                                                : "Default Shelf")}
-                                          </Badge>
+                                            <Badge variant="secondary">
+                                              <LuGitPullRequest className="size-3 mr-1" />
+                                              {material.shelfName ??
+                                                (material.methodType === "Make"
+                                                  ? "WIP"
+                                                  : "Default Shelf")}
+                                            </Badge>
+                                          </div>
                                         </Td>
 
                                         <Td>
@@ -2050,20 +2052,27 @@ export const JobOperation = ({
         {!["chat"].includes(activeTab) && (
           <Times>
             <div className=" lg:p-6">
-              <div className="flex flex-col w-full gap-2">
+              <div className="w-full gap-2 grid grid-cols-[auto_auto_1fr]">
                 {operation.setupDuration > 0 && (
-                  <HStack>
+                  <>
                     <Tooltip>
                       <TooltipTrigger>
                         <LuTimer className="h-4 w-4 mr-1" />
                       </TooltipTrigger>
                       <TooltipContent side="right">Setup</TooltipContent>
                     </Tooltip>
+                    <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap">
+                      {formatDurationMilliseconds(progress.setup, {
+                        style: "short"
+                      })}
+                      /
+                      {formatDurationMilliseconds(operation.setupDuration, {
+                        style: "short"
+                      })}
+                    </span>
                     <BarProgress
-                      label="Setup"
                       gradient
                       invertGradient
-                      value={`${formatDurationMilliseconds(progress.setup, { style: "short" })}/${formatDurationMilliseconds(operation.setupDuration, { style: "short" })}`}
                       progress={
                         (progress.setup / operation.setupDuration) * 100
                       }
@@ -2073,21 +2082,28 @@ export const JobOperation = ({
                           : "bg-emerald-500"
                       }
                     />
-                  </HStack>
+                  </>
                 )}
                 {operation.laborDuration > 0 && (
-                  <HStack>
+                  <>
                     <Tooltip>
                       <TooltipTrigger>
                         <LuHardHat className="h-4 w-4 mr-1" />
                       </TooltipTrigger>
                       <TooltipContent side="right">Labor</TooltipContent>
                     </Tooltip>
+                    <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap">
+                      {formatDurationMilliseconds(progress.labor, {
+                        style: "short"
+                      })}
+                      /
+                      {formatDurationMilliseconds(operation.laborDuration, {
+                        style: "short"
+                      })}
+                    </span>
                     <BarProgress
-                      label="Labor"
                       gradient
                       invertGradient
-                      value={`${formatDurationMilliseconds(progress.labor, { style: "short" })}/${formatDurationMilliseconds(operation.laborDuration, { style: "short" })}`}
                       progress={
                         (progress.labor / operation.laborDuration) * 100
                       }
@@ -2097,21 +2113,28 @@ export const JobOperation = ({
                           : "bg-emerald-500"
                       }
                     />
-                  </HStack>
+                  </>
                 )}
                 {operation.machineDuration > 0 && (
-                  <HStack>
+                  <>
                     <Tooltip>
                       <TooltipTrigger>
                         <LuHammer className="h-4 w-4 mr-1" />
                       </TooltipTrigger>
                       <TooltipContent side="right">Machine</TooltipContent>
                     </Tooltip>
+                    <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap">
+                      {formatDurationMilliseconds(progress.machine, {
+                        style: "short"
+                      })}
+                      /
+                      {formatDurationMilliseconds(operation.machineDuration, {
+                        style: "short"
+                      })}
+                    </span>
                     <BarProgress
-                      label="Machine"
                       gradient
                       invertGradient
-                      value={`${formatDurationMilliseconds(progress.machine, { style: "short" })}/${formatDurationMilliseconds(operation.machineDuration, { style: "short" })}`}
                       progress={
                         (progress.machine / operation.machineDuration) * 100
                       }
@@ -2121,30 +2144,31 @@ export const JobOperation = ({
                           : "bg-emerald-500"
                       }
                     />
-                  </HStack>
+                  </>
                 )}
-                <HStack>
+                <>
                   <Tooltip>
                     <TooltipTrigger>
                       <FaTasks className="h-4 w-4 mr-1" />
                     </TooltipTrigger>
                     <TooltipContent side="right">Quantity</TooltipContent>
                   </Tooltip>
+                  <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap min-w-[100px]">
+                    {operation.quantityComplete}/{operation.targetQuantity}
+                  </span>
                   <BarProgress
-                    label="Quantity"
                     activeClassName={
                       operation.operationStatus === "Paused" &&
                       operation.quantityComplete < operation.targetQuantity
                         ? "bg-yellow-500"
                         : "bg-emerald-500"
                     }
-                    value={`${operation.quantityComplete}/${operation.targetQuantity}`}
                     progress={
                       (operation.quantityComplete / operation.targetQuantity) *
                       100
                     }
                   />
-                </HStack>
+                </>
               </div>
             </div>
           </Times>
