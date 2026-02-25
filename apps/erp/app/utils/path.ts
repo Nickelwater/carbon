@@ -1289,6 +1289,8 @@ export const path = {
       ),
     quoteDetails: (id: string) => generatePath(`${x}/quote/${id}/details`),
     quoteDrag: (id: string) => generatePath(`${x}/quote/${id}/drag`),
+    quoteLinesReorder: (quoteId: string) =>
+      generatePath(`${x}/quote/${quoteId}/lines/reorder`),
     quoteDuplicate: (id: string) => generatePath(`${x}/quote/${id}/duplicate`),
     quoteExchangeRate: (id: string) =>
       generatePath(`${x}/quote/${id}/exchange-rate`),
@@ -1396,6 +1398,8 @@ export const path = {
       generatePath(`${x}/sales-order/${orderId}/${id}/details`),
     salesOrderLineToJob: (orderId: string, lineId: string) =>
       generatePath(`${x}/sales-order/${orderId}/${lineId}/job`),
+    salesOrderLinesReorder: (orderId: string) =>
+      generatePath(`${x}/sales-order/${orderId}/lines/reorder`),
     salesOrderLinesToJobs: (orderId: string) =>
       generatePath(`${x}/sales-order/${orderId}/lines/jobs`),
     salesOrderPayment: (id: string) =>

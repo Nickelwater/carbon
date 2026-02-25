@@ -972,7 +972,8 @@ export async function getQuoteLines(
     .from("quoteLines")
     .select("*")
     .eq("quoteId", quoteId)
-    .order("itemReadableId", { ascending: true });
+    .order("lineNumber", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true });
 }
 
 export async function getQuoteByExternalId(
@@ -1338,7 +1339,9 @@ export async function getSalesOrderLines(
     .from("salesOrderLines")
     .select("*")
     .eq("salesOrderId", salesOrderId)
-    .order("itemReadableId", { ascending: true });
+    .order("lineNumber", { ascending: true, nullsFirst: false })
+    .order("createdAt", { ascending: true })
+    .order("id", { ascending: true });
 }
 
 export async function getSalesOrderLinesByItemId(
@@ -1548,7 +1551,11 @@ export async function insertSalesOrderLines(
     customFields?: Json;
   })[]
 ) {
-  return client.from("salesOrderLine").insert(salesOrderLines).select("id");
+  const linesWithNumber = salesOrderLines.map((line, index) => ({
+    ...line,
+    lineNumber: index + 1
+  }));
+  return client.from("salesOrderLine").insert(linesWithNumber).select("id");
 }
 
 export async function finalizeQuote(
@@ -2263,8 +2270,41 @@ export async function upsertQuoteLine(
       .select("id")
       .single();
   }
-  const payload = sanitize(quotationLine);
+  const { data: maxLine } = await client
+    .from("quoteLine")
+    .select("lineNumber")
+    .eq("quoteId", quotationLine.quoteId)
+    .order("lineNumber", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextLineNumber = (maxLine?.lineNumber ?? 0) + 1;
+  const payload = {
+    ...sanitize(quotationLine),
+    lineNumber: nextLineNumber
+  };
   return client.from("quoteLine").insert([payload]).select("*").single();
+}
+
+export async function reorderQuoteLines(
+  client: SupabaseClient<Database>,
+  quoteId: string,
+  lineIds: string[],
+  updatedBy: string
+) {
+  const updatePromises = lineIds.map((id, index) =>
+    client
+      .from("quoteLine")
+      .update({ lineNumber: index + 1, updatedBy })
+      .eq("id", id)
+      .eq("quoteId", quoteId)
+      .select("id")
+      .single()
+  );
+  const results = await Promise.all(updatePromises);
+  const firstError = results.find((r) => r.error);
+  return firstError
+    ? { error: firstError.error }
+    : { data: results.map((r) => r.data?.id).filter(Boolean) };
 }
 
 export async function promoteQuotePartToItem(
@@ -3143,11 +3183,47 @@ export async function upsertSalesOrderLine(
 
   salesOrderLine.exchangeRate = salesOrder.data?.exchangeRate ?? 1;
 
+  const { data: maxLine } = await client
+    .from("salesOrderLine")
+    .select("lineNumber")
+    .eq("salesOrderId", salesOrderLine.salesOrderId)
+    .order("lineNumber", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextLineNumber = (maxLine?.lineNumber ?? 0) + 1;
+  const lineToInsert = {
+    ...salesOrderLine,
+    lineNumber: nextLineNumber
+  };
+
   return client
     .from("salesOrderLine")
-    .insert([salesOrderLine])
+    .insert([lineToInsert])
     .select("id")
     .single();
+}
+
+export async function reorderSalesOrderLines(
+  client: SupabaseClient<Database>,
+  salesOrderId: string,
+  lineIds: string[],
+  updatedBy: string
+) {
+  const updatePromises = lineIds.map((id, index) =>
+    client
+      .from("salesOrderLine")
+      .update({ lineNumber: index + 1, updatedBy })
+      .eq("id", id)
+      .eq("salesOrderId", salesOrderId)
+      .select("id")
+      .single()
+  );
+  const results = await Promise.all(updatePromises);
+  const firstError = results.find((r) => r.error);
+  return firstError
+    ? { error: firstError.error }
+    : { data: results.map((r) => r.data?.id).filter(Boolean) };
 }
 
 export async function upsertSalesOrderPayment(

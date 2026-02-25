@@ -492,11 +492,12 @@ serve(async (req: Request) => {
                   line.id in selectedLines &&
                   selectedLines[line.id].quantity > 0
               )
-              .map((line) => {
+              .map((line, index) => {
                 return {
                   id: line.id,
                   salesOrderId: insertedSalesOrderId,
                   salesOrderLineType: line.itemType as "Part",
+                  lineNumber: index + 1,
                   addOnCost: selectedLines![line.id!].addOn,
                   description: line.description,
                   itemId: line.itemId,

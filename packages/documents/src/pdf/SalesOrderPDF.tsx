@@ -228,16 +228,19 @@ const SalesOrderPDF = ({
             "flex flex-row bg-gray-800 py-2 px-3 text-white text-[9px] font-bold"
           )}
         >
-          <Text style={tw("w-1/2")}>Description</Text>
+          <Text style={tw("w-1/12")}>Line</Text>
+          <Text style={tw("w-5/12")}>Description</Text>
           <Text style={tw("w-1/6 text-right")}>Qty</Text>
           <Text style={tw("w-1/6 text-right")}>Unit Price</Text>
           <Text style={tw("w-1/6 text-right")}>Total</Text>
         </View>
 
         {/* Rows */}
-        {salesOrderLines.map((line) => {
+        {salesOrderLines.map((line, index) => {
           const isEven = rowIndex % 2 === 0;
           rowIndex++;
+
+          const lineNum = String(line.lineNumber ?? index + 1).padStart(2, "0");
 
           return (
             <View
@@ -249,7 +252,10 @@ const SalesOrderPDF = ({
               )}
               wrap={false}
             >
-              <View style={tw("w-1/2 pr-2")}>
+              <Text style={tw("w-1/12 text-gray-600 tabular-nums")}>
+                {lineNum}
+              </Text>
+              <View style={tw("w-5/12 pr-2")}>
                 <Text style={tw("text-gray-800")}>
                   {getLineDescription(line)}
                 </Text>
@@ -296,7 +302,7 @@ const SalesOrderPDF = ({
         <View>
           {/* Subtotal - before tax */}
           <View style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}>
-            <View style={tw("w-4/6")} />
+            <View style={tw("w-2/3")} />
             <Text style={tw("w-1/6 text-right text-gray-600")}>Subtotal</Text>
             <Text style={tw("w-1/6 text-right text-gray-800")}>
               {formatter.format(
@@ -313,7 +319,7 @@ const SalesOrderPDF = ({
             <View
               style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
             >
-              <View style={tw("w-4/6")} />
+              <View style={tw("w-2/3")} />
               <Text style={tw("w-1/6 text-right text-gray-600")}>Shipping</Text>
               <Text style={tw("w-1/6 text-right text-gray-800")}>
                 {formatter.format(
@@ -329,7 +335,7 @@ const SalesOrderPDF = ({
             <View
               style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
             >
-              <View style={tw("w-4/6")} />
+              <View style={tw("w-2/3")} />
               <Text style={tw("w-1/6 text-right text-gray-600")}>Taxes</Text>
               <Text style={tw("w-1/6 text-right text-gray-800")}>
                 {formatter.format(
@@ -344,7 +350,7 @@ const SalesOrderPDF = ({
 
           <View style={tw("h-[1px] bg-gray-200")} />
           <View style={tw("flex flex-row py-2 px-3 text-[11px]")}>
-            <View style={tw("w-4/6")} />
+            <View style={tw("w-2/3")} />
             <Text style={tw("w-1/6 text-right text-gray-800 font-bold")}>
               Total
             </Text>

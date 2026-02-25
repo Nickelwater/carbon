@@ -27432,6 +27432,7 @@ export type Database = {
           internalNotes: Json | null
           itemId: string | null
           itemType: string
+          lineNumber: number | null
           locationId: string | null
           methodType: Database["public"]["Enums"]["methodType"]
           modelUploadId: string | null
@@ -27463,6 +27464,7 @@ export type Database = {
           internalNotes?: Json | null
           itemId?: string | null
           itemType?: string
+          lineNumber?: number | null
           locationId?: string | null
           methodType?: Database["public"]["Enums"]["methodType"]
           modelUploadId?: string | null
@@ -27494,6 +27496,7 @@ export type Database = {
           internalNotes?: Json | null
           itemId?: string | null
           itemType?: string
+          lineNumber?: number | null
           locationId?: string | null
           methodType?: Database["public"]["Enums"]["methodType"]
           modelUploadId?: string | null
@@ -31692,6 +31695,7 @@ export type Database = {
           externalNotes: Json | null
           id: string
           internalNotes: Json | null
+          lineNumber: number | null
           invoicedComplete: boolean
           itemId: string | null
           locationId: string | null
@@ -31736,6 +31740,7 @@ export type Database = {
           internalNotes?: Json | null
           invoicedComplete?: boolean
           itemId?: string | null
+          lineNumber?: number | null
           locationId?: string | null
           methodType?: Database["public"]["Enums"]["methodType"]
           modelUploadId?: string | null
@@ -31778,6 +31783,7 @@ export type Database = {
           internalNotes?: Json | null
           invoicedComplete?: boolean
           itemId?: string | null
+          lineNumber?: number | null
           locationId?: string | null
           methodType?: Database["public"]["Enums"]["methodType"]
           modelUploadId?: string | null
@@ -50434,6 +50440,7 @@ export type Database = {
           itemId: string | null
           itemReadableId: string | null
           itemType: string | null
+          lineNumber: number | null
           locationId: string | null
           methodType: Database["public"]["Enums"]["methodType"] | null
           modelId: string | null
@@ -52500,6 +52507,7 @@ export type Database = {
           invoicedComplete: boolean | null
           itemId: string | null
           itemReadableId: string | null
+          lineNumber: number | null
           locationId: string | null
           methodType: Database["public"]["Enums"]["methodType"] | null
           modelId: string | null
