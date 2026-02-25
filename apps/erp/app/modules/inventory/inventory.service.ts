@@ -681,7 +681,7 @@ export async function getAvailableSalesOrderLinesForCustomer(
       .select("lineId")
       .eq("shipmentId", options.excludeShipmentId);
     if (!existing.error && existing.data) {
-      existing.data.forEach((r) => lineIdsOnShipment.add(r.lineId));
+      for (const r of existing.data) lineIdsOnShipment.add(r.lineId);
     }
   }
 

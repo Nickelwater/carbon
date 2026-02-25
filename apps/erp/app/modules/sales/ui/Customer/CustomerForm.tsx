@@ -17,6 +17,7 @@ import { useEffect } from "react";
 import { useFetcher } from "react-router";
 import type { z } from "zod";
 import {
+  // biome-ignore lint/suspicious/noShadowRestrictedNames: form component name
   Boolean,
   Currency,
   CustomerContact,
