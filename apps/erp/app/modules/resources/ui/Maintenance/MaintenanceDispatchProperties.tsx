@@ -24,7 +24,7 @@ import {
   EmployeeAvatar,
   useOptimisticAssignment
 } from "~/components";
-import { Location, WorkCenter } from "~/components/Form";
+import { Location, Procedure, WorkCenter } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";
 import { path } from "~/utils/path";
 import { copyToClipboard } from "~/utils/string";
@@ -346,6 +346,30 @@ const MaintenanceDispatchProperties = () => {
             if (value) {
               onUpdate("source", value.value);
             }
+          }}
+        />
+      </ValidatedForm>
+
+      <ValidatedForm
+        defaultValues={{
+          procedureId: (routeData?.dispatch as any)?.procedureId ?? ""
+        }}
+        validator={z.object({
+          procedureId: z.string().optional()
+        })}
+        className="w-full"
+      >
+        <Procedure
+          isReadOnly={!permissions.can("update", "resources")}
+          label="Procedure"
+          name="procedureId"
+          inline={(value, options) => {
+            const procedure = options.find((o) => o.value === value);
+            return procedure?.label ?? null;
+          }}
+          isClearable
+          onChange={(value) => {
+            onUpdate("procedureId", value?.value ?? null);
           }}
         />
       </ValidatedForm>
