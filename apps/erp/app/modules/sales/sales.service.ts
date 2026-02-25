@@ -34,6 +34,7 @@ import type {
   quoteLineValidator,
   quoteMaterialValidator,
   quoteOperationValidator,
+  quotePartValidator,
   quotePaymentValidator,
   quoteShipmentValidator,
   quoteStatusType,
@@ -423,6 +424,20 @@ export async function getCustomerShipping(
     .select("*")
     .eq("customerId", customerId)
     .single();
+}
+
+export async function getCustomerPartsForCustomer(
+  client: SupabaseClient<Database>,
+  customerId: string,
+  companyId: string
+) {
+  return client
+    .from("customerPartToItem")
+    .select("id, customerPartId, customerPartRevision, itemId")
+    .eq("customerId", customerId)
+    .eq("companyId", companyId)
+    .order("customerPartId")
+    .order("customerPartRevision");
 }
 
 export async function getCustomers(
@@ -957,7 +972,8 @@ export async function getQuoteLines(
     .from("quoteLines")
     .select("*")
     .eq("quoteId", quoteId)
-    .order("itemReadableId", { ascending: true });
+    .order("lineNumber", { ascending: true, nullsFirst: false })
+    .order("id", { ascending: true });
 }
 
 export async function getQuoteByExternalId(
@@ -1323,7 +1339,9 @@ export async function getSalesOrderLines(
     .from("salesOrderLines")
     .select("*")
     .eq("salesOrderId", salesOrderId)
-    .order("itemReadableId", { ascending: true });
+    .order("lineNumber", { ascending: true, nullsFirst: false })
+    .order("createdAt", { ascending: true })
+    .order("id", { ascending: true });
 }
 
 export async function getSalesOrderLinesByItemId(
@@ -1533,7 +1551,11 @@ export async function insertSalesOrderLines(
     customFields?: Json;
   })[]
 ) {
-  return client.from("salesOrderLine").insert(salesOrderLines).select("id");
+  const linesWithNumber = salesOrderLines.map((line, index) => ({
+    ...line,
+    lineNumber: index + 1
+  }));
+  return client.from("salesOrderLine").insert(linesWithNumber).select("id");
 }
 
 export async function finalizeQuote(
@@ -2199,6 +2221,33 @@ export async function upsertQuote(
   }
 }
 
+export async function upsertQuotePart(
+  client: SupabaseClient<Database>,
+  quotePart:
+    | (z.infer<typeof quotePartValidator> & {
+        companyId: string;
+        createdBy: string;
+      })
+    | (z.infer<typeof quotePartValidator> & {
+        id: string;
+        updatedBy: string;
+      })
+) {
+  if ("id" in quotePart && quotePart.id) {
+    return client
+      .from("quotePart")
+      .update(sanitize(quotePart))
+      .eq("id", quotePart.id)
+      .select("id")
+      .single();
+  }
+  return client
+    .from("quotePart")
+    .insert([sanitize(quotePart)])
+    .select("*")
+    .single();
+}
+
 export async function upsertQuoteLine(
   client: SupabaseClient<Database>,
   quotationLine:
@@ -2221,7 +2270,209 @@ export async function upsertQuoteLine(
       .select("id")
       .single();
   }
-  return client.from("quoteLine").insert([quotationLine]).select("*").single();
+  const { data: maxLine } = await client
+    .from("quoteLine")
+    .select("lineNumber")
+    .eq("quoteId", quotationLine.quoteId)
+    .order("lineNumber", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextLineNumber = (maxLine?.lineNumber ?? 0) + 1;
+  const payload = {
+    ...sanitize(quotationLine),
+    lineNumber: nextLineNumber
+  };
+  return client.from("quoteLine").insert([payload]).select("*").single();
+}
+
+export async function reorderQuoteLines(
+  client: SupabaseClient<Database>,
+  quoteId: string,
+  lineIds: string[],
+  updatedBy: string
+) {
+  const updatePromises = lineIds.map((id, index) =>
+    client
+      .from("quoteLine")
+      .update({ lineNumber: index + 1, updatedBy })
+      .eq("id", id)
+      .eq("quoteId", quoteId)
+      .select("id")
+      .single()
+  );
+  const results = await Promise.all(updatePromises);
+  const firstError = results.find((r) => r.error);
+  return firstError
+    ? { error: firstError.error }
+    : { data: results.map((r) => r.data?.id).filter(Boolean) };
+}
+
+export async function promoteQuotePartToItem(
+  client: SupabaseClient<Database>,
+  payload: {
+    quoteId: string;
+    quotePartId: string;
+    quoteLineId: string;
+    companyId: string;
+    userId: string;
+    customerId?: string | null;
+    customerPartId?: string | null;
+    customerPartRevision?: string | null;
+  }
+) {
+  const { quoteId, quotePartId, quoteLineId, companyId, userId } = payload;
+
+  const quotePartRes = await client
+    .from("quotePart")
+    .select("*")
+    .eq("id", quotePartId)
+    .single();
+  if (quotePartRes.error || !quotePartRes.data) {
+    return {
+      data: null,
+      error: quotePartRes.error ?? new Error("Quote part not found")
+    };
+  }
+  const qp = quotePartRes.data as {
+    name: string;
+    description: string | null;
+    defaultMethodType: string;
+    unitOfMeasureCode: string | null;
+    modelUploadId: string | null;
+  };
+
+  const nextIdRes = await client.rpc("get_next_numeric_sequence", {
+    company_id: companyId,
+    item_type: "Part"
+  });
+  const readableId = (nextIdRes.data as string | null) ?? "000000001";
+
+  const itemInsert = await client
+    .from("item")
+    .insert({
+      readableId,
+      revision: "0",
+      name: qp.name,
+      description: qp.description ?? undefined,
+      type: "Part",
+      replenishmentSystem: "Make",
+      defaultMethodType: qp.defaultMethodType,
+      itemTrackingType: "Inventory",
+      unitOfMeasureCode: qp.unitOfMeasureCode ?? "EA",
+      active: true,
+      modelUploadId: qp.modelUploadId ?? undefined,
+      companyId,
+      createdBy: userId
+    })
+    .select("id")
+    .single();
+  if (itemInsert.error) return itemInsert;
+  const itemId = itemInsert.data?.id;
+  if (!itemId)
+    return { data: null, error: new Error("Item id missing after insert") };
+
+  const partInsert = await client.from("part").upsert({
+    id: readableId,
+    companyId,
+    createdBy: userId
+  });
+  if (partInsert.error) return partInsert;
+
+  const lineUpdate = await client
+    .from("quoteLine")
+    .update({
+      itemId,
+      quotePartId: null,
+      updatedBy: userId,
+      updatedAt: today(getLocalTimeZone()).toString()
+    })
+    .eq("id", quoteLineId)
+    .select("id")
+    .single();
+  if (lineUpdate.error) return lineUpdate;
+
+  // Copy quote method (BOM, operations, steps, parameters, tools) to the new part when present
+  const [makeMethodRes, rootQuoteMethodRes] = await Promise.all([
+    client
+      .from("makeMethod")
+      .select("id")
+      .eq("itemId", itemId)
+      .eq("companyId", companyId)
+      .single(),
+    client
+      .from("quoteMakeMethod")
+      .select("id")
+      .eq("quoteLineId", quoteLineId)
+      .is("parentMaterialId", null)
+      .eq("companyId", companyId)
+      .maybeSingle()
+  ]);
+  if (makeMethodRes.data?.id && rootQuoteMethodRes.data?.id) {
+    const methodErr = await client.functions
+      .invoke("get-method", {
+        body: {
+          type: "quoteLineToItem",
+          sourceId: `${quoteId}:${quoteLineId}`,
+          targetId: makeMethodRes.data.id,
+          companyId,
+          userId,
+          parts: {
+            billOfMaterial: true,
+            billOfProcess: true,
+            parameters: true,
+            tools: true,
+            steps: true,
+            workInstructions: true
+          }
+        },
+        region: FunctionRegion.UsEast1
+      })
+      .then((r) => r.error);
+    if (methodErr) {
+      return {
+        data: null,
+        error:
+          methodErr instanceof Error ? methodErr : new Error(String(methodErr))
+      };
+    }
+  }
+
+  // Transfer quote line unit price to the new part's unit sale price
+  const quotePriceRes = await client
+    .from("quoteLinePrice")
+    .select("unitPrice")
+    .eq("quoteLineId", quoteLineId)
+    .order("quantity", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (quotePriceRes.data?.unitPrice != null) {
+    await client
+      .from("itemUnitSalePrice")
+      .update({
+        unitSalePrice: quotePriceRes.data.unitPrice,
+        updatedBy: userId,
+        updatedAt: today(getLocalTimeZone()).toString()
+      })
+      .eq("itemId", itemId)
+      .eq("companyId", companyId);
+  }
+
+  if (
+    payload.customerId &&
+    payload.customerPartId &&
+    payload.customerPartId.trim() !== ""
+  ) {
+    const { upsertItemCustomerPart } = await import("../items");
+    await upsertItemCustomerPart(client, {
+      itemId,
+      customerId: payload.customerId,
+      customerPartId: payload.customerPartId.trim(),
+      customerPartRevision: payload.customerPartRevision?.trim() ?? "",
+      companyId
+    });
+  }
+
+  return { data: { itemId, readableId }, error: null };
 }
 
 export async function upsertQuoteLineAdditionalCharges(
@@ -2932,11 +3183,47 @@ export async function upsertSalesOrderLine(
 
   salesOrderLine.exchangeRate = salesOrder.data?.exchangeRate ?? 1;
 
+  const { data: maxLine } = await client
+    .from("salesOrderLine")
+    .select("lineNumber")
+    .eq("salesOrderId", salesOrderLine.salesOrderId)
+    .order("lineNumber", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  const nextLineNumber = (maxLine?.lineNumber ?? 0) + 1;
+  const lineToInsert = {
+    ...salesOrderLine,
+    lineNumber: nextLineNumber
+  };
+
   return client
     .from("salesOrderLine")
-    .insert([salesOrderLine])
+    .insert([lineToInsert])
     .select("id")
     .single();
+}
+
+export async function reorderSalesOrderLines(
+  client: SupabaseClient<Database>,
+  salesOrderId: string,
+  lineIds: string[],
+  updatedBy: string
+) {
+  const updatePromises = lineIds.map((id, index) =>
+    client
+      .from("salesOrderLine")
+      .update({ lineNumber: index + 1, updatedBy })
+      .eq("id", id)
+      .eq("salesOrderId", salesOrderId)
+      .select("id")
+      .single()
+  );
+  const results = await Promise.all(updatePromises);
+  const firstError = results.find((r) => r.error);
+  return firstError
+    ? { error: firstError.error }
+    : { data: results.map((r) => r.data?.id).filter(Boolean) };
 }
 
 export async function upsertSalesOrderPayment(

@@ -1,8 +1,10 @@
 import { getCarbonServiceRole } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
+import type { Database } from "@carbon/database";
 import { PackingSlipPDF } from "@carbon/documents/pdf";
 import type { JSONContent } from "@carbon/react";
 import { renderToStream } from "@react-pdf/renderer";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LoaderFunctionArgs } from "react-router";
 import { getPaymentTerm } from "~/modules/accounting";
 import {
@@ -18,6 +20,7 @@ import {
 } from "~/modules/purchasing";
 import {
   getCustomerLocation,
+  getCustomerLocations,
   getSalesOrder,
   getSalesOrderShipment,
   getSalesTerms
@@ -25,6 +28,39 @@ import {
 import { getCompany, getCompanySettings } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
 import { getLocale } from "~/utils/request";
+
+/** Builds a map of source line id (salesOrderLine.id) -> customerReference for packing slip line-level PO display */
+async function getCustomerReferenceByLineId(
+  client: SupabaseClient<Database>,
+  lines: { lineId: string | null }[]
+): Promise<Record<string, string | null>> {
+  const lineIds = lines
+    .map((l) => l.lineId)
+    .filter((id): id is string => id != null && id !== "");
+  if (lineIds.length === 0) return {};
+
+  const sol = await client
+    .from("salesOrderLine")
+    .select("id, salesOrderId")
+    .in("id", lineIds);
+  if (sol.error || !sol.data?.length) return {};
+
+  const orderIds = [...new Set(sol.data.map((r) => r.salesOrderId))];
+  const so = await client
+    .from("salesOrder")
+    .select("id, customerReference")
+    .in("id", orderIds);
+  if (so.error || !so.data?.length) return {};
+
+  const refByOrderId = Object.fromEntries(
+    so.data.map((r) => [r.id, r.customerReference ?? null])
+  );
+  const result: Record<string, string | null> = {};
+  for (const row of sol.data) {
+    result[row.id] = refByOrderId[row.salesOrderId] ?? null;
+  }
+  return result;
+}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -62,17 +98,121 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     console.error(terms.error);
   }
 
-  if (
-    company.error ||
-    shipment.error ||
-    shipmentLines.error ||
-    terms.error ||
-    shipment.data.sourceDocumentId === null
-  ) {
-    throw new Error("Failed to load sales order");
+  if (company.error || shipment.error || shipmentLines.error || terms.error) {
+    throw new Error("Failed to load packing slip data");
   }
 
   const locale = getLocale(request);
+
+  // Customer-only shipment (no source document): use customerId to load customer and address
+  const isCustomerOnlyShipment =
+    !shipment.data.sourceDocument ||
+    !shipment.data.sourceDocumentId ||
+    shipment.data.sourceDocumentId.trim() === "";
+
+  if (isCustomerOnlyShipment) {
+    const customerId = shipment.data.customerId;
+    if (!customerId) {
+      throw new Error(
+        "Shipment has no source document and no customer; cannot generate packing slip"
+      );
+    }
+
+    const [
+      customer,
+      customerLocations,
+      paymentTerm,
+      shippingMethod,
+      shipmentTracking
+    ] = await Promise.all([
+      serviceRole.from("customer").select("*").eq("id", customerId).single(),
+      getCustomerLocations(serviceRole, customerId),
+      getPaymentTerm(serviceRole, ""),
+      getShippingMethod(serviceRole, shipment.data.shippingMethodId ?? ""),
+      getShipmentTracking(serviceRole, shipment.data.id, companyId)
+    ]);
+
+    if (customer.error || !customer.data) {
+      console.error(customer.error);
+      throw new Error("Failed to load customer");
+    }
+
+    const firstLocation = customerLocations.data?.[0];
+    const shippingAddress = firstLocation?.address ?? null;
+
+    const customerReferenceByLineId = await getCustomerReferenceByLineId(
+      serviceRole,
+      shipmentLines.data ?? []
+    );
+
+    let thumbnails: Record<string, string | null> = {};
+
+    if (companySettings.data?.includeThumbnailsOnSalesPdfs ?? true) {
+      const thumbnailPaths = shipmentLines.data?.reduce<
+        Record<string, string | null>
+      >((acc, line) => {
+        if (line.thumbnailPath) {
+          acc[line.id!] = line.thumbnailPath;
+        }
+        return acc;
+      }, {});
+
+      thumbnails =
+        (thumbnailPaths
+          ? await Promise.all(
+              Object.entries(thumbnailPaths).map(([id, path]) => {
+                if (!path) return null;
+                return getBase64ImageFromSupabase(serviceRole, path).then(
+                  (data) => ({ id, data })
+                );
+              })
+            )
+          : []
+        )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
+          if (thumbnail) acc[thumbnail.id] = thumbnail.data;
+          return acc;
+        }, {}) ?? {};
+    }
+
+    const stream = await renderToStream(
+      <PackingSlipPDF
+        company={company.data}
+        customer={customer.data}
+        locale={locale}
+        meta={{
+          author: "Carbon",
+          keywords: "packing slip",
+          subject: "Packing Slip"
+        }}
+        sourceDocument={undefined}
+        sourceDocumentId={undefined}
+        shipment={shipment.data}
+        shipmentLines={shipmentLines.data ?? []}
+        customerReferenceByLineId={customerReferenceByLineId}
+        // @ts-ignore
+        shippingAddress={shippingAddress}
+        terms={(terms?.data?.salesTerms ?? {}) as JSONContent}
+        paymentTerm={paymentTerm.data ?? { id: "", name: "" }}
+        shippingMethod={shippingMethod.data ?? { id: "", name: "" }}
+        trackedEntities={shipmentTracking.data ?? []}
+        title="Packing Slip"
+        thumbnails={thumbnails}
+      />
+    );
+
+    const body: Buffer = await new Promise((resolve, reject) => {
+      const buffers: Uint8Array[] = [];
+      stream.on("data", (data) => buffers.push(data));
+      stream.on("end", () => resolve(Buffer.concat(buffers)));
+      stream.on("error", reject);
+    });
+
+    const headers = new Headers({
+      "Content-Type": "application/pdf",
+      "Content-Disposition": `inline; filename="${company.data.name} - ${shipment.data.shipmentId}.pdf"`
+    });
+    return new Response(body, { status: 200, headers });
+  }
 
   switch (shipment.data.sourceDocument) {
     case "Sales Order": {
@@ -148,6 +288,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           }, {}) ?? {};
       }
 
+      const customerReferenceByLineId = await getCustomerReferenceByLineId(
+        serviceRole,
+        shipmentLines.data ?? []
+      );
+
       const stream = await renderToStream(
         <PackingSlipPDF
           company={company.data}
@@ -163,6 +308,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           sourceDocumentId={salesOrder.data?.salesOrderId ?? undefined}
           shipment={shipment.data}
           shipmentLines={shipmentLines.data ?? []}
+          customerReferenceByLineId={customerReferenceByLineId}
           // @ts-ignore
           shippingAddress={customerLocation.data?.address ?? null}
           terms={(terms?.data?.salesTerms ?? {}) as JSONContent}
@@ -267,6 +413,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           }, {}) ?? {};
       }
 
+      const customerReferenceByLineId = await getCustomerReferenceByLineId(
+        serviceRole,
+        shipmentLines.data ?? []
+      );
+
       const stream = await renderToStream(
         <PackingSlipPDF
           company={company.data}
@@ -282,6 +433,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           sourceDocumentId={salesInvoice.data?.invoiceId ?? undefined}
           shipment={shipment.data}
           shipmentLines={shipmentLines.data ?? []}
+          customerReferenceByLineId={customerReferenceByLineId}
           // @ts-ignore
           shippingAddress={customerLocation.data?.address ?? null}
           terms={(terms?.data?.salesTerms ?? {}) as JSONContent}

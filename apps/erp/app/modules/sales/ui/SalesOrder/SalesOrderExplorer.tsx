@@ -23,17 +23,25 @@ import {
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
-import { Suspense, useRef, useState } from "react";
+import { Reorder } from "framer-motion";
+import { Suspense, useEffect, useRef, useState } from "react";
 import {
   LuChevronDown,
   LuChevronRight,
   LuCirclePlus,
   LuEllipsisVertical,
+  LuGripVertical,
   LuSearch,
   LuTrash,
   LuTruck
 } from "react-icons/lu";
-import { Await, Link, useNavigate, useParams } from "react-router";
+import {
+  Await,
+  Link,
+  useNavigate,
+  useParams,
+  useRevalidator
+} from "react-router";
 import {
   Empty,
   Hyperlink,
@@ -170,22 +178,67 @@ export default function SalesOrderExplorer() {
     }
   });
 
+  const [lines, setLines] = useState<SalesOrderLine[]>(
+    salesOrderData?.lines ?? []
+  );
+  const revalidator = useRevalidator();
+  useEffect(() => {
+    setLines(salesOrderData?.lines ?? []);
+  }, [salesOrderData?.lines]);
+
+  const canReorder =
+    !isDisabled &&
+    permissions.can("update", "sales") &&
+    (lines?.length ?? 0) > 1;
+
+  const handleReorder = async (newLines: SalesOrderLine[]) => {
+    setLines(newLines);
+    const lineIds = newLines.map((l) => l.id!).filter(Boolean);
+    if (lineIds.length === 0) return;
+    const res = await fetch(path.to.salesOrderLinesReorder(orderId), {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lineIds })
+    });
+    if (res.ok) revalidator.revalidate();
+  };
+
   return (
     <>
       <VStack className="w-full h-[calc(100dvh-99px)] justify-between">
         <VStack
-          className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent"
+          className="flex-1 min-w-0 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full"
           spacing={0}
         >
-          {salesOrderData?.lines && salesOrderData?.lines?.length > 0 ? (
-            salesOrderData?.lines.map((line) => (
-              <SalesOrderLineItem
-                key={line.id}
-                isDisabled={isDisabled}
-                line={line}
-                onDelete={onDeleteLine}
-              />
-            ))
+          {lines && lines.length > 0 ? (
+            <Reorder.Group
+              axis="y"
+              values={lines}
+              onReorder={handleReorder}
+              className="flex w-full min-w-0 flex-col"
+            >
+              {lines.map((line, index) => (
+                <Reorder.Item
+                  key={line.id}
+                  value={line}
+                  id={line.id ?? undefined}
+                  className={cn(
+                    "w-full min-w-0",
+                    canReorder && "cursor-grab active:cursor-grabbing"
+                  )}
+                  dragListener={canReorder}
+                >
+                  <SalesOrderLineItem
+                    isDisabled={isDisabled}
+                    line={line}
+                    lineIndex={index}
+                    onDelete={onDeleteLine}
+                    dragHandle={canReorder}
+                  />
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
           ) : (
             <Empty>
               {permissions.can("update", "sales") && (
@@ -240,14 +293,18 @@ export default function SalesOrderExplorer() {
 
 type SalesOrderLineItemProps = {
   line: SalesOrderLine;
+  lineIndex: number;
   isDisabled: boolean;
   onDelete: (line: SalesOrderLine) => void;
+  dragHandle?: boolean;
 };
 
 function SalesOrderLineItem({
   line,
+  lineIndex,
   isDisabled,
-  onDelete
+  onDelete,
+  dragHandle = false
 }: SalesOrderLineItemProps) {
   const { orderId, lineId } = useParams();
   if (!orderId) throw new Error("Could not find orderId");
@@ -284,6 +341,14 @@ function SalesOrderLineItem({
         onClick={onLineClick}
       >
         <HStack spacing={2} className="flex-grow min-w-0 pr-10">
+          {dragHandle && (
+            <span className="text-muted-foreground flex-shrink-0 touch-none">
+              <LuGripVertical className="h-4 w-4" aria-hidden />
+            </span>
+          )}
+          <span className="text-muted-foreground text-sm tabular-nums w-6 flex-shrink-0">
+            {String(line.lineNumber ?? lineIndex + 1).padStart(2, "0")}
+          </span>
           <ItemThumbnail
             thumbnailPath={line.thumbnailPath}
             type="Part" // TODO

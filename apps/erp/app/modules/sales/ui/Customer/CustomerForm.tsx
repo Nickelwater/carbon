@@ -17,6 +17,8 @@ import { useEffect } from "react";
 import { useFetcher } from "react-router";
 import type { z } from "zod";
 import {
+  // biome-ignore lint/suspicious/noShadowRestrictedNames: form component name
+  Boolean,
   Currency,
   CustomerContact,
   CustomerStatus,
@@ -131,6 +133,12 @@ const CustomerForm = ({
                   />
 
                   <Input name="website" label="Website" />
+
+                  <Boolean
+                    name="contractCustomer"
+                    label="Contract customer"
+                    description="When enabled, sales order line item selection shows this customer's part numbers only."
+                  />
 
                   {isEditing && (
                     <>

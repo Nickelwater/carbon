@@ -30,6 +30,7 @@ import { useFetcher } from "react-router";
 import type { z } from "zod";
 import { TrackingTypeIcon } from "~/components";
 import {
+  Customer,
   CustomFormFields,
   DefaultMethodType,
   Hidden,
@@ -307,6 +308,39 @@ const PartForm = ({ initialValues, type = "card", onClose }: PartFormProps) => {
 
                 <CustomFormFields table="part" tags={initialValues.tags} />
               </div>
+              {!isEditing && (
+                <VStack spacing={4} className="mt-6 w-full">
+                  <span className="text-sm font-medium text-muted-foreground">
+                    Customer part (optional)
+                  </span>
+                  <p className="text-xs text-muted-foreground">
+                    Link this part to a customer&apos;s part number. You can add
+                    more later from the part&apos;s Sales tab.
+                  </p>
+                  <div
+                    className={cn(
+                      "grid w-full gap-x-8 gap-y-4",
+                      "grid-cols-1 md:grid-cols-2"
+                    )}
+                  >
+                    <Customer
+                      name="newPartCustomerId"
+                      label="Customer"
+                      placeholder="Select customer (optional)"
+                    />
+                    <Input
+                      name="newPartCustomerPartId"
+                      label="Customer part number"
+                      placeholder="Optional"
+                    />
+                    <Input
+                      name="newPartCustomerPartRevision"
+                      label="Customer part revision"
+                      placeholder="e.g. 0 or A (optional)"
+                    />
+                  </div>
+                </VStack>
+              )}
               <VStack spacing={2} className="mt-4 w-full">
                 <label
                   htmlFor="model-upload"

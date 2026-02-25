@@ -102,42 +102,82 @@ serve(async (req: Request) => {
 
     switch (type) {
       case "post": {
-        switch (shipment.data?.sourceDocument) {
-          case "Sales Order": {
-            if (!shipment.data.sourceDocumentId)
-              throw new Error("Shipment has no sourceDocumentId");
+        const lineIds = [
+          ...new Set(
+            shipmentLines.data
+              .map((l) => l.lineId)
+              .filter((id): id is string => id != null && id !== "")
+          ),
+        ];
+        const hasSalesOrderLines = lineIds.length > 0;
+        const isSalesOrderSource =
+          shipment.data?.sourceDocument === "Sales Order" &&
+          shipment.data?.sourceDocumentId;
+        const isCustomerOnlyWithLines =
+          (shipment.data?.sourceDocument == null ||
+            shipment.data?.sourceDocument === "") &&
+          hasSalesOrderLines;
+        const isSalesOrderWithLines =
+          shipment.data?.sourceDocument === "Sales Order" && hasSalesOrderLines;
 
-            const [salesOrder, salesOrderLines, salesOrderDelivery] =
-              await Promise.all([
-                client
-                  .from("salesOrder")
-                  .select("*")
-                  .eq("id", shipment.data.sourceDocumentId)
-                  .single(),
-                client
-                  .from("salesOrderLine")
-                  .select("*")
-                  .eq("salesOrderId", shipment.data.sourceDocumentId),
-                client
-                  .from("salesOrderShipment")
-                  .select("shippingCost")
-                  .eq("id", shipment.data.sourceDocumentId)
-                  .single(),
-              ]);
-            if (salesOrder.error)
-              throw new Error("Failed to fetch purchase order");
-            if (salesOrderLines.error)
-              throw new Error("Failed to fetch sales order lines");
-            if (salesOrderDelivery.error)
-              throw new Error("Failed to fetch sales order delivery");
+        if (
+          isSalesOrderSource ||
+          isCustomerOnlyWithLines ||
+          isSalesOrderWithLines
+        ) {
+          if (!hasSalesOrderLines)
+            throw new Error("Shipment has no lines to post");
 
-            const customer = await client
-              .from("customer")
-              .select("*")
-              .eq("id", salesOrder.data.customerId)
-              .eq("companyId", companyId)
-              .single();
-            if (customer.error) throw new Error("Failed to fetch customer");
+          const salesOrderLinesResponse = await client
+            .from("salesOrderLine")
+            .select("*")
+            .in("id", lineIds);
+          if (salesOrderLinesResponse.error)
+            throw new Error("Failed to fetch sales order lines");
+          const salesOrderLines = {
+            data: salesOrderLinesResponse.data ?? [],
+          };
+
+          const salesOrderIds = [
+            ...new Set(salesOrderLines.data.map((l) => l.salesOrderId)),
+          ];
+          const salesOrdersResponse = await client
+            .from("salesOrder")
+            .select("*")
+            .in("id", salesOrderIds);
+          if (salesOrdersResponse.error)
+            throw new Error("Failed to fetch sales orders");
+          const salesOrders = salesOrdersResponse.data ?? [];
+          const firstSalesOrder = salesOrders[0];
+          if (!firstSalesOrder)
+            throw new Error("No sales order found for shipment lines");
+
+          const customerId =
+            shipment.data?.customerId ?? firstSalesOrder.customerId;
+          const customer = await client
+            .from("customer")
+            .select("*")
+            .eq("id", customerId)
+            .eq("companyId", companyId)
+            .single();
+          if (customer.error) throw new Error("Failed to fetch customer");
+
+          const salesOrderDelivery = isSalesOrderSource
+            ? await client
+                .from("salesOrderShipment")
+                .select("shippingCost")
+                .eq("id", shipment.data!.sourceDocumentId!)
+                .single()
+            : { data: null, error: null };
+          if (
+            isSalesOrderSource &&
+            salesOrderDelivery.error
+          )
+            throw new Error("Failed to fetch sales order delivery");
+
+          const salesOrder = isSalesOrderSource
+            ? { data: salesOrders.find((so) => so.id === shipment.data!.sourceDocumentId) ?? firstSalesOrder }
+            : { data: firstSalesOrder };
 
             const itemLedgerInserts: Database["public"]["Tables"]["itemLedger"]["Insert"][] =
               [];
@@ -484,44 +524,44 @@ serve(async (req: Request) => {
                   .execute();
               }
 
-              const salesOrderLines = await trx
-                .selectFrom("salesOrderLine")
-                .select([
-                  "id",
-                  "salesOrderLineType",
-                  "invoicedComplete",
-                  "sentComplete",
-                ])
-                .where("salesOrderId", "=", salesOrder.data.id)
-                .execute();
+              for (const orderId of salesOrderIds) {
+                const orderLines = await trx
+                  .selectFrom("salesOrderLine")
+                  .select([
+                    "id",
+                    "salesOrderLineType",
+                    "invoicedComplete",
+                    "sentComplete",
+                  ])
+                  .where("salesOrderId", "=", orderId)
+                  .execute();
 
-              const areAllLinesInvoiced = salesOrderLines.every(
-                (line) =>
-                  line.salesOrderLineType === "Comment" || line.invoicedComplete
-              );
+                const areAllLinesInvoiced = orderLines.every(
+                  (line) =>
+                    line.salesOrderLineType === "Comment" ||
+                    line.invoicedComplete
+                );
+                const areAllLinesShipped = orderLines.every(
+                  (line) =>
+                    line.salesOrderLineType === "Comment" || line.sentComplete
+                );
 
-              const areAllLinesShipped = salesOrderLines.every(
-                (line) =>
-                  line.salesOrderLineType === "Comment" || line.sentComplete
-              );
+                let status: Database["public"]["Tables"]["salesOrder"]["Row"]["status"] =
+                  "To Ship and Invoice";
+                if (areAllLinesInvoiced && areAllLinesShipped) {
+                  status = "Completed";
+                } else if (areAllLinesShipped) {
+                  status = "To Invoice";
+                } else if (areAllLinesInvoiced) {
+                  status = "To Ship";
+                }
 
-              let status: Database["public"]["Tables"]["salesOrder"]["Row"]["status"] =
-                "To Ship and Invoice";
-              if (areAllLinesInvoiced && areAllLinesShipped) {
-                status = "Completed";
-              } else if (areAllLinesShipped) {
-                status = "To Invoice";
-              } else if (areAllLinesInvoiced) {
-                status = "To Ship";
+                await trx
+                  .updateTable("salesOrder")
+                  .set({ status })
+                  .where("id", "=", orderId)
+                  .execute();
               }
-
-              await trx
-                .updateTable("salesOrder")
-                .set({
-                  status,
-                })
-                .where("id", "=", salesOrder.data.id)
-                .execute();
 
               await trx
                 .updateTable("shipment")
@@ -543,7 +583,7 @@ serve(async (req: Request) => {
                     sourceDocumentReadableId: shipment.data.shipmentId,
                     attributes: {
                       Shipment: shipmentId,
-                      "Sales Order": salesOrder.data.id,
+                      "Sales Order": firstSalesOrder.id,
                     },
                     companyId,
                     createdBy: userId,
@@ -806,7 +846,9 @@ serve(async (req: Request) => {
               }
             });
             break;
-          }
+        }
+
+        switch (shipment.data?.sourceDocument) {
           case "Purchase Order": {
             if (!shipment.data.sourceDocumentId)
               throw new Error("Shipment has no sourceDocumentId");
@@ -1342,6 +1384,14 @@ serve(async (req: Request) => {
           }
 
           default: {
+            if (
+              shipment.data?.sourceDocument == null ||
+              shipment.data?.sourceDocument === ""
+            ) {
+              throw new Error(
+                "Shipment has no source document and no lines to post. Add a customer and shipment lines, or create the shipment from a sales order."
+              );
+            }
             throw new Error(
               `Invalid source document type: ${shipment.data.sourceDocument}`
             );
@@ -1350,34 +1400,86 @@ serve(async (req: Request) => {
         break;
       }
       case "void": {
-        switch (shipment.data?.sourceDocument) {
-          case "Sales Order": {
-            if (!shipment.data.sourceDocumentId)
-              throw new Error("Shipment has no sourceDocumentId");
+        const lineIds = [
+          ...new Set(
+            shipmentLines.data
+              .map((l) => l.lineId)
+              .filter((id): id is string => id != null && id !== "")
+          ),
+        ];
+        const hasSalesOrderLines = lineIds.length > 0;
 
-            const [salesOrder, salesOrderLines] = await Promise.all([
-              client
-                .from("salesOrder")
-                .select("*")
-                .eq("id", shipment.data.sourceDocumentId)
-                .single(),
-              client
+        let voidSourceDocument = shipment.data?.sourceDocument ?? null;
+
+        if (
+          (voidSourceDocument == null || voidSourceDocument === "") &&
+          hasSalesOrderLines
+        ) {
+          voidSourceDocument = "Sales Order";
+        }
+
+        switch (voidSourceDocument) {
+          case "Sales Order": {
+            let salesOrderLines: {
+              data: Database["public"]["Tables"]["salesOrderLine"]["Row"][];
+            };
+            let salesOrderIds: string[];
+            let firstSalesOrder: Database["public"]["Tables"]["salesOrder"]["Row"];
+
+            if (hasSalesOrderLines) {
+              const salesOrderLinesResponse = await client
                 .from("salesOrderLine")
                 .select("*")
-                .eq("salesOrderId", shipment.data.sourceDocumentId),
-            ]);
-            if (salesOrder.error)
-              throw new Error("Failed to fetch sales order");
-            if (salesOrderLines.error)
-              throw new Error("Failed to fetch sales order lines");
+                .in("id", lineIds);
+              if (salesOrderLinesResponse.error)
+                throw new Error("Failed to fetch sales order lines");
 
-            const customer = await client
-              .from("customer")
-              .select("*")
-              .eq("id", salesOrder.data.customerId)
-              .eq("companyId", companyId)
-              .single();
-            if (customer.error) throw new Error("Failed to fetch customer");
+              salesOrderLines = {
+                data: salesOrderLinesResponse.data ?? [],
+              };
+
+              salesOrderIds = [
+                ...new Set(salesOrderLines.data.map((l) => l.salesOrderId)),
+              ];
+
+              const salesOrdersResponse = await client
+                .from("salesOrder")
+                .select("*")
+                .in("id", salesOrderIds);
+              if (salesOrdersResponse.error)
+                throw new Error("Failed to fetch sales orders");
+
+              const salesOrders = salesOrdersResponse.data ?? [];
+              firstSalesOrder = salesOrders[0];
+
+              if (!firstSalesOrder)
+                throw new Error("No sales order found for shipment lines");
+            } else {
+              if (!shipment.data.sourceDocumentId)
+                throw new Error("Shipment has no sourceDocumentId");
+
+              const [salesOrder, salesOrderLinesResponse] = await Promise.all([
+                client
+                  .from("salesOrder")
+                  .select("*")
+                  .eq("id", shipment.data.sourceDocumentId)
+                  .single(),
+                client
+                  .from("salesOrderLine")
+                  .select("*")
+                  .eq("salesOrderId", shipment.data.sourceDocumentId),
+              ]);
+              if (salesOrder.error)
+                throw new Error("Failed to fetch sales order");
+              if (salesOrderLinesResponse.error)
+                throw new Error("Failed to fetch sales order lines");
+
+              salesOrderLines = {
+                data: salesOrderLinesResponse.data ?? [],
+              };
+              salesOrderIds = [salesOrder.data.id];
+              firstSalesOrder = salesOrder.data;
+            }
 
             const itemLedgerInserts: Database["public"]["Tables"]["itemLedger"]["Insert"][] =
               [];
@@ -1648,44 +1750,48 @@ serve(async (req: Request) => {
                   .execute();
               }
 
-              const salesOrderLines = await trx
-                .selectFrom("salesOrderLine")
-                .select([
-                  "id",
-                  "salesOrderLineType",
-                  "invoicedComplete",
-                  "sentComplete",
-                ])
-                .where("salesOrderId", "=", salesOrder.data.id)
-                .execute();
+              // Recalculate and update status for each affected sales order
+              for (const orderId of salesOrderIds) {
+                const orderLines = await trx
+                  .selectFrom("salesOrderLine")
+                  .select([
+                    "id",
+                    "salesOrderLineType",
+                    "invoicedComplete",
+                    "sentComplete",
+                  ])
+                  .where("salesOrderId", "=", orderId)
+                  .execute();
 
-              const areAllLinesInvoiced = salesOrderLines.every(
-                (line) =>
-                  line.salesOrderLineType === "Comment" || line.invoicedComplete
-              );
+                const areAllLinesInvoiced = orderLines.every(
+                  (line) =>
+                    line.salesOrderLineType === "Comment" ||
+                    line.invoicedComplete
+                );
 
-              const areAllLinesShipped = salesOrderLines.every(
-                (line) =>
-                  line.salesOrderLineType === "Comment" || line.sentComplete
-              );
+                const areAllLinesShipped = orderLines.every(
+                  (line) =>
+                    line.salesOrderLineType === "Comment" || line.sentComplete
+                );
 
-              let status: Database["public"]["Tables"]["salesOrder"]["Row"]["status"] =
-                "To Ship and Invoice";
-              if (areAllLinesInvoiced && areAllLinesShipped) {
-                status = "Completed";
-              } else if (areAllLinesShipped) {
-                status = "To Invoice";
-              } else if (areAllLinesInvoiced) {
-                status = "To Ship";
+                let status: Database["public"]["Tables"]["salesOrder"]["Row"]["status"] =
+                  "To Ship and Invoice";
+                if (areAllLinesInvoiced && areAllLinesShipped) {
+                  status = "Completed";
+                } else if (areAllLinesShipped) {
+                  status = "To Invoice";
+                } else if (areAllLinesInvoiced) {
+                  status = "To Ship";
+                }
+
+                await trx
+                  .updateTable("salesOrder")
+                  .set({
+                    status,
+                  })
+                  .where("id", "=", orderId)
+                  .execute();
               }
-
-              await trx
-                .updateTable("salesOrder")
-                .set({
-                  status,
-                })
-                .where("id", "=", salesOrder.data.id)
-                .execute();
 
               // Update shipment status to Voided
               await trx
@@ -1709,7 +1815,7 @@ serve(async (req: Request) => {
                     sourceDocumentReadableId: shipment.data.shipmentId,
                     attributes: {
                       Shipment: shipmentId,
-                      "Sales Order": salesOrder.data.id,
+                      "Sales Order": firstSalesOrder.id,
                     },
                     companyId,
                     createdBy: userId,

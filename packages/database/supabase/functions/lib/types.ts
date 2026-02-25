@@ -4103,6 +4103,7 @@ export type Database = {
           accountManagerId: string | null
           assignee: string | null
           companyId: string
+          contractCustomer: boolean
           createdAt: string
           createdBy: string | null
           currencyCode: string | null
@@ -4129,6 +4130,7 @@ export type Database = {
           accountManagerId?: string | null
           assignee?: string | null
           companyId: string
+          contractCustomer?: boolean
           createdAt?: string
           createdBy?: string | null
           currencyCode?: string | null
@@ -4155,6 +4157,7 @@ export type Database = {
           accountManagerId?: string | null
           assignee?: string | null
           companyId?: string
+          contractCustomer?: boolean
           createdAt?: string
           createdBy?: string | null
           currencyCode?: string | null
@@ -43361,6 +43364,7 @@ export type Database = {
           accountManagerId: string | null
           assignee: string | null
           companyId: string | null
+          contractCustomer: boolean | null
           createdAt: string | null
           createdBy: string | null
           currencyCode: string | null

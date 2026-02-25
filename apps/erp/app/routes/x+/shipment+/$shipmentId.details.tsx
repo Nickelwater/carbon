@@ -59,7 +59,7 @@ export async function action({ request }: ActionFunctionArgs) {
     currentShipment.data.sourceDocumentId !== d.sourceDocumentId ||
     currentShipment.data.locationId !== d.locationId;
 
-  if (shipmentDataHasChanged) {
+  if (shipmentDataHasChanged && d.sourceDocumentId) {
     const serviceRole = getCarbonServiceRole();
     switch (d.sourceDocument) {
       case "Sales Order":
@@ -143,7 +143,8 @@ export async function action({ request }: ActionFunctionArgs) {
         }
         break;
       default:
-        throw new Error(`Unsupported source document: ${d.sourceDocument}`);
+        if (d.sourceDocument)
+          throw new Error(`Unsupported source document: ${d.sourceDocument}`);
     }
   } else {
     const updateShipment = await upsertShipment(client, {

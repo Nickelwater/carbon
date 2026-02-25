@@ -42,6 +42,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   LuCheck,
   LuCircleAlert,
+  LuCirclePlus,
   LuEllipsisVertical,
   LuGroup,
   LuQrCode,
@@ -70,6 +71,7 @@ import type {
   ShipmentLineTracking
 } from "~/modules/inventory";
 import { splitValidator } from "~/modules/inventory";
+import type { action as shipmentLinesAddAction } from "~/routes/x+/shipment+/lines.add";
 import type { action as shipmentLinesUpdateAction } from "~/routes/x+/shipment+/lines.update";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
@@ -79,12 +81,21 @@ const ShipmentLines = () => {
   if (!shipmentId) throw new Error("shipmentId not found");
 
   const fetcher = useFetcher<typeof shipmentLinesUpdateAction>();
+  const addLineFetcher = useFetcher<typeof shipmentLinesAddAction>();
+  const addLineDisclosure = useDisclosure();
   const [items] = useItems();
 
   const routeData = useRouteData<{
     shipment: Shipment;
     shipmentLines: ShipmentLine[];
     shipmentLineTracking: ShipmentLineTracking[];
+    availableShipmentLines?: Array<{
+      id: string;
+      itemId: string;
+      quantityToSend: number;
+      salesOrderReadableId: string | null;
+      salesOrderId: string;
+    }>;
   }>(path.to.shipment(shipmentId));
 
   const shipmentsById = new Map<string, ShipmentLine>(
@@ -214,6 +225,23 @@ const ShipmentLines = () => {
   const isVoided = routeData?.shipment?.status === "Voided";
   const isReadOnly = isPosted || isVoided;
 
+  const canAddLine =
+    routeData?.shipment?.customerId &&
+    !isPosted &&
+    !isVoided &&
+    (routeData?.availableShipmentLines?.length ?? 0) > 0;
+
+  const onAddLine = (salesOrderLineId: string) => {
+    const formData = new FormData();
+    formData.append("shipmentId", shipmentId);
+    formData.append("salesOrderLineId", salesOrderLineId);
+    addLineFetcher.submit(formData, {
+      method: "post",
+      action: path.to.shipmentLinesAdd
+    });
+    addLineDisclosure.onClose();
+  };
+
   return (
     <>
       <Card>
@@ -221,6 +249,16 @@ const ShipmentLines = () => {
           <CardHeader>
             <CardTitle>Shipment Lines</CardTitle>
           </CardHeader>
+          {canAddLine && (
+            <Button
+              leftIcon={<LuCirclePlus />}
+              variant="secondary"
+              onClick={addLineDisclosure.onOpen}
+              isLoading={addLineFetcher.state !== "idle"}
+            >
+              Add shipment line
+            </Button>
+          )}
         </HStack>
 
         <CardContent>
@@ -279,6 +317,50 @@ const ShipmentLines = () => {
           </div>
         </CardContent>
       </Card>
+
+      <Modal
+        open={addLineDisclosure.isOpen}
+        onOpenChange={(open) => !open && addLineDisclosure.onClose()}
+      >
+        <ModalContent>
+          <ModalHeader>
+            <ModalTitle>Add shipment line</ModalTitle>
+            <ModalDescription>
+              Choose a sales order line to add to this shipment.
+            </ModalDescription>
+          </ModalHeader>
+          <ModalBody>
+            <VStack spacing={2}>
+              {(routeData?.availableShipmentLines ?? []).map((line) => (
+                <button
+                  key={line.id}
+                  type="button"
+                  className="flex items-center justify-between w-full rounded-lg border p-3 text-left hover:bg-muted/50"
+                  onClick={() => onAddLine(line.id)}
+                >
+                  <HStack spacing={2}>
+                    <span className="font-medium">
+                      {line.salesOrderReadableId ?? line.salesOrderId}
+                    </span>
+                    <span className="text-muted-foreground">
+                      {getItemReadableId(items, line.itemId) ?? line.itemId}
+                    </span>
+                  </HStack>
+                  <span className="text-muted-foreground">
+                    Qty to send: {line.quantityToSend}
+                  </span>
+                </button>
+              ))}
+            </VStack>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="secondary" onClick={addLineDisclosure.onClose}>
+              Cancel
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
+
       <Outlet />
     </>
   );
@@ -334,43 +416,42 @@ function ShipmentLineItem({
 
   return (
     <div className={cn("flex flex-col border-b p-6 gap-6 relative", className)}>
-      <div className="absolute top-6 right-6">
-        {line.fulfillment?.type === "Job" ? (
+      <div className="absolute top-6 right-6 flex flex-col items-end gap-1">
+        {line.fulfillment?.type === "Job" && (
           <div className="flex flex-col items-end gap-0">
             <span>Job</span>
             <span className="text-xs text-muted-foreground">
               {line.fulfillment?.job?.jobId}
             </span>
           </div>
-        ) : (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <IconButton
-                aria-label="Line options"
-                variant="secondary"
-                icon={<LuEllipsisVertical />}
-                size="sm"
-              />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem
-                disabled={isReadOnly}
-                onClick={splitDisclosure.onOpen}
-              >
-                <DropdownMenuIcon icon={<LuSplit />} />
-                Split shipment line
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                destructive
-                disabled={isReadOnly}
-                onClick={deleteDisclosure.onOpen}
-              >
-                <DropdownMenuIcon icon={<LuTrash />} />
-                Delete shipment line
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         )}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <IconButton
+              aria-label="Line options"
+              variant="secondary"
+              icon={<LuEllipsisVertical />}
+              size="sm"
+            />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuItem
+              disabled={isReadOnly}
+              onClick={splitDisclosure.onOpen}
+            >
+              <DropdownMenuIcon icon={<LuSplit />} />
+              Split shipment line
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              destructive
+              disabled={isReadOnly}
+              onClick={deleteDisclosure.onOpen}
+            >
+              <DropdownMenuIcon icon={<LuTrash />} />
+              Delete shipment line
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
       <div className="flex flex-1 justify-between items-center w-full">
         <HStack spacing={4} className="w-1/2">

@@ -7,6 +7,7 @@ import { Outlet, redirect, useParams } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout/Panels";
 import {
   getCustomer,
+  getCustomerPartsForCustomer,
   getOpportunity,
   getOpportunityDocuments,
   getQuote,
@@ -72,6 +73,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     getCompanySettings(serviceRole, companyId)
   ]);
 
+  const customerData = customer?.data ?? null;
+  const customerParts =
+    customerData?.contractCustomer && customerData?.id
+      ? await getCustomerPartsForCustomer(client, customerData.id, companyId)
+      : null;
+
   const defaultCc = customer?.data?.defaultCc?.length
     ? customer.data.defaultCc
     : (companySettings.data?.defaultCustomerCc ?? []);
@@ -86,7 +93,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       opportunity.data.id
     ),
     opportunity: opportunity.data,
-    customer: customer?.data ?? null,
+    customer: customerData,
+    customerParts: customerParts?.data ?? null,
     quote: quote?.data ?? null,
     originatedFromQuote: !!opportunity.data.quotes[0]?.id,
     defaultCc

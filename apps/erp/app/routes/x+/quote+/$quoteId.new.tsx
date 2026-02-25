@@ -5,9 +5,11 @@ import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 import {
+  newQuotePartLineValidator,
   quoteLineValidator,
   upsertQuoteLine,
-  upsertQuoteLineMethod
+  upsertQuoteLineMethod,
+  upsertQuotePart
 } from "~/modules/sales";
 import { setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
@@ -22,8 +24,72 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (!quoteId) throw new Error("Could not find quoteId");
 
   const formData = await request.formData();
-  const validation = await validator(quoteLineValidator).validate(formData);
+  const partSource = formData.get("partSource");
 
+  if (partSource === "quotePart") {
+    const validation = await validator(newQuotePartLineValidator).validate(
+      formData
+    );
+    if (validation.error) {
+      return validationError(validation.error);
+    }
+    const d = validation.data;
+    const serviceRole = getCarbonServiceRole();
+
+    const createQuotePart = await upsertQuotePart(serviceRole, {
+      quoteId,
+      name: d.quotePartName,
+      description: d.quotePartDescription ?? undefined,
+      defaultMethodType: d.defaultMethodType,
+      unitOfMeasureCode: d.unitOfMeasureCode ?? undefined,
+      modelUploadId: d.modelUploadId ?? undefined,
+      companyId,
+      createdBy: userId
+    });
+    if (createQuotePart.error || !createQuotePart.data?.id) {
+      throw redirect(
+        path.to.quote(quoteId),
+        await flash(
+          request,
+          error(
+            createQuotePart.error ?? new Error("Quote part not created"),
+            "Failed to create quote part."
+          )
+        )
+      );
+    }
+    const quotePartId = createQuotePart.data.id;
+
+    const createQuotationLine = await upsertQuoteLine(serviceRole, {
+      quoteId,
+      quotePartId,
+      status: d.status,
+      description: d.quotePartDescription?.trim()
+        ? d.quotePartDescription
+        : d.quotePartName,
+      methodType: d.defaultMethodType,
+      unitOfMeasureCode: d.unitOfMeasureCode ?? "EA",
+      quantity: d.quantity,
+      taxPercent: d.taxPercent,
+      customerPartId: d.customerPartId ?? undefined,
+      customerPartRevision: d.customerPartRevision ?? undefined,
+      companyId,
+      createdBy: userId,
+      customFields: setCustomFields(formData)
+    });
+    if (createQuotationLine.error) {
+      throw redirect(
+        path.to.quote(quoteId),
+        await flash(
+          request,
+          error(createQuotationLine.error, "Failed to create quote line.")
+        )
+      );
+    }
+    throw redirect(path.to.quoteLine(quoteId, createQuotationLine.data.id));
+  }
+
+  const validation = await validator(quoteLineValidator).validate(formData);
   if (validation.error) {
     return validationError(validation.error);
   }
@@ -34,8 +100,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (d.configuration) {
     try {
       configuration = JSON.parse(d.configuration);
-    } catch (error) {
-      console.error(error);
+    } catch (err) {
+      console.error(err);
     }
   }
 
@@ -48,10 +114,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     customFields: setCustomFields(formData)
   });
 
-  console.log(createQuotationLine);
-
   if (createQuotationLine.error) {
-    console.log(createQuotationLine);
     throw redirect(
       path.to.quote(quoteId),
       await flash(
@@ -62,7 +125,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   const quoteLineId = createQuotationLine.data.id;
-  if (d.methodType === "Make") {
+  if (d.methodType === "Make" && d.itemId) {
     const upsertMethod = await upsertQuoteLineMethod(serviceRole, {
       quoteId,
       quoteLineId,

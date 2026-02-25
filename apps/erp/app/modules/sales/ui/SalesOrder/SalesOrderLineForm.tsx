@@ -20,17 +20,19 @@ import {
   ModalCardHeader,
   ModalCardProvider,
   ModalCardTitle,
+  Switch,
   useDisclosure,
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { LuTrash } from "react-icons/lu";
 import { useParams } from "react-router";
 import type { z } from "zod";
 import { MethodIcon } from "~/components";
 import {
+  Combobox,
   CustomFormFields,
   DatePicker,
   Hidden,
@@ -84,6 +86,14 @@ const SalesOrderLineForm = ({
 
   const routeData = useRouteData<{
     salesOrder: SalesOrder;
+    customer: { contractCustomer?: boolean } | null;
+    customerParts:
+      | {
+          customerPartId: string;
+          customerPartRevision: string | null;
+          itemId: string;
+        }[]
+      | null;
   }>(path.to.salesOrder(orderId));
 
   const isEditable = ["Draft", "To Review"].includes(
@@ -192,6 +202,23 @@ const SalesOrderLineForm = ({
   const deleteDisclosure = useDisclosure();
   const [items] = useItems();
 
+  const canToggleCustomerParts =
+    routeData?.customer?.contractCustomer &&
+    (routeData?.customerParts?.length ?? 0) > 0;
+  const [useCustomerPartPicker, setUseCustomerPartPicker] = useState(true);
+
+  const customerPartOptions = useMemo(
+    () =>
+      (routeData?.customerParts ?? []).map((cp) => ({
+        value: cp.itemId,
+        label: cp.customerPartRevision
+          ? `${cp.customerPartId}-${cp.customerPartRevision}`
+          : cp.customerPartId,
+        helper: undefined as string | undefined
+      })),
+    [routeData?.customerParts]
+  );
+
   return (
     <>
       <ModalCardProvider type={type}>
@@ -298,19 +325,61 @@ const SalesOrderLineForm = ({
                   name="modelUploadId"
                   value={itemData?.modelUploadId ?? undefined}
                 />
+                {canToggleCustomerParts && useCustomerPartPicker && (
+                  <Hidden name="salesOrderLineType" value="Part" />
+                )}
                 <VStack>
+                  {canToggleCustomerParts && !isEditing && (
+                    <HStack
+                      spacing={2}
+                      className="w-full items-center gap-2 pb-1"
+                    >
+                      <Switch
+                        variant="small"
+                        label="Customer part numbers"
+                        checked={useCustomerPartPicker}
+                        onCheckedChange={setUseCustomerPartPicker}
+                      />
+                      <span className="text-xs text-muted-foreground">
+                        {useCustomerPartPicker
+                          ? "Showing this customer's part numbers"
+                          : "Showing internal part numbers"}
+                      </span>
+                    </HStack>
+                  )}
                   <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3">
-                    <Item
-                      name="itemId"
-                      label={lineType}
-                      type={lineType as "Part"}
-                      typeFieldName="salesOrderLineType"
-                      value={itemData.itemId}
-                      onChange={(value) => {
-                        onChange(value?.value as string);
-                      }}
-                      onTypeChange={onTypeChange}
-                    />
+                    {canToggleCustomerParts && useCustomerPartPicker ? (
+                      <Combobox
+                        name="itemId"
+                        options={customerPartOptions}
+                        value={itemData.itemId ?? ""}
+                        onChange={(option) => {
+                          const itemId =
+                            (option &&
+                            typeof option === "object" &&
+                            "value" in option
+                              ? option.value
+                              : option) ?? "";
+                          if (!itemId) return;
+                          setItemData((prev) => ({ ...prev, itemId }));
+                          onChange(itemId);
+                        }}
+                        label="Customer part"
+                        itemHeight={44}
+                      />
+                    ) : (
+                      <Item
+                        name="itemId"
+                        label={lineType}
+                        type={lineType as "Part"}
+                        typeFieldName="salesOrderLineType"
+                        value={itemData.itemId}
+                        onChange={(value) => {
+                          onChange(value?.value as string);
+                        }}
+                        onTypeChange={onTypeChange}
+                      />
+                    )}
 
                     {isEditing && (
                       <InputControlled

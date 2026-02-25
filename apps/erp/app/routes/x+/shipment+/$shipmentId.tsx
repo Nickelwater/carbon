@@ -6,6 +6,7 @@ import type { LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useParams } from "react-router";
 import { PanelProvider } from "~/components/Layout";
 import {
+  getAvailableSalesOrderLinesForCustomer,
   getShipment,
   getShipmentLines,
   getShipmentRelatedItems,
@@ -45,15 +46,32 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw redirect(path.to.shipments);
   }
 
+  const relatedItems =
+    shipment.data?.sourceDocumentId &&
+    shipment.data.sourceDocumentId.trim() !== ""
+      ? await getShipmentRelatedItems(
+          client,
+          shipmentId,
+          shipment.data.sourceDocumentId
+        )
+      : { invoices: [] };
+
+  const availableShipmentLines =
+    shipment.data?.customerId && !shipment.data.postedAt
+      ? await getAvailableSalesOrderLinesForCustomer(
+          client,
+          shipment.data.customerId,
+          shipment.data.companyId,
+          { excludeShipmentId: shipmentId }
+        )
+      : { data: [] };
+
   return {
     shipment: shipment.data,
     shipmentLines: shipmentLines.data ?? [],
     shipmentLineTracking: shipmentLineTracking.data ?? [],
-    relatedItems: getShipmentRelatedItems(
-      client,
-      shipmentId,
-      shipment.data?.sourceDocumentId ?? ""
-    )
+    relatedItems,
+    availableShipmentLines: availableShipmentLines.data ?? []
   };
 }
 

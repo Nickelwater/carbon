@@ -222,6 +222,11 @@ export function useLineCosts({
               default:
                 break;
             }
+            const cavityMultiplier = Math.max(
+              1,
+              Number(operation.cavityMultiplier) || 1
+            );
+            laborHoursPerUnit /= cavityMultiplier;
 
             effects.laborHours.push((quantity) => {
               return (
@@ -281,6 +286,11 @@ export function useLineCosts({
               default:
                 break;
             }
+            const cavityMultiplier = Math.max(
+              1,
+              Number(operation.cavityMultiplier) || 1
+            );
+            machineHoursPerUnit /= cavityMultiplier;
 
             effects.machineHours.push((quantity) => {
               return (

@@ -25,18 +25,26 @@ import {
   VStack
 } from "@carbon/react";
 import { useDroppable } from "@dnd-kit/core";
-import { useMemo, useRef, useState } from "react";
+import { Reorder } from "framer-motion";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LuBraces,
   LuChevronDown,
   LuCirclePlus,
   LuDownload,
   LuEllipsisVertical,
+  LuGripVertical,
   LuSearch,
   LuTable,
   LuTrash
 } from "react-icons/lu";
-import { Link, useFetchers, useNavigate, useParams } from "react-router";
+import {
+  Link,
+  useFetchers,
+  useNavigate,
+  useParams,
+  useRevalidator
+} from "react-router";
 import { Empty, ItemThumbnail, MethodItemTypeIcon } from "~/components";
 import { QuoteLineStatusIcon } from "~/components/Icons";
 import type { Tree } from "~/components/TreeView";
@@ -80,6 +88,7 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
   const { id: userId } = useUser();
   const quoteLineInitialValues = {
     quoteId,
+    partSource: "quotePart" as const,
     description: "",
     estimatorId: userId,
     itemId: "",
@@ -126,50 +135,80 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
 
   const optimisticDrags = useOptimisticDocumentDrag();
 
-  const linesMap = new Map<string, QuotationLine | OptimisticQuoteLine>(
-    quoteData?.lines?.map((line) => [line.id!, line]) ?? []
-  );
+  const [lines, setLines] = useState<QuotationLine[]>(quoteData?.lines ?? []);
+  const revalidator = useRevalidator();
+  useEffect(() => {
+    setLines(quoteData?.lines ?? []);
+  }, [quoteData?.lines]);
 
-  for (let pendingItem of optimisticDrags) {
-    linesMap.set(pendingItem.itemId!, { ...pendingItem, quoteId });
-  }
+  const canReorder =
+    !isDisabled &&
+    permissions.can("update", "sales") &&
+    (lines?.length ?? 0) > 1;
 
-  const linesToRender = Array.from(linesMap.values()).sort((a, b) =>
-    (a.itemReadableId ?? "").localeCompare(b.itemReadableId ?? "")
-  );
+  const handleReorder = async (newLines: QuotationLine[]) => {
+    setLines(newLines);
+    const lineIds = newLines.map((l) => l.id!).filter(Boolean);
+    if (lineIds.length === 0) return;
+    const res = await fetch(path.to.quoteLinesReorder(quoteId), {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lineIds })
+    });
+    if (res.ok) revalidator.revalidate();
+  };
 
   return (
     <div
       ref={setExplorerRef}
       data-quote-explorer
       className={cn(
-        "transition-colors duration-200",
+        "transition-colors duration-200 w-full min-w-0",
         isOverExplorer && "bg-primary/10 border-2 border-dashed border-primary"
       )}
     >
       <VStack className="w-full h-[calc(100dvh-99px)] justify-between">
         <VStack
-          className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent"
+          className="flex-1 min-w-0 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full"
           spacing={0}
         >
-          {linesToRender.length > 0 ? (
-            linesToRender.map((line) =>
-              !isQuoteLine(line) ? (
-                <OptimisticQuoteLineItem
-                  key={line.itemId}
-                  line={line as OptimisticQuoteLine}
-                />
-              ) : (
-                <DroppableQuoteLineItem
+          {lines.length > 0 ? (
+            <Reorder.Group
+              axis="y"
+              values={lines}
+              onReorder={handleReorder}
+              className="flex w-full min-w-0 flex-col"
+            >
+              {lines.map((line, index) => (
+                <Reorder.Item
                   key={line.id}
-                  isDisabled={isDisabled}
-                  line={line as QuotationLine}
-                  onDelete={onDeleteLine}
-                  methods={methods}
-                />
-              )
-            )
-          ) : (
+                  value={line}
+                  id={line.id ?? undefined}
+                  className={cn(
+                    "w-full min-w-0",
+                    canReorder && "cursor-grab active:cursor-grabbing"
+                  )}
+                  dragListener={canReorder}
+                >
+                  <DroppableQuoteLineItem
+                    isDisabled={isDisabled}
+                    line={line}
+                    lineIndex={index}
+                    onDelete={onDeleteLine}
+                    methods={methods}
+                    dragHandle={canReorder}
+                  />
+                </Reorder.Item>
+              ))}
+            </Reorder.Group>
+          ) : null}
+          {optimisticDrags.length > 0
+            ? optimisticDrags.map((line) => (
+                <OptimisticQuoteLineItem key={line.itemId} line={line} />
+              ))
+            : null}
+          {lines.length === 0 && optimisticDrags.length === 0 ? (
             <Empty>
               {permissions.can("update", "sales") && (
                 <Button
@@ -182,7 +221,7 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
                 </Button>
               )}
             </Empty>
-          )}
+          ) : null}
         </VStack>
         <div className="w-full flex flex-0 sm:flex-row border-t border-border p-4 sm:justify-start sm:space-x-2">
           <Tooltip>
@@ -219,12 +258,6 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
       )}
     </div>
   );
-}
-
-function isQuoteLine(
-  line: QuotationLine | OptimisticQuoteLine
-): line is QuotationLine {
-  return "id" in line && "status" in line && "methodType" in line;
 }
 
 type OptimisticQuoteLine = {
@@ -295,16 +328,20 @@ export function useOptimisticDocumentDrag() {
 
 type DroppableQuoteLineItemProps = {
   line: QuotationLine;
+  lineIndex: number;
   isDisabled: boolean;
   onDelete: (line: QuotationLine) => void;
   methods: Tree<QuoteMethod>[];
+  dragHandle?: boolean;
 };
 
 function DroppableQuoteLineItem({
   line,
+  lineIndex,
   isDisabled,
   onDelete,
-  methods
+  methods,
+  dragHandle = false
 }: DroppableQuoteLineItemProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `quote-line-${line.id}`,
@@ -321,9 +358,11 @@ function DroppableQuoteLineItem({
     >
       <QuoteLineItem
         line={line}
+        lineIndex={lineIndex}
         isDisabled={isDisabled}
         onDelete={onDelete}
         methods={methods}
+        dragHandle={dragHandle}
       />
     </div>
   );
@@ -331,16 +370,20 @@ function DroppableQuoteLineItem({
 
 type QuoteLineItemProps = {
   line: QuotationLine;
+  lineIndex: number;
   isDisabled: boolean;
   onDelete: (line: QuotationLine) => void;
   methods: Tree<QuoteMethod>[];
+  dragHandle?: boolean;
 };
 
 function QuoteLineItem({
   line,
+  lineIndex,
   isDisabled,
   onDelete,
-  methods
+  methods,
+  dragHandle = false
 }: QuoteLineItemProps) {
   const { quoteId, lineId } = useParams();
   if (!quoteId) throw new Error("Could not find quoteId");
@@ -386,6 +429,14 @@ function QuoteLineItem({
         onClick={() => onLineClick(line)}
       >
         <HStack spacing={2} className="flex-grow min-w-0 pr-10">
+          {dragHandle && (
+            <span className="text-muted-foreground flex-shrink-0 touch-none">
+              <LuGripVertical className="h-4 w-4" aria-hidden />
+            </span>
+          )}
+          <span className="text-muted-foreground text-sm tabular-nums w-6 flex-shrink-0">
+            {String(line.lineNumber ?? lineIndex + 1).padStart(2, "0")}
+          </span>
           <ItemThumbnail
             thumbnailPath={line.thumbnailPath}
             type={line.itemType as MethodItemType}

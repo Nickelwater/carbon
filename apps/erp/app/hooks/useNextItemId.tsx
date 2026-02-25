@@ -52,19 +52,9 @@ export function useNextItemId(
           });
 
           if (nextIdRpc.data) {
-            const sequence = nextIdRpc.data.slice(prefix.length);
-            const currentSequence = parseInt(sequence);
-            const nextSequence = currentSequence + 1;
-            const nextId = `${prefix}${nextSequence
-              .toString()
-              .padStart(
-                sequence.length -
-                  (nextIdRpc.data.split(`${currentSequence}`)?.[1].length ?? 0),
-                "0"
-              )}`;
-            setId(nextId);
+            setId(nextIdRpc.data);
           } else {
-            setId(`${prefix}${(1).toString().padStart(9, "0")}`);
+            setId((1).toString().padStart(9, "0"));
           }
           // biome-ignore lint/suspicious/noEmptyBlockStatements: suppressed due to migration
         } catch {

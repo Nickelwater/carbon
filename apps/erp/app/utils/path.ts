@@ -1289,6 +1289,8 @@ export const path = {
       ),
     quoteDetails: (id: string) => generatePath(`${x}/quote/${id}/details`),
     quoteDrag: (id: string) => generatePath(`${x}/quote/${id}/drag`),
+    quoteLinesReorder: (quoteId: string) =>
+      generatePath(`${x}/quote/${quoteId}/lines/reorder`),
     quoteDuplicate: (id: string) => generatePath(`${x}/quote/${id}/duplicate`),
     quoteExchangeRate: (id: string) =>
       generatePath(`${x}/quote/${id}/exchange-rate`),
@@ -1309,6 +1311,8 @@ export const path = {
     ) => generatePath(`${x}/quote/${quoteId}/${lineId}/make/${makeMethodId}`),
     quoteLineMethod: (quoteId: string, quoteLineId: string, methodId: string) =>
       generatePath(`${x}/quote/${quoteId}/${quoteLineId}/method/${methodId}`),
+    quoteLinePromoteToPart: (quoteId: string, lineId: string) =>
+      generatePath(`${x}/quote/${quoteId}/${lineId}/promote-to-part`),
     quoteLineRecalculatePrice: (quoteId: string, lineId: string) =>
       generatePath(`${x}/quote/${quoteId}/${lineId}/recalculate-price`),
     quoteLineUpdatePrecision: (quoteId: string, lineId: string) =>
@@ -1394,6 +1398,8 @@ export const path = {
       generatePath(`${x}/sales-order/${orderId}/${id}/details`),
     salesOrderLineToJob: (orderId: string, lineId: string) =>
       generatePath(`${x}/sales-order/${orderId}/${lineId}/job`),
+    salesOrderLinesReorder: (orderId: string) =>
+      generatePath(`${x}/sales-order/${orderId}/lines/reorder`),
     salesOrderLinesToJobs: (orderId: string) =>
       generatePath(`${x}/sales-order/${orderId}/lines/jobs`),
     salesOrderPayment: (id: string) =>
@@ -1485,6 +1491,7 @@ export const path = {
       generatePath(`${x}/shipment/${id}/details`),
     shipmentLineDelete: (id: string) =>
       generatePath(`${x}/shipment/lines/${id}/delete`),
+    shipmentLinesAdd: `${x}/shipment/lines/add`,
     shipmentLineSplit: `${x}/shipment/lines/split`,
     shipmentLinesTracking: (id: string) =>
       generatePath(`${x}/shipment/lines/tracking`),

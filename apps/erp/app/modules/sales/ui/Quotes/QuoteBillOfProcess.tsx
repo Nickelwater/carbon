@@ -216,6 +216,7 @@ const initialOperation: Omit<
   Operation,
   "quoteMakeMethodId" | "order" | "quoteOperationTool" | "id"
 > = {
+  cavityMultiplier: 1,
   description: "",
   laborRate: 0,
   laborTime: 0,
@@ -1729,6 +1730,7 @@ function OperationForm({
   const procedureDisclosure = useDisclosure();
 
   const [processData, setProcessData] = useState<{
+    cavityMultiplier: number;
     description: string;
     laborRate: number;
     laborTime: number;
@@ -1749,6 +1751,7 @@ function OperationForm({
     setupUnit: string;
     setupUnitHint: string;
   }>({
+    cavityMultiplier: item.data.cavityMultiplier ?? 1,
     description: item.data.description ?? "",
     laborRate: item.data.laborRate ?? 0,
     laborTime: item.data.laborTime ?? 0,
@@ -2020,6 +2023,20 @@ function OperationForm({
 
       {processData.operationType === "Inside" && (
         <>
+          <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3 pb-4">
+            <NumberControlled
+              name="cavityMultiplier"
+              label="Cavity Multiplier"
+              minValue={1}
+              value={processData.cavityMultiplier}
+              onChange={(newValue) =>
+                setProcessData((d) => ({
+                  ...d,
+                  cavityMultiplier: newValue ?? 1
+                }))
+              }
+            />
+          </div>
           <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
             <HStack
               className="w-full justify-between cursor-pointer"

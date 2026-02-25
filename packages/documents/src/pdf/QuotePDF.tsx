@@ -101,13 +101,9 @@ const QuotePDF = ({
     return price && price.leadTime > 0;
   });
 
-  // Calculate column count for dynamic widths
-  // Base columns: Qty, Unit Price, Total = 3
-  // Optional: Tax & Fees (when multi-qty), Lead Time (when any has lead time)
-  const columnCount =
-    3 + (!hasSinglePricePerLine ? 1 : 0) + (hasAnyLeadTime ? 1 : 0);
-  const colWidth =
-    columnCount === 3 ? "w-1/3" : columnCount === 4 ? "w-1/4" : "w-1/5";
+  // Column count: Qty, Unit Price, [Lead Time], Total (tax/fees rolled into unit price)
+  const columnCount = 3 + (hasAnyLeadTime ? 1 : 0);
+  const colWidth = columnCount === 3 ? "w-1/3" : "w-1/4";
 
   const getMaxLeadTime = () => {
     let maxLeadTime = 0;
@@ -270,15 +266,13 @@ const QuotePDF = ({
             "flex flex-row bg-gray-800 py-2 px-3 text-white text-[9px] font-bold"
           )}
         >
-          <View style={tw("w-1/3")}>
+          <Text style={tw("w-1/12")}>Line</Text>
+          <View style={tw("w-1/4")}>
             <Text>Description</Text>
           </View>
           <View style={tw("w-2/3 flex flex-row")}>
             <Text style={tw(`${colWidth} text-right pr-3`)}>Qty</Text>
             <Text style={tw(`${colWidth} text-right pr-3`)}>Unit Price</Text>
-            {!hasSinglePricePerLine && (
-              <Text style={tw(`${colWidth} text-right pr-3`)}>Tax & Fees</Text>
-            )}
             {hasAnyLeadTime && (
               <Text style={tw(`${colWidth} text-right pr-3`)}>Lead Time</Text>
             )}
@@ -286,8 +280,13 @@ const QuotePDF = ({
           </View>
         </View>
 
-        {/* Rows */}
-        {quoteLines.map((line) => {
+        {/* Rows - one PDF row per quote line; multiple quantities shown in right columns */}
+        {quoteLines.map((line, lineIndex) => {
+          const lineNum = String(line.lineNumber ?? lineIndex + 1).padStart(
+            2,
+            "0"
+          );
+
           const unitPriceFormatter = getCurrencyFormatter(
             currencyCode,
             locale,
@@ -295,22 +294,18 @@ const QuotePDF = ({
           );
 
           const additionalCharges = line.additionalCharges ?? {};
+          const prices = pricesByLine[line.id] ?? [];
+          const isEven = rowIndex % 2 === 0;
+          rowIndex++;
 
-          return (
-            <View key={line.id} wrap={false}>
-              {line.status !== "No Quote" ? (
-                line.quantity.map((quantity, index) => {
-                  const prices = pricesByLine[line.id] ?? [];
+          // Per-quantity data for stacking in right columns (when status !== "No Quote")
+          const quantityData =
+            line.status !== "No Quote"
+              ? line.quantity.map((quantity) => {
                   const price = prices.find((p) => p.quantity === quantity);
-                  const unitPrice = price?.convertedUnitPrice ?? 0;
                   const netExtendedPrice =
                     price?.convertedNetExtendedPrice ?? 0;
-                  const isEven = rowIndex % 2 === 0;
-                  rowIndex++;
-
                   const leadTime = price?.leadTime ?? 0;
-
-                  // Calculate tax & fees for this quantity
                   const additionalCharge = Object.values(
                     additionalCharges
                   ).reduce((acc, charge) => {
@@ -328,139 +323,123 @@ const QuotePDF = ({
                   const totalTaxAndFees =
                     additionalCharge + shippingCost + taxAmount;
                   const totalPrice = netExtendedPrice + totalTaxAndFees;
-
-                  return (
-                    <View
-                      key={`${line.id}-${quantity}`}
-                      style={tw(
-                        `flex flex-row py-2 px-3 border-b border-gray-200 text-[10px] ${
-                          isEven ? "bg-white" : "bg-gray-50"
-                        }`
-                      )}
-                    >
-                      <View style={tw("w-1/3 pr-2")}>
-                        <Text style={tw("text-gray-800")}>
-                          {getLineDescription(line)}
-                        </Text>
-                        <Text style={tw("text-[8px] text-gray-400 mt-0.5")}>
-                          {getLineDescriptionDetails(line)}
-                        </Text>
-                        {thumbnails && line.id in thumbnails && (
-                          <View style={tw("mt-2")}>
-                            <Image
-                              src={thumbnails[line.id]!}
-                              style={{ width: 60, height: 60 }}
-                            />
-                          </View>
-                        )}
-                        {totalTaxAndFees > 0 && (
-                          <View style={tw("mt-1")}>
-                            <Text
-                              style={tw("text-[8px] text-gray-400 font-bold")}
-                            >
-                              Tax & Fees
-                            </Text>
-                            {(price?.convertedShippingCost ?? 0) > 0 && (
-                              <Text style={tw("text-[8px] text-gray-400")}>
-                                - Shipping
-                              </Text>
-                            )}
-                            {Object.values(additionalCharges)
-                              .filter(
-                                (charge) =>
-                                  charge.description &&
-                                  (charge.amounts?.[quantity] ?? 0) > 0
-                              )
-                              .sort((a, b) =>
-                                a.description.localeCompare(b.description)
-                              )
-                              .map((charge) => (
-                                <Text
-                                  key={charge.description}
-                                  style={tw("text-[8px] text-gray-400")}
-                                >
-                                  - {charge.description}
-                                </Text>
-                              ))}
-                            {taxPercent > 0 && (
-                              <Text style={tw("text-[8px] text-gray-400")}>
-                                - Tax ({(taxPercent * 100).toFixed(0)}%)
-                              </Text>
-                            )}
-                          </View>
-                        )}
-                      </View>
-                      <View style={tw("w-2/3 flex flex-row")}>
-                        <Text
-                          style={tw(
-                            `${colWidth} text-right text-gray-600 pr-3`
-                          )}
-                        >
-                          {quantity} EA
-                        </Text>
-                        <Text
-                          style={tw(
-                            `${colWidth} text-right text-gray-600 pr-3`
-                          )}
-                        >
-                          {unitPrice
-                            ? unitPriceFormatter.format(unitPrice)
-                            : "-"}
-                        </Text>
-                        {!hasSinglePricePerLine && (
-                          <Text
-                            style={tw(
-                              `${colWidth} text-right text-gray-600 pr-3`
-                            )}
-                          >
-                            {totalTaxAndFees > 0
-                              ? formatter.format(totalTaxAndFees)
-                              : "-"}
-                          </Text>
-                        )}
-                        {hasAnyLeadTime && (
-                          <Text
-                            style={tw(
-                              `${colWidth} text-right text-gray-600 pr-3`
-                            )}
-                          >
-                            {leadTime > 0
-                              ? `${leadTime} ${pluralize(leadTime, "day")}`
-                              : "-"}
-                          </Text>
-                        )}
-                        <Text
-                          style={tw(
-                            `${colWidth} text-right text-gray-800 font-medium`
-                          )}
-                        >
-                          {hasSinglePricePerLine
-                            ? netExtendedPrice > 0
-                              ? formatter.format(netExtendedPrice)
-                              : "-"
-                            : totalPrice > 0
-                              ? formatter.format(totalPrice)
-                              : "-"}
-                        </Text>
-                      </View>
-                    </View>
-                  );
+                  // All-in unit price: part + (tax, shipping, fees) per piece
+                  const allInUnitPrice =
+                    quantity > 0 ? totalPrice / quantity : 0;
+                  return {
+                    quantity,
+                    allInUnitPrice,
+                    leadTime,
+                    totalPrice
+                  };
                 })
-              ) : (
+              : [];
+
+          return (
+            <View key={line.id} wrap={false}>
+              {line.status !== "No Quote" ? (
                 <View
                   style={tw(
                     `flex flex-row py-2 px-3 border-b border-gray-200 text-[10px] ${
-                      rowIndex++ % 2 === 0 ? "bg-white" : "bg-gray-50"
+                      isEven ? "bg-white" : "bg-gray-50"
                     }`
                   )}
                 >
-                  <View style={tw("w-1/3 pr-2")}>
+                  <Text style={tw("w-1/12 text-gray-600 tabular-nums")}>
+                    {lineNum}
+                  </Text>
+                  <View style={tw("w-1/4 pr-2")}>
                     <Text style={tw("text-gray-800")}>
                       {getLineDescription(line)}
                     </Text>
                     <Text style={tw("text-[8px] text-gray-400 mt-0.5")}>
                       {getLineDescriptionDetails(line)}
                     </Text>
+                    {Object.keys(line.externalNotes ?? {}).length > 0 && (
+                      <View style={tw("mt-1")}>
+                        <Note
+                          key={`${line.id}-notes`}
+                          content={line.externalNotes as JSONContent}
+                        />
+                      </View>
+                    )}
+                    {thumbnails && line.id in thumbnails && (
+                      <View style={tw("mt-2")}>
+                        <Image
+                          src={thumbnails[line.id]!}
+                          style={{ width: 60, height: 60 }}
+                        />
+                      </View>
+                    )}
+                  </View>
+                  <View style={tw("w-2/3 flex flex-row")}>
+                    <View style={tw(`${colWidth} text-right pr-3`)}>
+                      {quantityData.map((d) => (
+                        <Text key={d.quantity} style={tw("text-gray-600")}>
+                          {d.quantity} EA
+                        </Text>
+                      ))}
+                    </View>
+                    <View style={tw(`${colWidth} text-right pr-3`)}>
+                      {quantityData.map((d) => (
+                        <Text key={d.quantity} style={tw("text-gray-600")}>
+                          {d.allInUnitPrice > 0
+                            ? unitPriceFormatter.format(d.allInUnitPrice)
+                            : "-"}
+                        </Text>
+                      ))}
+                    </View>
+                    {hasAnyLeadTime && (
+                      <View style={tw(`${colWidth} text-right pr-3`)}>
+                        {quantityData.map((d) => (
+                          <Text key={d.quantity} style={tw("text-gray-600")}>
+                            {d.leadTime > 0
+                              ? `${d.leadTime} ${pluralize(d.leadTime, "day")}`
+                              : "-"}
+                          </Text>
+                        ))}
+                      </View>
+                    )}
+                    <View style={tw(`${colWidth} text-right`)}>
+                      {quantityData.map((d) => (
+                        <Text
+                          key={d.quantity}
+                          style={tw("text-gray-800 font-medium")}
+                        >
+                          {d.totalPrice > 0
+                            ? formatter.format(d.totalPrice)
+                            : "-"}
+                        </Text>
+                      ))}
+                    </View>
+                  </View>
+                </View>
+              ) : (
+                <View
+                  style={tw(
+                    `flex flex-row py-2 px-3 border-b border-gray-200 text-[10px] ${
+                      isEven ? "bg-white" : "bg-gray-50"
+                    }`
+                  )}
+                >
+                  <Text style={tw("w-1/12 text-gray-600 tabular-nums")}>
+                    {lineNum}
+                  </Text>
+                  <View style={tw("w-1/4 pr-2")}>
+                    <Text style={tw("text-gray-800")}>
+                      {getLineDescription(line)}
+                    </Text>
+                    <Text style={tw("text-[8px] text-gray-400 mt-0.5")}>
+                      {getLineDescriptionDetails(line)}
+                    </Text>
+                    {Object.keys(line.externalNotes ?? {}).length > 0 && (
+                      <View style={tw("mt-1")}>
+                        <Note
+                          key={`${line.id}-notes`}
+                          content={line.externalNotes as JSONContent}
+                        />
+                      </View>
+                    )}
                   </View>
                   <View style={tw("w-2/3 flex flex-row")}>
                     <Text
@@ -488,7 +467,7 @@ const QuotePDF = ({
             <View
               style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
             >
-              <View style={tw("w-4/6")} />
+              <View style={tw("w-2/3")} />
               <Text style={tw("w-1/6 text-right text-gray-600")}>Subtotal</Text>
               <Text style={tw("w-1/6 text-right text-gray-800")}>
                 {formatter.format(getTotalSubtotal())}
@@ -497,7 +476,7 @@ const QuotePDF = ({
             <View
               style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
             >
-              <View style={tw("w-4/6")} />
+              <View style={tw("w-2/3")} />
               <Text style={tw("w-1/6 text-right text-gray-600")}>Shipping</Text>
               <Text style={tw("w-1/6 text-right text-gray-800")}>
                 {formatter.format(getTotalShipping())}
@@ -507,7 +486,7 @@ const QuotePDF = ({
               <View
                 style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
               >
-                <View style={tw("w-4/6")} />
+                <View style={tw("w-2/3")} />
                 <Text style={tw("w-1/6 text-right text-gray-600")}>Fees</Text>
                 <Text style={tw("w-1/6 text-right text-gray-800")}>
                   {formatter.format(getTotalFees())}
@@ -517,7 +496,7 @@ const QuotePDF = ({
             <View
               style={tw("flex flex-row py-1.5 px-3 bg-gray-50 text-[10px]")}
             >
-              <View style={tw("w-4/6")} />
+              <View style={tw("w-2/3")} />
               <Text style={tw("w-1/6 text-right text-gray-600")}>Taxes</Text>
               <Text style={tw("w-1/6 text-right text-gray-800")}>
                 {formatter.format(getTotalTaxes())}
@@ -525,7 +504,7 @@ const QuotePDF = ({
             </View>
             <View style={tw("h-[1px] bg-gray-200")} />
             <View style={tw("flex flex-row py-2 px-3 text-[11px]")}>
-              <View style={tw("w-4/6")} />
+              <View style={tw("w-2/3")} />
               <Text style={tw("w-1/6 text-right text-gray-800 font-bold")}>
                 Total
               </Text>
