@@ -326,12 +326,12 @@ const Grid = <T extends object>({
       <div
         className={cn(
           "w-full h-full overflow-x-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent",
-          contained ? "" : "relative"
+          contained ? "" : "relative border rounded-md overflow-hidden"
         )}
         ref={tableContainerRef}
         onKeyDown={onKeyDown}
       >
-        <Table full={contained} className={cn(!contained && "border w-full")}>
+        <Table full className={cn(!contained && "w-full")}>
           <Thead className="sticky top-0 z-10">
             {table.getHeaderGroups().map((headerGroup) => (
               <Tr key={headerGroup.id} className="h-10">

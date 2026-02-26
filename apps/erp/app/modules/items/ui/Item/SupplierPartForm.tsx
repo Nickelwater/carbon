@@ -145,7 +145,7 @@ const SupplierPartForm = ({
         if (!open) onClose();
       }}
     >
-      <DrawerContent size="lg">
+      <DrawerContent size="md">
         <ValidatedForm
           defaultValues={initialValues}
           validator={supplierPartValidator}
@@ -165,36 +165,38 @@ const SupplierPartForm = ({
             <Hidden name="priceBreaks" value={JSON.stringify(priceBreaks)} />
 
             <VStack spacing={4}>
-              <Supplier name="supplierId" label="Supplier" />
-              <Input name="supplierPartId" label="Supplier Part ID" />
-              <Number
-                name="unitPrice"
-                label="Unit Price"
-                minValue={0}
-                formatOptions={{
-                  style: "currency",
-                  currency: baseCurrency
-                }}
-              />
-              <UnitOfMeasure
-                name="supplierUnitOfMeasureCode"
-                label="Unit of Measure"
-                onChange={(value) => {
-                  if (value) setPurchaseUnitOfMeasure(value.value);
-                }}
-              />
-              <ConversionFactor
-                name="conversionFactor"
-                label="Conversion Factor"
-                inventoryCode={unitOfMeasureCode ?? undefined}
-                purchasingCode={purchaseUnitOfMeasure}
-              />
-              <Number
-                name="minimumOrderQuantity"
-                label="Minimum Order Quantity"
-                minValue={0}
-              />
-              <CustomFormFields table="partSupplier" />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 w-full">
+                <Supplier name="supplierId" label="Supplier" />
+                <Input name="supplierPartId" label="Supplier Part ID" />
+                <Number
+                  name="unitPrice"
+                  label="Unit Price"
+                  minValue={0}
+                  formatOptions={{
+                    style: "currency",
+                    currency: baseCurrency
+                  }}
+                />
+                <UnitOfMeasure
+                  name="supplierUnitOfMeasureCode"
+                  label="Unit of Measure"
+                  onChange={(value) => {
+                    if (value) setPurchaseUnitOfMeasure(value.value);
+                  }}
+                />
+                <ConversionFactor
+                  name="conversionFactor"
+                  label="Conversion Factor"
+                  inventoryCode={unitOfMeasureCode ?? undefined}
+                  purchasingCode={purchaseUnitOfMeasure}
+                />
+                <Number
+                  name="minimumOrderQuantity"
+                  label="Minimum Order Quantity"
+                  minValue={0}
+                />
+                <CustomFormFields table="partSupplier" />
+              </div>
               <PriceBreaks
                 priceBreaks={priceBreaks}
                 onChange={setPriceBreaks}
