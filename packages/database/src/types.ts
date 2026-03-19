@@ -56687,6 +56687,7 @@ export type Database = {
         Returns: {
           description: string
           externalId: Json
+          isPickDescendant: boolean
           isRoot: boolean
           itemId: string
           itemReadableId: string

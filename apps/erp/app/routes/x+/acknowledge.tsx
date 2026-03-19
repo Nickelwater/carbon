@@ -57,6 +57,7 @@ export async function action({ request }: ActionFunctionArgs) {
       .eq("id", userId);
 
     if (updateResult.error) {
+      console.error(updateResult.error);
       return { success: false, message: "Failed to update flag" };
     }
 
