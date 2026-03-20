@@ -63,6 +63,7 @@ import type { action } from "~/routes/x+/quote+/$quoteId.new";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import {
+  isQuoteLocked,
   newQuotePartLineValidator,
   quoteLineStatusType,
   quoteLineValidator
@@ -122,9 +123,8 @@ const QuoteLineForm = ({
     quote: Quotation;
   }>(path.to.quote(quoteId));
 
-  const isEditable = ["Draft", "To Review"].includes(
-    routeData?.quote?.status ?? ""
-  );
+  const isLocked = isQuoteLocked(routeData?.quote?.status);
+  const isEditable = !isLocked;
 
   const isEditing = initialValues.id !== undefined;
 
@@ -313,6 +313,7 @@ const QuoteLineForm = ({
                   : path.to.newQuoteLine(quoteId)
               }
               className="w-full"
+              isDisabled={isEditing && isLocked}
               onSubmit={() => {
                 if (type === "modal") onClose?.();
               }}
@@ -367,13 +368,15 @@ const QuoteLineForm = ({
                         />
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          destructive
-                          onClick={deleteDisclosure.onOpen}
-                        >
-                          <DropdownMenuIcon icon={<LuTrash />} />
-                          Delete Line
-                        </DropdownMenuItem>
+                        {!isLocked && (
+                          <DropdownMenuItem
+                            destructive
+                            onClick={deleteDisclosure.onOpen}
+                          >
+                            <DropdownMenuIcon icon={<LuTrash />} />
+                            Delete Line
+                          </DropdownMenuItem>
+                        )}
                         {(initialValues as { quotePartId?: string })
                           .quotePartId ? (
                           <PromoteQuotePartMenuItem

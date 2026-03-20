@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
   Combobox,
-  DateRangePicker,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIcon,
@@ -48,16 +47,18 @@ import { CSVLink } from "react-csv";
 import {
   LuArrowUpRight,
   LuChevronDown,
+  LuClock,
   LuCreditCard,
   LuEllipsisVertical,
   LuFile,
+  LuInbox,
   LuLayoutList,
   LuPackageSearch
 } from "react-icons/lu";
 import type { LoaderFunctionArgs } from "react-router";
 import { Await, Link, useFetcher, useLoaderData } from "react-router";
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts";
-import { Empty, Hyperlink, SupplierAvatar } from "~/components";
+import { DateSelect, Empty, Hyperlink, SupplierAvatar } from "~/components";
 import { useUser } from "~/hooks";
 import { useCurrencyFormatter } from "~/hooks/useCurrencyFormatter";
 import type { PurchaseInvoice } from "~/modules/invoicing";
@@ -66,12 +67,13 @@ import type { PurchaseOrder, SupplierQuote } from "~/modules/purchasing";
 import { getPurchasingDocumentsAssignedToMe } from "~/modules/purchasing";
 import { KPIs } from "~/modules/purchasing/purchasing.models";
 import { PurchasingStatus } from "~/modules/purchasing/ui/PurchaseOrder";
+import { SupplierStatusIndicator } from "~/modules/purchasing/ui/Supplier/SupplierStatusIndicator";
 import { SupplierQuoteStatus } from "~/modules/purchasing/ui/SupplierQuote";
 import {
   type ApprovalRequest,
   getPendingApprovalsForApprover
 } from "~/modules/shared";
-import { chartIntervals } from "~/modules/shared/shared.models";
+
 import type { loader as kpiLoader } from "~/routes/api+/purchasing.kpi.$key";
 import { useSuppliers } from "~/stores/suppliers";
 import { path } from "~/utils/path";
@@ -123,11 +125,22 @@ export async function loader({ request }: LoaderFunctionArgs) {
       .map((approval: ApprovalRequest) => approval.documentId!)
       .filter((id): id is string => !!id) ?? [];
 
+  // Extract supplier IDs that need approval and user can approve
+  const approvalSupplierIds =
+    pendingApprovals.data
+      ?.filter(
+        (approval: ApprovalRequest) =>
+          approval.documentType === "supplier" && approval.documentId
+      )
+      .map((approval: ApprovalRequest) => approval.documentId!)
+      .filter((id): id is string => !!id) ?? [];
+
   const [
     openPurchaseOrders,
     openPurchaseInvoices,
     openSupplierQuotes,
-    purchaseOrdersNeedingApproval
+    purchaseOrdersNeedingApproval,
+    suppliersNeedingApproval
   ] = await Promise.all([
     client
       .from("purchaseOrder")
@@ -162,6 +175,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
           .eq("status", "Needs Approval")
           .eq("companyId", companyId)
           .in("id", approvalPoIds)
+      : { data: [], error: null },
+    approvalSupplierIds.length > 0
+      ? client
+          .from("supplier")
+          .select("id, name, supplierStatus")
+          .eq("supplierStatus", "Pending")
+          .eq("companyId", companyId)
+          .in("id", approvalSupplierIds)
       : { data: [], error: null }
   ]);
 
@@ -176,6 +197,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     openSupplierQuotes: openSupplierQuotes,
     openPurchaseInvoices: openPurchaseInvoices,
     purchaseOrdersNeedingApproval: purchaseOrdersNeedingApproval,
+    suppliersNeedingApproval: suppliersNeedingApproval,
     assignedToMe: assignedToMePromise
   };
 }
@@ -186,6 +208,7 @@ export default function PurchaseDashboard() {
     openSupplierQuotes,
     openPurchaseInvoices,
     purchaseOrdersNeedingApproval,
+    suppliersNeedingApproval,
     assignedToMe
   } = useLoaderData<typeof loader>();
 
@@ -266,8 +289,6 @@ export default function PurchaseDashboard() {
     return { start, end };
   });
 
-  const selectedInterval =
-    chartIntervals.find((i) => i.key === interval) || chartIntervals[1];
   const selectedKpiData = KPIs.find((k) => k.key === selectedKpi) || KPIs[0];
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
@@ -359,7 +380,8 @@ export default function PurchaseDashboard() {
     <div className="flex flex-col gap-4 w-full p-4 h-[calc(100dvh-var(--header-height))] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-muted-foreground">
       <div className="grid w-full gap-4 grid-cols-1 lg:grid-cols-3">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row gap-2">
+            <LuPackageSearch className="text-muted-foreground" />
             <CardTitle>Active Supplier Quotes</CardTitle>
           </CardHeader>
           <CardContent>
@@ -385,7 +407,8 @@ export default function PurchaseDashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row gap-2">
+            <LuLayoutList className="text-muted-foreground" />
             <CardTitle>Open Purchase Orders</CardTitle>
           </CardHeader>
           <CardContent>
@@ -411,7 +434,8 @@ export default function PurchaseDashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row gap-2">
+            <LuCreditCard className="text-muted-foreground" />
             <CardTitle>Open Purchase Invoices</CardTitle>
           </CardHeader>
           <CardContent>
@@ -465,40 +489,6 @@ export default function PurchaseDashboard() {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    rightIcon={<LuChevronDown />}
-                    className="hover:bg-background/80"
-                  >
-                    <span>
-                      {selectedInterval.key === "custom"
-                        ? selectedInterval.label
-                        : `Last ${selectedInterval.label}`}
-                    </span>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="bottom" align="start">
-                  <DropdownMenuRadioGroup
-                    value={interval}
-                    onValueChange={onIntervalChange}
-                  >
-                    {chartIntervals.map((i) => (
-                      <DropdownMenuRadioItem key={i.key} value={i.key}>
-                        {i.key === "custom" ? i.label : `Last ${i.label}`}
-                      </DropdownMenuRadioItem>
-                    ))}
-                  </DropdownMenuRadioGroup>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              {interval === "custom" && (
-                <DateRangePicker
-                  size="sm"
-                  value={dateRange}
-                  onChange={setDateRange}
-                />
-              )}
               <Combobox
                 asButton
                 value={supplierId}
@@ -509,7 +499,13 @@ export default function PurchaseDashboard() {
               />
             </div>
           </CardHeader>
-          <CardAction>
+          <CardAction className="flex-row items-center gap-2">
+            <DateSelect
+              value={interval}
+              onValueChange={onIntervalChange}
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+            />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <IconButton
@@ -625,7 +621,8 @@ export default function PurchaseDashboard() {
       </Card>
       <div className="grid w-full gap-4 grid-cols-1 lg:grid-cols-2">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row gap-2">
+            <LuClock className="text-muted-foreground" />
             <CardTitle>Recently Created</CardTitle>
           </CardHeader>
           <CardContent className="p-6">
@@ -679,7 +676,8 @@ export default function PurchaseDashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex-row gap-2">
+            <LuInbox className="text-muted-foreground" />
             <CardTitle>Assigned to Me</CardTitle>
           </CardHeader>
           <CardContent className="min-h-[200px]">
@@ -694,6 +692,9 @@ export default function PurchaseDashboard() {
                     purchaseOrdersNeedingApproval={
                       purchaseOrdersNeedingApproval.data ?? []
                     }
+                    suppliersNeedingApproval={
+                      suppliersNeedingApproval.data ?? []
+                    }
                   />
                 )}
               </Await>
@@ -707,13 +708,14 @@ export default function PurchaseDashboard() {
 
 type AssignedDocument = {
   id: string;
-  type: "purchaseOrder" | "supplierQuote" | "purchaseInvoice";
+  type: "purchaseOrder" | "supplierQuote" | "purchaseInvoice" | "supplier";
   [key: string]: unknown;
 };
 
 function AssignedDocumentsTable({
   assignedDocs,
-  purchaseOrdersNeedingApproval
+  purchaseOrdersNeedingApproval,
+  suppliersNeedingApproval
 }: {
   assignedDocs: Array<{ id: string; type: string; [key: string]: unknown }>;
   purchaseOrdersNeedingApproval: Array<{
@@ -723,6 +725,11 @@ function AssignedDocumentsTable({
     supplierId: string | null;
     assignee: string | null;
     createdAt: string | null;
+  }>;
+  suppliersNeedingApproval: Array<{
+    id: string;
+    name: string;
+    supplierStatus: string | null;
   }>;
 }) {
   // Merge assigned docs with purchase orders needing approval
@@ -740,7 +747,16 @@ function AssignedDocumentsTable({
       type: "purchaseOrder" as const
     }));
 
-  const allDocs = [...assignedDocs, ...approvalDocs] as AssignedDocument[];
+  const supplierDocs = suppliersNeedingApproval.map((doc) => ({
+    ...doc,
+    type: "supplier" as const
+  }));
+
+  const allDocs = [
+    ...assignedDocs,
+    ...approvalDocs,
+    ...supplierDocs
+  ] as AssignedDocument[];
 
   if (allDocs.length === 0) {
     return (
@@ -776,6 +792,18 @@ function DocumentRow({ doc }: { doc: AssignedDocument }) {
       return <SupplierQuoteRow doc={doc as unknown as SupplierQuote} />;
     case "purchaseInvoice":
       return <PurchaseInvoiceRow doc={doc as unknown as PurchaseInvoice} />;
+    case "supplier":
+      return (
+        <SupplierApprovalRow
+          doc={
+            doc as unknown as {
+              id: string;
+              name: string;
+              supplierStatus: string | null;
+            }
+          }
+        />
+      );
     default:
       return null;
   }
@@ -841,6 +869,26 @@ function PurchaseInvoiceRow({ doc }: { doc: PurchaseInvoice }) {
       <Td>
         <SupplierAvatar supplierId={doc.supplierId} />
       </Td>
+    </Tr>
+  );
+}
+
+function SupplierApprovalRow({
+  doc
+}: {
+  doc: { id: string; name: string; supplierStatus: string | null };
+}) {
+  return (
+    <Tr>
+      <Td>
+        <Hyperlink to={path.to.supplier(doc.id)}>
+          <SupplierAvatar supplierId={doc.id} />
+        </Hyperlink>
+      </Td>
+      <Td>
+        <SupplierStatusIndicator status={doc.supplierStatus as "Pending"} />
+      </Td>
+      <Td>-</Td>
     </Tr>
   );
 }

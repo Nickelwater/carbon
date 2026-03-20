@@ -4,14 +4,20 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
+import { getSupplierPriceBreaksForItems } from "~/modules/items";
 import {
+  getQuote,
+  isQuoteLocked,
   newQuotePartLineValidator,
   quoteLineValidator,
   upsertQuoteLine,
   upsertQuoteLineMethod,
+  upsertQuoteLinePrices,
   upsertQuotePart
 } from "~/modules/sales";
+import { lookupBuyPriceFromMap } from "~/modules/shared";
 import { setCustomFields } from "~/utils/form";
+import { requireUnlocked } from "~/utils/lockedGuard.server";
 import { path } from "~/utils/path";
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -22,6 +28,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const { quoteId } = params;
   if (!quoteId) throw new Error("Could not find quoteId");
+
+  const { client: viewClient } = await requirePermissions(request, {
+    view: "sales"
+  });
+  const quote = await getQuote(viewClient, quoteId);
+  await requireUnlocked({
+    request,
+    isLocked: isQuoteLocked(quote.data?.status),
+    redirectTo: path.to.quote(quoteId),
+    message: "Cannot modify a locked quote. Reopen it first."
+  });
 
   const formData = await request.formData();
   const partSource = formData.get("partSource");
@@ -125,6 +142,27 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   const quoteLineId = createQuotationLine.data.id;
+
+  if (d.methodType === "Buy") {
+    const quantities = d.quantity ?? [1];
+    const priceMap = await getSupplierPriceBreaksForItems(serviceRole, [
+      d.itemId
+    ]);
+    await upsertQuoteLinePrices(
+      serviceRole,
+      quoteId,
+      quoteLineId,
+      quantities.map((qty) => ({
+        quoteLineId,
+        quantity: qty,
+        unitPrice: lookupBuyPriceFromMap(d.itemId, qty, priceMap, 0),
+        leadTime: 0,
+        discountPercent: 0,
+        createdBy: userId
+      }))
+    );
+  }
+
   if (d.methodType === "Make" && d.itemId) {
     const upsertMethod = await upsertQuoteLineMethod(serviceRole, {
       quoteId,

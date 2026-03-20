@@ -1,13 +1,13 @@
 import { getUser } from "@carbon/auth";
 import type { Database } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { TiptapDocument } from "../../jira/lib/richtext";
 import {
   getJiraClient,
   getJiraIssueFromExternalId,
   mapCarbonStatusToJiraCategory,
   tiptapToAdf
 } from "../../jira/lib";
+import type { TiptapDocument } from "../../jira/lib/richtext";
 import type { NotificationEvent, NotificationService } from "../types";
 
 const jira = getJiraClient();

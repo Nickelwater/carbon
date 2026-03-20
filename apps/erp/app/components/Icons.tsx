@@ -489,11 +489,23 @@ export const JiraIcon = (props: React.SVGProps<SVGSVGElement>) => {
       {...props}
     >
       <defs>
-        <linearGradient id="jira-gradient-1" x1="98.03%" y1="0.16%" x2="58.89%" y2="40.53%">
+        <linearGradient
+          id="jira-gradient-1"
+          x1="98.03%"
+          y1="0.16%"
+          x2="58.89%"
+          y2="40.53%"
+        >
           <stop offset="0.18" stopColor="currentColor" stopOpacity="0.4" />
           <stop offset="1" stopColor="currentColor" />
         </linearGradient>
-        <linearGradient id="jira-gradient-2" x1="100.17%" y1="0.05%" x2="55.99%" y2="44.23%">
+        <linearGradient
+          id="jira-gradient-2"
+          x1="100.17%"
+          y1="0.05%"
+          x2="55.99%"
+          y2="44.23%"
+        >
           <stop offset="0.18" stopColor="currentColor" stopOpacity="0.4" />
           <stop offset="1" stopColor="currentColor" />
         </linearGradient>

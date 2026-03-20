@@ -31,7 +31,6 @@ import {
   postingGroupSales,
   scrapReasons,
   sequences,
-  supplierStatuses,
   unitOfMeasures
 } from "../supabase/functions/lib/seed.data.ts";
 import { getPostgresConnectionPool } from "./client.ts";
@@ -257,14 +256,6 @@ async function seedDev() {
         [userId, employeeTypeId, companyId]
       );
 
-      // Seed supplier statuses
-      for (const name of supplierStatuses) {
-        await client.query(
-          `INSERT INTO "supplierStatus" (name, "companyId", "createdBy") VALUES ($1, $2, 'system')`,
-          [name, companyId]
-        );
-      }
-
       // Seed customer statuses
       for (const name of customerStatuses) {
         await client.query(
@@ -332,8 +323,8 @@ async function seedDev() {
       // Seed non-conformance required actions
       for (const nca of nonConformanceRequiredActions) {
         await client.query(
-          `INSERT INTO "nonConformanceRequiredAction" (name, "companyId", "createdBy") VALUES ($1, $2, 'system')`,
-          [nca.name, companyId]
+          `INSERT INTO "nonConformanceRequiredAction" (name, "systemType", "companyId", "createdBy") VALUES ($1, $2, $3, 'system')`,
+          [nca.name, "systemType" in nca ? nca.systemType : null, companyId]
         );
       }
 

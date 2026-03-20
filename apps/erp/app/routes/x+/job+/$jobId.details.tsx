@@ -37,6 +37,7 @@ import {
   getJobPurchaseOrderLines,
   getProductionDataByOperations,
   getRootMakeMethod,
+  isJobLocked,
   jobValidator,
   recalculateJobRequirements,
   upsertJob
@@ -55,6 +56,7 @@ import { getTagsList } from "~/modules/shared";
 import { useItems } from "~/stores";
 import type { StorageItem } from "~/types";
 import { setCustomFields } from "~/utils/form";
+import { requireUnlocked } from "~/utils/lockedGuard.server";
 import { path } from "~/utils/path";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -146,6 +148,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const { jobId: id } = params;
   if (!id) throw new Error("Could not find jobId");
 
+  const { client: viewClient } = await requirePermissions(request, {
+    view: "production"
+  });
+  const job = await getJob(viewClient, id);
+  await requireUnlocked({
+    request,
+    isLocked: isJobLocked(job.data?.status),
+    redirectTo: path.to.job(id),
+    message: "Cannot modify a locked job. Reopen it first."
+  });
+
   const formData = await request.formData();
   const validation = await validator(jobValidator).validate(formData);
 
@@ -217,6 +230,8 @@ export default function JobDetailsRoute() {
   }>(path.to.job(jobId));
 
   if (!jobData) throw new Error("Could not find job data");
+
+  const isReadOnly = isJobLocked(jobData?.job?.status);
 
   useRealtime("modelUpload", `modelPath=eq.(${jobData?.job.modelPath})`);
 
@@ -306,6 +321,7 @@ export default function JobDetailsRoute() {
                 bucket="parts"
                 itemId={makeMethod?.itemId ?? jobData.job.itemId}
                 modelUpload={{ ...jobData.job }}
+                isReadOnly={isReadOnly}
               />
             )}
           </Await>

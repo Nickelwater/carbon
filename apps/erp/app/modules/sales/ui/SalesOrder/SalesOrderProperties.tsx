@@ -35,6 +35,7 @@ import type { action } from "~/routes/x+/items+/update";
 import type { action as exchangeRateAction } from "~/routes/x+/sales-order+/$orderId.exchange-rate";
 import { path } from "~/utils/path";
 import { copyToClipboard } from "~/utils/string";
+import { isSalesOrderLocked } from "../../sales.models";
 import type { SalesOrder } from "../../types";
 
 const SalesOrderProperties = () => {
@@ -115,11 +116,9 @@ const SalesOrderProperties = () => {
       ? optimisticAssignment
       : routeData?.salesOrder?.assignee;
 
-  const isDisabled =
-    !permissions.can("update", "sales") ||
-    !["Draft", "In Progress", "Needs Approval"].includes(
-      routeData?.salesOrder?.status ?? ""
-    );
+  const canUpdate = permissions.can("update", "sales");
+  const isLocked = isSalesOrderLocked(routeData?.salesOrder?.status);
+  const isDisabled = !canUpdate || isLocked;
 
   return (
     <VStack
@@ -181,7 +180,7 @@ const SalesOrderProperties = () => {
         table="salesOrder"
         value={assignee ?? ""}
         variant="inline"
-        isReadOnly={!permissions.can("update", "sales")}
+        isReadOnly={!canUpdate}
       />
 
       <ValidatedForm
@@ -478,7 +477,6 @@ const SalesOrderProperties = () => {
         table="salesOrder"
         tags={[]}
         onUpdate={onUpdateCustomFields}
-        // isDisabled={isDisabled}
       />
     </VStack>
   );

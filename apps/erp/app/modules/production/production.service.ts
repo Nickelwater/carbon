@@ -2032,6 +2032,24 @@ export async function updateJobOperationStatus(
     .single();
 }
 
+export async function updateJobOperationDueDate(
+  client: SupabaseClient<Database>,
+  id: string,
+  dueDate: string | null,
+  updatedBy: string
+) {
+  return client
+    .from("jobOperation")
+    .update({
+      dueDate,
+      updatedBy,
+      updatedAt: new Date().toISOString()
+    })
+    .eq("id", id)
+    .select()
+    .single();
+}
+
 export async function updateProcedureStepOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -2103,6 +2121,41 @@ export async function updateProductionQuantity(
     .eq("companyId", companyId)
     .select()
     .single();
+}
+
+export async function upsertProductionQuantity(
+  client: SupabaseClient<Database>,
+  productionQuantity:
+    | (Omit<z.infer<typeof productionQuantityValidator>, "id"> & {
+        companyId: string;
+      })
+    | (Omit<z.infer<typeof productionQuantityValidator>, "id"> & {
+        id: string;
+        updatedBy: string;
+        companyId: string;
+      })
+) {
+  if ("updatedBy" in productionQuantity) {
+    const { id, updatedBy, companyId, ...updateData } = productionQuantity;
+
+    return client
+      .from("productionQuantity")
+      .update({
+        ...sanitize(updateData),
+        updatedBy,
+        updatedAt: new Date().toISOString()
+      })
+      .eq("id", id)
+      .eq("companyId", companyId)
+      .select()
+      .single();
+  } else {
+    return client
+      .from("productionQuantity")
+      .insert([productionQuantity])
+      .select("id")
+      .single();
+  }
 }
 
 export async function upsertJob(

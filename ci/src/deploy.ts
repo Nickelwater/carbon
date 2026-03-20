@@ -10,6 +10,7 @@ export type Workspace = {
   seeded: boolean;
 
   // AWS Configuration
+  aws: boolean;
   aws_account_id: string | null;
   aws_region: string | null;
 
@@ -30,6 +31,7 @@ export type Workspace = {
   service_role_key: string | null;
 
   // App Configuration
+  auth_providers: string | null;
   carbon_edition: string | null;
   cloudflare_turnstile_secret_key: string | null;
   cloudflare_turnstile_site_key: string | null;
@@ -44,6 +46,7 @@ export type Workspace = {
   quickbooks_client_secret: string | null;
   quickbooks_webhook_secret: string | null;
   resend_api_key: string | null;
+  resend_domain: string | null;
   session_secret: string | null;
   slack_bot_token: string | null;
   slack_client_id: string | null;
@@ -94,8 +97,10 @@ async function deploy(): Promise<void> {
     try {
       console.log(`✅ 🥚 Migrating ${workspace.id}`);
       const {
+        aws,
         aws_account_id,
         aws_region,
+        auth_providers,
         domain_name,
         cert_arn_erp,
         cert_arn_mes,
@@ -119,6 +124,7 @@ async function deploy(): Promise<void> {
         quickbooks_client_secret,
         quickbooks_webhook_secret,
         resend_api_key,
+        resend_domain,
         session_secret,
         slack_bot_token,
         slack_client_secret,
@@ -141,7 +147,7 @@ async function deploy(): Promise<void> {
         xero_webhook_secret,
       } = workspace;
 
-      if (["app", "staging"].includes(slug)) {
+      if (!aws) {
         continue;
       }
 
@@ -197,22 +203,7 @@ async function deploy(): Promise<void> {
         continue;
       }
 
-      if (!openai_api_key) {
-        console.log(`🔴🍳 Missing OpenAI API key for ${workspace.id}`);
-        continue;
-      }
-
-      if (!posthog_api_host) {
-        console.log(`🔴🍳 Missing Posthog API host for ${workspace.id}`);
-        continue;
-      }
-
-      if (!posthog_project_public_key) {
-        console.log(
-          `🔴🍳 Missing posthog project public key for ${workspace.id}`
-        );
-        continue;
-      }
+      
 
       if (!resend_api_key) {
         console.log(`🔴🍳 Missing Resend API key for ${workspace.id}`);
@@ -269,6 +260,7 @@ async function deploy(): Promise<void> {
           AWS_ACCOUNT_ID: aws_account_id,
           AWS_REGION: aws_region,
           IMAGE_TAG: imageTag,
+          AUTH_PROVIDERS: auth_providers ?? undefined,
           CARBON_EDITION: carbon_edition ?? "enterprise",
           CERT_ARN_ERP: cert_arn_erp,
           CERT_ARN_MES: cert_arn_mes,
@@ -288,6 +280,7 @@ async function deploy(): Promise<void> {
           QUICKBOOKS_CLIENT_SECRET: quickbooks_client_secret ?? undefined,
           QUICKBOOKS_WEBHOOK_SECRET: quickbooks_webhook_secret ?? undefined,
           RESEND_API_KEY: resend_api_key,
+          RESEND_DOMAIN: resend_domain ?? "carbon.ms",
           SESSION_SECRET: session_secret,
           SLACK_BOT_TOKEN: slack_bot_token ?? undefined,
           SLACK_CLIENT_ID: slack_client_id ?? undefined,

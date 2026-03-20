@@ -12,7 +12,8 @@ export const approvalDecisionValidator = z.object({
 
 export const approvalDocumentType = [
   "purchaseOrder",
-  "qualityDocument"
+  "qualityDocument",
+  "supplier"
 ] as const;
 
 export type ApprovalDocumentType =
@@ -20,7 +21,8 @@ export type ApprovalDocumentType =
 
 export const approvalDocumentTypeLabel: Record<ApprovalDocumentType, string> = {
   purchaseOrder: "Purchase Order",
-  qualityDocument: "Quality Document"
+  qualityDocument: "Quality Document",
+  supplier: "Supplier"
 };
 
 export const approvalDocumentTypesWithAmounts: ApprovalDocumentType[] = [
@@ -290,3 +292,16 @@ export const standardFactorType = [
   "Total Hours",
   "Total Minutes"
 ] as const;
+
+export type PriceBreak = {
+  quantity: number;
+  unitPrice: number;
+};
+
+export type SupplierPriceMap = Record<
+  string,
+  {
+    priceBreaks: PriceBreak[];
+    fallbackUnitPrice: number | null;
+  }
+>;

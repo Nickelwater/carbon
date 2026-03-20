@@ -957,12 +957,13 @@ export async function insertManualInventoryAdjustment(
     createdBy: string;
   }
 ) {
-  const { adjustmentType, readableId, originalShelfId, ...rest } =
+  const { adjustmentType, readableId, originalShelfId, comment, ...rest } =
     inventoryAdjustment;
   const data = {
     ...rest,
     entryType:
-      adjustmentType === "Set Quantity" ? "Positive Adjmt." : adjustmentType // This will be overwritten below
+      adjustmentType === "Set Quantity" ? "Positive Adjmt." : adjustmentType, // This will be overwritten below
+    comment: comment || null
   };
 
   const shelfQuantities = await client.rpc(
@@ -1018,7 +1019,8 @@ export async function insertManualInventoryAdjustment(
           entryType: "Negative Adjmt." as const,
           quantity: -currentQuantityOnHand,
           companyId: data.companyId,
-          createdBy: data.createdBy
+          createdBy: data.createdBy,
+          comment: data.comment
         }
       ])
       .select("*")
@@ -1040,7 +1042,8 @@ export async function insertManualInventoryAdjustment(
           entryType: "Positive Adjmt." as const,
           quantity: currentQuantityOnHand,
           companyId: data.companyId,
-          createdBy: data.createdBy
+          createdBy: data.createdBy,
+          comment: data.comment
         }
       ])
       .select("*")

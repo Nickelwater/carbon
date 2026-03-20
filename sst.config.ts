@@ -1,5 +1,6 @@
 /// <reference path="./.sst/platform/config.d.ts" />
 
+
 export default $config({
   app(input) {
     return {
@@ -16,10 +17,10 @@ export default $config({
       forceUpgrade: "v2",
     });
     const erp = cluster.addService("CarbonERPService", {
-      image: `${process.env.AWS_ACCOUNT_ID}.dkr.ecr.us-gov-east-1.amazonaws.com/carbon/erp:${process.env.IMAGE_TAG}`,
+      image: `${process.env.AWS_ACCOUNT_ID}.dkr.ecr.${process.env.AWS_REGION}.amazonaws.com/carbon/erp:${process.env.IMAGE_TAG}`,
       loadBalancer: {
         domain: {
-          name: "itar.carbon.ms",
+          name: process.env.URL_ERP ?? "itar.carbon.ms",
           dns: false,
           cert: process.env.CERT_ARN_ERP,
         },
@@ -41,6 +42,7 @@ export default $config({
         memoryUtilization: 80,
       },
       environment: {
+        AUTH_PROVIDERS: process.env.AUTH_PROVIDERS,
         CARBON_EDITION: process.env.CARBON_EDITION,
         CLOUDFLARE_TURNSTILE_SECRET_KEY:
           process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
@@ -48,9 +50,9 @@ export default $config({
           process.env.CLOUDFLARE_TURNSTILE_SITE_KEY,
         CONTROLLED_ENVIRONMENT: process.env.CONTROLLED_ENVIRONMENT,
         DOMAIN: "carbon.ms",
-        ERP_URL: "https://itar.carbon.ms",
+        ERP_URL: process.env.URL_ERP ? `https://${process.env.URL_ERP}` : "https://itar.carbon.ms",
         EXCHANGE_RATES_API_KEY: process.env.EXCHANGE_RATES_API_KEY,
-        MES_URL: "https://mes.itar.carbon.ms",
+        MES_URL: process.env.URL_MES ? `https://${process.env.URL_MES}` : "https://mes.itar.carbon.ms",
         NODE_ENV: "production",
         NOVU_APPLICATION_ID: process.env.NOVU_APPLICATION_ID,
         NOVU_SECRET_KEY: process.env.NOVU_SECRET_KEY,
@@ -64,6 +66,7 @@ export default $config({
         QUICKBOOKS_CLIENT_SECRET: process.env.QUICKBOOKS_CLIENT_SECRET,
         QUICKBOOKS_WEBHOOK_SECRET: process.env.QUICKBOOKS_WEBHOOK_SECRET,
         RESEND_API_KEY: process.env.RESEND_API_KEY,
+        RESEND_DOMAIN: process.env.RESEND_DOMAIN ?? "carbon.ms",
         SESSION_SECRET: process.env.SESSION_SECRET,
         SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN,
         SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
@@ -105,10 +108,10 @@ export default $config({
     });
 
     const mes = cluster.addService("CarbonMESService", {
-      image: `${process.env.AWS_ACCOUNT_ID}.dkr.ecr.us-gov-east-1.amazonaws.com/carbon/mes:${process.env.IMAGE_TAG}`,
+      image: `${process.env.AWS_ACCOUNT_ID}.dkr.ecr.${process.env.AWS_REGION}.amazonaws.com/carbon/mes:${process.env.IMAGE_TAG}`,
       loadBalancer: {
         domain: {
-          name: "mes.itar.carbon.ms",
+          name: process.env.URL_MES ?? "mes.itar.carbon.ms",
           dns: false,
           cert: process.env.CERT_ARN_MES,
         },
@@ -131,6 +134,7 @@ export default $config({
         memoryUtilization: 80,
       },
       environment: {
+        AUTH_PROVIDERS: process.env.AUTH_PROVIDERS,
         CARBON_EDITION: process.env.CARBON_EDITION,
         CLOUDFLARE_TURNSTILE_SECRET_KEY:
           process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
@@ -138,9 +142,9 @@ export default $config({
           process.env.CLOUDFLARE_TURNSTILE_SITE_KEY,
         CONTROLLED_ENVIRONMENT: process.env.CONTROLLED_ENVIRONMENT,
         DOMAIN: "carbon.ms",
-        ERP_URL: "https://itar.carbon.ms",
+        ERP_URL: process.env.URL_ERP ? `https://${process.env.URL_ERP}` : "https://itar.carbon.ms",
         EXCHANGE_RATES_API_KEY: process.env.EXCHANGE_RATES_API_KEY,
-        MES_URL: "https://mes.itar.carbon.ms",
+        MES_URL: process.env.URL_MES ? `https://${process.env.URL_MES}` : "https://mes.itar.carbon.ms",
         NODE_ENV: "production",
         NOVU_APPLICATION_ID: process.env.NOVU_APPLICATION_ID,
         NOVU_SECRET_KEY: process.env.NOVU_SECRET_KEY,
@@ -151,6 +155,7 @@ export default $config({
         POSTHOG_API_HOST: process.env.POSTHOG_API_HOST,
         POSTHOG_PROJECT_PUBLIC_KEY: process.env.POSTHOG_PROJECT_PUBLIC_KEY,
         RESEND_API_KEY: process.env.RESEND_API_KEY,
+        RESEND_DOMAIN: process.env.RESEND_DOMAIN ?? "carbon.ms",
         SESSION_SECRET: process.env.SESSION_SECRET,
         SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
         SUPABASE_DB_URL: process.env.SUPABASE_DB_URL,

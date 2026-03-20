@@ -41,12 +41,16 @@ export type ADFDocument = {
  * Convert ADF (Atlassian Document Format) to Tiptap JSON.
  * Used when syncing from Jira → Carbon.
  */
-export function adfToTiptap(adf: ADFDocument | null | undefined): TiptapDocument {
+export function adfToTiptap(
+  adf: ADFDocument | null | undefined
+): TiptapDocument {
   if (!adf || !adf.content || adf.content.length === 0) {
     return { type: "doc", content: [{ type: "paragraph" }] };
   }
 
-  const content = adf.content.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[];
+  const content = adf.content
+    .map(convertADFNodeToTiptap)
+    .filter(Boolean) as TiptapNode[];
 
   if (content.length === 0) {
     return { type: "doc", content: [{ type: "paragraph" }] };
@@ -60,45 +64,68 @@ function convertADFNodeToTiptap(node: ADFNode): TiptapNode | null {
     case "paragraph":
       return {
         type: "paragraph",
-        content: node.content?.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[] || []
+        content:
+          (node.content
+            ?.map(convertADFNodeToTiptap)
+            .filter(Boolean) as TiptapNode[]) || []
       };
 
     case "heading":
       return {
         type: "heading",
         attrs: { level: node.attrs?.level ?? 1 },
-        content: node.content?.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[] || []
+        content:
+          (node.content
+            ?.map(convertADFNodeToTiptap)
+            .filter(Boolean) as TiptapNode[]) || []
       };
 
     case "bulletList":
       return {
         type: "bulletList",
-        content: node.content?.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[] || []
+        content:
+          (node.content
+            ?.map(convertADFNodeToTiptap)
+            .filter(Boolean) as TiptapNode[]) || []
       };
 
     case "orderedList":
       return {
         type: "orderedList",
-        content: node.content?.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[] || []
+        content:
+          (node.content
+            ?.map(convertADFNodeToTiptap)
+            .filter(Boolean) as TiptapNode[]) || []
       };
 
     case "listItem":
       return {
         type: "listItem",
-        content: node.content?.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[] || []
+        content:
+          (node.content
+            ?.map(convertADFNodeToTiptap)
+            .filter(Boolean) as TiptapNode[]) || []
       };
 
     case "blockquote":
       return {
         type: "blockquote",
-        content: node.content?.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[] || []
+        content:
+          (node.content
+            ?.map(convertADFNodeToTiptap)
+            .filter(Boolean) as TiptapNode[]) || []
       };
 
     case "codeBlock":
       return {
         type: "codeBlock",
-        attrs: node.attrs?.language ? { language: node.attrs.language } : undefined,
-        content: node.content?.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[] || []
+        attrs: node.attrs?.language
+          ? { language: node.attrs.language }
+          : undefined,
+        content:
+          (node.content
+            ?.map(convertADFNodeToTiptap)
+            .filter(Boolean) as TiptapNode[]) || []
       };
 
     case "rule":
@@ -111,7 +138,9 @@ function convertADFNodeToTiptap(node: ADFNode): TiptapNode | null {
       return {
         type: "text",
         text: node.text ?? "",
-        marks: node.marks?.map(convertADFMarkToTiptap).filter(Boolean) as TiptapNode["marks"]
+        marks: node.marks
+          ?.map(convertADFMarkToTiptap)
+          .filter(Boolean) as TiptapNode["marks"]
       };
 
     case "mention":
@@ -155,7 +184,9 @@ function convertADFNodeToTiptap(node: ADFNode): TiptapNode | null {
       if (node.content) {
         return {
           type: "paragraph",
-          content: node.content.map(convertADFNodeToTiptap).filter(Boolean) as TiptapNode[]
+          content: node.content
+            .map(convertADFNodeToTiptap)
+            .filter(Boolean) as TiptapNode[]
         };
       }
       return null;
@@ -192,7 +223,9 @@ function convertADFMarkToTiptap(
  * Convert Tiptap JSON to ADF (Atlassian Document Format).
  * Used when syncing from Carbon → Jira.
  */
-export function tiptapToAdf(tiptapDoc: TiptapDocument | null | undefined): ADFDocument {
+export function tiptapToAdf(
+  tiptapDoc: TiptapDocument | null | undefined
+): ADFDocument {
   if (!tiptapDoc || !tiptapDoc.content || tiptapDoc.content.length === 0) {
     return {
       version: 1,
@@ -201,7 +234,9 @@ export function tiptapToAdf(tiptapDoc: TiptapDocument | null | undefined): ADFDo
     };
   }
 
-  const content = tiptapDoc.content.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[];
+  const content = tiptapDoc.content
+    .map(convertTiptapNodeToADF)
+    .filter(Boolean) as ADFNode[];
 
   if (content.length === 0) {
     return {
@@ -219,45 +254,66 @@ function convertTiptapNodeToADF(node: TiptapNode): ADFNode | null {
     case "paragraph":
       return {
         type: "paragraph",
-        content: node.content?.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[] || []
+        content:
+          (node.content
+            ?.map(convertTiptapNodeToADF)
+            .filter(Boolean) as ADFNode[]) || []
       };
 
     case "heading":
       return {
         type: "heading",
         attrs: { level: node.attrs?.level ?? 1 },
-        content: node.content?.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[] || []
+        content:
+          (node.content
+            ?.map(convertTiptapNodeToADF)
+            .filter(Boolean) as ADFNode[]) || []
       };
 
     case "bulletList":
       return {
         type: "bulletList",
-        content: node.content?.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[] || []
+        content:
+          (node.content
+            ?.map(convertTiptapNodeToADF)
+            .filter(Boolean) as ADFNode[]) || []
       };
 
     case "orderedList":
       return {
         type: "orderedList",
-        content: node.content?.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[] || []
+        content:
+          (node.content
+            ?.map(convertTiptapNodeToADF)
+            .filter(Boolean) as ADFNode[]) || []
       };
 
     case "listItem":
       return {
         type: "listItem",
-        content: node.content?.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[] || []
+        content:
+          (node.content
+            ?.map(convertTiptapNodeToADF)
+            .filter(Boolean) as ADFNode[]) || []
       };
 
     case "blockquote":
       return {
         type: "blockquote",
-        content: node.content?.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[] || []
+        content:
+          (node.content
+            ?.map(convertTiptapNodeToADF)
+            .filter(Boolean) as ADFNode[]) || []
       };
 
     case "codeBlock":
       return {
         type: "codeBlock",
         attrs: node.attrs?.language ? { language: node.attrs.language } : {},
-        content: node.content?.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[] || []
+        content:
+          (node.content
+            ?.map(convertTiptapNodeToADF)
+            .filter(Boolean) as ADFNode[]) || []
       };
 
     case "horizontalRule":
@@ -270,7 +326,9 @@ function convertTiptapNodeToADF(node: TiptapNode): ADFNode | null {
       return {
         type: "text",
         text: node.text ?? "",
-        marks: node.marks?.map(convertTiptapMarkToADF).filter(Boolean) as ADFNode["marks"]
+        marks: node.marks
+          ?.map(convertTiptapMarkToADF)
+          .filter(Boolean) as ADFNode["marks"]
       };
 
     default:
@@ -278,7 +336,9 @@ function convertTiptapNodeToADF(node: TiptapNode): ADFNode | null {
       if (node.content) {
         return {
           type: "paragraph",
-          content: node.content.map(convertTiptapNodeToADF).filter(Boolean) as ADFNode[]
+          content: node.content
+            .map(convertTiptapNodeToADF)
+            .filter(Boolean) as ADFNode[]
         };
       }
       return null;
