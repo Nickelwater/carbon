@@ -190,7 +190,8 @@ export const quoteValidator = z.object({
 export const quoteLineAdditionalChargesValidator = z.record(
   z.object({
     description: z.string(),
-    amounts: z.record(z.number())
+    amounts: z.record(z.number()),
+    taxable: z.boolean().default(true)
   })
 );
 
@@ -693,6 +694,7 @@ export const salesOrderLineValidator = z
     accountNumber: zfd.text(z.string().optional()),
     shippingCost: zfd.numeric(z.number().optional()),
     addOnCost: zfd.numeric(z.number().optional()),
+    nonTaxableAddOnCost: zfd.numeric(z.number().optional()),
     assetId: zfd.text(z.string().optional()),
     description: zfd.text(z.string().optional()),
     itemId: zfd.text(z.string().optional()),
@@ -828,6 +830,8 @@ export const salesRfqLineValidator = z.object({
 export const selectedLineSchema = z.object({
   addOn: z.number().optional(),
   convertedAddOn: z.number().optional(),
+  taxableAddOn: z.number().optional(),
+  convertedTaxableAddOn: z.number().optional(),
   convertedNetUnitPrice: z.number(),
   convertedShippingCost: z.number(),
   leadTime: z.number(),

@@ -37,7 +37,9 @@ export type Workspace = {
   cloudflare_turnstile_site_key: string | null;
   controlled_environment: string | null;
   exchange_rates_api_key: string | null;
+  google_places_api_key: string | null;
   novu_application_id: string | null;
+  novu_api_url: string | null;
   novu_secret_key: string | null;
   openai_api_key: string | null;
   posthog_api_host: string | null;
@@ -45,6 +47,7 @@ export type Workspace = {
   quickbooks_client_id: string | null;
   quickbooks_client_secret: string | null;
   quickbooks_webhook_secret: string | null;
+  redis_url: string | null;
   resend_api_key: string | null;
   resend_domain: string | null;
   session_secret: string | null;
@@ -115,7 +118,9 @@ async function deploy(): Promise<void> {
         cloudflare_turnstile_site_key,
         controlled_environment,
         exchange_rates_api_key,
+        google_places_api_key,
         novu_application_id,
+        novu_api_url,
         novu_secret_key,
         openai_api_key,
         posthog_api_host,
@@ -138,6 +143,7 @@ async function deploy(): Promise<void> {
         trigger_api_url,
         trigger_project_id,
         trigger_secret_key,
+        redis_url,
         upstash_redis_rest_token,
         upstash_redis_rest_url,
         url_erp,
@@ -271,7 +277,9 @@ async function deploy(): Promise<void> {
           CONTROLLED_ENVIRONMENT: controlled_environment ?? undefined,
           DOMAIN: domain_name,
           EXCHANGE_RATES_API_KEY: exchange_rates_api_key ?? undefined,
+          GOOGLE_PLACES_API_KEY: google_places_api_key ?? undefined,
           NOVU_APPLICATION_ID: novu_application_id ?? undefined,
+          NOVU_API_URL: novu_api_url ?? undefined,
           NOVU_SECRET_KEY: novu_secret_key ?? undefined,
           OPENAI_API_KEY: openai_api_key,
           POSTHOG_API_HOST: posthog_api_host ?? undefined,
@@ -279,6 +287,7 @@ async function deploy(): Promise<void> {
           QUICKBOOKS_CLIENT_ID: quickbooks_client_id ?? undefined,
           QUICKBOOKS_CLIENT_SECRET: quickbooks_client_secret ?? undefined,
           QUICKBOOKS_WEBHOOK_SECRET: quickbooks_webhook_secret ?? undefined,
+          REDIS_URL: redis_url ?? undefined,
           RESEND_API_KEY: resend_api_key,
           RESEND_DOMAIN: resend_domain ?? "carbon.ms",
           SESSION_SECRET: session_secret,
