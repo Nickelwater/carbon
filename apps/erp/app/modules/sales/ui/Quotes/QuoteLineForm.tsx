@@ -28,7 +28,13 @@ import { getItemReadableId } from "@carbon/utils";
 import { useState } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { LuCircleArrowUp, LuTrash } from "react-icons/lu";
-import { Link, useFetcher, useParams } from "react-router";
+import {
+  Link,
+  useFetcher,
+  useNavigation,
+  useParams,
+  useSubmit
+} from "react-router";
 import type { z } from "zod";
 import { MethodIcon, MethodItemTypeIcon } from "~/components";
 import { ConfiguratorModal } from "~/components/Configurator/ConfiguratorForm";
@@ -78,19 +84,23 @@ function PromoteQuotePartMenuItem({
   quoteLineId: string;
   quoteId: string;
 }) {
-  const fetcher = useFetcher();
+  const submit = useSubmit();
+  const navigation = useNavigation();
+  const promoteAction = path.to.quoteLinePromoteToPart(quoteId, quoteLineId);
+  const isPromoting =
+    navigation.state !== "idle" &&
+    navigation.formMethod === "POST" &&
+    (navigation.formAction === promoteAction ||
+      navigation.formAction?.includes(
+        `/${quoteId}/${quoteLineId}/promote-to-part`
+      ));
+
   return (
     <DropdownMenuItem
-      onSelect={() =>
-        fetcher.submit(
-          {},
-          {
-            method: "post",
-            action: path.to.quoteLinePromoteToPart(quoteId, quoteLineId)
-          }
-        )
-      }
-      disabled={fetcher.state !== "idle"}
+      onSelect={() => {
+        submit(new FormData(), { method: "post", action: promoteAction });
+      }}
+      disabled={isPromoting}
     >
       <DropdownMenuIcon icon={<LuCircleArrowUp />} />
       Promote to part

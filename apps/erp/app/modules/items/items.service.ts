@@ -1393,7 +1393,7 @@ export async function getParts(
 
   if (args.search) {
     query = query.or(
-      `readableIdWithRevision.ilike.%${args.search}%,name.ilike.%${args.search}%,description.ilike.%${args.search}%,supplierIds.ilike.%${args.search}%`
+      `readableIdWithRevision.ilike.%${args.search}%,name.ilike.%${args.search}%,description.ilike.%${args.search}%,supplierIds.ilike.%${args.search}%,customerPartSummary.ilike.%${args.search}%`
     );
   }
 

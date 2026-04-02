@@ -296,10 +296,15 @@ export default function QuoteLine() {
     ...getCustomFields(line.customFields)
   };
 
+  const linePartKey = `${line.itemId ?? ""}:${(line as { quotePartId?: string | null }).quotePartId ?? ""}`;
+
   return (
     <Fragment key={lineId}>
       <QuoteMakeMethodTools />
-      <QuoteLineForm key={lineId} initialValues={initialValues} />
+      <QuoteLineForm
+        key={`${lineId}:${linePartKey}`}
+        initialValues={initialValues}
+      />
       <OpportunityLineNotes
         id={line.id}
         table="quoteLine"

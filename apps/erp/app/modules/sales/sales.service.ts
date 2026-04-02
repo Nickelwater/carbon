@@ -2346,6 +2346,40 @@ export async function promoteQuotePartToItem(
     modelUploadId: string | null;
   };
 
+  const lineRes = await client
+    .from("quoteLine")
+    .select("description, customerPartId")
+    .eq("id", quoteLineId)
+    .eq("companyId", companyId)
+    .single();
+  if (lineRes.error) {
+    return { data: null, error: lineRes.error };
+  }
+
+  const qpDesc = qp.description?.trim() || null;
+  const lineDesc = lineRes.data?.description?.trim() || null;
+  const customerPartKey =
+    lineRes.data?.customerPartId?.trim() ||
+    payload.customerPartId?.trim() ||
+    null;
+  const quotePartNameKey = qp.name?.trim() || null;
+
+  const isPlausibleCustomerPartOnly = (text: string | null | undefined) => {
+    if (!text) return false;
+    if (customerPartKey && text === customerPartKey) return true;
+    if (quotePartNameKey && text === quotePartNameKey) return true;
+    return false;
+  };
+
+  let quotePartDescriptionForName: string | null = null;
+  if (lineDesc && !isPlausibleCustomerPartOnly(lineDesc)) {
+    quotePartDescriptionForName = lineDesc;
+  } else if (qpDesc && !isPlausibleCustomerPartOnly(qpDesc)) {
+    quotePartDescriptionForName = qpDesc;
+  }
+
+  const itemName = quotePartDescriptionForName ?? qp.name;
+
   const nextIdRes = await client.rpc("get_next_numeric_sequence", {
     company_id: companyId,
     item_type: "Part"
@@ -2357,8 +2391,7 @@ export async function promoteQuotePartToItem(
     .insert({
       readableId,
       revision: "0",
-      name: qp.name,
-      description: qp.description ?? undefined,
+      name: itemName,
       type: "Part",
       replenishmentSystem: "Make",
       defaultMethodType: qp.defaultMethodType,

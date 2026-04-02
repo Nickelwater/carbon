@@ -48199,6 +48199,7 @@ export type Database = {
           active: boolean | null
           assignee: string | null
           companyId: string | null
+          customerPartSummary: string | null
           createdAt: string | null
           createdBy: string | null
           customFields: Json | null

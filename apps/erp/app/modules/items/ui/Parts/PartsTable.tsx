@@ -97,6 +97,11 @@ const PartsTable = memo(({ data, tags, count }: PartsTableProps) => {
             <Hyperlink to={path.to.partDetails(row.original.id!)}>
               <VStack spacing={0}>
                 {row.original.readableIdWithRevision}
+                {row.original.customerPartSummary ? (
+                  <div className="w-full truncate text-muted-foreground text-xs">
+                    {row.original.customerPartSummary}
+                  </div>
+                ) : null}
                 <div className="w-full truncate text-muted-foreground text-xs">
                   {row.original.name}
                 </div>
