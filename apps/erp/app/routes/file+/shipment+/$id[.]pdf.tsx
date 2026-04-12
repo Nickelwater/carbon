@@ -295,7 +295,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
       const stream = await renderToStream(
         <PackingSlipPDF
-          company={company.data}
+          company={company.data as any}
           customer={customer.data}
           locale={locale}
           meta={{
@@ -309,7 +309,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           shipment={shipment.data}
           shipmentLines={shipmentLines.data ?? []}
           customerReferenceByLineId={customerReferenceByLineId}
-          // @ts-ignore
+          // @ts-expect-error
           shippingAddress={customerLocation.data?.address ?? null}
           terms={(terms?.data?.salesTerms ?? {}) as JSONContent}
           paymentTerm={paymentTerm.data ?? { id: "", name: "" }}
@@ -335,7 +335,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${company.data.name} - ${shipment.data.shipmentId}.pdf"`
       });
-      return new Response(body, { status: 200, headers });
+      return new Response(new Uint8Array(body), { status: 200, headers });
     }
     case "Sales Invoice": {
       const salesInvoice = await serviceRole
@@ -420,7 +420,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
       const stream = await renderToStream(
         <PackingSlipPDF
-          company={company.data}
+          company={company.data as any}
           customer={customer.data}
           locale={locale}
           meta={{
@@ -434,7 +434,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           shipment={shipment.data}
           shipmentLines={shipmentLines.data ?? []}
           customerReferenceByLineId={customerReferenceByLineId}
-          // @ts-ignore
+          // @ts-expect-error
           shippingAddress={customerLocation.data?.address ?? null}
           terms={(terms?.data?.salesTerms ?? {}) as JSONContent}
           paymentTerm={paymentTerm.data ?? { id: "", name: "" }}
@@ -460,7 +460,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${company.data.name} - ${shipment.data.shipmentId}.pdf"`
       });
-      return new Response(body, { status: 200, headers });
+      return new Response(new Uint8Array(body), { status: 200, headers });
     }
     case "Purchase Order": {
       const [purchaseOrder, purchaseOrderDelivery] = await Promise.all([
@@ -535,7 +535,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
       const poStream = await renderToStream(
         <PackingSlipPDF
-          company={company.data}
+          company={company.data as any}
           customer={supplier.data}
           locale={locale}
           meta={{
@@ -548,7 +548,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           sourceDocumentId={purchaseOrder.data?.purchaseOrderId ?? undefined}
           shipment={shipment.data}
           shipmentLines={shipmentLines.data ?? []}
-          // @ts-ignore
+          // @ts-expect-error
           shippingAddress={supplierLocation.data?.address ?? null}
           terms={(terms?.data?.salesTerms ?? {}) as JSONContent}
           paymentTerm={poPaymentTerm.data ?? { id: "", name: "" }}
@@ -574,7 +574,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         "Content-Type": "application/pdf",
         "Content-Disposition": `inline; filename="${company.data.name} - ${shipment.data.shipmentId}.pdf"`
       });
-      return new Response(poBody, { status: 200, headers: poHeaders });
+      return new Response(new Uint8Array(poBody), {
+        status: 200,
+        headers: poHeaders
+      });
     }
     default:
       throw new Error("Invalid source document");

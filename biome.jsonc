@@ -9,6 +9,8 @@
       "!sst.env.d.ts",
       "!packages/database/src/types.ts",
       "!packages/database/src/swagger-docs-schema.ts",
+      "!**/mcp*/lib/tools/**",
+      "!**/mcp*/lib/server.ts",
       "**/*.json",
       "examples/**/*"
     ]
@@ -95,7 +97,7 @@
         "noLabelVar": "warn",
         "noRedeclare": "error",
         "noSelfCompare": "warn",
-        "noShadowRestrictedNames": "warn",
+        "noShadowRestrictedNames": "off",
         "noSparseArray": "warn",
         "noTemplateCurlyInString": "warn",
         "noUnsafeNegation": "warn",
@@ -141,17 +143,7 @@
         "**/__tests__/**/*.ts"
       ],
       "javascript": {
-        "globals": [
-          "afterEach",
-          "afterAll",
-          "beforeEach",
-          "beforeAll",
-          "describe",
-          "expect",
-          "it",
-          "test",
-          "jest"
-        ]
+        "globals": []
       }
     }
   ],

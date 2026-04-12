@@ -14,11 +14,12 @@ dist-ssr
 server/dist
 public/dist
 vite.config.ts.timestamp*
-
+.mcp.json
 opencode.json
 
 scripts/migrations/data
 scripts/paperless-test.ts
+scripts/test-get-stripe-customer.ts
 
 # local env files
 .env

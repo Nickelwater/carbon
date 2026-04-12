@@ -1,4 +1,3 @@
-// biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Number, Submit, ValidatedForm } from "@carbon/form";
 import {
   Alert,
@@ -34,6 +33,7 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import {
@@ -77,6 +77,7 @@ const MakeMethodTools = ({
   currentMethodId
 }: MakeMethodToolsProps) => {
   const permissions = usePermissions();
+  const { t } = useLingui();
   const fetcher = useFetcher<{ error: string | null }>();
   const params = useParams();
   const { methodId, makeMethodId } = params;
@@ -123,7 +124,7 @@ const MakeMethodTools = ({
               leftIcon={<LuGitBranch />}
               onClick={getMethodModal.onOpen}
             >
-              Get Method
+              <Trans>Get Method</Trans>
             </MenubarItem>
             <MenubarItem
               isDisabled={
@@ -133,7 +134,7 @@ const MakeMethodTools = ({
               leftIcon={<LuGitMerge />}
               onClick={saveMethodModal.onOpen}
             >
-              Save Method
+              <Trans>Save Method</Trans>
             </MenubarItem>
             {itemLink && (
               <MenubarItem leftIcon={<LuGitFork />} asChild>
@@ -277,7 +278,7 @@ const MakeMethodTools = ({
                   </Alert>
                   <Item
                     name="sourceId"
-                    label="Source Method"
+                    label={t`Source Method`}
                     type={type}
                     blacklist={configurableItemIds}
                     includeInactive={includeInactive}
@@ -343,7 +344,7 @@ const MakeMethodTools = ({
                 <VStack spacing={4}>
                   <Item
                     name="targetId"
-                    label="Target Method"
+                    label={t`Target Method`}
                     type={type}
                     includeInactive={includeInactive}
                     blacklist={[itemId, ...configurableItemIds]}
@@ -371,7 +372,9 @@ const MakeMethodTools = ({
                 <Button onClick={saveMethodModal.onClose} variant="secondary">
                   Cancel
                 </Button>
-                <Submit isDisabled={!hasMethodParts}>Confirm</Submit>
+                <Submit isDisabled={!hasMethodParts}>
+                  <Trans>Confirm</Trans>
+                </Submit>
               </ModalFooter>
             </ValidatedForm>
           </ModalContent>
@@ -423,8 +426,8 @@ const MakeMethodTools = ({
                   )}
                   <Number
                     name="version"
-                    label="New Version"
-                    helperText="The new version number of the method"
+                    label={t`New Version`}
+                    helperText={t`The new version number of the method`}
                     minValue={maxVersion + 1}
                     maxValue={100000}
                     step={1}
@@ -435,7 +438,9 @@ const MakeMethodTools = ({
                 <Button onClick={newVersionModal.onClose} variant="secondary">
                   Cancel
                 </Button>
-                <Submit>Create Version</Submit>
+                <Submit>
+                  <Trans>Create Version</Trans>
+                </Submit>
               </ModalFooter>
             </ValidatedForm>
           </ModalContent>
@@ -447,9 +452,9 @@ const MakeMethodTools = ({
           action={`${path.to.activeMethodVersion(
             selectedVersion.id
           )}?methodToReplace=${activeMethodId}`}
-          confirmText="Make Active"
-          title={`Set Version ${selectedVersion.version} as Active Version?`}
-          text="This will make this version read-only and replace any material make methods with this version."
+          confirmText={t`Make Active`}
+          title={t`Set Version ${selectedVersion.version} as Active Version?`}
+          text={t`This will make this version read-only and replace any material make methods with this version.`}
           isOpen
           onSubmit={() => {
             activeMethodModal.onClose();
@@ -467,6 +472,7 @@ function AdvancedSection({
 }: {
   onChange?: (hasSelection: boolean) => void;
 }) {
+  const { t } = useLingui();
   const [open, setOpen] = useState(false);
   const [billOfMaterial, setBillOfMaterial] = useState(true);
   const [billOfProcess, setBillOfProcess] = useState(true);
@@ -486,15 +492,15 @@ function AdvancedSection({
   const processChildren = [
     {
       name: "parameters",
-      label: "Parameters",
+      label: t`Parameters`,
       checked: parameters,
       onChange: setParameters
     },
-    { name: "tools", label: "Tools", checked: tools, onChange: setTools },
-    { name: "steps", label: "Steps", checked: steps, onChange: setSteps },
+    { name: "tools", label: t`Tools`, checked: tools, onChange: setTools },
+    { name: "steps", label: t`Steps`, checked: steps, onChange: setSteps },
     {
       name: "workInstructions",
-      label: "Work Instructions",
+      label: t`Work Instructions`,
       checked: workInstructions,
       onChange: setWorkInstructions
     }

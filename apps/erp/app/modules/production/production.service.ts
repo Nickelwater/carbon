@@ -94,26 +94,25 @@ export async function convertSalesOrderLinesToJobs(
   let jobsCreated = 0;
 
   for await (const line of lines) {
-    if (line.methodType === "Make" && line.itemId) {
-      const itemManufacturing = await client
-        .from("itemReplenishment")
-        .select("*")
-        .eq("itemId", line.itemId)
-        .eq("companyId", companyId)
-        .single();
-
-      const lotSize = itemManufacturing.data?.lotSize ?? 0;
-      const totalQuantity = line.saleQuantity ?? 0;
-      const totalJobs = lotSize > 0 ? Math.ceil(totalQuantity / lotSize) : 1;
-
-      const jobsToCreate = Math.max(1, totalJobs);
-
+    if (line.methodType === "Make to Order" && line.itemId) {
       const manufacturing = await client
         .from("itemReplenishment")
         .select("*")
         .eq("itemId", line.itemId)
         .eq("companyId", companyId)
         .single();
+
+      const lotSize = manufacturing.data?.lotSize ?? 0;
+      const totalQuantity = line.saleQuantity ?? 0;
+      const totalJobs = lotSize > 0 ? Math.ceil(totalQuantity / lotSize) : 1;
+
+      const jobsToCreate = Math.max(1, totalJobs);
+
+      const defaultLocation = await client
+        .from("location")
+        .select("id")
+        .eq("companyId", companyId)
+        .limit(1);
 
       for await (const index of Array.from({ length: jobsToCreate }).keys()) {
         const nextSequence = await client.rpc("get_next_sequence", {
@@ -138,12 +137,6 @@ export async function convertSalesOrderLinesToJobs(
 
         let locationId = line.locationId ?? salesOrder.data?.locationId;
         if (!locationId) {
-          const defaultLocation = await client
-            .from("location")
-            .select("id")
-            .eq("companyId", companyId)
-            .limit(1);
-
           if (defaultLocation.data && defaultLocation.data.length > 0) {
             locationId = defaultLocation.data?.[0]?.id;
           } else {
@@ -990,7 +983,7 @@ function getJobMethodTreeArrayToTree(items: JobMethod[]): JobMethodTreeItem[] {
     const parentId = item.parentMaterialId;
 
     if (!Object.prototype.hasOwnProperty.call(lookup, itemId)) {
-      // @ts-ignore
+      // @ts-expect-error
       lookup[itemId] = { id: itemId, children: [] };
     }
 
@@ -1003,7 +996,7 @@ function getJobMethodTreeArrayToTree(items: JobMethod[]): JobMethodTreeItem[] {
       rootItems.push(treeItem);
     } else {
       if (!Object.prototype.hasOwnProperty.call(lookup, parentId)) {
-        // @ts-ignore
+        // @ts-expect-error
         lookup[parentId] = { id: parentId, children: [] };
       }
 
@@ -1041,7 +1034,7 @@ export async function getJobMaterialsByMethodId(
 ) {
   return client
     .from("jobMaterial")
-    .select("*")
+    .select("*, item(replenishmentSystem)")
     .eq("jobMakeMethodId", jobMakeMethodId)
     .order("order", { ascending: true });
 }
@@ -2147,11 +2140,14 @@ export async function upsertProductionQuantity(
       .select()
       .single();
   } else {
-    return client
-      .from("productionQuantity")
-      .insert([productionQuantity])
-      .select("id")
-      .single();
+    return (
+      client
+        .from("productionQuantity")
+        // @ts-expect-error TS2769 - TODO: fix type
+        .insert([productionQuantity])
+        .select("id")
+        .single()
+    );
   }
 }
 
@@ -3076,4 +3072,28 @@ export async function upsertDemandProjections(
     data: hasError ? null : toUpsert,
     error: hasError ? results.find((r) => r.error)?.error : null
   };
+}
+
+/**
+ * Trigger a job scheduling task via Inngest.
+ * Supports both initial scheduling and rescheduling.
+ */
+export async function triggerJobSchedule(
+  jobId: string,
+  companyId: string,
+  userId: string,
+  mode: "initial" | "reschedule" = "reschedule",
+  direction: "backward" | "forward" = "backward"
+) {
+  const { trigger } = await import("@carbon/jobs");
+
+  await trigger("schedule-job", {
+    jobId,
+    companyId,
+    userId,
+    mode,
+    direction
+  });
+
+  return { success: true };
 }

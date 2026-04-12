@@ -5,6 +5,7 @@ import { validationError, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import { Spinner } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
+import { useLingui } from "@lingui/react/macro";
 import { Suspense } from "react";
 import { Fragment } from "react/jsx-runtime";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
@@ -136,6 +137,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function EditSalesInvoiceLineRoute() {
+  const { t } = useLingui();
   const { invoiceId, lineId } = useParams();
   if (!invoiceId) throw notFound("invoiceId not found");
   if (!lineId) throw notFound("lineId not found");
@@ -151,7 +153,8 @@ export default function EditSalesInvoiceLineRoute() {
     id: salesInvoiceLine?.id ?? undefined,
     invoiceId: salesInvoiceLine?.invoiceId ?? "",
     invoiceLineType: (salesInvoiceLine?.invoiceLineType ?? "Part") as "Part",
-    methodType: (salesInvoiceLine?.methodType ?? "Pick") as "Pick",
+    methodType: (salesInvoiceLine?.methodType ??
+      "Pull from Inventory") as "Pull from Inventory",
     itemId: salesInvoiceLine?.itemId ?? "",
     accountNumber: salesInvoiceLine?.accountNumber ?? "",
     addOnCost: salesInvoiceLine?.addOnCost ?? 0,
@@ -180,7 +183,7 @@ export default function EditSalesInvoiceLineRoute() {
       <OpportunityLineNotes
         id={salesInvoiceLine?.id ?? ""}
         table="salesInvoiceLine"
-        title="Notes"
+        title={t`Notes`}
         subTitle={getItemReadableId(items, salesInvoiceLine?.itemId) ?? ""}
         internalNotes={salesInvoiceLine?.internalNotes as JSONContent}
       />

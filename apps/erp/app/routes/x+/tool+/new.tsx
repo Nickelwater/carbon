@@ -2,6 +2,7 @@ import { assertIsPost, error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
+import { msg } from "@lingui/core/macro";
 import type { ActionFunctionArgs } from "react-router";
 import { data, redirect } from "react-router";
 import { toolValidator, upsertTool } from "~/modules/items";
@@ -11,7 +12,7 @@ import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
 export const handle: Handle = {
-  breadcrumb: "Tools",
+  breadcrumb: msg`Tools`,
   to: path.to.tools,
   module: "items"
 };
@@ -64,7 +65,7 @@ export default function ToolsNewRoute() {
     name: "",
     description: "",
     replenishmentSystem: "Buy" as const,
-    defaultMethodType: "Buy" as const,
+    defaultMethodType: "Purchase to Order" as const,
     itemTrackingType: "Inventory" as "Inventory",
     unitOfMeasureCode: "EA",
     unitCost: 0,

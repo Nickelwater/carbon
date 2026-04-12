@@ -10,6 +10,7 @@ import {
   toast,
   VStack
 } from "@carbon/react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { Suspense, useCallback, useEffect } from "react";
 import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
@@ -17,7 +18,6 @@ import { Await, useFetcher, useParams } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { MethodBadge, MethodIcon, TrackingTypeIcon } from "~/components";
-import { Enumerable } from "~/components/Enumerable";
 import { Boolean, ItemPostingGroup, Tags } from "~/components/Form";
 import CustomFormInlineFields from "~/components/Form/CustomFormInlineFields";
 import { ReplenishmentSystemIcon } from "~/components/Icons";
@@ -43,6 +43,7 @@ import type {
 import { FileBadge } from "../Item";
 
 const ToolProperties = () => {
+  const { t } = useLingui();
   const { itemId } = useParams();
   if (!itemId) throw new Error("itemId not found");
 
@@ -153,14 +154,14 @@ const ToolProperties = () => {
       <VStack spacing={2}>
         <HStack className="w-full justify-between">
           <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
-            Properties
+            <Trans>Properties</Trans>
           </h3>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
-                  aria-label="Link"
+                  aria-label={t`Link`}
                   size="sm"
                   className="p-1"
                   onClick={() =>
@@ -173,14 +174,16 @@ const ToolProperties = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <span>Copy link to tool</span>
+                <span>
+                  <Trans>Copy link to tool</Trans>
+                </span>
               </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
-                  aria-label="Copy"
+                  aria-label={t`Copy`}
                   size="sm"
                   className="p-1"
                   onClick={() =>
@@ -191,14 +194,16 @@ const ToolProperties = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <span>Copy tool unique identifier</span>
+                <span>
+                  <Trans>Copy tool unique identifier</Trans>
+                </span>
               </TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
                   variant="ghost"
-                  aria-label="Copy"
+                  aria-label={t`Copy`}
                   size="sm"
                   className="p-1"
                   onClick={() =>
@@ -211,7 +216,9 @@ const ToolProperties = () => {
                 </Button>
               </TooltipTrigger>
               <TooltipContent>
-                <span>Copy tool number</span>
+                <span>
+                  <Trans>Copy tool number</Trans>
+                </span>
               </TooltipContent>
             </Tooltip>
           </HStack>
@@ -282,12 +289,56 @@ const ToolProperties = () => {
         className="w-full"
       >
         <ItemPostingGroup
-          label="Item Group"
+          label={t`Item Group`}
           name="itemPostingGroupId"
           inline
           isClearable
           onChange={(value) => {
             onUpdate("itemPostingGroupId", value?.value ?? null);
+          }}
+        />
+      </ValidatedForm>
+
+      <ValidatedForm
+        defaultValues={{
+          replenishmentSystem:
+            routeData?.toolSummary?.replenishmentSystem ?? undefined
+        }}
+        validator={z.object({
+          replenishmentSystem: z.string()
+        })}
+        className="w-full"
+      >
+        <Select
+          name="replenishmentSystem"
+          label={t`Replenishment`}
+          inline={(value) => (
+            <Badge variant="secondary">
+              <ReplenishmentSystemIcon type={value} className="mr-2" />
+              <span>
+                {value === "Buy"
+                  ? t`Buy`
+                  : value === "Make"
+                    ? t`Make`
+                    : t`Buy and Make`}
+              </span>
+            </Badge>
+          )}
+          options={itemReplenishmentSystems.map((system) => ({
+            value: system,
+            label: (
+              <span className="flex items-center gap-2">
+                <ReplenishmentSystemIcon type={system} />
+                {system === "Buy"
+                  ? t`Buy`
+                  : system === "Make"
+                    ? t`Make`
+                    : t`Buy and Make`}
+              </span>
+            )
+          }))}
+          onChange={(value) => {
+            onUpdate("replenishmentSystem", value?.value ?? null);
           }}
         />
       </ValidatedForm>
@@ -304,11 +355,19 @@ const ToolProperties = () => {
       >
         <Select
           name="itemTrackingType"
-          label="Tracking Type"
+          label={t`Tracking Type`}
           inline={(value) => (
             <Badge variant="secondary">
               <TrackingTypeIcon type={value} className="mr-2" />
-              <span>{value}</span>
+              <span>
+                {value === "Inventory"
+                  ? t`Inventory`
+                  : value === "Non-Inventory"
+                    ? t`Non-Inventory`
+                    : value === "Serial"
+                      ? t`Serial`
+                      : t`Batch`}
+              </span>
             </Badge>
           )}
           options={itemTrackingTypes.map((type) => ({
@@ -316,7 +375,13 @@ const ToolProperties = () => {
             label: (
               <span className="flex items-center gap-2">
                 <TrackingTypeIcon type={type} />
-                {type}
+                {type === "Inventory"
+                  ? t`Inventory`
+                  : type === "Non-Inventory"
+                    ? t`Non-Inventory`
+                    : type === "Serial"
+                      ? t`Serial`
+                      : t`Batch`}
               </span>
             )
           }))}
@@ -338,21 +403,36 @@ const ToolProperties = () => {
       >
         <Select
           name="defaultMethodType"
-          label="Default Method Type"
+          label={t`Default Method Type`}
           inline={(value) => (
             <Badge variant="secondary">
               <MethodIcon type={value} className="mr-2" />
-              <span>{value}</span>
+              <span>
+                {value === "Purchase to Order"
+                  ? t`Purchase to Order`
+                  : value === "Pull from Inventory"
+                    ? t`Pull from Inventory`
+                    : t`Make to Order`}
+              </span>
             </Badge>
           )}
           options={methodType
-            .filter((type) => type !== "Make")
+            .filter((type) => {
+              const replenishment = routeData?.toolSummary?.replenishmentSystem;
+              if (replenishment === "Buy") return type !== "Make to Order";
+              if (replenishment === "Make") return type !== "Purchase to Order";
+              return true;
+            })
             .map((type) => ({
               value: type,
               label: (
                 <span className="flex items-center gap-2">
                   <MethodIcon type={type} />
-                  {type}
+                  {type === "Purchase to Order"
+                    ? t`Purchase to Order`
+                    : type === "Pull from Inventory"
+                      ? t`Pull from Inventory`
+                      : t`Make to Order`}
                 </span>
               )
             }))}
@@ -362,48 +442,22 @@ const ToolProperties = () => {
         />
       </ValidatedForm>
 
-      <ValidatedForm
-        defaultValues={{
-          replenishmentSystem:
-            routeData?.toolSummary?.replenishmentSystem ?? undefined
-        }}
-        validator={z.object({
-          replenishmentSystem: z.string()
-        })}
-        className="w-full"
-      >
-        <Select
-          name="replenishmentSystem"
-          label="Replenishment"
-          inline={(value) => (
-            <Badge variant="secondary">
-              <ReplenishmentSystemIcon type={value} className="mr-2" />
-              <span>{value}</span>
-            </Badge>
-          )}
-          options={itemReplenishmentSystems.map((system) => ({
-            value: system,
-            label: (
-              <span className="flex items-center gap-2">
-                <ReplenishmentSystemIcon type={system} />
-                {system}
-              </span>
-            )
-          }))}
-          onChange={(value) => {
-            onUpdate("replenishmentSystem", value?.value ?? null);
-          }}
-        />
-      </ValidatedForm>
-
       <VStack spacing={2}>
-        <h3 className="text-xs text-muted-foreground">Unit of Measure</h3>
-        <Enumerable value={routeData?.toolSummary?.unitOfMeasure ?? null} />
+        <h3 className="text-xs text-muted-foreground">
+          <Trans>Unit of Measure</Trans>
+        </h3>
+        {routeData?.toolSummary?.unitOfMeasure && (
+          <Badge variant="secondary">
+            {routeData.toolSummary.unitOfMeasure}
+          </Badge>
+        )}
       </VStack>
 
       <VStack spacing={2}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xs text-muted-foreground">Methods</h3>
+          <h3 className="text-xs text-muted-foreground">
+            <Trans>Methods</Trans>
+          </h3>
         </HStack>
         {routeData?.toolSummary?.replenishmentSystem?.includes("Make") && (
           <Suspense fallback={null}>
@@ -412,13 +466,10 @@ const ToolProperties = () => {
                 makeMethods.data
                   ?.sort((a, b) => b.version - a.version)
                   .map((method) => {
-                    const isActive =
-                      method.status === "Active" ||
-                      makeMethods.data?.length === 1;
                     return (
                       <MethodBadge
                         key={method.id}
-                        type={isActive ? "Make" : "Make Inactive"}
+                        type="Make to Order"
                         text={`Version ${method.version}`}
                         to={`${path.to.toolDetails(itemId)}?methodId=${method.id}`}
                       />
@@ -432,7 +483,7 @@ const ToolProperties = () => {
           supplierParts.map((method) => (
             <MethodBadge
               key={method.id}
-              type="Buy"
+              type="Purchase to Order"
               text={
                 suppliers.find((s) => s.id === method.supplierId)?.name ?? ""
               }
@@ -442,7 +493,7 @@ const ToolProperties = () => {
         {pickMethods.map((method) => (
           <MethodBadge
             key={method.locationId}
-            type="Pick"
+            type="Pull from Inventory"
             text={locations.find((l) => l.id === method.locationId)?.name ?? ""}
             to={path.to.partInventoryLocation(itemId, method.locationId)}
           />
@@ -458,7 +509,7 @@ const ToolProperties = () => {
         className="w-full"
       >
         <Boolean
-          label="Active"
+          label={t`Active`}
           name="active"
           variant="small"
           onChange={(value) => {
@@ -476,7 +527,7 @@ const ToolProperties = () => {
         className="w-full"
       >
         <Tags
-          label="Tags"
+          label={t`Tags`}
           name="tags"
           availableTags={routeData?.tags ?? []}
           table="tool"
@@ -496,7 +547,9 @@ const ToolProperties = () => {
 
       <VStack spacing={2}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xs text-muted-foreground">Files</h3>
+          <h3 className="text-xs text-muted-foreground">
+            <Trans>Files</Trans>
+          </h3>
         </HStack>
 
         <Suspense fallback={null}>

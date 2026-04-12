@@ -12,6 +12,7 @@ import {
   useDebounce,
   VStack
 } from "@carbon/react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useId, useState } from "react";
 import { LuExternalLink } from "react-icons/lu";
 import { Link } from "react-router";
@@ -33,6 +34,7 @@ const linkIssueValidator = z.object({
 });
 
 export const LinkIssue = (props: Props) => {
+  const { t } = useLingui();
   const id = useId();
   const [issueId, setIssueId] = useState<string | undefined>();
 
@@ -55,6 +57,7 @@ export const LinkIssue = (props: Props) => {
       method="post"
       action={path.to.api.linearLinkExistingIssue}
       validator={linkIssueValidator}
+      // @ts-expect-error TS2322 - TODO: fix type
       fetcher={fetcher}
       resetAfterSubmit
       onAfterSubmit={() => props.onClose()}
@@ -68,7 +71,7 @@ export const LinkIssue = (props: Props) => {
             type="search"
             className="w-full"
             autoComplete="off"
-            placeholder="Search by linear issue title..."
+            placeholder={t`Search by linear issue title...`}
             onChange={onSearch}
             disabled={isSearching}
           />
@@ -149,9 +152,11 @@ export const LinkIssue = (props: Props) => {
             props.onClose();
           }}
         >
-          Cancel
+          <Trans>Cancel</Trans>
         </Button>
-        <Submit>Save</Submit>
+        <Submit>
+          <Trans>Save</Trans>
+        </Submit>
       </ModalFooter>
     </ValidatedForm>
   );

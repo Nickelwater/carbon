@@ -11,6 +11,7 @@ import {
   useMount,
   VStack
 } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import { useNumberFormatter } from "@react-aria/i18n";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useEffect, useMemo, useState } from "react";
@@ -57,6 +58,7 @@ type JobMaterialsTableProps = {
 };
 const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
   const { jobId } = useParams();
+  const { t } = useLingui();
   if (!jobId) throw new Error("Job ID is required");
 
   const routeData = useRouteData<{ job: Job }>(path.to.job(jobId));
@@ -90,7 +92,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
     data.forEach((material) => {
       if (
         material.itemTrackingType === "Non-Inventory" ||
-        material.methodType === "Make" ||
+        material.methodType === "Make to Order" ||
         !material.id
       ) {
         return;
@@ -163,7 +165,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
     return [
       {
         accessorKey: "readableIdWithRevision",
-        header: "Item",
+        header: t`Item`,
         cell: ({ row }) => (
           <HStack className="py-1">
             <ItemThumbnail
@@ -201,7 +203,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
       },
       {
         accessorKey: "estimatedQuantity",
-        header: "Required",
+        header: t`Required`,
         cell: ({ row }) => formatter.format(row.original.estimatedQuantity),
         meta: {
           icon: <LuHash />
@@ -209,7 +211,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
       },
       {
         id: "method",
-        header: "Method",
+        header: t`Method`,
         cell: ({ row }) => (
           <HStack>
             <Badge variant="secondary">
@@ -218,7 +220,9 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
                 className="size-3 mr-1"
               />
               {row.original.shelfName ??
-                (row.original.methodType === "Make" ? "WIP" : "Default Shelf")}
+                (row.original.methodType === "Make to Order"
+                  ? t`WIP`
+                  : t`Default Shelf`)}
             </Badge>
           </HStack>
         )
@@ -226,7 +230,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
 
       {
         id: "quantityOnHandInShelf",
-        header: "On Shelf",
+        header: t`On Shelf`,
         cell: ({ row }) => {
           const isInventoried =
             row.original.itemTrackingType !== "Non-Inventory";
@@ -243,7 +247,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
             : row.original.quantityFromProductionOrderInShelf +
               row.original.estimatedQuantity;
 
-          if (row.original.methodType === "Make") {
+          if (row.original.methodType === "Make to Order") {
             return null;
           }
 
@@ -275,11 +279,11 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
       },
       {
         id: "quantityOnHand",
-        header: "On Hand",
+        header: t`On Hand`,
         cell: ({ row }) => {
           if (
             row.original.itemTrackingType === "Non-Inventory" ||
-            row.original.methodType === "Make"
+            row.original.methodType === "Make to Order"
           ) {
             return null;
           }
@@ -319,7 +323,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
       },
       {
         id: "required",
-        header: "Required",
+        header: t`Required`,
         cell: ({ row }) =>
           formatter.format(
             row.original.quantityFromProductionOrderInShelf +
@@ -332,7 +336,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
       },
       {
         id: "incoming",
-        header: "Incoming",
+        header: t`Incoming`,
         cell: ({ row }) =>
           formatter.format(
             row.original.quantityOnPurchaseOrder +
@@ -344,7 +348,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
       },
       {
         id: "transfer",
-        header: "Transfer",
+        header: t`Transfer`,
         cell: ({ row }) =>
           formatter.format(row.original.quantityInTransitToShelf),
         meta: {
@@ -359,7 +363,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
       // Skip non-inventory items and make items
       if (
         row.itemTrackingType === "Non-Inventory" ||
-        row.methodType === "Make" ||
+        row.methodType === "Make to Order" ||
         !row.id
       ) {
         return null;
@@ -468,7 +472,7 @@ const JobMaterialsTable = memo(({ data, count }: JobMaterialsTableProps) => {
           ) : undefined
         }
         renderContextMenu={renderContextMenu}
-        title="Materials"
+        title={t`Materials`}
       />
       <StockTransferSessionWidget jobId={jobId} />
     </>
@@ -481,6 +485,7 @@ export default JobMaterialsTable;
 
 const StockTransferSessionWidget = ({ jobId }: { jobId: string }) => {
   const fetcher = useFetcher<Result>();
+  const { t } = useLingui();
 
   const [session, setStockTransferSession] = useStockTransferSession();
   const sessionItemsCount = useStockTransferSessionItemsCount();
@@ -572,7 +577,7 @@ const StockTransferSessionWidget = ({ jobId }: { jobId: string }) => {
             <IconButton
               variant="ghost"
               size="sm"
-              aria-label="Close"
+              aria-label={t`Close`}
               icon={<LuX className="size-4" />}
               onClick={() => setIsMinimized(true)}
             />
@@ -625,7 +630,7 @@ const StockTransferSessionWidget = ({ jobId }: { jobId: string }) => {
                               </div>
                               <IconButton
                                 variant="secondary"
-                                aria-label="Remove item"
+                                aria-label={t`Remove item`}
                                 icon={<LuTrash2 />}
                                 size="sm"
                                 onClick={() => onRemoveItem(item.id, "order")}
@@ -665,7 +670,7 @@ const StockTransferSessionWidget = ({ jobId }: { jobId: string }) => {
                               </div>
                               <IconButton
                                 variant="secondary"
-                                aria-label="Remove item"
+                                aria-label={t`Remove item`}
                                 icon={<LuTrash2 />}
                                 size="sm"
                                 onClick={() =>

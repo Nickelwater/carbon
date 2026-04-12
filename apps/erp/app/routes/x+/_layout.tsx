@@ -2,7 +2,8 @@ import {
   CarbonEdition,
   CarbonProvider,
   CONTROLLED_ENVIRONMENT,
-  getCarbon
+  getCarbon,
+  getMESUrl
 } from "@carbon/auth";
 import { setCompanyId } from "@carbon/auth/company.server";
 import {
@@ -16,11 +17,13 @@ import { ItarPopup, useKeyboardWedge, useNProgress } from "@carbon/remix";
 import { getStripeCustomerByCompanyId } from "@carbon/stripe/stripe.server";
 import { Edition } from "@carbon/utils";
 import posthog from "posthog-js";
+import { Suspense } from "react";
 import type {
   LoaderFunctionArgs,
   ShouldRevalidateFunction
 } from "react-router";
 import {
+  Await,
   data,
   Outlet,
   redirect,
@@ -66,8 +69,14 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { accessToken, companyId, expiresAt, expiresIn, userId } =
-    await requireAuthSession(request, { verify: true });
+  const authSession = await requireAuthSession(request, { verify: true });
+  const { accessToken, companyId, expiresAt, expiresIn, userId } = authSession;
+
+  // Block ERP access when console mode is active on this terminal.
+  // Console terminals should only access the MES app.
+  if (authSession.console) {
+    throw redirect(getMESUrl());
+  }
 
   // const { computeRegion, proxyRegion } = parseVercelId(
   //   request.headers.get("x-vercel-id")
@@ -80,7 +89,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   const client = getCarbon(accessToken);
 
-  // parallelize the requests
+  // Parallelize all requests
   const [
     companies,
     stripeCustomer,
@@ -92,7 +101,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     claims,
     groups,
     defaults,
-    openClockEntry
+    auditLogEnabled
   ] = await Promise.all([
     getCompanies(client, userId),
     getStripeCustomerByCompanyId(companyId, userId),
@@ -104,7 +113,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     getUserClaims(userId, companyId),
     getUserGroups(client, userId),
     getUserDefaults(client, userId, companyId),
-    getOpenClockEntry(client, userId, companyId)
+    isAuditLogEnabled(client, companyId)
   ]);
 
   if (!claims || user.error || !user.data || !groups.data) {
@@ -137,7 +146,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       expiresIn,
       expiresAt
     },
-    auditLogEnabled: await isAuditLogEnabled(client, companyId),
+    auditLogEnabled,
     company,
     companies: companies.data ?? [],
     companySettings: companySettings.data,
@@ -150,8 +159,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
     role: claims?.role,
     user: user.data,
     savedViews: savedViews.data ?? [],
-    openClockEntry: openClockEntry.data
-      ? { id: openClockEntry.data.id, clockIn: openClockEntry.data.clockIn }
+    openClockEntry: companySettings.data?.timeCardEnabled
+      ? getOpenClockEntry(client, userId, companyId)
       : null
   });
 }
@@ -210,7 +219,22 @@ export default function AuthenticatedRoute() {
                 onDismiss={dismiss}
               />
               {companySettings?.timeCardEnabled && (
-                <TimeCardWarning openClockEntry={openClockEntry} />
+                <Suspense fallback={null}>
+                  <Await resolve={openClockEntry}>
+                    {(resolved) => (
+                      <TimeCardWarning
+                        openClockEntry={
+                          resolved?.data
+                            ? {
+                                id: resolved.data.id,
+                                clockIn: resolved.data.clockIn
+                              }
+                            : null
+                        }
+                      />
+                    )}
+                  </Await>
+                </Suspense>
               )}
             </TooltipProvider>
           </RealtimeDataProvider>

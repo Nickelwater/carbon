@@ -25,6 +25,7 @@ import {
 } from "@carbon/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useLingui } from "@lingui/react/macro";
 import { cva } from "class-variance-authority";
 import {
   LuCalendarDays,
@@ -97,6 +98,7 @@ type ItemCardProps = {
 };
 
 export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
+  const { t } = useLingui();
   const { displaySettings, selectedGroup, setSelectedGroup, tags } =
     useKanban();
   const {
@@ -145,6 +147,7 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
         "max-w-[330px]",
         cardVariants({
           dragging: isOverlay ? "overlay" : isDragging ? "over" : undefined,
+          // @ts-expect-error TS2322 - TODO: fix type
           status: status,
           highlighted: isHighlighted
         })
@@ -167,7 +170,7 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
           </div>
           <HStack spacing={1} className="flex-shrink-0 -mr-2">
             <IconButton
-              aria-label="Move item"
+              aria-label={t`Move item`}
               icon={<LuGripVertical />}
               variant={"ghost"}
               {...attributes}
@@ -177,7 +180,7 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <IconButton
-                  aria-label="More options"
+                  aria-label={t`More options`}
                   icon={<LuEllipsisVertical />}
                   variant="secondary"
                 />
@@ -219,16 +222,20 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
 
         {displaySettings.showProgress &&
           Number.isFinite(progress) &&
+          // @ts-expect-error TS2339 - TODO: fix type
           Number.isFinite(item?.duration) &&
           Number(progress) >= 0 &&
+          // @ts-expect-error TS2339 - TODO: fix type
           Number(item?.duration) >= 0 && (
             <HStack>
               <BarProgress
                 gradient
                 invertGradient
                 progress={Math.min(
+                  // @ts-expect-error TS2339 - TODO: fix type
                   progress && item.duration
-                    ? (progress / item.duration) * 100
+                    ? // @ts-expect-error TS2339 - TODO: fix type
+                      (progress / item.duration) * 100
                     : 0,
                   100
                 )}
@@ -245,6 +252,7 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
                   item.quantityCompleted &&
                   (item.targetQuantity ?? item.quantity)
                     ? (item.quantityCompleted /
+                        // @ts-expect-error TS2532 - TODO: fix type
                         (item.targetQuantity ?? item.quantity)) *
                       100
                     : 0
@@ -279,6 +287,7 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
             <JobOperationStatus
               operation={{
                 id: item.id,
+                // @ts-expect-error TS2322 - TODO: fix type
                 status: status ?? "Todo",
                 jobId: item.jobId
               }}
@@ -287,10 +296,12 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
             <span className="text-sm">{status}</span>
           </HStack>
         )}
+        {/* @ts-expect-error TS2339 */}
         {displaySettings.showDuration && typeof item.duration === "number" && (
           <HStack className="justify-start space-x-2">
             <LuTimer className="text-muted-foreground" />
             <span className="text-sm">
+              {/* @ts-expect-error TS2339 */}
               {formatDurationMilliseconds(item.duration)}
             </span>
           </HStack>

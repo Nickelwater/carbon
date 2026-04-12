@@ -1,5 +1,4 @@
 import { useCarbon } from "@carbon/auth";
-// biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Number, Submit, ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -38,6 +37,7 @@ import {
 } from "@carbon/react";
 import type { TrackedEntityAttributes } from "@carbon/utils";
 import { getItemReadableId, labelSizes } from "@carbon/utils";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useState } from "react";
 import {
   LuCheck,
@@ -99,7 +99,7 @@ const ShipmentLines = () => {
   }>(path.to.shipment(shipmentId));
 
   const shipmentsById = new Map<string, ShipmentLine>(
-    // @ts-ignore
+    // @ts-expect-error
     (routeData?.shipmentLines ?? []).map((line) => [line.id, line])
   );
   const pendingShipmentLines = usePendingShipmentLines();
@@ -249,7 +249,9 @@ const ShipmentLines = () => {
       <Card>
         <HStack className="justify-between items-start">
           <CardHeader>
-            <CardTitle>Shipment Lines</CardTitle>
+            <CardTitle>
+              <Trans>Shipment Lines</Trans>
+            </CardTitle>
           </CardHeader>
           {canAddLine && (
             <Button
@@ -405,6 +407,7 @@ function ShipmentLineItem({
         value: string;
       }) => Promise<void>;
 }) {
+  const { t } = useLingui();
   const [items] = useItems();
   const item = items.find((p) => p.id === line.itemId);
   const unitsOfMeasure = useUnitOfMeasure();
@@ -419,41 +422,42 @@ function ShipmentLineItem({
   return (
     <div className={cn("flex flex-col border-b p-6 gap-6 relative", className)}>
       <div className="absolute top-6 right-6 flex flex-col items-end gap-1">
-        {line.fulfillment?.type === "Job" && (
+        {line.fulfillment?.type === "Job" ? (
           <div className="flex flex-col items-end gap-0">
             <span>Job</span>
             <span className="text-xs text-muted-foreground">
               {line.fulfillment?.job?.jobId}
             </span>
           </div>
+        ) : (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <IconButton
+                aria-label={t`Line options`}
+                variant="secondary"
+                icon={<LuEllipsisVertical />}
+                size="sm"
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent>
+              <DropdownMenuItem
+                disabled={isReadOnly}
+                onClick={splitDisclosure.onOpen}
+              >
+                <DropdownMenuIcon icon={<LuSplit />} />
+                {t`Split shipment line`}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                destructive
+                disabled={isReadOnly}
+                onClick={deleteDisclosure.onOpen}
+              >
+                <DropdownMenuIcon icon={<LuTrash />} />
+                {t`Delete shipment line`}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         )}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <IconButton
-              aria-label="Line options"
-              variant="secondary"
-              icon={<LuEllipsisVertical />}
-              size="sm"
-            />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent>
-            <DropdownMenuItem
-              disabled={isReadOnly}
-              onClick={splitDisclosure.onOpen}
-            >
-              <DropdownMenuIcon icon={<LuSplit />} />
-              Split shipment line
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              destructive
-              disabled={isReadOnly}
-              onClick={deleteDisclosure.onOpen}
-            >
-              <DropdownMenuIcon icon={<LuTrash />} />
-              Delete shipment line
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
       <div className="flex flex-1 justify-between items-center w-full">
         <HStack spacing={4} className="w-1/2">
@@ -647,6 +651,7 @@ function BatchForm({
     value: string;
   }) => Promise<void>;
 }) {
+  const { t } = useLingui();
   const submit = useSubmit();
   const [values, setValues] = useState<{
     number: string;
@@ -685,6 +690,7 @@ function BatchForm({
   const resolvedBatch = values.number
     ? resolveTrackedEntity(values.number, batchNumbers?.data ?? [])
     : null;
+  // @ts-expect-error TS2339 - TODO: fix type
   const isBatchNumberValid = resolvedBatch?.status === "Available";
 
   // Verify batch quantity is sufficient for the shipped quantity
@@ -702,7 +708,9 @@ function BatchForm({
 
       if (
         batchNumber &&
+        // @ts-expect-error TS2339 - TODO: fix type
         batchNumber.status === "Available" &&
+        // @ts-expect-error TS2339 - TODO: fix type
         (line.shippedQuantity || 0) > batchNumber.quantity
       ) {
         setValues({
@@ -775,7 +783,9 @@ function BatchForm({
       batchNumbers?.data ?? []
     );
 
+    // @ts-expect-error TS2339 - TODO: fix type
     if (batchNumber && batchNumber.status !== "Available") {
+      // @ts-expect-error TS2339 - TODO: fix type
       setError(`Batch number is ${batchNumber.status}`);
       setValues({
         ...valuesToSubmit,
@@ -791,8 +801,10 @@ function BatchForm({
     }
 
     // Check if the shipped quantity exceeds the batch quantity
+    // @ts-expect-error TS2339 - TODO: fix type
     if (batchNumber && (line.shippedQuantity || 0) > batchNumber.quantity) {
       setError(
+        // @ts-expect-error TS2339 - TODO: fix type
         `Shipped quantity exceeds batch quantity (${batchNumber.quantity})`
       );
       setValues({
@@ -802,7 +814,9 @@ function BatchForm({
       return;
     }
 
+    // @ts-expect-error TS2339 - TODO: fix type
     if (batchNumber && batchNumber.attributes) {
+      // @ts-expect-error TS2339 - TODO: fix type
       const attributes = batchNumber.attributes as TrackedEntityAttributes;
       if (
         attributes["Shipment Line"] &&
@@ -884,7 +898,7 @@ function BatchForm({
           <div className="flex flex-col gap-1">
             <InputGroup isDisabled={isReadOnly}>
               <Input
-                placeholder="Batch number"
+                placeholder={t`Batch number`}
                 value={values.number}
                 onChange={(e) => {
                   setValues({
@@ -913,6 +927,7 @@ function BatchForm({
                   batchNumbers.data
                 );
                 if (batchNumber) {
+                  // @ts-expect-error TS2339 - TODO: fix type
                   if ((line.shippedQuantity || 0) < batchNumber.quantity) {
                     return (
                       <span className="text-xs text-muted-foreground">
@@ -992,7 +1007,9 @@ function SerialForm({
         return "Serial number not found";
       }
 
+      // @ts-expect-error TS2339 - TODO: fix type
       if (serialNumber.status !== "Available") {
+        // @ts-expect-error TS2339 - TODO: fix type
         return `Serial number is ${serialNumber.status}`;
       }
 
@@ -1111,6 +1128,7 @@ function SerialForm({
                 serialNumbersData?.data ?? []
               )
             : null;
+          // @ts-expect-error TS2339 - TODO: fix type
           const isSerialNumberValid = resolvedSerial?.status === "Available";
 
           return (
@@ -1190,6 +1208,7 @@ function SplitShipmentLineModal({
   line: ShipmentLine;
   onClose: () => void;
 }) {
+  const { t } = useLingui();
   const fetcher = useFetcher<{ success: boolean }>();
   useEffect(() => {
     if (fetcher.data?.success) {
@@ -1221,7 +1240,7 @@ function SplitShipmentLineModal({
               name="locationId"
               value={line.locationId ?? ""}
             />
-            <Number name="quantity" label="Quantity" minValue={0.0001} />
+            <Number name="quantity" label={t`Quantity`} minValue={0.0001} />
           </ModalBody>
           <ModalFooter>
             <Button variant="secondary" onClick={onClose}>

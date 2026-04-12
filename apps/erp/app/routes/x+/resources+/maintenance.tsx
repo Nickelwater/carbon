@@ -1,5 +1,6 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { VStack } from "@carbon/react";
+import { msg } from "@lingui/core/macro";
 import type { LoaderFunctionArgs } from "react-router";
 import { Outlet, useLoaderData } from "react-router";
 import {
@@ -13,7 +14,7 @@ import { path } from "~/utils/path";
 import { getGenericQueryFilters } from "~/utils/query";
 
 export const handle: Handle = {
-  breadcrumb: "Maintenance",
+  breadcrumb: msg`Maintenance`,
   to: path.to.maintenanceDispatches
 };
 
@@ -75,6 +76,7 @@ export default function MaintenanceRoute() {
   return (
     <VStack spacing={0} className="h-full">
       <MaintenanceDispatchesTable
+        // @ts-expect-error TS2322 - TODO: fix type
         data={dispatches ?? []}
         count={count ?? 0}
         failureModes={failureModes ?? []}

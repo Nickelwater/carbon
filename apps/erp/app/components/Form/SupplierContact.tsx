@@ -1,6 +1,7 @@
 import type { ComboboxProps } from "@carbon/form";
 import { CreatableCombobox } from "@carbon/form";
 import { Avatar, HStack, useDisclosure } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type {
@@ -23,19 +24,23 @@ type SupplierContactSelectProps = Omit<
 
 const SupplierContactPreview = (
   value: string,
-  options: { value: string; label: string }[]
+  options: { value: string; label: string | JSX.Element }[]
 ) => {
   const contact = options.find((o) => o.value === value);
   if (!contact) return null;
   return (
     <HStack>
-      <Avatar size="xs" name={contact.label} />
+      <Avatar
+        size="xs"
+        name={typeof contact.label === "string" ? contact.label : undefined}
+      />
       <span>{contact.label}</span>
     </HStack>
   );
 };
 
 const SupplierContact = (props: SupplierContactSelectProps) => {
+  const { t } = useLingui();
   const supplierContactsFetcher =
     useFetcher<Awaited<ReturnType<typeof getSupplierContacts>>>();
 
@@ -64,7 +69,9 @@ const SupplierContact = (props: SupplierContactSelectProps) => {
     [supplierContactsFetcher.data]
   );
 
-  const onChange = (newValue: { label: string; value: string } | null) => {
+  const onChange = (
+    newValue: { label: string | JSX.Element; value: string } | null
+  ) => {
     const contact =
       supplierContactsFetcher.data?.data?.find(
         (contact) => contact.id === newValue?.value
@@ -79,9 +86,9 @@ const SupplierContact = (props: SupplierContactSelectProps) => {
         ref={triggerRef}
         options={options}
         {...props}
-        placeholder="Select Contact"
+        placeholder={t`Select Contact`}
         inline={props.inline ? SupplierContactPreview : undefined}
-        label={props?.label ?? "Supplier Contact"}
+        label={props?.label ?? t`Supplier Contact`}
         onChange={onChange}
         onCreateOption={(option) => {
           newContactModal.onOpen();

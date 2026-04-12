@@ -13,6 +13,7 @@ import { formatDurationMilliseconds } from "@carbon/utils";
 import { useDndContext } from "@dnd-kit/core";
 import { SortableContext, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { Trans } from "@lingui/react/macro";
 import { cva } from "class-variance-authority";
 import type { ComponentType } from "react";
 import { useMemo } from "react";
@@ -52,6 +53,7 @@ export function ColumnCard({
   }, [items]);
 
   const totalDuration = items.reduce((acc, item) => {
+    // @ts-expect-error TS2339 - TODO: fix type
     return acc + Math.max((item?.duration ?? 0) - (item?.progress ?? 0), 0);
   }, 0);
 
@@ -129,7 +131,9 @@ export function ColumnCard({
                   </Link>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>View maintenance dispatch</p>
+                  <p>
+                    <Trans>View maintenance dispatch</Trans>
+                  </p>
                 </TooltipContent>
               </Tooltip>
             ) : !isDateView && totalDuration > 0 ? (

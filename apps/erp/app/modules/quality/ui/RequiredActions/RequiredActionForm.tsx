@@ -12,12 +12,12 @@ import {
   toast,
   VStack
 } from "@carbon/react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useEffect } from "react";
 import { useFetcher } from "react-router";
 import type { z } from "zod";
 import {
-  // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
   Boolean,
   CustomFormFields,
   Hidden,
@@ -41,6 +41,7 @@ const RequiredActionForm = ({
   type = "drawer",
   onClose
 }: RequiredActionFormProps) => {
+  const { t } = useLingui();
   const permissions = usePermissions();
   const fetcher = useFetcher<PostgrestResponse<{ id: string }>>();
 
@@ -49,13 +50,13 @@ const RequiredActionForm = ({
 
     if (fetcher.state === "loading" && fetcher.data?.data) {
       onClose?.();
-      toast.success(`Created required action`);
+      toast.success(t`Created required action`);
     } else if (fetcher.state === "idle" && fetcher.data?.error) {
       toast.error(
         `Failed to create required action: ${fetcher.data.error.message}`
       );
     }
-  }, [fetcher.data, fetcher.state, onClose, type]);
+  }, [fetcher.data, fetcher.state, onClose, type, t]);
 
   const isEditing = initialValues.id !== undefined;
   const isDisabled = isEditing
@@ -92,20 +93,22 @@ const RequiredActionForm = ({
               <Hidden name="id" />
               <Hidden name="type" value={type} />
               <VStack spacing={4}>
-                <Input name="name" label="Required Action" />
+                <Input name="name" label={t`Required Action`} />
                 <Boolean
                   name="active"
-                  label="Active"
-                  description="Inactive actions will not appear in selection lists"
+                  label={t`Active`}
+                  description={t`Inactive actions will not appear in selection lists`}
                 />
                 <CustomFormFields table="nonConformanceRequiredAction" />
               </VStack>
             </ModalDrawerBody>
             <ModalDrawerFooter>
               <HStack>
-                <Submit isDisabled={isDisabled}>Save</Submit>
+                <Submit isDisabled={isDisabled}>
+                  <Trans>Save</Trans>
+                </Submit>
                 <Button size="md" variant="solid" onClick={() => onClose()}>
-                  Cancel
+                  <Trans>Cancel</Trans>
                 </Button>
               </HStack>
             </ModalDrawerFooter>

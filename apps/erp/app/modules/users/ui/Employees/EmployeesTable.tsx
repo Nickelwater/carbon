@@ -1,4 +1,5 @@
 import {
+  Badge,
   Checkbox,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -6,6 +7,7 @@ import {
   MenuItem,
   useDisclosure
 } from "@carbon/react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useCallback, useMemo, useState } from "react";
 import {
@@ -23,6 +25,7 @@ import { useNavigate } from "react-router";
 import { EmployeeAvatar, Hyperlink, New, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { usePermissions, useUrlParams } from "~/hooks";
+import { useSettings } from "~/hooks/useSettings";
 import type { Employee } from "~/modules/users";
 import {
   BulkEditPermissionsForm,
@@ -46,8 +49,10 @@ const defaultColumnVisibility = {
 
 const EmployeesTable = memo(
   ({ data, count, employeeTypes }: EmployeesTableProps) => {
+    const { t } = useLingui();
     const navigate = useNavigate();
     const permissions = usePermissions();
+    const settings = useSettings();
     const [params] = useUrlParams();
 
     const employeeTypesById = useMemo(
@@ -72,7 +77,7 @@ const EmployeesTable = memo(
     const columns = useMemo<ColumnDef<(typeof data)[number]>[]>(() => {
       return [
         {
-          header: "User",
+          header: t`User`,
           cell: ({ row }) => (
             <Hyperlink
               className={row.original.active === true ? "" : "opacity-70"}
@@ -91,7 +96,7 @@ const EmployeesTable = memo(
 
         {
           accessorKey: "firstName",
-          header: "First Name",
+          header: t`First Name`,
           cell: (item) => item.getValue(),
           meta: {
             icon: <LuUserCheck />
@@ -99,7 +104,7 @@ const EmployeesTable = memo(
         },
         {
           accessorKey: "lastName",
-          header: "Last Name",
+          header: t`Last Name`,
           cell: (item) => item.getValue(),
           meta: {
             icon: <LuUserCheck />
@@ -107,15 +112,25 @@ const EmployeesTable = memo(
         },
         {
           accessorKey: "email",
-          header: "Email",
-          cell: (item) => item.getValue(),
+          header: t`Email`,
+          cell: (item) => {
+            const email = item.getValue<string>();
+            if (email?.endsWith("@console.internal")) {
+              return (
+                <Badge variant="secondary">
+                  <Trans>Console Operator</Trans>
+                </Badge>
+              );
+            }
+            return email;
+          },
           meta: {
             icon: <LuMail />
           }
         },
         {
           id: "employeeTypeId",
-          header: "Employee Type",
+          header: t`Employee Type`,
           cell: ({ row }) => (
             <Enumerable
               value={
@@ -136,7 +151,7 @@ const EmployeesTable = memo(
         },
         {
           accessorKey: "active",
-          header: "Active",
+          header: t`Active`,
           cell: (item) => <Checkbox isChecked={item.getValue<boolean>()} />,
           meta: {
             filter: {
@@ -144,11 +159,11 @@ const EmployeesTable = memo(
               options: [
                 {
                   value: "true",
-                  label: "Active"
+                  label: t`Active`
                 },
                 {
                   value: "false",
-                  label: "Inactive"
+                  label: t`Inactive`
                 }
               ]
             },
@@ -177,7 +192,9 @@ const EmployeesTable = memo(
               }
             >
               <LuShield className="mr-2 h-4 w-4" />
-              <span>Edit Permissions</span>
+              <span>
+                <Trans>Edit Permissions</Trans>
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -194,7 +211,9 @@ const EmployeesTable = memo(
               }
             >
               <LuMailCheck className="mr-2 h-4 w-4" />
-              <span>Resend Invite</span>
+              <span>
+                <Trans>Resend Invite</Trans>
+              </span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={() => {
@@ -211,7 +230,9 @@ const EmployeesTable = memo(
               }
             >
               <LuBan className="mr-2 h-4 w-4" />
-              <span>Deactivate Users</span>
+              <span>
+                <Trans>Deactivate Users</Trans>
+              </span>
             </DropdownMenuItem>
           </DropdownMenuContent>
         );
@@ -233,8 +254,20 @@ const EmployeesTable = memo(
                   }
                 >
                   <MenuIcon icon={<LuPencil />} />
-                  Edit Permissions
+                  <Trans>Edit Permissions</Trans>
                 </MenuItem>
+                {settings.consoleEnabled && (
+                  <MenuItem
+                    onClick={() =>
+                      navigate(
+                        `${path.to.operatorResetPin(row.id!)}?${params.toString()}`
+                      )
+                    }
+                  >
+                    <MenuIcon icon={<LuShield />} />
+                    <Trans>Set Console PIN</Trans>
+                  </MenuItem>
+                )}
                 <MenuItem
                   onClick={(e) => {
                     setSelectedUserIds([row.id!]);
@@ -243,7 +276,7 @@ const EmployeesTable = memo(
                   destructive
                 >
                   <MenuIcon icon={<LuBan />} />
-                  Deactivate Account
+                  <Trans>Deactivate Account</Trans>
                 </MenuItem>
               </>
             ) : (
@@ -255,7 +288,7 @@ const EmployeesTable = memo(
                   }}
                 >
                   <MenuIcon icon={<LuMailCheck />} />
-                  Resend Account Invite
+                  <Trans>Resend Account Invite</Trans>
                 </MenuItem>
                 {permissions.can("delete", "users") && (
                   <MenuItem
@@ -266,7 +299,7 @@ const EmployeesTable = memo(
                     destructive
                   >
                     <MenuIcon icon={<LuBan />} />
-                    Revoke Invite
+                    <Trans>Revoke Invite</Trans>
                   </MenuItem>
                 )}
               </>
@@ -280,7 +313,8 @@ const EmployeesTable = memo(
         params,
         permissions,
         resendInviteModal,
-        revokeInviteModal
+        revokeInviteModal,
+        settings.consoleEnabled
       ]
     );
 
@@ -293,12 +327,12 @@ const EmployeesTable = memo(
           defaultColumnVisibility={defaultColumnVisibility}
           primaryAction={
             permissions.can("create", "users") && (
-              <New label="Account" to={`new?${params.toString()}`} />
+              <New label={t`Account`} to={`new?${params.toString()}`} />
             )
           }
           renderActions={renderActions}
           renderContextMenu={renderContextMenu}
-          title="Employee Accounts"
+          title={t`Employee Accounts`}
           withSelectableRows={canEdit}
         />
         {bulkEditDrawer.isOpen && (

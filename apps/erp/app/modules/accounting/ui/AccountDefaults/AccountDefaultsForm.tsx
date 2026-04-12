@@ -1,6 +1,6 @@
 import { ValidatedForm } from "@carbon/form";
 import { Badge, Button, HStack } from "@carbon/react";
-import type { ReactNode } from "react";
+import { Trans } from "@lingui/react/macro";
 import { useMemo } from "react";
 import { useNavigate } from "react-router";
 import { Combobox, Hidden, Submit } from "~/components/Form";
@@ -28,7 +28,10 @@ type CategoryGroup = {
   fields: AccountDefaultField[];
 };
 
-const badgeColors: Record<BadgeType, string> = {
+const badgeColors: Record<
+  BadgeType,
+  "green" | "red" | "blue" | "yellow" | "orange"
+> = {
   Asset: "green",
   Liability: "red",
   Equity: "blue",
@@ -413,7 +416,7 @@ const AccountDefaultsForm = ({
 
   const accountOptions: Record<
     AccountType,
-    { value: string; label: ReactNode }[]
+    { value: string; label: string | JSX.Element }[]
   > = useMemo(
     () => ({
       income: incomeStatementAccounts.map((c) => ({
@@ -455,17 +458,21 @@ const AccountDefaultsForm = ({
         <div className="flex items-center justify-between border-b border-border p-6">
           <div>
             <h1 className="text-xl font-semibold text-foreground">
-              Default Accounts
+              <Trans>Default Accounts</Trans>
             </h1>
             <p className="text-sm text-muted-foreground">
-              Configure the default accounts used for various transaction types
-              across your system
+              <Trans>
+                Configure the default accounts used for various transaction
+                types across your system
+              </Trans>
             </p>
           </div>
           <HStack>
-            <Submit isDisabled={isDisabled}>Save</Submit>
+            <Submit isDisabled={isDisabled}>
+              <Trans>Save</Trans>
+            </Submit>
             <Button size="md" variant="solid" onClick={onClose}>
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
           </HStack>
         </div>

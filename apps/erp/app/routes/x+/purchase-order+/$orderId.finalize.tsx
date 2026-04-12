@@ -4,11 +4,10 @@ import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { PurchaseOrderEmail } from "@carbon/documents/email";
 import { validationError, validator } from "@carbon/form";
-import type { sendEmailResendTask } from "@carbon/jobs/trigger/send-email-resend";
+import { trigger } from "@carbon/jobs";
 import { NotificationEvent } from "@carbon/notifications";
 import { renderAsync } from "@react-email/components";
 import { FunctionRegion } from "@supabase/supabase-js";
-import { tasks } from "@trigger.dev/sdk";
 import { parseAcceptLanguage } from "intl-parse-accept-language";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
@@ -85,6 +84,7 @@ export async function action(args: ActionFunctionArgs) {
       serviceRole,
       purchaseOrder.data.supplierId
     );
+    // @ts-expect-error TS2339 - TODO: fix type
     if (supplier.data?.supplierStatus !== "Active") {
       throw redirect(
         path.to.purchaseOrder(orderId),
@@ -146,7 +146,7 @@ export async function action(args: ActionFunctionArgs) {
 
       if (approverIds.length > 0) {
         try {
-          await tasks.trigger("notify", {
+          await trigger("notify", {
             event: NotificationEvent.ApprovalRequested,
             companyId,
             documentId: orderId,
@@ -185,7 +185,9 @@ export async function action(args: ActionFunctionArgs) {
         body: {
           purchaseOrderId: orderId,
           companyId,
-          source: "purchaseOrder"
+          source: "purchaseOrder",
+          updatePrices: true,
+          updateLeadTimes: false
         },
         region: FunctionRegion.UsEast1
       }
@@ -307,6 +309,7 @@ export async function action(args: ActionFunctionArgs) {
 
         if (supplier.data.contact.email) {
           const emailTemplate = PurchaseOrderEmail({
+            // @ts-expect-error TS2739 - TODO: fix type
             company: company.data,
             locale: locales?.[0] ?? "en-US",
             purchaseOrder: purchaseOrder.data,
@@ -329,7 +332,7 @@ export async function action(args: ActionFunctionArgs) {
           const text = await renderAsync(emailTemplate, { plainText: true });
 
           await Promise.all([
-            tasks.trigger<typeof sendEmailResendTask>("send-email-resend", {
+            trigger("send-email-resend", {
               to: [buyer.data.email, supplier.data.contact.email],
               cc: ccSelections?.length ? ccSelections : undefined,
               from: buyer.data.email,

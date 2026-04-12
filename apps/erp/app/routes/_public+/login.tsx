@@ -15,7 +15,7 @@ import { flash, getAuthSession } from "@carbon/auth/session.server";
 import { getUserByEmail } from "@carbon/auth/users.server";
 import { sendVerificationCode } from "@carbon/auth/verification.server";
 import { Hidden, Input, Submit, ValidatedForm, validator } from "@carbon/form";
-import { redis } from "@carbon/kv";
+import { Ratelimit, redis } from "@carbon/kv";
 import {
   Alert,
   AlertDescription,
@@ -28,8 +28,8 @@ import {
 } from "@carbon/react";
 import { ItarLoginDisclaimer, useMode } from "@carbon/remix";
 import { Edition } from "@carbon/utils";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Turnstile } from "@marsidev/react-turnstile";
-import { Ratelimit } from "@upstash/ratelimit";
 import { useEffect, useState } from "react";
 import { LuCircleAlert } from "react-icons/lu";
 import type {
@@ -156,6 +156,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function LoginRoute() {
+  const { t } = useLingui();
   const { providers } = useLoaderData<typeof loader>();
   const hasOutlookAuth = providers.includes("azure");
   const hasGoogleAuth = providers.includes("google");
@@ -223,7 +224,7 @@ export default function LoginRoute() {
       <div className="flex justify-center mb-4">
         <img
           src={CONTROLLED_ENVIRONMENT ? "/flag.png" : "/carbon-logo-mark.svg"}
-          alt="Carbon Logo"
+          alt={t`Carbon Logo`}
           className="w-36"
         />
       </div>
@@ -231,20 +232,26 @@ export default function LoginRoute() {
         {fetcher.data?.success === true && fetcher.data?.mode === "login" ? (
           <>
             <VStack spacing={4} className="items-center justify-center">
-              <Heading size="h3">Check your email</Heading>
+              <Heading size="h3">
+                <Trans>Check your email</Trans>
+              </Heading>
               <p className="text-muted-foreground tracking-tight text-sm">
-                We've sent you a magic link to sign in to your account.
+                <Trans>
+                  We've sent you a magic link to sign in to your account.
+                </Trans>
               </p>
             </VStack>
           </>
         ) : mode === "verify" ? (
           <VStack spacing={4} className="items-center">
-            <Heading size="h3">Verify your email</Heading>
+            <Heading size="h3">
+              <Trans>Verify your email</Trans>
+            </Heading>
             <p className="text-muted-foreground tracking-tight text-sm text-center">
-              We've sent a verification code to {signupEmail}
+              <Trans>We've sent a verification code to {signupEmail}</Trans>
             </p>
             <p className="text-muted-foreground tracking-tight text-xs text-center">
-              Redirecting to verification page...
+              <Trans>Redirecting to verification page...</Trans>
             </p>
             <Button
               type="button"
@@ -257,7 +264,7 @@ export default function LoginRoute() {
                 window.location.reload();
               }}
             >
-              Use a different email
+              <Trans>Use a different email</Trans>
             </Button>
           </VStack>
         ) : (
@@ -274,7 +281,9 @@ export default function LoginRoute() {
               {fetcher.data?.success === false && fetcher.data?.message && (
                 <Alert variant="destructive">
                   <LuCircleAlert className="w-4 h-4" />
-                  <AlertTitle>Authentication Error</AlertTitle>
+                  <AlertTitle>
+                    <Trans>Authentication Error</Trans>
+                  </AlertTitle>
                   <AlertDescription>{fetcher.data?.message}</AlertDescription>
                 </Alert>
               )}
@@ -289,7 +298,7 @@ export default function LoginRoute() {
                   variant="secondary"
                   leftIcon={<GoogleIcon />}
                 >
-                  Sign in with Google
+                  <Trans>Sign in with Google</Trans>
                 </Button>
               )}
               {hasOutlookAuth && (
@@ -302,7 +311,7 @@ export default function LoginRoute() {
                   variant="secondary"
                   leftIcon={<OutlookIcon className="size-6" />}
                 >
-                  Sign in with Outlook
+                  <Trans>Sign in with Outlook</Trans>
                 </Button>
               )}
 
@@ -312,7 +321,7 @@ export default function LoginRoute() {
                 </div>
               )}
 
-              <Input name="email" label="" placeholder="Email Address" />
+              <Input name="email" label="" placeholder={t`Email Address`} />
 
               <Submit
                 isDisabled={
@@ -325,7 +334,7 @@ export default function LoginRoute() {
                 withBlocker={false}
                 variant="secondary"
               >
-                Sign in with Email
+                <Trans>Sign in with Email</Trans>
               </Submit>
               {!!CLOUDFLARE_TURNSTILE_SITE_KEY && (
                 <div className="w-full flex justify-center">
@@ -349,29 +358,33 @@ export default function LoginRoute() {
         {mode !== "verify" &&
           fetcher.data?.success !== true &&
           CarbonEdition !== Edition.Enterprise && (
-            <p>Login or create a new account</p>
+            <p>
+              <Trans>Login or create a new account</Trans>
+            </p>
           )}
         {CONTROLLED_ENVIRONMENT && <ItarLoginDisclaimer />}
         {CarbonEdition !== Edition.Community && (
           <p>
-            By signing in, you agree to the{" "}
-            <a
-              href="https://carbon.ms/terms"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              Terms of Service
-            </a>{" "}
-            and{" "}
-            <a
-              href="https://carbon.ms/privacy"
-              target="_blank"
-              rel="noreferrer"
-              className="underline"
-            >
-              Privacy Policy.
-            </a>
+            <Trans>
+              By signing in, you agree to the{" "}
+              <a
+                href="https://carbon.ms/terms"
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                Terms of Service
+              </a>{" "}
+              and{" "}
+              <a
+                href="https://carbon.ms/privacy"
+                target="_blank"
+                rel="noreferrer"
+                className="underline"
+              >
+                Privacy Policy.
+              </a>
+            </Trans>
           </p>
         )}
       </div>

@@ -10,10 +10,10 @@ import {
   ModalDrawerTitle,
   VStack
 } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useFetcher } from "react-router";
 import type { z } from "zod";
-// biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Hidden, Input, Number, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { path } from "~/utils/path";
@@ -32,6 +32,7 @@ const QualityDocumentForm = ({
   open = true,
   onClose
 }: QualityDocumentFormProps) => {
+  const { t } = useLingui();
   const permissions = usePermissions();
   const fetcher = useFetcher<PostgrestResponse<{ id: string }>>();
 
@@ -76,7 +77,7 @@ const QualityDocumentForm = ({
                 </>
               )}
               <VStack spacing={4}>
-                {type === "new" && <Input name="name" label="Name" />}
+                {type === "new" && <Input name="name" label={t`Name`} />}
                 <Number
                   name="version"
                   label={type === "copy" ? "New Version" : "Version"}

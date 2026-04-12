@@ -23,6 +23,7 @@ import {
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { Reorder } from "framer-motion";
 import { Suspense, useEffect, useRef, useState } from "react";
 import {
@@ -253,7 +254,7 @@ export default function SalesOrderExplorer() {
                   variant="secondary"
                   onClick={newSalesOrderLineDisclosure.onOpen}
                 >
-                  Add Line Item
+                  <Trans>Add Line Item</Trans>
                 </Button>
               )}
             </Empty>
@@ -270,12 +271,14 @@ export default function SalesOrderExplorer() {
                 variant="secondary"
                 onClick={newSalesOrderLineDisclosure.onOpen}
               >
-                Add Line Item
+                <Trans>Add Line Item</Trans>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <HStack>
-                <span>New Line Item</span>
+                <span>
+                  <Trans>New Line Item</Trans>
+                </span>
                 <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
               </HStack>
             </TooltipContent>
@@ -405,7 +408,7 @@ function SalesOrderLineItem({
                   }}
                 >
                   <DropdownMenuIcon icon={<LuTrash />} />
-                  Delete Line
+                  <Trans>Delete Line</Trans>
                 </DropdownMenuItem>
                 {/* @ts-expect-error */}
                 {methodItemType.includes(line?.salesOrderLineType ?? "") && (
@@ -422,13 +425,13 @@ function SalesOrderLineItem({
                       <DropdownMenuIcon
                         icon={<MethodItemTypeIcon type={"Part"} />}
                       />
-                      View Item Master
+                      <Trans>View Item Master</Trans>
                     </Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem onClick={searchDisclosure.onOpen}>
                   <DropdownMenuIcon icon={<LuSearch />} />
-                  Search
+                  <Trans>Search</Trans>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -497,6 +500,7 @@ function SalesOrderLineRelatedItems({
   relatedItems,
   isSearchExpanded
 }: SalesOrderLineRelatedItemsProps) {
+  const { t } = useLingui();
   const [filterText, setFilterText] = useState("");
 
   return (
@@ -508,7 +512,7 @@ function SalesOrderLineRelatedItems({
               <LuSearch className="h-4 w-4" />
             </InputLeftElement>
             <Input
-              placeholder="Search related items..."
+              placeholder={t`Search related items...`}
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
             />
@@ -607,7 +611,7 @@ function RelatedItemLink({
   const getIcon = () => {
     switch (nodeType) {
       case "jobs":
-        return <MethodIcon type="Make" />;
+        return <MethodIcon type="Make to Order" />;
       case "shipments":
         return <LuTruck className="text-indigo-600" />;
       default:

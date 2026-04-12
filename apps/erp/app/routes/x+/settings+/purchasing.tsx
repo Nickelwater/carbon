@@ -1,15 +1,7 @@
 import { error, useCarbon } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import {
-  // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
-  Boolean,
-  Input,
-  Select,
-  Submit,
-  ValidatedForm,
-  validator
-} from "@carbon/form";
+import { Input, Select, Submit, ValidatedForm, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import {
   Badge,
@@ -32,6 +24,8 @@ import {
 } from "@carbon/react";
 import { Editor } from "@carbon/react/Editor";
 import { getLocalTimeZone, today } from "@internationalized/date";
+import { msg } from "@lingui/core/macro";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useState } from "react";
 import { LuCircleCheck } from "react-icons/lu";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
@@ -45,13 +39,13 @@ import {
   getAccountsPayableBillingAddress,
   getCompanySettings,
   getTerms,
-  includeThumbnailsOnPurchasingPdfsValidator,
   purchasePriceUpdateTimingTypes,
   purchasePriceUpdateTimingValidator,
   supplierQuoteNotificationValidator,
   updateAccountsPayableAddressSetting,
   updateAccountsPayableBillingAddress,
   updateDefaultSupplierCc,
+  updateLeadTimesOnReceiptSetting,
   updatePurchasePriceUpdateTimingSetting,
   updatePurchasingPdfThumbnails,
   updateSupplierApprovalSetting,
@@ -61,7 +55,7 @@ import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
 export const handle: Handle = {
-  breadcrumb: "Purchasing",
+  breadcrumb: msg`Purchasing`,
   to: path.to.purchasingSettings
 };
 
@@ -119,6 +113,10 @@ export async function action({ request }: ActionFunctionArgs) {
       );
 
       if (supplierApprovalResult.error) {
+        console.error(
+          "Failed to update supplier approval setting:",
+          supplierApprovalResult.error
+        );
         return {
           success: false,
           message: supplierApprovalResult.error.message
@@ -138,7 +136,14 @@ export async function action({ request }: ActionFunctionArgs) {
         apToggleEnabled
       );
       if (apToggleResult.error) {
-        return { success: false, message: apToggleResult.error.message };
+        console.error(
+          "Failed to update accounts payable address toggle:",
+          apToggleResult.error
+        );
+        return {
+          success: false,
+          message: apToggleResult.error.message
+        };
       }
       return {
         success: true,
@@ -161,12 +166,43 @@ export async function action({ request }: ActionFunctionArgs) {
       );
 
       if (result.error) {
-        return { success: false, message: result.error.message };
+        console.error(
+          "Failed to update purchase price timing setting:",
+          result.error
+        );
+        return {
+          success: false,
+          message: result.error.message
+        };
       }
 
       return {
         success: true,
         message: "Purchase price update timing updated"
+      };
+
+    case "updateLeadTimesOnReceipt":
+      const updateLeadTimesOnReceipt = formData.get("enabled") === "true";
+      const updateLeadTimesResult = await updateLeadTimesOnReceiptSetting(
+        client,
+        companyId,
+        updateLeadTimesOnReceipt
+      );
+
+      if (updateLeadTimesResult.error) {
+        console.error(
+          "Failed to update lead-time-on-receipt setting:",
+          updateLeadTimesResult.error
+        );
+        return {
+          success: false,
+          message: updateLeadTimesResult.error.message
+        };
+      }
+
+      return {
+        success: true,
+        message: `Lead time updates on receipt ${updateLeadTimesOnReceipt ? "enabled" : "disabled"}`
       };
 
     case "supplierQuoteNotification":
@@ -185,7 +221,14 @@ export async function action({ request }: ActionFunctionArgs) {
       );
 
       if (supplierQuoteResult.error) {
-        return { success: false, message: supplierQuoteResult.error.message };
+        console.error(
+          "Failed to update supplier quote notification setting:",
+          supplierQuoteResult.error
+        );
+        return {
+          success: false,
+          message: supplierQuoteResult.error.message
+        };
       }
 
       return {
@@ -193,25 +236,22 @@ export async function action({ request }: ActionFunctionArgs) {
         message: "Supplier quote notification setting updated"
       };
 
-    case "pdfs":
-      const thumbnailsValidation = await validator(
-        includeThumbnailsOnPurchasingPdfsValidator
-      ).validate(formData);
-
-      if (thumbnailsValidation.error) {
-        return { success: false, message: "Invalid form data" };
-      }
-
+    case "pdfs": {
+      const pdfEnabled = formData.get("enabled") === "true";
       const thumbnailsResult = await updatePurchasingPdfThumbnails(
         client,
         companyId,
-        thumbnailsValidation.data.includeThumbnailsOnPurchasingPdfs
+        pdfEnabled
       );
 
       if (thumbnailsResult.error)
-        return { success: false, message: thumbnailsResult.error.message };
+        return {
+          success: false,
+          message: thumbnailsResult.error.message
+        };
 
       return { success: true, message: "PDF settings updated" };
+    }
 
     case "accountsPayableBillingAddress":
       const apBillingValidation = await validator(
@@ -230,7 +270,14 @@ export async function action({ request }: ActionFunctionArgs) {
       );
 
       if (apBillingResult.error) {
-        return { success: false, message: apBillingResult.error.message };
+        console.error(
+          "Failed to update accounts payable billing address:",
+          apBillingResult.error
+        );
+        return {
+          success: false,
+          message: apBillingResult.error.message
+        };
       }
 
       return {
@@ -254,6 +301,10 @@ export async function action({ request }: ActionFunctionArgs) {
       );
 
       if (defaultSupplierCcResult.error) {
+        console.error(
+          "Failed to update default supplier CC:",
+          defaultSupplierCcResult.error
+        );
         return {
           success: false,
           message: defaultSupplierCcResult.error.message
@@ -270,6 +321,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function PurchasingSettingsRoute() {
+  const { t } = useLingui();
   const { companySettings, terms, apBillingAddress } =
     useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
@@ -311,11 +363,30 @@ export default function PurchasingSettingsRoute() {
     companySettings.accountsPayableAddress ?? false
   );
 
+  const [leadTimesOnReceiptEnabled, setLeadTimesOnReceiptEnabled] = useState(
+    (companySettings as { updateLeadTimesOnReceipt?: boolean })
+      .updateLeadTimesOnReceipt ?? false
+  );
+
   const handleApAddressToggle = useCallback(
     (checked: boolean) => {
       setApAddressEnabled(checked);
       toggleFetcher.submit(
         { intent: "accountsPayableAddressToggle", enabled: checked.toString() },
+        { method: "POST" }
+      );
+    },
+    [toggleFetcher]
+  );
+
+  const handleLeadTimesOnReceiptToggle = useCallback(
+    (checked: boolean) => {
+      setLeadTimesOnReceiptEnabled(checked);
+      toggleFetcher.submit(
+        {
+          intent: "updateLeadTimesOnReceipt",
+          enabled: checked.toString()
+        },
         { method: "POST" }
       );
     },
@@ -369,19 +440,27 @@ export default function PurchasingSettingsRoute() {
         spacing={4}
         className="py-12 px-4 max-w-[60rem] h-full mx-auto gap-4"
       >
-        <Heading size="h3">Purchasing</Heading>
+        <Heading size="h3">
+          <Trans>Purchasing</Trans>
+        </Heading>
 
         <Card>
           <HStack className="justify-between items-start">
             <CardHeader>
-              <CardTitle>Purchasing Terms &amp; Conditions</CardTitle>
+              <CardTitle>
+                <Trans>Purchasing Terms &amp; Conditions</Trans>
+              </CardTitle>
               <CardDescription>
-                Define the terms and conditions for purchase orders
+                <Trans>
+                  Define the terms and conditions for purchase orders
+                </Trans>
               </CardDescription>
             </CardHeader>
             <CardAction className="py-6">
               {purchasingTermsStatus === "draft" ? (
-                <Badge variant="secondary">Draft</Badge>
+                <Badge variant="secondary">
+                  <Trans>Draft</Trans>
+                </Badge>
               ) : (
                 <LuCircleCheck className="w-4 h-4 text-emerald-500" />
               )}
@@ -408,10 +487,14 @@ export default function PurchasingSettingsRoute() {
           <CardHeader>
             <HStack className="justify-between items-center">
               <div>
-                <CardTitle>Accounts Payable Billing Address</CardTitle>
+                <CardTitle>
+                  <Trans>Accounts Payable Billing Address</Trans>
+                </CardTitle>
                 <CardDescription>
-                  The billing address used on purchase orders and other
-                  purchasing documents.
+                  <Trans>
+                    The billing address used on purchase orders and other
+                    purchasing documents.
+                  </Trans>
                 </CardDescription>
               </div>
               <Switch
@@ -447,20 +530,22 @@ export default function PurchasingSettingsRoute() {
                 value="accountsPayableBillingAddress"
               />
               <CardHeader>
-                <CardTitle>Billing Address</CardTitle>
+                <CardTitle>
+                  <Trans>Billing Address</Trans>
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 gap-4 w-full">
-                  <Input name="name" label="Name" />
-                  <Input name="email" label="Email" />
-                  <Input name="addressLine1" label="Address Line 1" />
-                  <Input name="addressLine2" label="Address Line 2" />
-                  <Input name="city" label="City" />
-                  <Input name="state" label="State / Province" />
-                  <Input name="postalCode" label="Postal Code" />
+                  <Input name="name" label={t`Name`} />
+                  <Input name="email" label={t`Email`} />
+                  <Input name="addressLine1" label={t`Address Line 1`} />
+                  <Input name="addressLine2" label={t`Address Line 2`} />
+                  <Input name="city" label={t`City`} />
+                  <Input name="state" label={t`State / Province`} />
+                  <Input name="postalCode" label={t`Postal Code`} />
                   <Country name="countryCode" />
-                  <Input name="phone" label="Phone" />
-                  <Input name="fax" label="Fax" />
+                  <Input name="phone" label={t`Phone`} />
+                  <Input name="fax" label={t`Fax`} />
                 </div>
               </CardContent>
               <CardFooter>
@@ -472,7 +557,7 @@ export default function PurchasingSettingsRoute() {
                       "accountsPayableBillingAddress"
                   }
                 >
-                  Save
+                  <Trans>Save</Trans>
                 </Submit>
               </CardFooter>
             </ValidatedForm>
@@ -496,17 +581,21 @@ export default function PurchasingSettingsRoute() {
               value="purchasePriceUpdateTiming"
             />
             <CardHeader>
-              <CardTitle>Purchase Price Updates</CardTitle>
+              <CardTitle>
+                <Trans>Purchase Price Updates</Trans>
+              </CardTitle>
               <CardDescription>
-                Configure when purchased item prices should be updated from
-                supplier transactions.
+                <Trans>
+                  Configure when purchased item prices should be updated from
+                  supplier transactions.
+                </Trans>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-8 max-w-[400px]">
                 <Select
                   name="purchasePriceUpdateTiming"
-                  label="Update prices on"
+                  label={t`Update prices on`}
                   options={purchasePriceUpdateTimingTypes.map((type) => ({
                     label: type,
                     value: type
@@ -523,7 +612,7 @@ export default function PurchasingSettingsRoute() {
                     "purchasePriceUpdateTiming"
                 }
               >
-                Save
+                <Trans>Save</Trans>
               </Submit>
             </CardFooter>
           </ValidatedForm>
@@ -532,9 +621,34 @@ export default function PurchasingSettingsRoute() {
           <CardHeader>
             <HStack className="justify-between items-center">
               <div>
-                <CardTitle>Supplier Approval Required</CardTitle>
+                <CardTitle>
+                  <Trans>Lead Time Updates</Trans>
+                </CardTitle>
                 <CardDescription>
-                  Require approval before suppliers can be set to Active
+                  <Trans>
+                    Update part lead times from posted purchase receipts.
+                  </Trans>
+                </CardDescription>
+              </div>
+              <Switch
+                checked={leadTimesOnReceiptEnabled}
+                onCheckedChange={handleLeadTimesOnReceiptToggle}
+                disabled={toggleFetcher.state !== "idle"}
+              />
+            </HStack>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <HStack className="justify-between items-center">
+              <div>
+                <CardTitle>
+                  <Trans>Supplier Approval Required</Trans>
+                </CardTitle>
+                <CardDescription>
+                  <Trans>
+                    Require approval before suppliers can be set to Active
+                  </Trans>
                 </CardDescription>
               </div>
               <Switch
@@ -561,19 +675,25 @@ export default function PurchasingSettingsRoute() {
               value="supplierQuoteNotification"
             />
             <CardHeader>
-              <CardTitle>Supplier Quote Notifications</CardTitle>
+              <CardTitle>
+                <Trans>Supplier Quote Notifications</Trans>
+              </CardTitle>
               <CardDescription>
-                Configure who should receive notifications when a supplier
-                submits a quote.
+                <Trans>
+                  Configure who should receive notifications when a supplier
+                  submits a quote.
+                </Trans>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-8 max-w-[400px]">
                 <div className="flex flex-col gap-2">
-                  <Label>Notifications</Label>
+                  <Label>
+                    <Trans>Notifications</Trans>
+                  </Label>
                   <Users
                     name="supplierQuoteNotificationGroup"
-                    label="Who should receive notifications when a supplier quote is submitted?"
+                    label={t`Who should receive notifications when a supplier quote is submitted?`}
                     type="employee"
                   />
                 </div>
@@ -588,7 +708,7 @@ export default function PurchasingSettingsRoute() {
                     "supplierQuoteNotification"
                 }
               >
-                Save
+                <Trans>Save</Trans>
               </Submit>
             </CardFooter>
           </ValidatedForm>
@@ -604,17 +724,21 @@ export default function PurchasingSettingsRoute() {
           >
             <input type="hidden" name="intent" value="emails" />
             <CardHeader>
-              <CardTitle>Emails</CardTitle>
+              <CardTitle>
+                <Trans>Emails</Trans>
+              </CardTitle>
               <CardDescription>
-                These email addresses will be automatically CC'd on all emails
-                sent to suppliers (quotes, purchase orders, etc.).
+                <Trans>
+                  These email addresses will be automatically CC'd on all emails
+                  sent to suppliers (quotes, purchase orders, etc.).
+                </Trans>
               </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-8 max-w-[400px]">
                 <EmailRecipients
                   name="defaultSupplierCc"
-                  label="Default CC Recipients"
+                  label={t`Default CC Recipients`}
                 />
               </div>
             </CardContent>
@@ -626,49 +750,56 @@ export default function PurchasingSettingsRoute() {
                   fetcher.formData?.get("intent") === "defaultSupplierCc"
                 }
               >
-                Save
+                <Trans>Save</Trans>
               </Submit>
             </CardFooter>
           </ValidatedForm>
         </Card>
         <Card>
-          <ValidatedForm
-            method="post"
-            validator={includeThumbnailsOnPurchasingPdfsValidator}
-            defaultValues={{
-              includeThumbnailsOnPurchasingPdfs:
-                companySettings.includeThumbnailsOnPurchasingPdfs ?? true
-            }}
-            fetcher={fetcher}
-          >
-            <input type="hidden" name="intent" value="pdfs" />
-            <CardHeader>
-              <CardTitle>PDFs</CardTitle>
-              <CardDescription>
-                Show part thumbnails on purchase orders.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-2 max-w-[400px]">
-                <Boolean
-                  name="includeThumbnailsOnPurchasingPdfs"
-                  description="Include Thumbnails in PDFs"
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
-              <Submit
-                isDisabled={fetcher.state !== "idle"}
-                isLoading={
-                  fetcher.state !== "idle" &&
-                  fetcher.formData?.get("intent") ===
-                    "includeThumbnailsOnPurchasingPdfs"
+          <CardHeader>
+            <CardTitle>
+              <Trans>PDFs</Trans>
+            </CardTitle>
+            <CardDescription>
+              <Trans>Show part thumbnails on purchase orders.</Trans>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <HStack className="justify-between items-center">
+              <VStack className="items-start gap-1">
+                <span className="font-medium">
+                  {companySettings.includeThumbnailsOnPurchasingPdfs ? (
+                    <Trans>Thumbnails are included</Trans>
+                  ) : (
+                    <Trans>Thumbnails are not included</Trans>
+                  )}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {companySettings.includeThumbnailsOnPurchasingPdfs ? (
+                    <Trans>
+                      Part thumbnails are shown on purchase order PDFs.
+                    </Trans>
+                  ) : (
+                    <Trans>
+                      Enable to show part thumbnails on purchase order PDFs.
+                    </Trans>
+                  )}
+                </span>
+              </VStack>
+              <Switch
+                checked={
+                  companySettings.includeThumbnailsOnPurchasingPdfs ?? true
                 }
-              >
-                Save
-              </Submit>
-            </CardFooter>
-          </ValidatedForm>
+                onCheckedChange={(checked) => {
+                  toggleFetcher.submit(
+                    { intent: "pdfs", enabled: String(checked) },
+                    { method: "POST" }
+                  );
+                }}
+                disabled={toggleFetcher.state !== "idle"}
+              />
+            </HStack>
+          </CardContent>
         </Card>
       </VStack>
     </ScrollArea>

@@ -11,12 +11,12 @@ import {
   HStack,
   VStack
 } from "@carbon/react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import type { z } from "zod";
 import {
   CustomFormFields,
-  // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
   Number,
   Submit,
   Supplier,
@@ -31,6 +31,7 @@ type ContractorFormProps = {
 };
 
 const ContractorForm = ({ initialValues }: ContractorFormProps) => {
+  const { t } = useLingui();
   const permissions = usePermissions();
   const navigate = useNavigate();
   const location = useLocation();
@@ -65,17 +66,25 @@ const ContractorForm = ({ initialValues }: ContractorFormProps) => {
           className="flex flex-col h-full"
         >
           <DrawerHeader>
-            <DrawerTitle>{isEditing ? "Edit" : "New"} Contractor</DrawerTitle>
+            <DrawerTitle>
+              {isEditing ? (
+                <Trans>Edit Contractor</Trans>
+              ) : (
+                <Trans>New Contractor</Trans>
+              )}
+            </DrawerTitle>
             <DrawerDescription>
-              A contractor is a supplier contact with particular abilities and
-              available hours
+              <Trans>
+                A contractor is a supplier contact with particular abilities and
+                available hours
+              </Trans>
             </DrawerDescription>
           </DrawerHeader>
           <DrawerBody>
             <VStack spacing={4}>
               <Supplier
                 name="supplierId"
-                label="Supplier"
+                label={t`Supplier`}
                 isReadOnly={isEditing}
                 onChange={(value) => setSupplier(value?.value as string)}
               />
@@ -87,8 +96,8 @@ const ContractorForm = ({ initialValues }: ContractorFormProps) => {
               {/* <Abilities name="abilities" label="Abilities" /> */}
               <Number
                 name="hoursPerWeek"
-                label="Hours per Week"
-                helperText="The number of hours per week the contractor is available to work."
+                label={t`Hours per Week`}
+                helperText={t`The number of hours per week the contractor is available to work.`}
                 minValue={0}
                 maxValue={10000}
               />
@@ -97,9 +106,11 @@ const ContractorForm = ({ initialValues }: ContractorFormProps) => {
           </DrawerBody>
           <DrawerFooter>
             <HStack>
-              <Submit isDisabled={isDisabled}>Save</Submit>
+              <Submit isDisabled={isDisabled}>
+                <Trans>Save</Trans>
+              </Submit>
               <Button size="md" variant="solid" onClick={onClose}>
-                Cancel
+                <Trans>Cancel</Trans>
               </Button>
             </HStack>
           </DrawerFooter>

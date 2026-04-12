@@ -2,8 +2,8 @@ import { assertIsPost, error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
-import type { modelThumbnailTask } from "@carbon/jobs/trigger/model-thumbnail";
-import { tasks } from "@trigger.dev/sdk";
+import { trigger } from "@carbon/jobs";
+import { msg } from "@lingui/core/macro";
 import type { ActionFunctionArgs } from "react-router";
 import { data, redirect } from "react-router";
 import {
@@ -17,7 +17,7 @@ import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
 export const handle: Handle = {
-  breadcrumb: "Parts",
+  breadcrumb: msg`Parts`,
   to: path.to.parts,
   module: "items"
 };
@@ -56,7 +56,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   if (validation.data.modelUploadId) {
-    await tasks.trigger<typeof modelThumbnailTask>("model-thumbnail", {
+    await trigger("model-thumbnail", {
       companyId,
       modelId: validation.data.modelUploadId
     });
@@ -102,7 +102,7 @@ export default function PartsNewRoute() {
     description: "",
     itemTrackingType: "Inventory" as "Inventory",
     replenishmentSystem: "Buy" as "Buy",
-    defaultMethodType: "Buy" as "Buy",
+    defaultMethodType: "Pull from Inventory" as "Pull from Inventory",
     unitOfMeasureCode: "EA",
     unitCost: 0,
     lotSize: 0,

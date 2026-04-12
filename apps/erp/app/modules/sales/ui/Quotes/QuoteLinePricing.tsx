@@ -31,6 +31,7 @@ import {
   VStack
 } from "@carbon/react";
 import { getLocalTimeZone, today } from "@internationalized/date";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   LuChevronDown,
@@ -85,9 +86,10 @@ const QuoteLinePricing = ({
   exchangeRate: number;
   getLineCosts: (quantity: number) => Costs;
 }) => {
+  const { t } = useLingui();
   const permissions = usePermissions();
 
-  const hasCalculatedCost = line.methodType !== "Pick";
+  const hasCalculatedCost = line.methodType !== "Pull from Inventory";
   const quantities = line.quantity ?? [1];
 
   const { quoteId, lineId } = useParams();
@@ -229,10 +231,10 @@ const QuoteLinePricing = ({
 
       if (costUpdate?.error) {
         console.error(costUpdate.error);
-        toast.error("Failed to update quote line");
+        toast.error(t`Failed to update quote line`);
       }
     },
-    [additionalCharges, lineId, carbon]
+    [additionalCharges, lineId, carbon, t]
   );
 
   const onUpdateChargeAmount = useCallback(
@@ -311,20 +313,25 @@ const QuoteLinePricing = ({
     };
   });
 
-  const unitCostsByQuantity = costsByQuantity.map((costs) =>
-    Object.values(costs).reduce((sum, v) => sum + v, 0)
-  );
+  const unitCostsByQuantity = hasCalculatedCost
+    ? costsByQuantity.map((costs) =>
+        Object.values(costs).reduce((sum, v) => sum + v, 0)
+      )
+    : quantities.map(() => editableFields.unitCost);
 
-  const computeUnitPriceFromMarkups = (
-    categoryCosts: Record<CostCategoryKey, number>,
-    markups: Record<string, number>
-  ): number => {
-    return costCategoryKeys.reduce((sum, key) => {
-      const cost = categoryCosts[key] ?? 0;
-      const markup = markups[key] ?? 0;
-      return sum + cost * (1 + markup / 100);
-    }, 0);
-  };
+  const computeUnitPriceFromMarkups = useCallback(
+    (
+      categoryCosts: Record<CostCategoryKey, number>,
+      markups: Record<string, number>
+    ): number => {
+      return costCategoryKeys.reduce((sum, key) => {
+        const cost = categoryCosts[key] ?? 0;
+        const markup = markups[key] ?? 0;
+        return sum + cost * (1 + markup / 100);
+      }, 0);
+    },
+    []
+  );
 
   const visibleCategories = costCategoryKeys.filter((key: CostCategoryKey) =>
     costsByQuantity.some((costs) => costs[key] > 0)
@@ -401,10 +408,10 @@ const QuoteLinePricing = ({
 
       if (costUpdate?.error) {
         console.error(costUpdate.error);
-        toast.error("Failed to update item cost");
+        toast.error(t`Failed to update item cost`);
       }
     },
-    [carbon, line.itemId]
+    [carbon, line.itemId, t]
   );
 
   const onUpdateCategoryMarkup = useCallback(
@@ -442,7 +449,7 @@ const QuoteLinePricing = ({
 
       if (priceUpdate?.error) {
         console.error(priceUpdate.error);
-        toast.error("Failed to update category markups");
+        toast.error(t`Failed to update category markups`);
       }
     },
     [
@@ -451,7 +458,8 @@ const QuoteLinePricing = ({
       lineId,
       costsByQuantity,
       quantities,
-      quoteId
+      computeUnitPriceFromMarkups,
+      t
     ]
   );
 
@@ -514,7 +522,7 @@ const QuoteLinePricing = ({
 
         if (insert?.error) {
           console.error(insert.error);
-          toast.error("Failed to insert quote line");
+          toast.error(t`Failed to insert quote line`);
         }
       }
     },
@@ -525,7 +533,8 @@ const QuoteLinePricing = ({
       lineId,
       exchangeRate,
       userId,
-      carbon
+      carbon,
+      t
     ]
   );
 
@@ -533,7 +542,9 @@ const QuoteLinePricing = ({
     <Card>
       <HStack className="justify-between">
         <CardHeader>
-          <CardTitle>Pricing</CardTitle>
+          <CardTitle>
+            <Trans>Pricing</Trans>
+          </CardTitle>
         </CardHeader>
         {isEditable && (
           <CardAction>
@@ -1123,7 +1134,7 @@ const QuoteLinePricing = ({
                             />
                             <Button
                               type="submit"
-                              aria-label="Delete"
+                              aria-label={t`Delete`}
                               size="sm"
                               variant="secondary"
                               isDisabled={

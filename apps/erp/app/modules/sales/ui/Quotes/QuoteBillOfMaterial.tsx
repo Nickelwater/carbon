@@ -28,6 +28,7 @@ import {
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { AnimatePresence, LayoutGroup, motion } from "framer-motion";
 import { nanoid } from "nanoid";
 import type { Dispatch, SetStateAction } from "react";
@@ -79,6 +80,7 @@ type Material = z.infer<typeof quoteMaterialValidator> & {
   item: {
     name: string;
     itemTrackingType: Database["public"]["Enums"]["itemTrackingType"];
+    replenishmentSystem: string | null;
   };
 };
 
@@ -165,7 +167,15 @@ function makeItem(
               </Badge>
             </TooltipTrigger>
             <TooltipContent>
-              {material.item.itemTrackingType} Tracking
+              {material.item.itemTrackingType === "Inventory" ? (
+                <Trans>Inventory Tracking</Trans>
+              ) : material.item.itemTrackingType === "Non-Inventory" ? (
+                <Trans>Non-Inventory Tracking</Trans>
+              ) : material.item.itemTrackingType === "Serial" ? (
+                <Trans>Serial Tracking</Trans>
+              ) : (
+                <Trans>Batch Tracking</Trans>
+              )}
             </TooltipContent>
           </Tooltip>
         )}
@@ -176,7 +186,15 @@ function makeItem(
               <MethodIcon type={material.methodType} isKit={material.kit} />
             </Badge>
           </TooltipTrigger>
-          <TooltipContent>{material.methodType}</TooltipContent>
+          <TooltipContent>
+            {material.methodType === "Purchase to Order" ? (
+              <Trans>Purchase to Order</Trans>
+            ) : material.methodType === "Pull from Inventory" ? (
+              <Trans>Pull from Inventory</Trans>
+            ) : (
+              <Trans>Make to Order</Trans>
+            )}
+          </TooltipContent>
         </Tooltip>
 
         <Badge variant="secondary">{material.quantity}</Badge>
@@ -187,7 +205,15 @@ function makeItem(
               <MethodItemTypeIcon type={material.itemType} />
             </Badge>
           </TooltipTrigger>
-          <TooltipContent>{material.itemType}</TooltipContent>
+          <TooltipContent>
+            {material.itemType === "Consumable" ? (
+              <Trans>Consumable</Trans>
+            ) : material.itemType === "Material" ? (
+              <Trans>Material</Trans>
+            ) : (
+              <Trans>Part</Trans>
+            )}
+          </TooltipContent>
         </Tooltip>
       </HStack>
     ),
@@ -205,7 +231,7 @@ const initialMethodMaterial: Omit<Material, "quoteMakeMethodId" | "order"> & {
   itemReadableId: "",
   // @ts-ignore
   itemType: "Item" as const,
-  methodType: "Buy" as const,
+  methodType: "Purchase to Order" as const,
   description: "",
   quantity: 1,
   unitCost: 0,
@@ -286,7 +312,8 @@ const QuoteBillOfMaterial = ({
         description: "",
         item: {
           name: "",
-          itemTrackingType: "Inventory"
+          itemTrackingType: "Inventory",
+          replenishmentSystem: null
         }
       });
     } else {
@@ -570,7 +597,9 @@ const QuoteBillOfMaterial = ({
     <Card>
       <HStack className="justify-between">
         <CardHeader>
-          <CardTitle>Bill of Material</CardTitle>
+          <CardTitle>
+            <Trans>Bill of Material</Trans>
+          </CardTitle>
         </CardHeader>
 
         <CardAction>
@@ -580,7 +609,7 @@ const QuoteBillOfMaterial = ({
             isDisabled={isDisabled || !permissions.can("update", "sales")}
             onClick={onAddItem}
           >
-            Add Item
+            <Trans>Add Item</Trans>
           </Button>
         </CardAction>
       </HStack>
@@ -621,6 +650,7 @@ function MaterialForm({
   setOrderState: Dispatch<SetStateAction<OrderState>>;
   onSubmit: () => void;
 }) {
+  const { t } = useLingui();
   const { quoteId, lineId } = useParams();
 
   if (!quoteId) throw new Error("quoteId not found");
@@ -665,16 +695,18 @@ function MaterialForm({
     kit: boolean;
     shelfId?: string;
     quoteOperationId?: string;
+    itemReplenishmentSystem: string;
   }>({
     itemId: item.data.itemId ?? "",
-    methodType: item.data.methodType ?? "Buy",
+    methodType: item.data.methodType ?? "Pull from Inventory",
     description: item.data.description ?? "",
     unitCost: item.data.unitCost ?? 0,
     unitOfMeasureCode: item.data.unitOfMeasureCode ?? "EA",
     quantity: item.data.quantity ?? 1,
     kit: item.data.kit ?? false,
     shelfId: item.data.shelfId,
-    quoteOperationId: item.data.quoteOperationId
+    quoteOperationId: item.data.quoteOperationId,
+    itemReplenishmentSystem: item.data.item?.replenishmentSystem ?? "Buy"
   });
 
   const onTypeChange = (value: MethodItemType | "Item") => {
@@ -682,12 +714,13 @@ function MaterialForm({
     setItemType(value as MethodItemType);
     setItemData({
       itemId: "",
-      methodType: "Buy",
+      methodType: "Pull from Inventory",
       quantity: 1,
       unitCost: 0,
       description: "",
       unitOfMeasureCode: "EA",
-      kit: false
+      kit: false,
+      itemReplenishmentSystem: "Buy"
     });
   };
 
@@ -702,7 +735,7 @@ function MaterialForm({
   const onItemChange = async (itemId: string) => {
     if (!carbon) return;
     if (itemId === params.itemId) {
-      toast.error("An item cannot be added to itself.");
+      toast.error(t`An item cannot be added to itself.`);
       return;
     }
 
@@ -710,7 +743,7 @@ function MaterialForm({
       carbon
         .from("item")
         .select(
-          "name, readableIdWithRevision, type, unitOfMeasureCode, defaultMethodType, itemTrackingType"
+          "name, readableIdWithRevision, type, unitOfMeasureCode, defaultMethodType, itemTrackingType, replenishmentSystem"
         )
         .eq("id", itemId)
         .eq("companyId", company.id)
@@ -719,12 +752,12 @@ function MaterialForm({
     ]);
 
     if (item.error) {
-      toast.error("Failed to load item details");
+      toast.error(t`Failed to load item details`);
       return;
     }
 
     let unitCost = itemCost.data?.unitCost ?? 0;
-    const isBuyPart = item.data?.defaultMethodType === "Buy";
+    const isBuyPart = item.data?.defaultMethodType === "Purchase to Order";
 
     if (isBuyPart) {
       unitCost = await lookupBuyPriceFn(
@@ -740,9 +773,10 @@ function MaterialForm({
       description: item.data?.name ?? "",
       unitCost,
       unitOfMeasureCode: item.data?.unitOfMeasureCode ?? "EA",
-      methodType: item.data?.defaultMethodType ?? "Buy",
+      methodType: item.data?.defaultMethodType ?? "Pull from Inventory",
       requiresBatchTracking: item.data?.itemTrackingType === "Batch",
-      requiresSerialTracking: item.data?.itemTrackingType === "Serial"
+      requiresSerialTracking: item.data?.itemTrackingType === "Serial",
+      itemReplenishmentSystem: item.data?.replenishmentSystem ?? "Buy"
     }));
 
     if (item.data?.type) {
@@ -754,7 +788,8 @@ function MaterialForm({
     async (newQty: number) => {
       setItemData((d) => ({ ...d, quantity: newQty }));
 
-      if (itemData.methodType !== "Buy" || !itemData.itemId) return;
+      if (itemData.methodType !== "Purchase to Order" || !itemData.itemId)
+        return;
       if (!carbon) return;
 
       const itemCost = await carbon
@@ -799,7 +834,7 @@ function MaterialForm({
         <Hidden name="kit" value={itemData.kit.toString()} />
         <Hidden name="order" />
 
-        {itemData.methodType === "Make" && (
+        {itemData.methodType === "Make to Order" && (
           <Hidden name="unitCost" value={itemData.unitCost} />
         )}
       </div>
@@ -820,7 +855,7 @@ function MaterialForm({
 
         <NumberControlled
           name="quantity"
-          label="Quantity"
+          label={t`Quantity`}
           value={itemData.quantity}
           onChange={onQuantityChange}
         />
@@ -836,17 +871,17 @@ function MaterialForm({
         />
         <InputControlled
           name="description"
-          label="Description"
+          label={t`Description`}
           value={itemData.description}
           onChange={(newValue) => {
             setItemData((d) => ({ ...d, description: newValue }));
           }}
           className="col-span-2"
         />
-        {itemData.methodType !== "Make" && (
+        {itemData.methodType !== "Make to Order" && (
           <NumberControlled
             name="unitCost"
-            label="Unit Cost"
+            label={t`Unit Cost`}
             value={itemData.unitCost}
             minValue={0}
             formatOptions={{
@@ -862,31 +897,45 @@ function MaterialForm({
           onClick={sourceDisclosure.onToggle}
         >
           <HStack>
-            {itemData.methodType === "Make" ? (
+            {itemData.methodType === "Make to Order" ? (
               <>
                 <LuGitPullRequestCreate />
-                <Label>Finish To</Label>
+                <Label>
+                  <Trans>Finish To</Trans>
+                </Label>
               </>
             ) : (
               <>
                 <LuGitPullRequest />
-                <Label>Pull From</Label>
+                <Label>
+                  <Trans>Pull From</Trans>
+                </Label>
               </>
             )}
           </HStack>
           <HStack>
             <Badge variant="secondary">
               <MethodIcon type={itemData.methodType} className="size-3 mr-1" />
-              {itemData.methodType}
+              {itemData.methodType === "Purchase to Order"
+                ? t`Purchase to Order`
+                : itemData.methodType === "Pull from Inventory"
+                  ? t`Pull from Inventory`
+                  : t`Make to Order`}
             </Badge>
             <LuArrowLeft
-              className={cn(itemData.methodType !== "Pick" ? "rotate-180" : "")}
+              className={cn(
+                itemData.methodType !== "Pull from Inventory"
+                  ? "rotate-180"
+                  : ""
+              )}
             />
             <Badge variant="secondary">
               <LuGitPullRequest className="size-3 mr-1" />
               {shelves.options?.find((s) => s.value === itemData.shelfId)
                 ?.label ??
-                (itemData.methodType === "Make" ? "WIP" : "Default Shelf")}
+                (itemData.methodType === "Make to Order"
+                  ? "WIP"
+                  : "Default Shelf")}
             </Badge>
             <IconButton
               icon={<LuChevronRight />}
@@ -912,7 +961,7 @@ function MaterialForm({
         >
           <DefaultMethodType
             name="methodType"
-            label="Method Type"
+            label={t`Method Type`}
             value={itemData.methodType}
             onChange={(value) => {
               setItemData((d) => ({
@@ -920,11 +969,11 @@ function MaterialForm({
                 methodType: value?.value as MethodType
               }));
             }}
-            replenishmentSystem="Buy and Make"
+            replenishmentSystem={itemData.itemReplenishmentSystem}
           />
           <Shelf
             name="shelfId"
-            label="Shelf"
+            label={t`Shelf`}
             locationId={locationId}
             itemId={itemData.itemId}
           />
@@ -937,7 +986,9 @@ function MaterialForm({
         >
           <HStack>
             <LuGitPullRequestCreateArrow />
-            <Label>Backflush</Label>
+            <Label>
+              <Trans>Backflush</Trans>
+            </Label>
           </HStack>
           <HStack>
             <Badge
@@ -976,7 +1027,7 @@ function MaterialForm({
         >
           <Select
             name="quoteOperationId"
-            label="Operation"
+            label={t`Operation`}
             isClearable
             options={quoteOperations.map((o) => ({
               value: o.id!,
@@ -1005,16 +1056,18 @@ function MaterialForm({
           layout
           className="flex items-center justify-between gap-2 w-full"
         >
-          {itemData.methodType === "Make" ? (
+          {itemData.methodType === "Make to Order" ? (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button
-                  leftIcon={<MethodIcon type={"Make"} isKit={itemData.kit} />}
+                  leftIcon={
+                    <MethodIcon type={"Make to Order"} isKit={itemData.kit} />
+                  }
                   variant="secondary"
                   size="sm"
                   rightIcon={<LuChevronDown />}
                 >
-                  {itemData.kit ? "Kit" : "Subassembly"}
+                  {itemData.kit ? t`Kit` : t`Subassembly`}
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
@@ -1028,9 +1081,11 @@ function MaterialForm({
                   }}
                 >
                   <DropdownMenuRadioItem value="Subassembly">
-                    Subassembly
+                    <Trans>Subassembly</Trans>
                   </DropdownMenuRadioItem>
-                  <DropdownMenuRadioItem value="Kit">Kit</DropdownMenuRadioItem>
+                  <DropdownMenuRadioItem value="Kit">
+                    <Trans>Kit</Trans>
+                  </DropdownMenuRadioItem>
                 </DropdownMenuRadioGroup>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -1042,7 +1097,7 @@ function MaterialForm({
             isDisabled={isDisabled || methodMaterialFetcher.state !== "idle"}
             isLoading={methodMaterialFetcher.state === "submitting"}
           >
-            Save
+            <Trans>Save</Trans>
           </Submit>
         </motion.div>
       </motion.div>

@@ -20,6 +20,7 @@ import {
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
 import { getLocalTimeZone, today } from "@internationalized/date";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useEffect, useMemo, useState } from "react";
 import { useFetcher, useParams } from "react-router";
@@ -65,6 +66,7 @@ const PurchaseOrderLineForm = ({
   type,
   onClose
 }: PurchaseOrderLineFormProps) => {
+  const { t } = useLingui();
   const permissions = usePermissions();
   const { carbon } = useCarbon();
   const [items] = useItems();
@@ -369,8 +371,10 @@ const PurchaseOrderLineForm = ({
                           )}{" "}
                           {initialValues?.purchaseUnitOfMeasureCode}
                         </Badge>
+                        {/* @ts-expect-error TS2339 */}
                         {initialValues?.taxPercent > 0 ? (
                           <Badge variant="red">
+                            {/* @ts-expect-error TS2339 */}
                             {percentFormatter.format(initialValues?.taxPercent)}{" "}
                             Tax
                           </Badge>
@@ -401,7 +405,6 @@ const PurchaseOrderLineForm = ({
                     <Item
                       name="itemId"
                       label={itemType}
-                      // @ts-ignore
                       type={itemType}
                       replenishmentSystem={
                         isOutsideProcessing ? undefined : "Buy"
@@ -431,7 +434,7 @@ const PurchaseOrderLineForm = ({
 
                     <DatePicker
                       name="requestedDate"
-                      label="Required Date"
+                      label={t`Required Date`}
                       value={itemData?.requestedDate ?? undefined}
                       onChange={(date) => {
                         setItemData((d) => ({
@@ -444,7 +447,7 @@ const PurchaseOrderLineForm = ({
                     <NumberControlled
                       minValue={itemData.minimumOrderQuantity}
                       name="purchaseQuantity"
-                      label="Quantity"
+                      label={t`Quantity`}
                       value={itemData.purchaseQuantity}
                       onChange={(value) => {
                         const exchangeRate =
@@ -472,7 +475,7 @@ const PurchaseOrderLineForm = ({
                       <>
                         <UnitOfMeasure
                           name="purchaseUnitOfMeasureCode"
-                          label="Unit of Measure"
+                          label={t`Unit of Measure`}
                           value={itemData.purchaseUom}
                           onChange={(newValue) => {
                             if (newValue) {
@@ -499,7 +502,7 @@ const PurchaseOrderLineForm = ({
                     )}
                     <NumberControlled
                       name="supplierUnitPrice"
-                      label="Unit Price"
+                      label={t`Unit Price`}
                       value={itemData.supplierUnitPrice}
                       formatOptions={{
                         style: "currency",
@@ -516,7 +519,7 @@ const PurchaseOrderLineForm = ({
                     />
                     <NumberControlled
                       name="supplierShippingCost"
-                      label="Shipping"
+                      label={t`Shipping`}
                       minValue={0}
                       value={itemData.supplierShippingCost}
                       formatOptions={{
@@ -534,7 +537,7 @@ const PurchaseOrderLineForm = ({
                     />
                     <NumberControlled
                       name="supplierTaxAmount"
-                      label="Tax"
+                      label={t`Tax`}
                       value={itemData.supplierTaxAmount}
                       formatOptions={{
                         style: "currency",
@@ -566,7 +569,7 @@ const PurchaseOrderLineForm = ({
                       !isOutsideProcessing && (
                         <Location
                           name="locationId"
-                          label="Location"
+                          label={t`Location`}
                           value={locationId}
                           onChange={onLocationChange}
                         />
@@ -583,7 +586,7 @@ const PurchaseOrderLineForm = ({
                       !isOutsideProcessing && (
                         <Shelf
                           name="shelfId"
-                          label="Shelf"
+                          label={t`Shelf`}
                           locationId={locationId}
                           value={itemData.shelfId ?? undefined}
                           onChange={(newValue) => {
@@ -598,7 +601,7 @@ const PurchaseOrderLineForm = ({
                       )}
                     <NumberControlled
                       name="taxPercent"
-                      label="Tax Percent"
+                      label={t`Tax Percent`}
                       value={itemData.taxPercent}
                       minValue={0}
                       maxValue={1}
@@ -627,7 +630,7 @@ const PurchaseOrderLineForm = ({
               </ModalCardBody>
               <ModalCardFooter>
                 <Submit isDisabled={isDisabled} withBlocker={false}>
-                  Save
+                  <Trans>Save</Trans>
                 </Submit>
               </ModalCardFooter>
             </ValidatedForm>
@@ -647,6 +650,7 @@ const PurchaseOrderLineForm = ({
 export default PurchaseOrderLineForm;
 
 function JobOperationSelect(initialValues: { jobId?: string }) {
+  const { t } = useLingui();
   const [jobId, setJobId] = useState<string | null>(
     initialValues.jobId ?? null
   );
@@ -690,7 +694,7 @@ function JobOperationSelect(initialValues: { jobId?: string }) {
     <>
       <Combobox
         name="jobId"
-        label="Job"
+        label={t`Job`}
         options={jobOptions}
         onChange={(value) => {
           if (value) {
@@ -700,7 +704,7 @@ function JobOperationSelect(initialValues: { jobId?: string }) {
       />
       <Combobox
         name="jobOperationId"
-        label="Operation"
+        label={t`Operation`}
         options={jobOperationOptions}
       />
     </>

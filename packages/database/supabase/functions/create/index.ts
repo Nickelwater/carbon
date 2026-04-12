@@ -2040,7 +2040,7 @@ serve(async (req: Request) => {
             const isSerial = serializedItems.has(salesOrderLine.itemId);
             const isBatch = batchItems.has(salesOrderLine.itemId);
 
-            if (salesOrderLine.methodType === "Make") {
+            if (salesOrderLine.methodType === "Make to Order") {
               for await (const job of jobsBySalesOrderLine[salesOrderLine.id] ??
                 []) {
                 if (!salesOrderLine.itemId) return;
@@ -2329,7 +2329,7 @@ serve(async (req: Request) => {
             shipmentIdReadable = newShipment?.[0]?.shipmentId!;
           }
 
-          if (salesOrderLine.data.methodType === "Make") {
+          if (salesOrderLine.data.methodType === "Make to Order") {
             for await (const job of jobs.data ?? []) {
               if (!salesOrderLine.data.itemId) return;
               const quantityToShip = Math.max(

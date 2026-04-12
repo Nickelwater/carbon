@@ -838,7 +838,7 @@ serve(async (req: Request) => {
                 description: "",
                 itemTrackingType: "Inventory" as const,
                 replenishmentSystem: "Make" as const,
-                defaultMethodType: "Make" as const,
+                defaultMethodType: "Make to Order" as const,
                 unitOfMeasureCode: "EA",
                 companyId: companyId,
                 createdBy: userId,
@@ -902,7 +902,7 @@ serve(async (req: Request) => {
         let insertedQuoteLines: {
           id?: string;
           itemId?: string;
-          methodType?: "Buy" | "Make" | "Pick";
+          methodType?: "Purchase to Order" | "Make to Order" | "Pull from Inventory";
         }[] = [];
 
         await db.transaction().execute(async (trx) => {
@@ -1117,7 +1117,7 @@ serve(async (req: Request) => {
         // get method for each make line
         await Promise.all(
           insertedQuoteLines
-            .filter((line) => line.methodType === "Make")
+            .filter((line) => line.methodType === "Make to Order")
             .map((line) =>
               client.functions.invoke("get-method", {
                 body: {

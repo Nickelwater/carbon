@@ -1,6 +1,6 @@
-// biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Number, Select, ValidatedForm } from "@carbon/form";
 import { Card, CardContent, CardHeader, CardTitle, toast } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect } from "react";
 import { useFetcher } from "react-router";
 import { z } from "zod";
@@ -20,6 +20,7 @@ export function AssociatedItemsList({
   associatedItems
 }: AssociatedItemsListProps) {
   const [items] = useItems();
+  const { t } = useLingui();
   const permissions = usePermissions();
   const fetcher = useFetcher<typeof action>();
 
@@ -67,12 +68,13 @@ export function AssociatedItemsList({
     <Card>
       <CardHeader>
         <CardTitle>
-          {associatedItems.length > 1 ? "Dispositions" : "Disposition"}
+          {associatedItems.length > 1 ? t`Dispositions` : t`Disposition`}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="flex flex-col gap-3">
           {associatedItems
+            // @ts-expect-error TS2339 - TODO: fix type
             .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0))
             .map((child) => {
               // Resolve item information from the items store using documentId
@@ -105,7 +107,7 @@ export function AssociatedItemsList({
                         className="w-24"
                       >
                         <Number
-                          label="Quantity"
+                          label={t`Quantity`}
                           name="quantity"
                           isReadOnly={!permissions.can("update", "quality")}
                           minValue={0}
@@ -132,7 +134,7 @@ export function AssociatedItemsList({
                             label: <DispositionStatus disposition={d} />
                           }))}
                           isReadOnly={!permissions.can("update", "quality")}
-                          label="Status"
+                          label={t`Status`}
                           name="disposition"
                           inline={(value) => {
                             return (

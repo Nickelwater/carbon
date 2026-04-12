@@ -36,6 +36,7 @@ import {
   parseAbsolute,
   toZoned
 } from "@internationalized/date";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { LuCircleChevronRight, LuNotebook } from "react-icons/lu";
 import { Link, useParams } from "react-router";
@@ -93,6 +94,7 @@ const JobEstimatesVsActuals = ({
 }) => {
   const { carbon } = useCarbon();
   const { jobId } = useParams();
+  const { t } = useLingui();
   const user = useUser();
   if (!jobId) throw new Error("Could not find jobId");
 
@@ -111,13 +113,14 @@ const JobEstimatesVsActuals = ({
       .in("itemId", itemIds);
 
     if (!itemCosts?.data) {
-      toast.error("Failed to fetch item costs");
+      toast.error(t`Failed to fetch item costs`);
       return;
     }
 
     setCurrentUnitCosts(
       itemCosts?.data?.reduce(
         (acc, itemCost) => {
+          // @ts-expect-error TS2322 - TODO: fix type
           acc[itemCost.itemId] = itemCost.unitCost;
           return acc;
         },
@@ -254,12 +257,18 @@ const JobEstimatesVsActuals = ({
       <Card>
         <HStack className="justify-between items-start">
           <CardHeader>
-            <CardTitle>Estimates vs Actual</CardTitle>
+            <CardTitle>
+              <Trans>Estimates vs Actual</Trans>
+            </CardTitle>
           </CardHeader>
           <CardAction className="flex flex-col gap-2">
             <TabsList className="grid grid-cols-2">
-              <TabsTrigger value="processes">Processes</TabsTrigger>
-              <TabsTrigger value="materials">Material</TabsTrigger>
+              <TabsTrigger value="processes">
+                <Trans>Processes</Trans>
+              </TabsTrigger>
+              <TabsTrigger value="materials">
+                <Trans>Material</Trans>
+              </TabsTrigger>
             </TabsList>
           </CardAction>
         </HStack>
@@ -340,7 +349,7 @@ const JobEstimatesVsActuals = ({
                                   <IconButton
                                     variant="ghost"
                                     icon={<LuNotebook />}
-                                    aria-label="Notes"
+                                    aria-label={t`Notes`}
                                   />
                                 </PopoverTrigger>
                                 <PopoverContent className="w-96 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300">
@@ -381,7 +390,7 @@ const JobEstimatesVsActuals = ({
                               <IconButton
                                 variant="ghost"
                                 icon={<LuCircleChevronRight />}
-                                aria-label="View Production Events"
+                                aria-label={t`View Production Events`}
                               />
                             </Link>
                           </HStack>
@@ -449,7 +458,7 @@ const JobEstimatesVsActuals = ({
                                       <IconButton
                                         variant="ghost"
                                         icon={<LuNotebook />}
-                                        aria-label="Notes"
+                                        aria-label={t`Notes`}
                                       />
                                     </PopoverTrigger>
                                     <PopoverContent className="w-96 max-h-[300px] overflow-y-auto scrollbar-thin scrollbar-thumb-rounded-full scrollbar-thumb-gray-300">
@@ -485,7 +494,7 @@ const JobEstimatesVsActuals = ({
                                   <IconButton
                                     variant="ghost"
                                     icon={<LuCircleChevronRight />}
-                                    aria-label="View Production Events"
+                                    aria-label={t`View Production Events`}
                                   />
                                 </Link>
                               </HStack>
@@ -502,7 +511,7 @@ const JobEstimatesVsActuals = ({
               <Td className="border-r border-border" />
               {types.map((type) => (
                 <Td key={type}>
-                  <Button variant="secondary">Add</Button>
+                  <Button variant="secondary"><Trans>Add</Trans></Button>
                 </Td>
               ))}
             </Tr> */}
@@ -555,15 +564,15 @@ const JobEstimatesVsActuals = ({
                       </Td>
                       <Td>{material.estimatedQuantity}</Td>
                       <Td className={cn(exceedsEstimate && "text-red-500")}>
-                        {material.methodType === "Make" ? (
-                          <MethodIcon type="Make" />
+                        {material.methodType === "Make to Order" ? (
+                          <MethodIcon type="Make to Order" />
                         ) : (
                           material.quantityIssued
                         )}
                       </Td>
 
                       <Td className={cn(exceedsEstimate && "text-red-500")}>
-                        {material.methodType !== "Make" &&
+                        {material.methodType !== "Make to Order" &&
                         material.estimatedQuantity &&
                         material.quantityIssued
                           ? percentFormatter.format(
@@ -573,7 +582,7 @@ const JobEstimatesVsActuals = ({
                           : null}
                       </Td>
                       <Td>
-                        {material.methodType === "Make" ? null : (
+                        {material.methodType === "Make to Order" ? null : (
                           <VStack spacing={0} className="py-1">
                             <span className="text-sm">
                               {currencyFormatter.format(estimatedTotalCost)}
@@ -585,7 +594,7 @@ const JobEstimatesVsActuals = ({
                         )}
                       </Td>
                       <Td>
-                        {material.methodType === "Make" ? null : (
+                        {material.methodType === "Make to Order" ? null : (
                           <VStack spacing={0} className="py-1">
                             <span
                               className={cn(

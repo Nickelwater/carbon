@@ -25,6 +25,7 @@ import {
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { BsThreeDotsVertical } from "react-icons/bs";
 import { LuCircleArrowUp, LuTrash } from "react-icons/lu";
@@ -45,7 +46,6 @@ import {
   Input,
   InputControlled,
   Item,
-  // biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
   Number,
   Select,
   SelectControlled,
@@ -119,6 +119,7 @@ const QuoteLineForm = ({
   type,
   onClose
 }: QuoteLineFormProps) => {
+  const { t } = useLingui();
   const fetcher = useFetcher<typeof action>();
   const permissions = usePermissions();
   const { company } = useUser();
@@ -192,7 +193,7 @@ const QuoteLineForm = ({
       .maybeSingle();
 
     if (customerPart.error) {
-      toast.error("Failed to load customer part details");
+      toast.error(t`Failed to load customer part details`);
       return;
     }
 
@@ -214,7 +215,7 @@ const QuoteLineForm = ({
       .maybeSingle();
 
     if (customerPart.error) {
-      toast.error("Failed to load customer part details");
+      toast.error(t`Failed to load customer part details`);
       return;
     }
 
@@ -249,7 +250,7 @@ const QuoteLineForm = ({
     ]);
 
     if (item.error) {
-      toast.error("Failed to load item details");
+      toast.error(t`Failed to load item details`);
       return;
     }
 
@@ -285,7 +286,7 @@ const QuoteLineForm = ({
       ]);
 
       if (parameters.error || groups.error) {
-        toast.error("Failed to load configuration parameters");
+        toast.error(t`Failed to load configuration parameters`);
         return;
       }
 
@@ -331,14 +332,19 @@ const QuoteLineForm = ({
               <HStack className="w-full justify-between items-start">
                 <ModalCardHeader>
                   <ModalCardTitle>
-                    {isEditing
-                      ? (((initialValues as { quotePartId?: string })
-                          .quotePartId
-                          ? (initialValues as { itemReadableId?: string })
-                              .itemReadableId
-                          : getItemReadableId(items, itemData?.itemId)) ??
-                        "Quote Line")
-                      : "New Quote Line"}
+                    {isEditing ? (
+                      (initialValues as { quotePartId?: string })
+                        .quotePartId ? (
+                        ((initialValues as { itemReadableId?: string })
+                          .itemReadableId ?? <Trans>Quote Line</Trans>)
+                      ) : (
+                        (getItemReadableId(items, itemData?.itemId) ?? (
+                          <Trans>Quote Line</Trans>
+                        ))
+                      )
+                    ) : (
+                      <Trans>New Quote Line</Trans>
+                    )}
                   </ModalCardTitle>
                   <ModalCardDescription>
                     {isEditing ? (
@@ -357,13 +363,16 @@ const QuoteLineForm = ({
                               {percentFormatter.format(
                                 initialValues?.taxPercent
                               )}{" "}
-                              Tax
+                              <Trans>Tax</Trans>
                             </Badge>
                           ) : null}
                         </div>
                       </div>
                     ) : (
-                      "A quote line contains pricing and lead times for a particular part"
+                      <Trans>
+                        A quote line contains pricing and lead times for a
+                        particular part
+                      </Trans>
                     )}
                   </ModalCardDescription>
                 </ModalCardHeader>
@@ -373,7 +382,7 @@ const QuoteLineForm = ({
                       <DropdownMenuTrigger asChild>
                         <IconButton
                           icon={<BsThreeDotsVertical />}
-                          aria-label="More"
+                          aria-label={t`More`}
                           variant="ghost"
                         />
                       </DropdownMenuTrigger>
@@ -384,7 +393,7 @@ const QuoteLineForm = ({
                             onClick={deleteDisclosure.onOpen}
                           >
                             <DropdownMenuIcon icon={<LuTrash />} />
-                            Delete Line
+                            <Trans>Delete Line</Trans>
                           </DropdownMenuItem>
                         )}
                         {(initialValues as { quotePartId?: string })
@@ -405,7 +414,7 @@ const QuoteLineForm = ({
                                 <DropdownMenuIcon
                                   icon={<MethodItemTypeIcon type="Part" />}
                                 />
-                                View Item Master
+                                <Trans>View Item Master</Trans>
                               </Link>
                             </DropdownMenuItem>
                           )
@@ -461,7 +470,7 @@ const QuoteLineForm = ({
                         <>
                           <InputControlled
                             name="quotePartName"
-                            label="Part name / Customer part number"
+                            label={t`Part name / Customer part number`}
                             value={
                               itemData.quotePartName ??
                               itemData.customerPartId ??
@@ -483,7 +492,7 @@ const QuoteLineForm = ({
                           </div>
                           <InputControlled
                             name="customerPartRevision"
-                            label="Customer Part Revision"
+                            label={t`Customer Part Revision`}
                             value={itemData.customerPartRevision ?? ""}
                             onChange={(v) =>
                               setItemData((d) => ({
@@ -494,7 +503,7 @@ const QuoteLineForm = ({
                           />
                           <InputControlled
                             name="quotePartDescription"
-                            label="Short description"
+                            label={t`Short description`}
                             value={itemData.quotePartDescription ?? ""}
                             onChange={(v) =>
                               setItemData((d) => ({
@@ -505,7 +514,7 @@ const QuoteLineForm = ({
                           />
                           <SelectControlled
                             name="defaultMethodType"
-                            label="Method"
+                            label={t`Method`}
                             options={methodType.map((m) => ({
                               label: (
                                 <span className="flex items-center gap-2">
@@ -526,14 +535,14 @@ const QuoteLineForm = ({
                           />
                           <UnitOfMeasure
                             name="unitOfMeasureCode"
-                            label="Unit of measure"
+                            label={t`Unit of measure`}
                           />
                         </>
                       ) : isEditingQuotePartLine ? (
                         <>
                           <Input
                             name="partDisplay"
-                            label="Part"
+                            label={t`Part`}
                             value={
                               (initialValues as { itemReadableId?: string })
                                 .itemReadableId ?? "—"
@@ -552,7 +561,7 @@ const QuoteLineForm = ({
                           </div>
                           <InputControlled
                             name="description"
-                            label="Short Description"
+                            label={t`Short Description`}
                             value={itemData.description}
                           />
                         </>
@@ -561,7 +570,7 @@ const QuoteLineForm = ({
                           <Item
                             autoFocus
                             name="itemId"
-                            label="Part"
+                            label={t`Part`}
                             type="Part"
                             value={itemData.itemId}
                             includeInactive
@@ -572,7 +581,7 @@ const QuoteLineForm = ({
 
                           <InputControlled
                             name="description"
-                            label="Short Description"
+                            label={t`Short Description`}
                             value={itemData.description}
                           />
                         </>
@@ -581,7 +590,7 @@ const QuoteLineForm = ({
                       {!isQuotePartLine && (
                         <SelectControlled
                           name="methodType"
-                          label="Method"
+                          label={t`Method`}
                           options={
                             methodType.map((m) => ({
                               label: (
@@ -606,7 +615,7 @@ const QuoteLineForm = ({
 
                       <Select
                         name="status"
-                        label="Line Status"
+                        label={t`Line Status`}
                         options={quoteLineStatusType.map((s) => ({
                           label: (
                             <span className="flex items-center gap-2">
@@ -622,7 +631,7 @@ const QuoteLineForm = ({
                         <>
                           <InputControlled
                             name="customerPartId"
-                            label="Customer Part Number"
+                            label={t`Customer Part Number`}
                             value={itemData.customerPartId}
                             onChange={(newValue) => {
                               setItemData((d) => ({
@@ -634,7 +643,7 @@ const QuoteLineForm = ({
                           />
                           <InputControlled
                             name="customerPartRevision"
-                            label="Customer Part Revision"
+                            label={t`Customer Part Revision`}
                             value={itemData.customerPartRevision}
                             onChange={(newValue) => {
                               setItemData((d) => ({
@@ -650,7 +659,7 @@ const QuoteLineForm = ({
                       )}
                       <Number
                         name="taxPercent"
-                        label="Tax Percent"
+                        label={t`Tax Percent`}
                         minValue={0}
                         maxValue={1}
                         step={0.0001}
@@ -665,14 +674,14 @@ const QuoteLineForm = ({
                       {initialValues.status === "No Quote" && (
                         <TextArea
                           name="noQuoteReason"
-                          label="No Quote Reason"
+                          label={t`No Quote Reason`}
                         />
                       )}
                     </div>
                     <div className="flex gap-y-4">
                       <ArrayNumeric
                         name="quantity"
-                        label="Quantity"
+                        label={t`Quantity`}
                         defaults={[1, 25, 50, 100]}
                         isDisabled={!isEditable}
                       />
@@ -683,7 +692,7 @@ const QuoteLineForm = ({
               <ModalCardFooter>
                 {!isEditing && (
                   <Button variant="secondary" onClick={onClose}>
-                    Cancel
+                    <Trans>Cancel</Trans>
                   </Button>
                 )}
                 {!isEditing && requiresConfiguration && (
@@ -701,7 +710,7 @@ const QuoteLineForm = ({
                       configurationDisclosure.onOpen();
                     }}
                   >
-                    Configure
+                    <Trans>Configure</Trans>
                   </Button>
                 )}
 
@@ -715,7 +724,7 @@ const QuoteLineForm = ({
                       : !permissions.can("create", "sales"))
                   }
                 >
-                  Save
+                  <Trans>Save</Trans>
                 </Submit>
               </ModalCardFooter>
             </ValidatedForm>

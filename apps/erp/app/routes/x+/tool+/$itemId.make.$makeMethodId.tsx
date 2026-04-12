@@ -3,11 +3,14 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { JSONContent } from "@carbon/react";
 import { Menubar, VStack } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import { Suspense } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Await, redirect, useLoaderData, useParams } from "react-router";
 import { CadModel } from "~/components";
+import { useRouteData } from "~/hooks";
 import { usePermissions } from "~/hooks/usePermissions";
+import type { ToolSummary } from "~/modules/items";
 import {
   getMakeMethodById,
   getMakeMethods,
@@ -100,6 +103,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function ToolMakeMethodPage() {
+  const { t } = useLingui();
   const loaderData = useLoaderData<typeof loader>();
   const permissions = usePermissions();
   const { makeMethod, makeMethods, methodMaterials, methodOperations, tags } =
@@ -108,6 +112,10 @@ export default function ToolMakeMethodPage() {
   const { itemId, makeMethodId } = useParams();
   if (!itemId) throw new Error("Could not find itemId");
   if (!makeMethodId) throw new Error("Could not find makeMethodId");
+
+  const toolData = useRouteData<{
+    toolSummary: ToolSummary;
+  }>(path.to.tool(itemId));
 
   return (
     <VStack spacing={2} className="p-2">
@@ -127,14 +135,16 @@ export default function ToolMakeMethodPage() {
       <BillOfMaterial
         key={`bom:${makeMethodId}`}
         makeMethod={makeMethod}
+        // @ts-expect-error TS2322 - TODO: fix type
         materials={methodMaterials}
         operations={methodOperations}
+        replenishmentSystem={toolData?.toolSummary?.replenishmentSystem}
       />
       <BillOfProcess
         key={`bop:${makeMethodId}`}
         makeMethod={makeMethod}
         materials={methodMaterials}
-        // @ts-ignore
+        // @ts-expect-error
         operations={methodOperations}
         tags={tags}
       />
@@ -148,7 +158,7 @@ export default function ToolMakeMethodPage() {
                 itemId: model?.itemId ?? undefined
               }}
               modelPath={model?.modelPath ?? null}
-              title="CAD Model"
+              title={t`CAD Model`}
               uploadClassName="aspect-square min-h-[420px] max-h-[70vh]"
               viewerClassName="aspect-square min-h-[420px] max-h-[70vh]"
             />

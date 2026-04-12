@@ -1,5 +1,4 @@
 import { useCarbon } from "@carbon/auth";
-// biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Combobox, Hidden, Number, Submit, ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -29,6 +28,7 @@ import {
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { flushSync } from "react-dom";
 import { AiOutlinePartition } from "react-icons/ai";
@@ -80,6 +80,7 @@ export function IssueAssociationsTree({
   nonConformanceId: string;
   items?: string[];
 }) {
+  const { t } = useLingui();
   const [filterText, setFilterText] = useState("");
   const deleteDisclosure = useDisclosure();
   const [selectedChild, setSelectedChild] = useState<
@@ -107,7 +108,7 @@ export function IssueAssociationsTree({
               <LuSearch className="h-4 w-4" />
             </InputLeftElement>
             <Input
-              placeholder="Search..."
+              placeholder={t`Search...`}
               value={filterText}
               onChange={(e) => setFilterText(e.target.value)}
             />
@@ -173,6 +174,7 @@ export function IssueAssociationItem({
   const [isExpanded, setIsExpanded] = useState(
     node.children.length > 0 && node.children.length < 10
   );
+  const { t } = useLingui();
   const permissions = usePermissions();
 
   if (!permissions.can("view", node.module)) {
@@ -207,7 +209,7 @@ export function IssueAssociationItem({
         </button>
         {permissions.can("create", node.module) && (
           <IconButton
-            aria-label="Add"
+            aria-label={t`Add`}
             size="sm"
             variant="ghost"
             icon={<LuCirclePlus />}
@@ -255,7 +257,7 @@ export function IssueAssociationItem({
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <IconButton
-                        aria-label="Options"
+                        aria-label={t`Options`}
                         icon={<LuEllipsisVertical />}
                         variant="ghost"
                         size="sm"
@@ -270,7 +272,7 @@ export function IssueAssociationItem({
                         }}
                       >
                         <DropdownMenuIcon icon={<LuTrash />} />
-                        Delete Association
+                        <Trans>Delete Association</Trans>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -319,6 +321,7 @@ function getAssociationIcon(key: IssueAssociationKey) {
 }
 
 function NewItemAssociation() {
+  const { t } = useLingui();
   const [itemType, setItemType] = useState<MethodItemType | "Item">("Item");
   const onTypeChange = (t: MethodItemType | "Item") => {
     setItemType(t as MethodItemType);
@@ -333,28 +336,36 @@ function NewItemAssociation() {
         type={itemType}
         onTypeChange={onTypeChange}
       />
-      <Number name="quantity" label="Quantity" minValue={0} defaultValue={0} />
+      <Number
+        name="quantity"
+        label={t`Quantity`}
+        minValue={0}
+        defaultValue={0}
+      />
     </>
   );
 }
 
 function NewCustomerAssociation() {
+  const { t } = useLingui();
   return (
     <>
-      <Customer name="id" label="Customer" />
+      <Customer name="id" label={t`Customer`} />
     </>
   );
 }
 
 function NewSupplierAssociation() {
+  const { t } = useLingui();
   return (
     <>
-      <Supplier name="id" label="Supplier" />
+      <Supplier name="id" label={t`Supplier`} />
     </>
   );
 }
 
 function NewJobOperationAssociation({ items }: { items?: string[] }) {
+  const { t } = useLingui();
   const [jobs, setJobs] = useState<{ label: string; value: string }[]>([]);
 
   const [jobsAreLoading, setJobsAreLoading] = useState(true);
@@ -367,12 +378,12 @@ function NewJobOperationAssociation({ items }: { items?: string[] }) {
 
   async function fetchJobs() {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
     const { data, error } = await carbon.from("job").select("id, jobId");
     if (error) {
-      toast.error("Failed to load jobs");
+      toast.error(t`Failed to load jobs`);
     }
     setJobs(data?.map((job) => ({ label: job.jobId, value: job.id })) ?? []);
     setJobsAreLoading(false);
@@ -380,7 +391,7 @@ function NewJobOperationAssociation({ items }: { items?: string[] }) {
 
   async function fetchJobOperations(jobId: string) {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
     const { data, error } = await carbon
@@ -389,7 +400,7 @@ function NewJobOperationAssociation({ items }: { items?: string[] }) {
       .eq("jobId", jobId);
 
     if (error) {
-      toast.error("Failed to load job operations");
+      toast.error(t`Failed to load job operations`);
     }
 
     setJobOperations(
@@ -407,7 +418,7 @@ function NewJobOperationAssociation({ items }: { items?: string[] }) {
     <>
       <Combobox
         name="id"
-        label="Job"
+        label={t`Job`}
         options={jobs}
         isLoading={jobsAreLoading}
         onChange={(value) => {
@@ -423,7 +434,7 @@ function NewJobOperationAssociation({ items }: { items?: string[] }) {
       />
       <Combobox
         name="lineId"
-        label="Job Operation"
+        label={t`Job Operation`}
         options={jobOperations}
         isLoading={jobOperationsAreLoading}
       />
@@ -432,6 +443,7 @@ function NewJobOperationAssociation({ items }: { items?: string[] }) {
 }
 
 function NewPurchaseOrderLineAssociation({ items }: { items?: string[] }) {
+  const { t } = useLingui();
   const [purchaseOrders, setPurchaseOrders] = useState<
     { label: string; value: string }[]
   >([]);
@@ -446,7 +458,7 @@ function NewPurchaseOrderLineAssociation({ items }: { items?: string[] }) {
 
   async function fetchPurchaseOrders() {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
     const { data, error } = await carbon
@@ -454,7 +466,7 @@ function NewPurchaseOrderLineAssociation({ items }: { items?: string[] }) {
       .select("id, purchaseOrderId");
 
     if (error) {
-      toast.error("Failed to load purchase orders");
+      toast.error(t`Failed to load purchase orders`);
       return;
     }
 
@@ -469,7 +481,7 @@ function NewPurchaseOrderLineAssociation({ items }: { items?: string[] }) {
 
   async function fetchPurchaseOrderLines(purchaseOrderId: string) {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
 
@@ -491,7 +503,7 @@ function NewPurchaseOrderLineAssociation({ items }: { items?: string[] }) {
     const { data, error } = await query;
 
     if (error) {
-      toast.error("Failed to load purchase order lines");
+      toast.error(t`Failed to load purchase order lines`);
     }
 
     setPurchaseOrderLines(
@@ -511,7 +523,7 @@ function NewPurchaseOrderLineAssociation({ items }: { items?: string[] }) {
     <>
       <Combobox
         name="id"
-        label="Purchase Order"
+        label={t`Purchase Order`}
         options={purchaseOrders}
         isLoading={purchaseOrdersAreLoading}
         onChange={(value) => {
@@ -527,7 +539,7 @@ function NewPurchaseOrderLineAssociation({ items }: { items?: string[] }) {
       />
       <Combobox
         name="lineId"
-        label="Purchase Order Line"
+        label={t`Purchase Order Line`}
         options={purchaseOrderLines}
         isLoading={purchaseOrderLinesAreLoading}
       />
@@ -536,6 +548,7 @@ function NewPurchaseOrderLineAssociation({ items }: { items?: string[] }) {
 }
 
 function NewSalesOrderLineAssociation({ items }: { items?: string[] }) {
+  const { t } = useLingui();
   const { carbon } = useCarbon();
   const [salesOrders, setSalesOrders] = useState<
     { label: string; value: string }[]
@@ -549,7 +562,7 @@ function NewSalesOrderLineAssociation({ items }: { items?: string[] }) {
 
   async function fetchSalesOrders() {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
     const { data, error } = await carbon
@@ -557,7 +570,7 @@ function NewSalesOrderLineAssociation({ items }: { items?: string[] }) {
       .select("id, salesOrderId");
 
     if (error) {
-      toast.error("Failed to load sales orders");
+      toast.error(t`Failed to load sales orders`);
     }
 
     setSalesOrders(
@@ -571,7 +584,7 @@ function NewSalesOrderLineAssociation({ items }: { items?: string[] }) {
 
   async function fetchSalesOrderLines(salesOrderId: string) {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
 
@@ -593,7 +606,7 @@ function NewSalesOrderLineAssociation({ items }: { items?: string[] }) {
     const { data, error } = await query;
 
     if (error) {
-      toast.error("Failed to load sales order lines");
+      toast.error(t`Failed to load sales order lines`);
     }
 
     setSalesOrderLines(
@@ -613,7 +626,7 @@ function NewSalesOrderLineAssociation({ items }: { items?: string[] }) {
     <>
       <Combobox
         name="id"
-        label="Sales Order"
+        label={t`Sales Order`}
         options={salesOrders}
         isLoading={salesOrdersAreLoading}
         onChange={(value) => {
@@ -629,7 +642,7 @@ function NewSalesOrderLineAssociation({ items }: { items?: string[] }) {
       />
       <Combobox
         name="lineId"
-        label="Sales Order Line"
+        label={t`Sales Order Line`}
         options={salesOrderLines}
         isLoading={salesOrderLinesAreLoading}
       />
@@ -638,6 +651,7 @@ function NewSalesOrderLineAssociation({ items }: { items?: string[] }) {
 }
 
 function NewShipmentLineAssociation({ items }: { items?: string[] }) {
+  const { t } = useLingui();
   const { carbon } = useCarbon();
   const [storedItems] = useItems();
   const [shipments, setShipments] = useState<
@@ -651,7 +665,7 @@ function NewShipmentLineAssociation({ items }: { items?: string[] }) {
 
   async function fetchShipments() {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
     const { data, error } = await carbon
@@ -659,7 +673,7 @@ function NewShipmentLineAssociation({ items }: { items?: string[] }) {
       .select("id, shipmentId");
 
     if (error) {
-      toast.error("Failed to load shipments");
+      toast.error(t`Failed to load shipments`);
     }
 
     setShipments(
@@ -673,7 +687,7 @@ function NewShipmentLineAssociation({ items }: { items?: string[] }) {
 
   async function fetchShipmentLines(shipmentId: string) {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
 
@@ -689,7 +703,7 @@ function NewShipmentLineAssociation({ items }: { items?: string[] }) {
     const { data, error } = await query;
 
     if (error) {
-      toast.error("Failed to load shipment lines");
+      toast.error(t`Failed to load shipment lines`);
     }
 
     setShipmentLines(
@@ -709,7 +723,7 @@ function NewShipmentLineAssociation({ items }: { items?: string[] }) {
     <>
       <Combobox
         name="id"
-        label="Shipment"
+        label={t`Shipment`}
         options={shipments}
         isLoading={shipmentsAreLoading}
         onChange={(value) => {
@@ -725,7 +739,7 @@ function NewShipmentLineAssociation({ items }: { items?: string[] }) {
       />
       <Combobox
         name="lineId"
-        label="Shipment Line"
+        label={t`Shipment Line`}
         options={shipmentLines}
         isLoading={shipmentLinesAreLoading}
       />
@@ -734,6 +748,7 @@ function NewShipmentLineAssociation({ items }: { items?: string[] }) {
 }
 
 function NewReceiptLineAssociation({ items }: { items?: string[] }) {
+  const { t } = useLingui();
   const { carbon } = useCarbon();
   const [storedItems] = useItems();
   const [receipts, setReceipts] = useState<{ label: string; value: string }[]>(
@@ -747,7 +762,7 @@ function NewReceiptLineAssociation({ items }: { items?: string[] }) {
 
   async function fetchReceipts() {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
     const { data, error } = await carbon
@@ -755,7 +770,7 @@ function NewReceiptLineAssociation({ items }: { items?: string[] }) {
       .select("id, receiptId");
 
     if (error) {
-      toast.error("Failed to load receipts");
+      toast.error(t`Failed to load receipts`);
     }
 
     setReceipts(
@@ -769,7 +784,7 @@ function NewReceiptLineAssociation({ items }: { items?: string[] }) {
 
   async function fetchReceiptLines(receiptId: string) {
     if (!carbon) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
 
@@ -785,7 +800,7 @@ function NewReceiptLineAssociation({ items }: { items?: string[] }) {
     const { data, error } = await query;
 
     if (error) {
-      toast.error("Failed to load receipt lines");
+      toast.error(t`Failed to load receipt lines`);
     }
 
     setReceiptLines(
@@ -805,7 +820,7 @@ function NewReceiptLineAssociation({ items }: { items?: string[] }) {
     <>
       <Combobox
         name="id"
-        label="Receipt"
+        label={t`Receipt`}
         options={receipts}
         isLoading={receiptsAreLoading}
         onChange={(value) => {
@@ -821,7 +836,7 @@ function NewReceiptLineAssociation({ items }: { items?: string[] }) {
       />
       <Combobox
         name="documentLineId"
-        label="Receipt Line"
+        label={t`Receipt Line`}
         options={receiptLines}
         isLoading={receiptLinesAreLoading}
       />
@@ -830,6 +845,7 @@ function NewReceiptLineAssociation({ items }: { items?: string[] }) {
 }
 
 function NewTrackedEntityAssociation({ items }: { items?: string[] }) {
+  const { t } = useLingui();
   const { carbon } = useCarbon();
   const [trackedEntities, setTrackedEntities] = useState<
     { label: string; value: string; helper?: string }[]
@@ -843,7 +859,7 @@ function NewTrackedEntityAssociation({ items }: { items?: string[] }) {
 
   async function fetchTrackedEntities() {
     if (!carbon || !items) {
-      toast.error("Failed to load data");
+      toast.error(t`Failed to load data`);
       return;
     }
 
@@ -854,7 +870,7 @@ function NewTrackedEntityAssociation({ items }: { items?: string[] }) {
       .in("sourceDocumentId", items!);
 
     if (error) {
-      toast.error("Failed to load tracked entities");
+      toast.error(t`Failed to load tracked entities`);
     }
 
     setTrackedEntities(
@@ -870,7 +886,7 @@ function NewTrackedEntityAssociation({ items }: { items?: string[] }) {
   return (
     <Combobox
       name="id"
-      label="Tracked Entity"
+      label={t`Tracked Entity`}
       options={trackedEntities}
       isLoading={trackedEntitiesAreLoading}
     />
@@ -955,9 +971,11 @@ function NewAssociationModal({
           </ModalBody>
           <ModalFooter>
             <Button variant="secondary" onClick={onClose}>
-              Cancel
+              <Trans>Cancel</Trans>
             </Button>
-            <Submit>Add</Submit>
+            <Submit>
+              <Trans>Add</Trans>
+            </Submit>
           </ModalFooter>
         </ValidatedForm>
       </ModalContent>

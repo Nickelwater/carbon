@@ -142,12 +142,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
         if (!defaultMethodType) {
           defaultMethodType =
-            row["Purchasing Level"] === "Purchased" ? "Pick" : "Make";
+            row["Purchasing Level"] === "Purchased"
+              ? "Pull from Inventory"
+              : "Make to Order";
         }
 
         return {
           // biome-ignore lint/complexity/useLiteralKeys: suppressed due to migration
-          index: row["Item"],
+          index: row["Item"] ?? "",
           readableId: row["Part number"],
           // biome-ignore lint/complexity/useLiteralKeys: suppressed due to migration
           revision: row["Revision"],
@@ -164,7 +166,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           // biome-ignore lint/complexity/useLiteralKeys: suppressed due to migration
           quantity: row["Quantity"],
           // biome-ignore lint/complexity/useLiteralKeys: suppressed due to migration
-          level: row["Item"].toString().split(".").length,
+          level: row["Item"]?.toString().split(".").length ?? 1,
           data: row
         };
       });

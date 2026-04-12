@@ -10,10 +10,10 @@ import {
   ModalDrawerTitle,
   VStack
 } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useFetcher } from "react-router";
 import type { z } from "zod";
-// biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Hidden, Input, Number, Process, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { path } from "~/utils/path";
@@ -33,6 +33,7 @@ const ProcedureForm = ({
   onClose
 }: ProcedureFormProps) => {
   const permissions = usePermissions();
+  const { t } = useLingui();
   const fetcher = useFetcher<PostgrestResponse<{ id: string }>>();
 
   const isEditing = initialValues.id !== undefined;
@@ -77,7 +78,7 @@ const ProcedureForm = ({
                 </>
               )}
               <VStack spacing={4}>
-                {type === "new" && <Input name="name" label="Name" />}
+                {type === "new" && <Input name="name" label={t`Name`} />}
                 <Number
                   name="version"
                   label={type === "copy" ? "New Version" : "Version"}
@@ -89,7 +90,7 @@ const ProcedureForm = ({
                   }
                 />
                 {type === "new" && (
-                  <Process name="processId" label="Process" isOptional />
+                  <Process name="processId" label={t`Process`} isOptional />
                 )}
               </VStack>
             </ModalDrawerBody>

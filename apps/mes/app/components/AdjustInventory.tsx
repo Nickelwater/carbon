@@ -1,7 +1,6 @@
 "use client";
 
 import { useCarbon } from "@carbon/auth";
-// biome-ignore lint/suspicious/noShadowRestrictedNames: suppressed due to migration
 import { Combobox, Hidden, Number, Submit, ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -20,7 +19,8 @@ import {
   VStack
 } from "@carbon/react";
 import { useRouteData } from "@carbon/remix";
-import { useEffect, useMemo, useState } from "react";
+import { Trans, useLingui } from "@lingui/react/macro";
+import { type ReactNode, useEffect, useMemo, useState } from "react";
 import { LuGitBranchPlus, LuGitPullRequestCreateArrow } from "react-icons/lu";
 import { useFetcher } from "react-router";
 import type { action as endShiftAction } from "~/routes/x+/end-shift";
@@ -29,6 +29,7 @@ import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 
 export function AdjustInventory({ add }: { add: boolean }) {
+  const { t } = useLingui();
   const modal = useDisclosure();
   const fetcher = useFetcher<typeof endShiftAction>();
   const [items] = useItems();
@@ -44,23 +45,22 @@ export function AdjustInventory({ add }: { add: boolean }) {
     location: string;
   }>(path.to.authenticatedRoot);
 
-  const onItemChange = async (
-    value: { value: string; label: string | JSX.Element } | null
-  ) => {
+  const onItemChange = (value: { value: string; label: ReactNode } | null) => {
     if (!value || !carbon) return;
-    const pickMethod = await carbon
+    carbon
       .from("pickMethod")
       .select("defaultShelfId")
       .eq("itemId", value.value)
       .eq("locationId", routeData?.location ?? "")
-      .maybeSingle();
-
-    setSelectedShelf(pickMethod?.data?.defaultShelfId ?? null);
+      .maybeSingle()
+      .then((pickMethod) => {
+        setSelectedShelf(pickMethod?.data?.defaultShelfId ?? null);
+      });
   };
 
   async function fetchShelvesByLocationId() {
     if (!carbon) {
-      toast.error("Failed to fetch shelves");
+      toast.error(t`Failed to fetch shelves`);
       return;
     }
     const shelves = await carbon
@@ -86,12 +86,12 @@ export function AdjustInventory({ add }: { add: boolean }) {
   useEffect(() => {
     if (fetcher.data?.success === true) {
       modal.onClose();
-      toast.success(fetcher.data?.message ?? "Inventory adjustment completed");
+      toast.success(fetcher.data?.message ?? t`Inventory adjustment completed`);
     }
 
     if (fetcher.data?.success === false) {
       toast.error(
-        fetcher.data?.message ?? "Failed to complete inventory adjustment"
+        fetcher.data?.message ?? t`Failed to complete inventory adjustment`
       );
     }
   }, [fetcher.data?.success]);
@@ -109,11 +109,13 @@ export function AdjustInventory({ add }: { add: boolean }) {
   return (
     <>
       <SidebarMenuButton
-        tooltip={add ? "Add Inventory" : "Remove Inventory"}
+        tooltip={add ? t`Add Inventory` : t`Remove Inventory`}
         onClick={modal.onOpen}
       >
         {add ? <LuGitPullRequestCreateArrow /> : <LuGitBranchPlus />}
-        <span>{add ? "Add" : "Remove"} Inventory</span>
+        <span>
+          {add ? <Trans>Add Inventory</Trans> : <Trans>Remove Inventory</Trans>}
+        </span>
       </SidebarMenuButton>
       {modal.isOpen && (
         <Modal
@@ -133,10 +135,19 @@ export function AdjustInventory({ add }: { add: boolean }) {
               fetcher={fetcher}
             >
               <ModalHeader>
-                <ModalTitle>{add ? "Add" : "Remove"} Inventory</ModalTitle>
+                <ModalTitle>
+                  {add ? (
+                    <Trans>Add Inventory</Trans>
+                  ) : (
+                    <Trans>Remove Inventory</Trans>
+                  )}
+                </ModalTitle>
                 <ModalDescription>
-                  Manually {add ? "add" : "remove"} items {add ? "to" : "from"}{" "}
-                  inventory
+                  {add ? (
+                    <Trans>Manually add items to inventory</Trans>
+                  ) : (
+                    <Trans>Manually remove items from inventory</Trans>
+                  )}
                 </ModalDescription>
               </ModalHeader>
               <ModalBody>
@@ -148,15 +159,15 @@ export function AdjustInventory({ add }: { add: boolean }) {
                 <VStack spacing={4}>
                   <Loading isLoading={loading}>
                     <Combobox
-                      label="Item"
+                      label={t`Item`}
                       name="itemId"
                       onChange={onItemChange}
                       options={itemOptions}
                       itemHeight={44}
                     />
-                    <Number label="Quantity" name="quantity" />
+                    <Number label={t`Quantity`} name="quantity" />
                     <Combobox
-                      label="Shelf"
+                      label={t`Shelf`}
                       name="shelfId"
                       options={shelves}
                       value={selectedShelf ?? ""}
@@ -174,10 +185,16 @@ export function AdjustInventory({ add }: { add: boolean }) {
                   onClick={modal.onClose}
                   variant="secondary"
                 >
-                  Cancel
+                  <Trans>Cancel</Trans>
                 </Button>
 
-                <Submit>{add ? "Add" : "Remove"} Inventory</Submit>
+                <Submit>
+                  {add ? (
+                    <Trans>Add Inventory</Trans>
+                  ) : (
+                    <Trans>Remove Inventory</Trans>
+                  )}
+                </Submit>
               </ModalFooter>
             </ValidatedForm>
           </ModalContent>

@@ -1,6 +1,7 @@
 import type { ComboboxProps } from "@carbon/form";
 import { CreatableCombobox } from "@carbon/form";
 import { Avatar, HStack, useDisclosure } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import type {
@@ -23,19 +24,23 @@ type CustomerContactSelectProps = Omit<
 
 const CustomerContactPreview = (
   value: string,
-  options: { value: string; label: string }[]
+  options: { value: string; label: string | JSX.Element }[]
 ) => {
   const contact = options.find((o) => o.value === value);
   if (!contact) return null;
   return (
     <HStack>
-      <Avatar size="xs" name={contact.label} />
+      <Avatar
+        size="xs"
+        name={typeof contact.label === "string" ? contact.label : undefined}
+      />
       <span>{contact.label}</span>
     </HStack>
   );
 };
 
 const CustomerContact = (props: CustomerContactSelectProps) => {
+  const { t } = useLingui();
   const newContactModal = useDisclosure();
   const [created, setCreated] = useState<string>("");
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -44,7 +49,9 @@ const CustomerContact = (props: CustomerContactSelectProps) => {
 
   const { options, data } = useCustomerContacts(props.customer);
 
-  const onChange = (newValue: { label: string; value: string } | null) => {
+  const onChange = (
+    newValue: { label: string | JSX.Element; value: string } | null
+  ) => {
     const contact =
       data?.data?.find((contact) => contact.id === newValue?.value) ?? null;
 
@@ -57,9 +64,9 @@ const CustomerContact = (props: CustomerContactSelectProps) => {
         ref={triggerRef}
         options={options}
         {...props}
-        placeholder="Select Contact"
+        placeholder={props?.placeholder ?? t`Select Contact`}
         inline={props.inline ? CustomerContactPreview : undefined}
-        label={props?.label ?? "Customer Contact"}
+        label={props?.label ?? t`Customer Contact`}
         onChange={onChange}
         onCreateOption={(option) => {
           newContactModal.onOpen();

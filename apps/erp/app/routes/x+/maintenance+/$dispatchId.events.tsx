@@ -70,7 +70,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       .insert({
         maintenanceDispatchId: dispatchId!,
         employeeId: userId,
-        workCenterId,
+        workCenterId: workCenterId!,
         startTime: new Date().toISOString(),
         companyId,
         createdBy: userId

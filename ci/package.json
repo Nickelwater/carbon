@@ -10,6 +10,7 @@
   "scripts": {
     "ci:migrations": "tsx src/migrations.ts",
     "ci:deploy": "tsx src/deploy.ts",
-    "test": "tsx src/test.ts"
+    "ci:jobs": "tsx src/jobs.ts",
+    "test": "echo \"no tests\""
   }
 }

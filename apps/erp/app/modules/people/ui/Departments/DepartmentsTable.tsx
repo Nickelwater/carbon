@@ -1,4 +1,5 @@
 import { HStack, MenuIcon, MenuItem } from "@carbon/react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useCallback, useMemo } from "react";
 import { LuBuilding, LuPencil, LuTrash } from "react-icons/lu";
@@ -16,6 +17,7 @@ type DepartmentsTableProps = {
 };
 
 const DepartmentsTable = memo(({ data, count }: DepartmentsTableProps) => {
+  const { t } = useLingui();
   const navigate = useNavigate();
   const permissions = usePermissions();
   const [params] = useUrlParams();
@@ -25,7 +27,8 @@ const DepartmentsTable = memo(({ data, count }: DepartmentsTableProps) => {
     parentDepartment:
       (Array.isArray(row.department)
         ? row.department.map((d) => d.name).join(", ")
-        : row.department?.name) ?? ""
+        : // @ts-expect-error TS2339 - TODO: fix type
+          row.department?.name) ?? ""
   }));
 
   const customColumns = useCustomColumns<(typeof rows)[number]>("department");
@@ -33,7 +36,7 @@ const DepartmentsTable = memo(({ data, count }: DepartmentsTableProps) => {
     const defaultColumns: ColumnDef<(typeof rows)[number]>[] = [
       {
         accessorKey: "name",
-        header: "Department",
+        header: t`Department`,
         cell: ({ row }) => (
           <Hyperlink to={row.original.id}>
             <Enumerable value={row.original.name} />
@@ -44,9 +47,10 @@ const DepartmentsTable = memo(({ data, count }: DepartmentsTableProps) => {
         }
       },
       {
-        header: "Sub-Departments",
+        header: t`Sub-Departments`,
         cell: ({ row }) => (
           <HStack>
+            {/* @ts-expect-error TS7006 */}
             {row.original.parentDepartment.split(", ").map((v) => (
               <Enumerable key={v} value={v} />
             ))}
@@ -58,7 +62,7 @@ const DepartmentsTable = memo(({ data, count }: DepartmentsTableProps) => {
       }
     ];
     return [...defaultColumns, ...customColumns];
-  }, [customColumns]);
+  }, [customColumns, t]);
 
   const renderContextMenu = useCallback(
     (row: (typeof data)[number]) => {
@@ -70,7 +74,7 @@ const DepartmentsTable = memo(({ data, count }: DepartmentsTableProps) => {
             }}
           >
             <MenuIcon icon={<LuPencil />} />
-            Edit Department
+            <Trans>Edit Department</Trans>
           </MenuItem>
           <MenuItem
             destructive
@@ -82,7 +86,7 @@ const DepartmentsTable = memo(({ data, count }: DepartmentsTableProps) => {
             }}
           >
             <MenuIcon icon={<LuTrash />} />
-            Delete Department
+            <Trans>Delete Department</Trans>
           </MenuItem>
         </>
       );
@@ -97,11 +101,11 @@ const DepartmentsTable = memo(({ data, count }: DepartmentsTableProps) => {
       columns={columns}
       primaryAction={
         permissions.can("create", "people") && (
-          <New label="Department" to={`new?${params.toString()}`} />
+          <New label={t`Department`} to={`new?${params.toString()}`} />
         )
       }
       renderContextMenu={renderContextMenu}
-      title="Departments"
+      title={t`Departments`}
     />
   );
 });

@@ -32,6 +32,7 @@ import {
   VStack
 } from "@carbon/react";
 import { formatDate, pluralize } from "@carbon/utils";
+import { Trans, useLingui } from "@lingui/react/macro";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
@@ -89,7 +90,7 @@ const QuoteToOrderDrawer = ({
 }: QuoteToOrderDrawerProps) => {
   const linesWithItem = lines.filter((l) => (l as { itemId?: string }).itemId);
   const quotePartOnlyCount = lines.length - linesWithItem.length;
-
+  const { t } = useLingui();
   const [step, setStep] = useState(0);
   const [selectedLines, setSelectedLines] = useState<
     Record<string, SelectedLine>
@@ -113,7 +114,7 @@ const QuoteToOrderDrawer = ({
 
   const onDrop = async (acceptedFiles: File[]) => {
     if (!carbon) {
-      toast.error("Carbon client not available");
+      toast.error(t`Carbon client not available`);
       return;
     }
 
@@ -146,7 +147,7 @@ const QuoteToOrderDrawer = ({
 
       if (error) {
         console.error("Error updating opportunity:", error);
-        toast.error("Failed to update opportunity with purchase order");
+        toast.error(t`Failed to update opportunity with purchase order`);
       } else {
         setTimeout(() => {
           setPurchaseOrder(file);
@@ -159,7 +160,7 @@ const QuoteToOrderDrawer = ({
 
   const removePurchaseOrder = async () => {
     if (!carbon) {
-      toast.error("Failed to initialize Carbon client");
+      toast.error(t`Failed to initialize Carbon client`);
       return;
     }
 
@@ -177,11 +178,11 @@ const QuoteToOrderDrawer = ({
     ]);
 
     if (opportunityDelete.error) {
-      toast.error("Failed to remove purchase order");
+      toast.error(t`Failed to remove purchase order`);
     } else {
       setPurchaseOrder(null);
       setPoNumber("");
-      toast.success("Purchase order removed successfully");
+      toast.success(t`Purchase order removed successfully`);
     }
     setUploading(false);
   };
@@ -231,7 +232,7 @@ const QuoteToOrderDrawer = ({
                 id="poNumber"
                 value={poNumber}
                 onChange={(e) => setPoNumber(e.target.value)}
-                placeholder="Enter PO number"
+                placeholder={t`Enter PO number`}
               />
               {purchaseOrder && (
                 <Button
@@ -366,7 +367,7 @@ const QuoteToOrderDrawer = ({
                 isDisabled={isSubmitting}
                 isLoading={isSubmitting}
               >
-                Convert
+                <Trans>Convert</Trans>
               </Button>
               <input
                 type="hidden"
@@ -624,12 +625,22 @@ const LinePricingOptions = ({
           <Thead>
             <Tr>
               <Th></Th>
-              <Th>Quantity</Th>
-              <Th>Unit Price</Th>
-              <Th>Shipping</Th>
+              <Th>
+                <Trans>Quantity</Trans>
+              </Th>
+              <Th>
+                <Trans>Unit Price</Trans>
+              </Th>
+              <Th>
+                <Trans>Shipping</Trans>
+              </Th>
               <Th>Add-Ons</Th>
-              <Th>Lead Time</Th>
-              <Th>Total Price</Th>
+              <Th>
+                <Trans>Lead Time</Trans>
+              </Th>
+              <Th>
+                <Trans>Total Price</Trans>
+              </Th>
             </Tr>
           </Thead>
           <Tbody>
@@ -877,7 +888,9 @@ function PaymentDetailsForm() {
       >
         <HStack>
           <LuCreditCard />
-          <Label>Payment Terms</Label>
+          <Label>
+            <Trans>Payment Terms</Trans>
+          </Label>
         </HStack>
         <LuChevronDown
           className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -887,7 +900,9 @@ function PaymentDetailsForm() {
         <Table className="py-4">
           <Tbody>
             <Tr>
-              <Td className="w-1/2">Bill To</Td>
+              <Td className="w-1/2">
+                <Trans>Bill To</Trans>
+              </Td>
               <Td>
                 <CustomerAvatar
                   customerId={quoteData?.payment.invoiceCustomerId ?? null}
@@ -895,7 +910,9 @@ function PaymentDetailsForm() {
               </Td>
             </Tr>
             <Tr>
-              <Td className="w-1/2">Payment Term</Td>
+              <Td className="w-1/2">
+                <Trans>Payment Term</Trans>
+              </Td>
               <Td>
                 <Enumerable value={paymentTerm?.label ?? null} />
               </Td>
@@ -924,7 +941,9 @@ function CustomerDetailsForm({ poNumber }: { poNumber: string }) {
       >
         <HStack>
           <LuSquareUser />
-          <Label>Customer Details</Label>
+          <Label>
+            <Trans>Customer Details</Trans>
+          </Label>
         </HStack>
         <LuChevronDown
           className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -934,7 +953,9 @@ function CustomerDetailsForm({ poNumber }: { poNumber: string }) {
         <Table className="py-4">
           <Tbody>
             <Tr>
-              <Td className="w-1/2">Customer</Td>
+              <Td className="w-1/2">
+                <Trans>Customer</Trans>
+              </Td>
               <Td>
                 <CustomerAvatar
                   customerId={quoteData?.quote.customerId ?? null}
@@ -942,12 +963,16 @@ function CustomerDetailsForm({ poNumber }: { poNumber: string }) {
               </Td>
             </Tr>
             <Tr>
-              <Td className="w-1/2">Customer RFQ</Td>
+              <Td className="w-1/2">
+                <Trans>Customer RFQ</Trans>
+              </Td>
               <Td>{quoteData?.quote.customerReference}</Td>
             </Tr>
             {poNumber && (
               <Tr>
-                <Td className="w-1/2">Customer PO</Td>
+                <Td className="w-1/2">
+                  <Trans>Customer PO</Trans>
+                </Td>
                 <Td>{poNumber}</Td>
               </Tr>
             )}
@@ -980,7 +1005,9 @@ function ShippingDetailsForm() {
       >
         <HStack>
           <LuTruck />
-          <Label>Shipping</Label>
+          <Label>
+            <Trans>Shipping</Trans>
+          </Label>
         </HStack>
         <LuChevronDown
           className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -990,13 +1017,17 @@ function ShippingDetailsForm() {
         <Table className="py-4">
           <Tbody>
             <Tr>
-              <Td className="w-1/2">Shipping Method</Td>
+              <Td className="w-1/2">
+                <Trans>Shipping Method</Trans>
+              </Td>
               <Td className="w-1/2">
                 <Enumerable value={shippingMethod?.label ?? null} />
               </Td>
             </Tr>
             <Tr>
-              <Td>Requested Date</Td>
+              <Td>
+                <Trans>Requested Date</Trans>
+              </Td>
               <Td>
                 {quoteData?.shipment.receiptRequestedDate
                   ? formatDate(quoteData?.shipment?.receiptRequestedDate!)
@@ -1011,6 +1042,7 @@ function ShippingDetailsForm() {
 }
 
 function NotificationOptionsForm({ quote }: { quote: Quotation }) {
+  const { t } = useLingui();
   const [isExpanded, setIsExpanded] = useState(true);
   const integrations = useIntegrations();
   const canEmail = integrations.has("resend");
@@ -1028,7 +1060,9 @@ function NotificationOptionsForm({ quote }: { quote: Quotation }) {
       >
         <HStack>
           <LuBell />
-          <Label>Notification</Label>
+          <Label>
+            <Trans>Notification</Trans>
+          </Label>
         </HStack>
         <LuChevronDown
           className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}
@@ -1037,7 +1071,7 @@ function NotificationOptionsForm({ quote }: { quote: Quotation }) {
       {isExpanded && (
         <VStack spacing={4}>
           <SelectControlled
-            label="Send Via"
+            label={t`Send Via`}
             name="notification"
             options={[
               { label: "None", value: "None" },
@@ -1054,7 +1088,7 @@ function NotificationOptionsForm({ quote }: { quote: Quotation }) {
                 name="customerContact"
                 customer={quote.customerId ?? undefined}
               />
-              <EmailRecipients name="cc" label="CC" type="employee" />
+              <EmailRecipients name="cc" label={t`CC`} type="employee" />
             </>
           )}
         </VStack>

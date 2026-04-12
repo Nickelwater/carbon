@@ -1,6 +1,7 @@
 import type { CreatableComboboxProps } from "@carbon/form";
 import { CreatableCombobox } from "@carbon/form";
 import { useDisclosure } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import { useMemo, useRef, useState } from "react";
 import { useUser } from "~/hooks";
 import CustomerForm from "~/modules/sales/ui/Customer/CustomerForm";
@@ -16,12 +17,13 @@ type CustomerSelectProps = Omit<
 
 const CustomerPreview = (
   value: string,
-  options: { value: string; label: string }[]
+  options: { value: string; label: string | JSX.Element }[]
 ) => {
   return <CustomerAvatar customerId={value} />;
 };
 
 const Customer = (props: CustomerSelectProps) => {
+  const { t } = useLingui();
   const [customers] = useCustomers();
   const newCustomersModal = useDisclosure();
   const [created, setCreated] = useState<string>("");
@@ -44,7 +46,8 @@ const Customer = (props: CustomerSelectProps) => {
         ref={triggerRef}
         options={options}
         {...props}
-        label={props?.label ?? "Customer"}
+        label={props?.label ?? t`Customer`}
+        placeholder={props?.placeholder ?? t`Select`}
         inline={props?.inline ? CustomerPreview : undefined}
         onCreateOption={(option) => {
           newCustomersModal.onOpen();

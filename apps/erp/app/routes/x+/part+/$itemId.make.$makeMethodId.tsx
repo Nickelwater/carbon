@@ -3,11 +3,14 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { JSONContent } from "@carbon/react";
 import { Menubar, VStack } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import { Suspense } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Await, redirect, useLoaderData, useParams } from "react-router";
 import { CadModel } from "~/components";
+import { useRouteData } from "~/hooks";
 import { usePermissions } from "~/hooks/usePermissions";
+import type { PartSummary } from "~/modules/items";
 import {
   getConfigurationParameters,
   getConfigurationRules,
@@ -129,6 +132,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function PartMakeMethodPage() {
+  const { t } = useLingui();
   const loaderData = useLoaderData<typeof loader>();
   const permissions = usePermissions();
   const {
@@ -145,6 +149,10 @@ export default function PartMakeMethodPage() {
   const { itemId, makeMethodId } = useParams();
   if (!itemId) throw new Error("Could not find itemId");
   if (!makeMethodId) throw new Error("Could not find makeMethodId");
+
+  const partData = useRouteData<{
+    partSummary: PartSummary;
+  }>(path.to.part(itemId));
 
   return (
     <VStack spacing={2} className="p-2">
@@ -164,17 +172,19 @@ export default function PartMakeMethodPage() {
       <BillOfMaterial
         key={`bom:${makeMethodId}`}
         makeMethod={makeMethod}
+        // @ts-expect-error TS2322 - TODO: fix type
         materials={methodMaterials}
         operations={methodOperations}
         configurable={partManufacturing?.requiresConfiguration}
         configurationRules={configurationRules}
         parameters={configurationParametersAndGroups.parameters}
+        replenishmentSystem={partData?.partSummary?.replenishmentSystem}
       />
       <BillOfProcess
         key={`bop:${makeMethodId}`}
         makeMethod={makeMethod}
         materials={methodMaterials}
-        // @ts-ignore
+        // @ts-expect-error
         operations={methodOperations}
         configurable={partManufacturing?.requiresConfiguration}
         configurationRules={configurationRules}
@@ -191,7 +201,7 @@ export default function PartMakeMethodPage() {
                 itemId: model?.itemId ?? undefined
               }}
               modelPath={model?.modelPath ?? null}
-              title="CAD Model"
+              title={t`CAD Model`}
               uploadClassName="aspect-square min-h-[420px] max-h-[70vh]"
               viewerClassName="aspect-square min-h-[420px] max-h-[70vh]"
             />

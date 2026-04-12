@@ -4,6 +4,7 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import { Menubar, Spinner, VStack } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import type {
@@ -206,6 +207,7 @@ export async function clientAction({ serverAction }: ClientActionFunctionArgs) {
 }
 
 export default function PartDetailsRoute() {
+  const { t } = useLingui();
   const { itemId } = useParams();
   if (!itemId) throw new Error("Could not find itemId");
 
@@ -232,33 +234,39 @@ export default function PartDetailsRoute() {
     <VStack spacing={2} className="p-2">
       {permissions.is("employee") && methodData && (
         <>
-          <Suspense fallback={<Menubar />}>
-            <Await resolve={partData?.makeMethods}>
-              {(makeMethods) => (
-                <MakeMethodTools
-                  itemId={methodData.makeMethod.itemId}
-                  makeMethods={makeMethods?.data ?? []}
-                  type="Part"
-                  currentMethodId={methodData.makeMethod.id}
+          {["Make", "Buy and Make"].includes(
+            partData.partSummary?.replenishmentSystem ?? ""
+          ) && (
+            <>
+              <Suspense fallback={<Menubar />}>
+                <Await resolve={partData?.makeMethods}>
+                  {(makeMethods) => (
+                    <MakeMethodTools
+                      itemId={methodData.makeMethod.itemId}
+                      makeMethods={makeMethods?.data ?? []}
+                      type="Part"
+                      currentMethodId={methodData.makeMethod.id}
+                    />
+                  )}
+                </Await>
+              </Suspense>
+              {manufacturingInitialValues && (
+                <ItemManufacturingForm
+                  key={itemId}
+                  // @ts-ignore
+                  initialValues={manufacturingInitialValues}
                 />
               )}
-            </Await>
-          </Suspense>
-          {manufacturingInitialValues && (
-            <ItemManufacturingForm
-              key={itemId}
-              // @ts-ignore
-              initialValues={manufacturingInitialValues}
-            />
-          )}
-          {methodData.partManufacturing?.requiresConfiguration && (
-            <ConfigurationParametersForm
-              key={`options:${itemId}`}
-              parameters={
-                methodData.configurationParametersAndGroups.parameters
-              }
-              groups={methodData.configurationParametersAndGroups.groups}
-            />
+              {methodData.partManufacturing?.requiresConfiguration && (
+                <ConfigurationParametersForm
+                  key={`options:${itemId}`}
+                  parameters={
+                    methodData.configurationParametersAndGroups.parameters
+                  }
+                  groups={methodData.configurationParametersAndGroups.groups}
+                />
+              )}
+            </>
           )}
           <ItemNotes
             id={partData.partSummary?.id ?? null}
@@ -266,29 +274,44 @@ export default function PartDetailsRoute() {
             subTitle={partData.partSummary?.readableIdWithRevision ?? ""}
             notes={partData.partSummary?.notes as JSONContent}
           />
-          <BillOfMaterial
-            key={`bom:${itemId}`}
-            makeMethod={methodData.makeMethod}
-            // @ts-ignore
-            materials={methodData.methodMaterials ?? []}
-            // @ts-ignore
-            operations={methodData.methodOperations}
-            configurable={methodData.partManufacturing?.requiresConfiguration}
-            configurationRules={methodData.configurationRules}
-            parameters={methodData.configurationParametersAndGroups.parameters}
-          />
-          <BillOfProcess
-            key={`bop:${itemId}`}
-            makeMethod={methodData.makeMethod}
-            // @ts-ignore
-            operations={methodData.methodOperations ?? []}
-            configurable={methodData.partManufacturing?.requiresConfiguration}
-            // @ts-ignore
-            materials={methodData.methodMaterials ?? []}
-            configurationRules={methodData.configurationRules}
-            parameters={methodData.configurationParametersAndGroups.parameters}
-            tags={tags}
-          />
+          {["Make", "Buy and Make"].includes(
+            partData.partSummary?.replenishmentSystem ?? ""
+          ) && (
+            <>
+              <BillOfMaterial
+                key={`bom:${itemId}`}
+                makeMethod={methodData.makeMethod}
+                // @ts-ignore
+                materials={methodData.methodMaterials ?? []}
+                // @ts-ignore
+                operations={methodData.methodOperations}
+                configurable={
+                  methodData.partManufacturing?.requiresConfiguration
+                }
+                configurationRules={methodData.configurationRules}
+                parameters={
+                  methodData.configurationParametersAndGroups.parameters
+                }
+                replenishmentSystem={partData.partSummary?.replenishmentSystem}
+              />
+              <BillOfProcess
+                key={`bop:${itemId}`}
+                makeMethod={methodData.makeMethod}
+                // @ts-ignore
+                operations={methodData.methodOperations ?? []}
+                configurable={
+                  methodData.partManufacturing?.requiresConfiguration
+                }
+                // @ts-ignore
+                materials={methodData.methodMaterials ?? []}
+                configurationRules={methodData.configurationRules}
+                parameters={
+                  methodData.configurationParametersAndGroups.parameters
+                }
+                tags={tags}
+              />
+            </>
+          )}
         </>
       )}
       {permissions.is("employee") && (
@@ -316,7 +339,7 @@ export default function PartDetailsRoute() {
             isReadOnly={!permissions.can("update", "parts")}
             metadata={{ itemId }}
             modelPath={partData?.partSummary?.modelPath ?? null}
-            title="CAD Model"
+            title={t`CAD Model`}
           />
           <ItemRiskRegister itemId={itemId} />
         </>

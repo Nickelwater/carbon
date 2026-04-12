@@ -1076,7 +1076,7 @@ export async function getQuoteMaterialsByMethodId(
 ) {
   return client
     .from("quoteMaterial")
-    .select("*, item(name, itemTrackingType)")
+    .select("*, item(name, itemTrackingType, replenishmentSystem)")
     .eq("quoteMakeMethodId", quoteMakeMethodId)
     .order("order", { ascending: true });
 }
@@ -1347,6 +1347,26 @@ export async function getSalesOrderLines(
     .order("lineNumber", { ascending: true, nullsFirst: false })
     .order("createdAt", { ascending: true })
     .order("id", { ascending: true });
+}
+
+export async function getSalesOrderInvoiceLines(
+  client: SupabaseClient<Database>,
+  salesOrderId: string
+) {
+  return client
+    .from("salesInvoiceLine")
+    .select("invoiceId")
+    .eq("salesOrderId", salesOrderId);
+}
+
+export async function getSalesOrderInvoicesByIds(
+  client: SupabaseClient<Database>,
+  invoiceIds: string[]
+) {
+  return client
+    .from("salesInvoices")
+    .select("id, invoiceTotal, status, currencyCode")
+    .in("id", invoiceIds);
 }
 
 export async function getSalesOrderLinesByItemId(
@@ -2623,7 +2643,7 @@ async function buildCostEffects(
     .from("quoteMaterial")
     .select("id, itemId, unitCost")
     .eq("quoteLineId", quoteLineId)
-    .eq("methodType", "Buy");
+    .eq("methodType", "Purchase to Order");
 
   const buyItemIds = [
     ...new Set((buyMaterials.data ?? []).map((m) => m.itemId))
@@ -2775,9 +2795,9 @@ async function buildCostEffects(
     const d = node.data;
     const qty = d.quantity * parentQuantity;
 
-    if (d.methodType === "Buy") {
+    if (d.methodType === "Purchase to Order") {
       pushBuyCostEffect(d.itemId, d.itemType, qty, d.unitCost);
-    } else if (d.methodType === "Pick") {
+    } else if (d.methodType === "Pull from Inventory") {
       const costFn = (outerQty: number) => d.unitCost * qty * outerQty;
       const key =
         d.itemType === "Material"

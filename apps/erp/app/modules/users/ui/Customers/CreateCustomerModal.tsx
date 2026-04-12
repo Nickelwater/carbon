@@ -15,9 +15,9 @@ import {
   ModalTitle,
   VStack
 } from "@carbon/react";
+import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useFetcher, useNavigate } from "react-router";
-
 import { Customer, Submit } from "~/components/Form";
 import { useUrlParams } from "~/hooks";
 import type {
@@ -29,6 +29,7 @@ import type { Result } from "~/types";
 import { path } from "~/utils/path";
 
 const CreateCustomerModal = () => {
+  const { t } = useLingui();
   const navigate = useNavigate();
   const [params] = useUrlParams();
 
@@ -59,19 +60,20 @@ const CreateCustomerModal = () => {
             id: params.get("id") ?? "",
             customer: params.get("customer") ?? ""
           }}
-          // @ts-ignore
           fetcher={formFetcher}
           className="flex flex-col h-full"
         >
           <ModalHeader>
-            <ModalTitle>Create an account</ModalTitle>
+            <ModalTitle>
+              <Trans>Create an account</Trans>
+            </ModalTitle>
           </ModalHeader>
 
           <ModalBody>
             <VStack spacing={4}>
               <Customer
                 name="customer"
-                label="Customer"
+                label={t`Customer`}
                 onChange={(newValue) =>
                   setCustomer(newValue?.value as string | undefined)
                 }
@@ -84,16 +86,22 @@ const CreateCustomerModal = () => {
               {contact && (
                 <>
                   <FormControl>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>
+                      <Trans>Email</Trans>
+                    </FormLabel>
                     <Input isReadOnly value={contact?.email ?? ""} />
                   </FormControl>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
                     <FormControl>
-                      <FormLabel>First Name</FormLabel>
+                      <FormLabel>
+                        <Trans>First Name</Trans>
+                      </FormLabel>
                       <Input isReadOnly value={contact?.firstName ?? ""} />
                     </FormControl>
                     <FormControl>
-                      <FormLabel>Last Name</FormLabel>
+                      <FormLabel>
+                        <Trans>Last Name</Trans>
+                      </FormLabel>
                       <Input isReadOnly value={contact?.lastName ?? ""} />
                     </FormControl>
                   </div>
@@ -104,7 +112,7 @@ const CreateCustomerModal = () => {
           <ModalFooter>
             <HStack>
               <Submit isLoading={formFetcher.state !== "idle"}>
-                Create User
+                <Trans>Create User</Trans>
               </Submit>
             </HStack>
           </ModalFooter>
@@ -156,7 +164,6 @@ const CustomerContact = ({
       customerContactFetcher.data?.data
         ? customerContactFetcher.data?.data.map((c) => ({
             value: c.id,
-            // @ts-ignore
             label: `${c.contact?.firstName} ${c.contact?.lastName}`
           }))
         : [],
@@ -171,6 +178,7 @@ const CustomerContact = ({
         (c) => c.id === newValue
       );
 
+      // @ts-expect-error TS2322 - TODO: fix type
       onChange({ id: newValue, contact: contact?.contact ?? null });
     }
   };
@@ -185,7 +193,9 @@ const CustomerContact = ({
 
   return (
     <FormControl isInvalid={!!error}>
-      <FormLabel htmlFor={name}>Customer Contact</FormLabel>
+      <FormLabel htmlFor={name}>
+        <Trans>Customer Contact</Trans>
+      </FormLabel>
       <input type="hidden" name={name} id={name} value={value ?? ""} />
       <Combobox
         id={name}

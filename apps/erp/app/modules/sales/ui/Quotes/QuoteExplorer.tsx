@@ -25,6 +25,7 @@ import {
   VStack
 } from "@carbon/react";
 import { useDroppable } from "@dnd-kit/core";
+import { Trans } from "@lingui/react/macro";
 import { Reorder } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -94,7 +95,7 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
     estimatorId: userId,
     itemId: "",
     locationId: quoteData?.quote?.locationId ?? defaults.locationId ?? "",
-    methodType: "Make" as const,
+    methodType: "Make to Order" as const,
     status: "Not Started" as const,
     quantity: [1],
     unitOfMeasureCode: "",
@@ -219,7 +220,7 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
                   variant="secondary"
                   onClick={newQuoteLineDisclosure.onOpen}
                 >
-                  Add Line Item
+                  <Trans>Add Line Item</Trans>
                 </Button>
               )}
             </Empty>
@@ -236,12 +237,14 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
                 variant="secondary"
                 onClick={newQuoteLineDisclosure.onOpen}
               >
-                Add Line Item
+                <Trans>Add Line Item</Trans>
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <HStack>
-                <span>New Line Item</span>
+                <span>
+                  <Trans>New Line Item</Trans>
+                </span>
                 <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
               </HStack>
             </TooltipContent>
@@ -282,7 +285,7 @@ function OptimisticQuoteLineItem({ line }: { line: OptimisticQuoteLine }) {
               {line.itemReadableId || line.customerPartId}
             </span>
             <span className="font-medium text-muted-foreground text-xs line-clamp-1">
-              Creating part...
+              <Trans>Creating part...</Trans>
             </span>
           </VStack>
         </HStack>
@@ -411,7 +414,7 @@ function QuoteLineItem({
 
   const isSelected = lineId === line.id;
   const onLineClick = (line: QuotationLine) => {
-    if (line.methodType === "Make") {
+    if (line.methodType === "Make to Order") {
       disclosure.onOpen();
     }
 
@@ -461,7 +464,7 @@ function QuoteLineItem({
         </HStack>
         <div className="absolute right-2">
           <HStack spacing={1}>
-            {line.methodType === "Make" &&
+            {line.methodType === "Make to Order" &&
               permissions.can("update", "sales") &&
               line.status !== "No Quote" && (
                 <IconButton
@@ -505,19 +508,19 @@ function QuoteLineItem({
                         />
                       }
                     />
-                    View Item Master
+                    <Trans>View Item Master</Trans>
                   </Link>
                 </DropdownMenuItem>
-                {line.methodType === "Make" && (
+                {line.methodType === "Make to Order" && (
                   <>
                     <DropdownMenuItem onClick={searchDisclosure.onOpen}>
                       <DropdownMenuIcon icon={<LuSearch />} />
-                      Search
+                      <Trans>Search</Trans>
                     </DropdownMenuItem>
                     <DropdownMenuSub>
                       <DropdownMenuSubTrigger>
                         <DropdownMenuIcon icon={<LuDownload />} />
-                        Export
+                        <Trans>Export</Trans>
                       </DropdownMenuSubTrigger>
                       <DropdownMenuSubContent>
                         <DropdownMenuItem asChild>
@@ -531,7 +534,9 @@ function QuoteLineItem({
                           >
                             <DropdownMenuIcon icon={<LuTable />} />
                             <div className="flex flex-grow items-center gap-4 justify-between">
-                              <span>BoM</span>
+                              <span>
+                                <Trans>BoM</Trans>
+                              </span>
                               <Badge variant="green" className="text-xs">
                                 CSV
                               </Badge>
@@ -549,7 +554,9 @@ function QuoteLineItem({
                           >
                             <DropdownMenuIcon icon={<LuTable />} />
                             <div className="flex flex-grow items-center gap-4 justify-between">
-                              <span>BoM + BoP</span>
+                              <span>
+                                <Trans>BoM + BoP</Trans>
+                              </span>
                               <Badge variant="green" className="text-xs">
                                 CSV
                               </Badge>
@@ -567,7 +574,9 @@ function QuoteLineItem({
                           >
                             <DropdownMenuIcon icon={<LuBraces />} />
                             <div className="flex flex-grow items-center gap-4 justify-between">
-                              <span>BoM</span>
+                              <span>
+                                <Trans>BoM</Trans>
+                              </span>
                               <Badge variant="outline" className="text-xs">
                                 JSON
                               </Badge>
@@ -585,7 +594,9 @@ function QuoteLineItem({
                           >
                             <DropdownMenuIcon icon={<LuBraces />} />
                             <div className="flex flex-grow items-center gap-4 justify-between">
-                              <span>BoM + BoP</span>
+                              <span>
+                                <Trans>BoM + BoP</Trans>
+                              </span>
                               <Badge variant="outline" className="text-xs">
                                 JSON
                               </Badge>
@@ -606,7 +617,7 @@ function QuoteLineItem({
                   }}
                 >
                   <DropdownMenuIcon icon={<LuTrash />} />
-                  Delete Line
+                  <Trans>Delete Line</Trans>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -614,7 +625,7 @@ function QuoteLineItem({
         </div>
       </HStack>
       {disclosure.isOpen &&
-        line.methodType === "Make" &&
+        line.methodType === "Make to Order" &&
         permissions.can("update", "sales") &&
         line.status !== "No Quote" && (
           <VStack className="border-b border-border p-1">

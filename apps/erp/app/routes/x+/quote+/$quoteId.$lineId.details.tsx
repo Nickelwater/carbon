@@ -5,6 +5,7 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import { Spinner, VStack } from "@carbon/react";
+import { useLingui } from "@lingui/react/macro";
 import { Fragment, Suspense, useMemo } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import {
@@ -204,7 +205,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     );
   }
 
-  if (d.methodType === "Make" && d.quantity?.length) {
+  if (d.methodType === "Make to Order" && d.quantity?.length) {
     const serviceRole = getCarbonServiceRole();
     const existingPrices = await serviceRole
       .from("quoteLinePrice")
@@ -234,6 +235,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function QuoteLine() {
+  const { t } = useLingui();
   const {
     line,
     operations,
@@ -286,7 +288,7 @@ export default function QuoteLine() {
     description: line.description ?? "",
     estimatorId: line.estimatorId ?? "",
     itemId: line.itemId ?? "",
-    methodType: line.methodType ?? "Make",
+    methodType: line.methodType ?? "Make to Order",
     modelUploadId: line.modelUploadId ?? undefined,
     noQuoteReason: line.noQuoteReason ?? undefined,
     status: line.status ?? "Not Started",
@@ -308,7 +310,7 @@ export default function QuoteLine() {
       <OpportunityLineNotes
         id={line.id}
         table="quoteLine"
-        title="Notes"
+        title={t`Notes`}
         subTitle={line.itemReadableId ?? ""}
         internalNotes={line.internalNotes as JSONContent}
         externalNotes={line.externalNotes as JSONContent}
@@ -334,7 +336,7 @@ export default function QuoteLine() {
         </VStack>
       )}
 
-      {line.methodType === "Make" &&
+      {line.methodType === "Make to Order" &&
         line.status !== "No Quote" &&
         permissions.is("employee") && (
           <QuoteLineCosting
@@ -415,7 +417,7 @@ export default function QuoteLine() {
                   itemId: model?.itemId ?? undefined
                 }}
                 modelPath={model?.modelPath ?? null}
-                title="CAD Model"
+                title={t`CAD Model`}
                 uploadClassName="aspect-square min-h-[420px] max-h-[70vh]"
                 viewerClassName="aspect-square min-h-[420px] max-h-[70vh]"
               />
