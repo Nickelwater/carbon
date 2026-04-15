@@ -63,6 +63,9 @@ ALTER TABLE "salesOrderLine" ALTER COLUMN "methodType" TYPE TEXT USING "methodTy
 ALTER TABLE "salesInvoiceLine" ALTER COLUMN "methodType" DROP DEFAULT;
 ALTER TABLE "salesInvoiceLine" ALTER COLUMN "methodType" TYPE TEXT USING "methodType"::TEXT;
 
+ALTER TABLE "quotePart" ALTER COLUMN "defaultMethodType" DROP DEFAULT;
+ALTER TABLE "quotePart" ALTER COLUMN "defaultMethodType" TYPE TEXT USING "defaultMethodType"::TEXT;
+
 -- Step 3: Rewrite data in-place (text columns, no enum constraint)
 
 UPDATE "item" SET "defaultMethodType" = CASE "defaultMethodType"
@@ -114,6 +117,13 @@ UPDATE "salesInvoiceLine" SET "methodType" = CASE "methodType"
   ELSE "methodType"
 END WHERE "methodType" IN ('Buy', 'Pick', 'Make');
 
+UPDATE "quotePart" SET "defaultMethodType" = CASE "defaultMethodType"
+  WHEN 'Buy' THEN 'Purchase to Order'
+  WHEN 'Pick' THEN 'Pull from Inventory'
+  WHEN 'Make' THEN 'Make to Order'
+  ELSE "defaultMethodType"
+END WHERE "defaultMethodType" IN ('Buy', 'Pick', 'Make');
+
 -- Step 4: Drop old enum, create new enum
 
 DROP TYPE "methodType";
@@ -146,6 +156,9 @@ ALTER TABLE "salesOrderLine" ALTER COLUMN "methodType" SET DEFAULT 'Pull from In
 
 ALTER TABLE "salesInvoiceLine" ALTER COLUMN "methodType" TYPE "methodType" USING "methodType"::"methodType";
 ALTER TABLE "salesInvoiceLine" ALTER COLUMN "methodType" SET DEFAULT 'Pull from Inventory';
+
+ALTER TABLE "quotePart" ALTER COLUMN "defaultMethodType" TYPE "methodType" USING "defaultMethodType"::"methodType";
+ALTER TABLE "quotePart" ALTER COLUMN "defaultMethodType" SET DEFAULT 'Make to Order';
 
 -- Step 6: Recreate views with new values
 
