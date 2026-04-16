@@ -2160,6 +2160,7 @@ function OperationForm({
               <NumberControlled
                 name="setupTime"
                 label={t`Setup Time`}
+                isOptional={false}
                 minValue={0}
                 value={processData.setupTime}
                 onChange={(newValue) =>
@@ -2172,6 +2173,7 @@ function OperationForm({
               <StandardFactor
                 name="setupUnit"
                 label={t`Setup Unit`}
+                isOptional={false}
                 hint={processData.setupUnitHint}
                 value={processData.setupUnit}
                 onChange={(newValue) => {
@@ -2239,6 +2241,7 @@ function OperationForm({
               <NumberControlled
                 name="laborTime"
                 label={t`Labor Time`}
+                isOptional={false}
                 minValue={0}
                 value={processData.laborTime}
                 onChange={(newValue) =>
@@ -2251,6 +2254,7 @@ function OperationForm({
               <StandardFactor
                 name="laborUnit"
                 label={t`Labor Unit`}
+                isOptional={false}
                 hint={processData.laborUnitHint}
                 value={processData.laborUnit}
                 onChange={(newValue) => {
@@ -2321,6 +2325,7 @@ function OperationForm({
               <NumberControlled
                 name="machineTime"
                 label={t`Machine Time`}
+                isOptional={false}
                 minValue={0}
                 value={processData.machineTime}
                 onChange={(newValue) =>
@@ -2333,6 +2338,7 @@ function OperationForm({
               <StandardFactor
                 name="machineUnit"
                 label={t`Machine Unit`}
+                isOptional={false}
                 hint={processData.machineUnitHint}
                 value={processData.machineUnit}
                 onChange={(newValue) => {
