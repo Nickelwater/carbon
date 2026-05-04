@@ -16,7 +16,7 @@ index da54c0d..e51d41f 100644
 -      if (viteDirFiles.length === 0) {
 -        await (0, import_promises2.rm)(viteDir, { force: true, recursive: true });
 -      }
-+     try {
++      try {
 +        let manifestExists = (0, import_node_fs3.existsSync)(viteManifestPath);
 +        if (!manifestExists) return;
 +        if (!ctx.viteManifestEnabled) {
@@ -28,7 +28,7 @@ index da54c0d..e51d41f 100644
 +        if (viteDirFiles.length === 0) {
 +          await (0, import_promises2.rm)(viteDir, { force: true, recursive: true });
 +        }
-+     } catch {}
++      } catch {}
      })
    );
  }
