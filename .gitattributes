@@ -1,0 +1,2 @@
+# patch-package applies unified diffs with strict LF context; CRLF breaks hunks on Windows.
+patches/** text eol=lf
