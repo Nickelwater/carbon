@@ -42,7 +42,10 @@ import {
   getCompanySettings
 } from "~/modules/settings";
 import { getCustomFieldsSchemas } from "~/modules/shared/shared.server";
-import { getSavedViews } from "~/modules/shared/shared.service";
+import {
+  getSavedViews,
+  isApprovalRequired
+} from "~/modules/shared/shared.service";
 import {
   getUser,
   getUserClaims,
@@ -149,7 +152,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     auditLogEnabled,
     company,
     companies: companies.data ?? [],
-    companySettings: companySettings.data,
+    companySettings: companySettings.data ?? null,
     customFields: customFields.data ?? [],
     defaults: defaults.data,
     integrations: integrations.data ?? [],
@@ -159,6 +162,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
     role: claims?.role,
     user: user.data,
     savedViews: savedViews.data ?? [],
+    supplierApprovalRequired: isApprovalRequired(client, "supplier", companyId),
     openClockEntry: companySettings.data?.timeCardEnabled
       ? getOpenClockEntry(client, userId, companyId)
       : null

@@ -3,6 +3,7 @@ import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import type { Database } from "@carbon/database";
 import { PackingSlipPDF } from "@carbon/documents/pdf";
 import type { JSONContent } from "@carbon/react";
+import { getPreferenceHeaders } from "@carbon/remix";
 import { renderToStream } from "@react-pdf/renderer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LoaderFunctionArgs } from "react-router";
@@ -27,7 +28,6 @@ import {
 } from "~/modules/sales";
 import { getCompany, getCompanySettings } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
-import { getLocale } from "~/utils/request";
 
 /** Builds a map of source line id (salesOrderLine.id) -> customerReference for packing slip line-level PO display */
 async function getCustomerReferenceByLineId(
@@ -102,7 +102,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Error("Failed to load packing slip data");
   }
 
-  const locale = getLocale(request);
+  const { locale } = getPreferenceHeaders(request);
 
   // Customer-only shipment (no source document): use customerId to load customer and address
   const isCustomerOnlyShipment =

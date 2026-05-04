@@ -28,7 +28,6 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
-import { formatDate } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useState } from "react";
 import {
@@ -46,8 +45,13 @@ import { Enumerable } from "~/components/Enumerable";
 import { Tags } from "~/components/Form";
 import { useSupplierTypes } from "~/components/Form/SupplierType";
 import { ConfirmDelete } from "~/components/Modals";
-import { usePermissions, useRouteData, useUser } from "~/hooks";
-import { useSettings } from "~/hooks/useSettings";
+import {
+  useDateFormatter,
+  usePermissions,
+  useRouteData,
+  useSupplierApprovalRequired,
+  useUser
+} from "~/hooks";
 import type { SupplierDetail } from "~/modules/purchasing";
 import { SupplierStatusIndicator } from "~/modules/purchasing/ui/Supplier/SupplierStatusIndicator";
 import type { ApprovalDecision } from "~/modules/shared/types";
@@ -61,10 +65,11 @@ const SupplierHeader = () => {
   if (!supplierId) throw new Error("Could not find supplierId");
   const fetcher = useFetcher<typeof action>();
   const { t } = useLingui();
+  const { formatDate } = useDateFormatter();
   const requestApprovalFetcher = useFetcher();
   const permissions = usePermissions();
   const { company } = useUser();
-  const settings = useSettings();
+  const isApprovalRequired = useSupplierApprovalRequired();
   const deleteModal = useDisclosure();
   const makeInactiveModal = useDisclosure();
   const [approvalDecision, setApprovalDecision] =
@@ -98,7 +103,6 @@ const SupplierHeader = () => {
   const approvalRequestId = routeData?.approvalRequest?.id;
   const hasApprovalRequest = !!approvalRequestId;
   const canApprove = routeData?.canApprove ?? false;
-  const isApprovalRequired = settings.supplierApproval ?? false;
 
   const submitRequestApproval = () => {
     const formData = new FormData();

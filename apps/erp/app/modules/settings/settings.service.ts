@@ -1,7 +1,6 @@
 import { SUPABASE_URL } from "@carbon/auth";
 import type { Database } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { FunctionRegion } from "@supabase/supabase-js";
 import type { z } from "zod";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
@@ -453,8 +452,7 @@ export async function seedCompany(
     body: {
       companyId,
       userId
-    },
-    region: FunctionRegion.UsEast1
+    }
   });
 }
 
@@ -476,6 +474,33 @@ export async function updateKanbanOutputSetting(
   return client
     .from("companySettings")
     .update(sanitize({ kanbanOutput }))
+    .eq("id", companyId);
+}
+
+export async function updateShelfLifeSettings(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  settings: {
+    /** undefined disables expiry badges company-wide. */
+    nearExpiryWarningDays: number | undefined;
+    /** Seed for the "Shelf-life (days)" input on new items. */
+    defaultShelfLifeDays: number;
+    /** MIN expiry scope for Calculated-mode finished products. */
+    calculatedInputScope: "AllInputs" | "ManagedInputsOnly";
+    /** Policy enforced when an operator consumes an expired entity. */
+    expiredEntityPolicy: "Warn" | "Block" | "BlockWithOverride";
+  }
+) {
+  return client
+    .from("companySettings")
+    .update({
+      inventoryShelfLife: {
+        nearExpiryWarningDays: settings.nearExpiryWarningDays ?? null,
+        defaultShelfLifeDays: settings.defaultShelfLifeDays,
+        calculatedInputScope: settings.calculatedInputScope,
+        expiredEntityPolicy: settings.expiredEntityPolicy
+      }
+    })
     .eq("id", companyId);
 }
 
@@ -896,17 +921,6 @@ export async function updateLeadTimesOnReceiptSetting(
 ) {
   return (client.from("companySettings") as any)
     .update(sanitize({ updateLeadTimesOnReceipt }))
-    .eq("id", companyId);
-}
-
-export async function updateSupplierApprovalSetting(
-  client: SupabaseClient<Database>,
-  companyId: string,
-  supplierApproval: boolean
-) {
-  return client
-    .from("companySettings")
-    .update(sanitize({ supplierApproval }))
     .eq("id", companyId);
 }
 

@@ -6743,11 +6743,6 @@ update lead times on receipt setting
 **Parameters:**
 - `updateLeadTimesOnReceipt`: boolean
 
-### settings_updateSupplierApprovalSetting (WRITE)
-update supplier approval setting
-**Parameters:**
-- `supplierApproval`: boolean
-
 ### settings_updateAccountsPayableAddressSetting (WRITE)
 update accounts payable address setting
 **Parameters:**

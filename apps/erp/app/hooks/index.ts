@@ -6,6 +6,7 @@ import {
 } from "@carbon/remix";
 
 import { useCurrencyFormatter } from "./useCurrencyFormatter";
+import { useDateFormatter } from "./useDateFormatter";
 import { useGooglePlaces } from "./useGooglePlaces";
 import { useModules } from "./useModules";
 import { useMovingCellRef } from "./useMovingCellRef";
@@ -17,11 +18,13 @@ import { usePermissions } from "./usePermissions";
 import { useRealtime } from "./useRealtime";
 import { useScrollPosition } from "./useScrollPosition";
 import { useSettings } from "./useSettings";
+import { useSupplierApprovalRequired } from "./useSupplierApprovalRequired";
 import { useTrainingPanel } from "./useTrainingPanel";
 import { useUser } from "./useUser";
 
 export {
   useCurrencyFormatter,
+  useDateFormatter,
   useGooglePlaces,
   useModules,
   useMovingCellRef,
@@ -36,6 +39,7 @@ export {
   useRouteData,
   useScrollPosition,
   useSettings,
+  useSupplierApprovalRequired,
   useTrainingPanel,
   useUrlParams,
   useUser

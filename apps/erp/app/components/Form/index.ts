@@ -38,7 +38,9 @@ import Customer from "./Customer";
 import CustomerContact from "./CustomerContact";
 import CustomerLocation from "./CustomerLocation";
 import CustomerStatus from "./CustomerStatus";
+import Customers from "./Customers";
 import CustomerType from "./CustomerType";
+import CustomerTypes from "./CustomerTypes";
 import CustomFormFields from "./CustomFormFields";
 import DefaultMethodType from "./DefaultMethodType";
 import Department from "./Department";
@@ -48,6 +50,7 @@ import Employee from "./Employee";
 import Employees from "./Employees";
 import Item, { useConfigurableItems } from "./Item";
 import ItemPostingGroup from "./ItemPostingGroup";
+import Items from "./Items";
 import Location from "./Location";
 import MaterialType from "./MaterialType";
 import Part from "./Part";
@@ -58,10 +61,15 @@ import Processes from "./Processes";
 import Sequence from "./Sequence";
 import SequenceOrCustomId from "./SequenceOrCustomId";
 import Service from "./Service";
-import Shelf from "./Shelf";
+import {
+  ShelfLifeStartProcess,
+  ShelfLifeStartTiming
+} from "./ShelfLifeStartEvent";
 import Shift from "./Shift";
 import ShippingMethod from "./ShippingMethod";
 import StandardFactor from "./StandardFactor";
+import StorageTypes from "./StorageTypes";
+import StorageUnit from "./StorageUnit";
 import Supplier from "./Supplier";
 import SupplierContact from "./SupplierContact";
 import SupplierLocation from "./SupplierLocation";
@@ -98,7 +106,9 @@ export {
   CustomerContact,
   CustomerLocation,
   CustomerStatus,
+  Customers,
   CustomerType,
+  CustomerTypes,
   CustomFormFields,
   DatePicker,
   DateTimePicker,
@@ -114,6 +124,7 @@ export {
   InputControlled,
   Item,
   ItemPostingGroup,
+  Items,
   useConfigurableItems,
   Location,
   MaterialType,
@@ -127,13 +138,16 @@ export {
   Procedure,
   Process,
   Processes,
+  ShelfLifeStartProcess,
+  ShelfLifeStartTiming,
   Radios,
   Select,
   SelectControlled,
   Sequence,
   SequenceOrCustomId,
   Service,
-  Shelf,
+  StorageUnit,
+  StorageTypes,
   Shift,
   ShippingMethod,
   StandardFactor,

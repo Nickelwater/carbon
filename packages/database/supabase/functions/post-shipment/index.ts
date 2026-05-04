@@ -318,7 +318,7 @@ serve(async (req: Request) => {
                   itemId: shipmentLine.itemId,
                   quantity: -shippedQuantity,
                   locationId: shipmentLine.locationId ?? locationId,
-                  shelfId: shipmentLine.shelfId,
+                  storageUnitId: shipmentLine.storageUnitId,
                   entryType: "Negative Adjmt.",
                   documentType: "Sales Shipment",
                   documentId: shipment.data?.id ?? undefined,
@@ -334,7 +334,7 @@ serve(async (req: Request) => {
                   itemId: shipmentLine.itemId,
                   quantity: -shippedQuantity,
                   locationId: shipmentLine.locationId ?? locationId,
-                  shelfId: shipmentLine.shelfId,
+                  storageUnitId: shipmentLine.storageUnitId,
                   entryType: "Negative Adjmt.",
                   documentType: "Sales Shipment",
                   documentId: shipment.data?.id ?? undefined,
@@ -366,7 +366,7 @@ serve(async (req: Request) => {
                     itemId: shipmentLine.itemId,
                     quantity: -1,
                     locationId: shipmentLine.locationId ?? locationId,
-                    shelfId: shipmentLine.shelfId,
+                    storageUnitId: shipmentLine.storageUnitId,
                     entryType: "Negative Adjmt.",
                     documentType: "Sales Shipment",
                     documentId: shipment.data?.id ?? undefined,
@@ -464,6 +464,8 @@ serve(async (req: Request) => {
                 sourceDocumentId: string;
                 sourceDocumentReadableId: string | null;
                 companyId: string;
+                itemId: string | null;
+                expirationDate: string | null;
               }
             > = {};
 
@@ -501,6 +503,8 @@ serve(async (req: Request) => {
                     sourceDocumentReadableId:
                       trackedEntity.sourceDocumentReadableId,
                     companyId: trackedEntity.companyId,
+                    itemId: trackedEntity.itemId ?? null,
+                    expirationDate: trackedEntity.expirationDate ?? null,
                   };
                 }
 
@@ -644,6 +648,8 @@ serve(async (req: Request) => {
                       sourceDocumentReadableId:
                         splitInfo.sourceDocumentReadableId,
                       attributes: splitInfo.attributes as unknown as Json,
+                      itemId: splitInfo.itemId,
+                      expirationDate: splitInfo.expirationDate,
                       companyId: splitInfo.companyId,
                       createdBy: userId,
                       createdAt: today,
@@ -729,13 +735,13 @@ serve(async (req: Request) => {
                     )?.itemId!,
                     quantity: -splitInfo.originalQuantity,
                     locationId: locationId,
-                    shelfId: shipmentLines.data.find(
+                    storageUnitId: shipmentLines.data.find(
                       (sl) =>
                         sl.id ===
                         (splitInfo.attributes as TrackedEntityAttributes)?.[
                           "Shipment Line"
                         ]
-                    )?.shelfId,
+                    )?.storageUnitId,
                     entryType: "Negative Adjmt.",
                     documentType: "Batch Split",
                     documentId: splitActivityId,
@@ -755,13 +761,13 @@ serve(async (req: Request) => {
                     )?.itemId!,
                     quantity: splitInfo.shippedQuantity,
                     locationId: locationId,
-                    shelfId: shipmentLines.data.find(
+                    storageUnitId: shipmentLines.data.find(
                       (sl) =>
                         sl.id ===
                         (splitInfo.attributes as TrackedEntityAttributes)?.[
                           "Shipment Line"
                         ]
-                    )?.shelfId,
+                    )?.storageUnitId,
                     entryType: "Positive Adjmt.",
                     documentType: "Batch Split",
                     documentId: splitActivityId,
@@ -781,13 +787,13 @@ serve(async (req: Request) => {
                     )?.itemId!,
                     quantity: splitInfo.remainingQuantity,
                     locationId: locationId,
-                    shelfId: shipmentLines.data.find(
+                    storageUnitId: shipmentLines.data.find(
                       (sl) =>
                         sl.id ===
                         (splitInfo.attributes as TrackedEntityAttributes)?.[
                           "Shipment Line"
                         ]
-                    )?.shelfId,
+                    )?.storageUnitId,
                     entryType: "Positive Adjmt.",
                     documentType: "Batch Split",
                     documentId: splitActivityId,
@@ -974,6 +980,8 @@ serve(async (req: Request) => {
                 sourceDocumentId: string;
                 sourceDocumentReadableId: string | null;
                 companyId: string;
+                itemId: string | null;
+                expirationDate: string | null;
               }
             > = {};
 
@@ -1011,6 +1019,8 @@ serve(async (req: Request) => {
                     sourceDocumentReadableId:
                       trackedEntity.sourceDocumentReadableId,
                     companyId: trackedEntity.companyId,
+                    itemId: trackedEntity.itemId ?? null,
+                    expirationDate: trackedEntity.expirationDate ?? null,
                   };
                 }
 
@@ -1114,6 +1124,8 @@ serve(async (req: Request) => {
                       sourceDocumentReadableId:
                         splitInfo.sourceDocumentReadableId,
                       attributes: splitInfo.attributes as unknown as Json,
+                      itemId: splitInfo.itemId,
+                      expirationDate: splitInfo.expirationDate,
                       companyId: splitInfo.companyId,
                       createdBy: userId,
                       createdAt: today,
@@ -1295,7 +1307,7 @@ serve(async (req: Request) => {
                   itemId: shipmentLine.itemId,
                   quantity: -shippedQuantity, // Negative for outbound transfer
                   locationId: shipmentLine.locationId,
-                  shelfId: shipmentLine.shelfId,
+                  storageUnitId: shipmentLine.storageUnitId,
                   entryType: "Transfer",
                   documentType: "Transfer Shipment",
                   documentId: warehouseTransfer.data?.transferId,
@@ -1579,7 +1591,7 @@ serve(async (req: Request) => {
                   itemId: shipmentLine.itemId,
                   quantity: shippedQuantity, // Positive to restore inventory
                   locationId: shipmentLine.locationId ?? locationId,
-                  shelfId: shipmentLine.shelfId,
+                  storageUnitId: shipmentLine.storageUnitId,
                   entryType: "Positive Adjmt.",
                   documentType: "Sales Shipment",
                   documentId: shipment.data?.id ?? undefined,
@@ -1595,7 +1607,7 @@ serve(async (req: Request) => {
                   itemId: shipmentLine.itemId,
                   quantity: shippedQuantity, // Positive to restore inventory
                   locationId: shipmentLine.locationId ?? locationId,
-                  shelfId: shipmentLine.shelfId,
+                  storageUnitId: shipmentLine.storageUnitId,
                   entryType: "Positive Adjmt.",
                   documentType: "Sales Shipment",
                   documentId: shipment.data?.id ?? undefined,
@@ -1627,7 +1639,7 @@ serve(async (req: Request) => {
                     itemId: shipmentLine.itemId,
                     quantity: 1, // Positive to restore inventory
                     locationId: shipmentLine.locationId ?? locationId,
-                    shelfId: shipmentLine.shelfId,
+                    storageUnitId: shipmentLine.storageUnitId,
                     entryType: "Positive Adjmt.",
                     documentType: "Sales Shipment",
                     documentId: shipment.data?.id ?? undefined,
@@ -2038,7 +2050,7 @@ serve(async (req: Request) => {
                   itemId: shipmentLine.itemId,
                   quantity: -shippedQuantity, // Negative to remove inventory
                   locationId: shipmentLine.locationId ?? locationId,
-                  shelfId: shipmentLine.shelfId,
+                  storageUnitId: shipmentLine.storageUnitId,
                   entryType: "Negative Adjmt.",
                   documentType: "Purchase Receipt",
                   documentId: shipment.data?.id ?? undefined,
@@ -2054,7 +2066,7 @@ serve(async (req: Request) => {
                   itemId: shipmentLine.itemId,
                   quantity: -shippedQuantity, // Negative to remove inventory
                   locationId: shipmentLine.locationId ?? locationId,
-                  shelfId: shipmentLine.shelfId,
+                  storageUnitId: shipmentLine.storageUnitId,
                   entryType: "Negative Adjmt.",
                   documentType: "Purchase Receipt",
                   documentId: shipment.data?.id ?? undefined,
@@ -2086,7 +2098,7 @@ serve(async (req: Request) => {
                     itemId: shipmentLine.itemId,
                     quantity: -1, // Negative to remove inventory
                     locationId: shipmentLine.locationId ?? locationId,
-                    shelfId: shipmentLine.shelfId,
+                    storageUnitId: shipmentLine.storageUnitId,
                     entryType: "Negative Adjmt.",
                     documentType: "Purchase Receipt",
                     documentId: shipment.data?.id ?? undefined,
@@ -2262,7 +2274,7 @@ serve(async (req: Request) => {
                   itemId: shipmentLine.itemId,
                   quantity: shippedQuantity, // Positive to restore inventory
                   locationId: shipmentLine.locationId,
-                  shelfId: shipmentLine.shelfId,
+                  storageUnitId: shipmentLine.storageUnitId,
                   entryType: "Transfer",
                   documentType: "Transfer Shipment",
                   documentId: warehouseTransfer.data?.transferId,

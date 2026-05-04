@@ -38,7 +38,12 @@ import { Link, useFetcher, useParams } from "react-router";
 import { useAuditLog } from "~/components/AuditLog";
 import { usePanels } from "~/components/Layout";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
-import { usePermissions, useRouteData, useSettings, useUser } from "~/hooks";
+import {
+  usePermissions,
+  useRouteData,
+  useSupplierApprovalRequired,
+  useUser
+} from "~/hooks";
 import { ReceiptStatus } from "~/modules/inventory/ui/Receipts";
 import { ShipmentStatus } from "~/modules/inventory/ui/Shipments";
 import PurchaseInvoicingStatus from "~/modules/invoicing/ui/PurchaseInvoice/PurchaseInvoicingStatus";
@@ -63,7 +68,7 @@ const PurchaseOrderHeader = () => {
   const { toggleExplorer, toggleProperties } = usePanels();
 
   const { t } = useLingui();
-  const settings = useSettings();
+  const supplierApprovalRequired = useSupplierApprovalRequired();
   const routeData = useRouteData<{
     purchaseOrder: PurchaseOrder;
     lines: PurchaseOrderLine[];
@@ -72,20 +77,16 @@ const PurchaseOrderHeader = () => {
     canReopen: boolean;
     canDelete: boolean;
     defaultCc: string[];
-    supplier: { supplierStatus: string | null } | null;
+    supplier: { status: string | null } | null;
   }>(path.to.purchaseOrder(orderId));
 
   const [suppliers] = useSuppliers();
   const isSupplierApproved = useMemo(
     () =>
-      !settings?.supplierApproval ||
+      !supplierApprovalRequired ||
       suppliers.find((s) => s.id === routeData?.purchaseOrder?.supplierId)
         ?.supplierStatus === "Active",
-    [
-      settings?.supplierApproval,
-      routeData?.purchaseOrder?.supplierId,
-      suppliers
-    ]
+    [supplierApprovalRequired, routeData?.purchaseOrder?.supplierId, suppliers]
   );
 
   if (!routeData?.purchaseOrder)
@@ -132,7 +133,7 @@ const PurchaseOrderHeader = () => {
 
   return (
     <>
-      <div className="flex flex-shrink-0 items-center justify-between p-2 bg-card border-b h-[50px] overflow-x-auto scrollbar-hide">
+      <div className="flex flex-shrink-0 items-center justify-between p-2 bg-background border-b h-[50px] overflow-x-auto scrollbar-hide">
         <HStack className="w-full justify-between">
           <HStack>
             <IconButton
@@ -180,7 +181,7 @@ const PurchaseOrderHeader = () => {
                 {routeData?.purchaseOrder?.purchaseOrderType}
               </Badge>
             )}
-            {settings?.supplierApproval && !isSupplierApproved && (
+            {supplierApprovalRequired && !isSupplierApproved && (
               <Status color="red">
                 <Trans>Unapproved Supplier</Trans>
               </Status>

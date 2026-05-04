@@ -3,20 +3,12 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
-import { Spinner } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
-import { Suspense } from "react";
 import { Fragment } from "react/jsx-runtime";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import {
-  Await,
-  Outlet,
-  redirect,
-  useLoaderData,
-  useParams
-} from "react-router";
-import { useRouteData } from "~/hooks";
+import { Outlet, redirect, useLoaderData, useParams } from "react-router";
+import { DeferredFiles } from "~/components";
 import {
   getSalesInvoice,
   getSalesInvoiceLine,
@@ -142,11 +134,6 @@ export default function EditSalesInvoiceLineRoute() {
   if (!invoiceId) throw notFound("invoiceId not found");
   if (!lineId) throw notFound("lineId not found");
 
-  const routeData = useRouteData<{
-    salesInvoice: { status: string };
-  }>(path.to.salesInvoice(invoiceId));
-  const isReadOnly = isSalesInvoiceLocked(routeData?.salesInvoice?.status);
-
   const { salesInvoiceLine, files } = useLoaderData<typeof loader>();
 
   const initialValues = {
@@ -167,7 +154,7 @@ export default function EditSalesInvoiceLineRoute() {
     taxPercent: salesInvoiceLine?.taxPercent ?? 0,
     exchangeRate: salesInvoiceLine?.exchangeRate ?? 1,
     unitOfMeasureCode: salesInvoiceLine?.unitOfMeasureCode ?? "",
-    shelfId: salesInvoiceLine?.shelfId ?? "",
+    storageUnitId: salesInvoiceLine?.storageUnitId ?? "",
     ...getCustomFields(salesInvoiceLine?.customFields)
   };
 
@@ -188,26 +175,17 @@ export default function EditSalesInvoiceLineRoute() {
         internalNotes={salesInvoiceLine?.internalNotes as JSONContent}
       />
 
-      <Suspense
-        fallback={
-          <div className="flex w-full h-full rounded bg-gradient-to-tr from-background to-card items-center justify-center">
-            <Spinner className="h-10 w-10" />
-          </div>
-        }
-      >
-        <Await resolve={files}>
-          {(resolvedFiles) => (
-            <OpportunityLineDocuments
-              files={resolvedFiles ?? []}
-              id={invoiceId}
-              lineId={lineId}
-              itemId={salesInvoiceLine?.itemId}
-              type="Sales Invoice"
-              isReadOnly={isReadOnly}
-            />
-          )}
-        </Await>
-      </Suspense>
+      <DeferredFiles resolve={files}>
+        {(resolvedFiles) => (
+          <OpportunityLineDocuments
+            files={resolvedFiles ?? []}
+            id={invoiceId}
+            lineId={lineId}
+            itemId={salesInvoiceLine?.itemId}
+            type="Sales Invoice"
+          />
+        )}
+      </DeferredFiles>
 
       <Outlet />
     </Fragment>

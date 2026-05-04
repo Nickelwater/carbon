@@ -31,7 +31,7 @@ import {
   toast,
   VStack
 } from "@carbon/react";
-import { formatDate, pluralize } from "@carbon/utils";
+import { pluralize } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
@@ -55,7 +55,7 @@ import { Enumerable } from "~/components/Enumerable";
 import { CustomerContact, EmailRecipients } from "~/components/Form";
 import { usePaymentTerm } from "~/components/Form/PaymentTerm";
 import { useShippingMethod } from "~/components/Form/ShippingMethod";
-import { useRouteData, useUser } from "~/hooks";
+import { useDateFormatter, useRouteData, useUser } from "~/hooks";
 import { useCurrencyFormatter } from "~/hooks/useCurrencyFormatter";
 import { useIntegrations } from "~/hooks/useIntegrations";
 import { getDocumentType } from "~/modules/shared";
@@ -985,6 +985,7 @@ function CustomerDetailsForm({ poNumber }: { poNumber: string }) {
 
 function ShippingDetailsForm() {
   const [isExpanded, setIsExpanded] = useState(true);
+  const { formatDate } = useDateFormatter();
   const { quoteId } = useParams();
   if (!quoteId) throw new Error("Could not find quoteId");
 
@@ -1045,7 +1046,7 @@ function NotificationOptionsForm({ quote }: { quote: Quotation }) {
   const { t } = useLingui();
   const [isExpanded, setIsExpanded] = useState(true);
   const integrations = useIntegrations();
-  const canEmail = integrations.has("resend");
+  const canEmail = integrations.has("email");
   const [notificationType, setNotificationType] = useState(
     canEmail ? "Email" : "None"
   );

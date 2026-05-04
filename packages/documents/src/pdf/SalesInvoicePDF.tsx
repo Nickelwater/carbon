@@ -58,7 +58,6 @@ const SalesInvoicePDF = ({
   accountsReceivableBillingAddress,
   company,
   companySettings,
-  locale,
   meta,
   salesInvoice,
   salesInvoiceShipment,
@@ -68,6 +67,7 @@ const SalesInvoicePDF = ({
   paymentTerms,
   shippingMethods,
   thumbnails,
+  locale,
   title = "Invoice"
 }: SalesInvoicePDFProps) => {
   const {
@@ -78,6 +78,7 @@ const SalesInvoicePDF = ({
     customerStateProvince,
     customerPostalCode,
     customerCountryName,
+    customerEori,
     invoiceCustomerName,
     invoiceAddressLine1,
     invoiceAddressLine2,
@@ -122,6 +123,7 @@ const SalesInvoicePDF = ({
         documentId={salesInvoice?.invoiceId}
         date={salesInvoice?.dateIssued}
         currencyCode={salesInvoice?.currencyCode}
+        locale={locale}
       />
 
       <PartyDetails
@@ -147,7 +149,8 @@ const SalesInvoicePDF = ({
           city: customerCity,
           stateProvince: customerStateProvince,
           postalCode: customerPostalCode,
-          countryCode: customerCountryName
+          countryCode: customerCountryName,
+          eori: customerEori
         }}
         counterPartyLabel="Buyer"
         accountsReceivableEmail={companySettings?.accountsReceivableEmail}
@@ -185,10 +188,16 @@ const SalesInvoicePDF = ({
             </Text>
             <View style={tw("text-[10px] text-gray-800")}>
               {salesInvoice?.dateIssued && (
-                <Text>Date Issued: {formatDate(salesInvoice.dateIssued)}</Text>
+                <Text>
+                  Date Issued:{" "}
+                  {formatDate(salesInvoice.dateIssued, undefined, locale)}
+                </Text>
               )}
               {salesInvoice?.dateDue && (
-                <Text>Due Date: {formatDate(salesInvoice.dateDue)}</Text>
+                <Text>
+                  Due Date:{" "}
+                  {formatDate(salesInvoice.dateDue, undefined, locale)}
+                </Text>
               )}
               {salesInvoice?.customerReference && (
                 <Text>Customer Ref: {salesInvoice.customerReference}</Text>
@@ -198,6 +207,14 @@ const SalesInvoicePDF = ({
               {salesInvoiceShipment?.shippingTermId && (
                 <Text>
                   Shipping Terms: {salesInvoiceShipment.shippingTermId}
+                </Text>
+              )}
+              {salesInvoiceShipment?.incoterm && (
+                <Text>
+                  Incoterm: {salesInvoiceShipment.incoterm}
+                  {salesInvoiceShipment.incotermLocation
+                    ? ` - ${salesInvoiceShipment.incotermLocation}`
+                    : ""}
                 </Text>
               )}
             </View>

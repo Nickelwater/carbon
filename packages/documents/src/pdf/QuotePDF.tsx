@@ -1,6 +1,6 @@
 import type { Database } from "@carbon/database";
 import type { JSONContent } from "@carbon/react";
-import { pluralize } from "@carbon/utils";
+import { formatDate, pluralize } from "@carbon/utils";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { Image, Text, View } from "@react-pdf/renderer";
 import { createTw } from "react-pdf-tailwind";
@@ -50,7 +50,6 @@ const QuotePDF = ({
   accountsReceivableBillingAddress,
   company,
   companySettings,
-  locale,
   meta,
   exchangeRate,
   quote,
@@ -62,6 +61,7 @@ const QuotePDF = ({
   shipment,
   terms,
   thumbnails,
+  locale,
   title = "Quote"
 }: QuotePDFProps) => {
   const {
@@ -72,6 +72,7 @@ const QuotePDF = ({
     customerStateProvince,
     customerPostalCode,
     customerCountryCode,
+    customerEori,
     contactName,
     contactEmail
   } = quoteCustomerDetails;
@@ -203,20 +204,6 @@ const QuotePDF = ({
   const getTotal = () =>
     getTotalSubtotal() + getTotalShipping() + getTotalFees() + getTotalTaxes();
 
-  const formatDate = (dateStr: string | null) => {
-    if (!dateStr) return null;
-    try {
-      const date = new Date(dateStr);
-      return date.toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "long",
-        day: "numeric"
-      });
-    } catch {
-      return dateStr;
-    }
-  };
-
   const maxLeadTime = getMaxLeadTime();
   let rowIndex = 0;
 
@@ -234,6 +221,7 @@ const QuotePDF = ({
         title="Quote"
         documentId={quote?.quoteId}
         currencyCode={quote?.currencyCode}
+        locale={locale}
       />
 
       <PartyDetails
@@ -260,6 +248,7 @@ const QuotePDF = ({
           stateProvince: customerStateProvince,
           postalCode: customerPostalCode,
           countryCode: customerCountryCode,
+          eori: customerEori,
           contactName: contactName,
           contactEmail: contactEmail
         }}
@@ -278,10 +267,17 @@ const QuotePDF = ({
             </Text>
             <View style={tw("text-[10px] text-gray-800")}>
               <Text>
-                Date: {formatDate(today(getLocalTimeZone()).toString())}
+                Date:{" "}
+                {formatDate(
+                  today(getLocalTimeZone()).toString(),
+                  undefined,
+                  locale
+                )}
               </Text>
               {quote.expirationDate && (
-                <Text>Expires: {formatDate(quote.expirationDate)}</Text>
+                <Text>
+                  Expires: {formatDate(quote.expirationDate, undefined, locale)}
+                </Text>
               )}
               {quote.customerReference && (
                 <Text>Reference: {quote.customerReference}</Text>
@@ -292,6 +288,14 @@ const QuotePDF = ({
                 </Text>
               )}
               {paymentTerm && <Text>Payment Terms: {paymentTerm.name}</Text>}
+              {shipment?.incoterm && (
+                <Text>
+                  Incoterm: {shipment.incoterm}
+                  {shipment.incotermLocation
+                    ? ` - ${shipment.incotermLocation}`
+                    : ""}
+                </Text>
+              )}
             </View>
           </View>
           <View style={tw("w-1/2 p-3")}>

@@ -6,7 +6,6 @@ import type {
   PostgrestSingleResponse,
   SupabaseClient
 } from "@supabase/supabase-js";
-import { FunctionRegion } from "@supabase/supabase-js";
 import type { z } from "zod";
 import { getEmployeeJob } from "~/modules/people";
 import type { GenericQueryFilters } from "~/utils/query";
@@ -70,8 +69,7 @@ export async function convertSupplierQuoteToOrder(
     body: {
       type: "supplierQuoteToPurchaseOrder",
       ...payload
-    },
-    region: FunctionRegion.UsEast1
+    }
   });
 }
 
@@ -1310,7 +1308,8 @@ export async function upsertPurchaseOrder(
     invoiceSupplierLocationId
   } = supplierPayment.data;
 
-  const { shippingMethodId, shippingTermId } = supplierShipping.data;
+  const { shippingMethodId, shippingTermId, incoterm, incotermLocation } =
+    supplierShipping.data;
 
   if (purchaseOrder.currencyCode) {
     const currency = await getCurrencyByCode(
@@ -1356,6 +1355,8 @@ export async function upsertPurchaseOrder(
         locationId: locationId,
         shippingMethodId: shippingMethodId,
         shippingTermId: shippingTermId,
+        incoterm: incoterm,
+        incotermLocation: incotermLocation,
         companyId: purchaseOrder.companyId
       }
     ]),
