@@ -20,7 +20,7 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
-import { getSalesOrderJobStatus } from "@carbon/utils";
+import { getItemReadableId, getSalesOrderJobStatus } from "@carbon/utils";
 import {
   getLocalTimeZone,
   isSameDay,
@@ -49,6 +49,7 @@ import {
   useRouteData
 } from "~/hooks";
 import JobStatus from "~/modules/production/ui/Jobs/JobStatus";
+import { useItems } from "~/stores";
 import { getPrivateUrl, path } from "~/utils/path";
 import { isSalesOrderLocked } from "../../sales.models";
 import type {
@@ -58,6 +59,7 @@ import type {
   SalesOrderJob,
   SalesOrderLine
 } from "../../types";
+import { ContractCustomerPartLabel } from "./ContractCustomerPartLabel";
 import { SalesOrderJobItem } from "./SalesOrderLineJobs";
 
 const SalesOrderSummary = ({
@@ -74,6 +76,13 @@ const SalesOrderSummary = ({
     salesOrder: SalesOrder;
     lines: SalesOrderLine[];
     customer: Customer;
+    customerParts:
+      | {
+          itemId: string;
+          customerPartId: string;
+          customerPartRevision: string | null;
+        }[]
+      | null;
     quote: Quotation;
     invoiceSummary: {
       invoicedAmount: number;
@@ -350,6 +359,18 @@ function LineItems({
   const { orderId } = useParams();
   if (!orderId) throw new Error("Could not find orderId");
 
+  const lineItemsRouteData = useRouteData<{
+    customer: Customer;
+    customerParts:
+      | {
+          itemId: string;
+          customerPartId: string;
+          customerPartRevision: string | null;
+        }[]
+      | null;
+  }>(path.to.salesOrder(orderId));
+  const [items] = useItems();
+
   const percentFormatter = usePercentFormatter();
   const [openItems, setOpenItems] = useState<string[]>([]);
   const todaysDate = useMemo(() => today(getLocalTimeZone()), []);
@@ -372,6 +393,9 @@ function LineItems({
           salesOrder?.jobs as SalesOrderJob[] | undefined,
           line as any
         );
+
+        const lineInternalReadable =
+          line.itemReadableId ?? getItemReadableId(items, line.itemId);
 
         return (
           <motion.div
@@ -409,7 +433,20 @@ function LineItems({
                         className="flex min-w-0 flex-shrink-0"
                       >
                         <Heading className="truncate">
-                          {line.itemReadableId}
+                          {lineInternalReadable ? (
+                            <ContractCustomerPartLabel
+                              internalReadableId={lineInternalReadable}
+                              contractCustomer={
+                                !!lineItemsRouteData?.customer?.contractCustomer
+                              }
+                              customerParts={
+                                lineItemsRouteData?.customerParts ?? null
+                              }
+                              itemId={line.itemId}
+                            />
+                          ) : (
+                            line.itemReadableId
+                          )}
                         </Heading>
                         <Button
                           asChild

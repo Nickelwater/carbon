@@ -20,6 +20,7 @@ import { usePermissions, useRouteData } from "~/hooks";
 import { getItemReplenishment } from "~/modules/items";
 import { getJobsBySalesOrderLine } from "~/modules/production";
 import type {
+  Customer,
   Opportunity,
   SalesOrder,
   SalesOrderLineType
@@ -41,6 +42,7 @@ import {
   SalesOrderLineForm,
   SalesOrderLineJobs
 } from "~/modules/sales/ui/SalesOrder";
+import { ContractCustomerPartLabel } from "~/modules/sales/ui/SalesOrder/ContractCustomerPartLabel";
 import { SalesOrderLineShipments } from "~/modules/sales/ui/SalesOrder/SalesOrderLineShipments";
 import { getCustomFields, setCustomFields } from "~/utils/form";
 import { requireUnlocked } from "~/utils/lockedGuard.server";
@@ -163,6 +165,14 @@ export default function EditSalesOrderLineRoute() {
   const orderData = useRouteData<{
     salesOrder: SalesOrder;
     opportunity: Opportunity;
+    customer: Customer | null;
+    customerParts:
+      | {
+          itemId: string;
+          customerPartId: string;
+          customerPartRevision: string | null;
+        }[]
+      | null;
   }>(path.to.salesOrder(orderId));
 
   if (!orderData?.opportunity) throw new Error("Failed to load opportunity");
@@ -206,7 +216,18 @@ export default function EditSalesOrderLineRoute() {
         id={line.id}
         table="salesOrderLine"
         title={t`Notes`}
-        subTitle={line.itemReadableId ?? ""}
+        subTitle={
+          line.itemReadableId ? (
+            <ContractCustomerPartLabel
+              internalReadableId={line.itemReadableId}
+              contractCustomer={!!orderData?.customer?.contractCustomer}
+              customerParts={orderData?.customerParts ?? null}
+              itemId={line.itemId}
+            />
+          ) : (
+            ""
+          )
+        }
         internalNotes={line.internalNotes as JSONContent}
         externalNotes={line.externalNotes as JSONContent}
       />

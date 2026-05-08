@@ -380,7 +380,7 @@ const SalesOrderHeader = () => {
                 !["Draft", "Needs Approval"].includes(
                   routeData?.salesOrder?.status ?? ""
                 ) ||
-                routeData?.lines.length === 0 ||
+                (routeData?.lines?.length ?? 0) === 0 ||
                 !permissions.can("update", "sales")
               }
             >

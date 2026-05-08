@@ -169,13 +169,6 @@ const CustomerForm = ({
                     description="When enabled, sales order line item selection shows this customer's part numbers only."
                   />
 
-                  {isEditing && (
-                    <CustomerContact
-                      customer={initialValues.id}
-                      name="invoicingContactId"
-                      label="Invoicing Contact"
-                    />
-                  )}
                   {/* <EmailRecipients name="defaultCc" label="Default CC" /> */}
                   <CustomFormFields table="customer" />
                 </div>

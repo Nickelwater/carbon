@@ -1,5 +1,15 @@
 import type { Database } from "@carbon/database";
 
+function formatCustomerPartNumber(
+  line: Database["public"]["Views"]["salesOrderLines"]["Row"]
+) {
+  if (!line.customerPartId) return "";
+  return (
+    line.customerPartId +
+    (line.customerPartRevision ? ` Rev ${line.customerPartRevision}` : "")
+  );
+}
+
 export function getLineDescription(
   line: Database["public"]["Views"]["salesOrderLines"]["Row"]
 ) {
@@ -8,14 +18,11 @@ export function getLineDescription(
       return line?.assetId;
     case "Comment":
       return line?.description;
-    default:
-      let customerPartNumber = line.customerPartId
-        ? ` (${line.customerPartId}${
-            line.customerPartRevision ? ` Rev ${line.customerPartRevision}` : ""
-          })`
-        : "";
-
-      return line?.itemReadableId + customerPartNumber;
+    default: {
+      const customerPn = formatCustomerPartNumber(line);
+      if (customerPn) return customerPn;
+      return line?.itemReadableId ?? "";
+    }
   }
 }
 
@@ -27,12 +34,7 @@ export function getLineDescriptionDetails(
       return line?.description;
     case "Comment":
     default:
-      const itemDescription = line?.customerPartId
-        ? `\n${line.customerPartId}${
-            line.customerPartRevision ? ` Rev ${line.customerPartRevision}` : ""
-          }`
-        : "";
-      return (line?.description ?? "") + itemDescription;
+      return line?.description ?? "";
   }
 }
 

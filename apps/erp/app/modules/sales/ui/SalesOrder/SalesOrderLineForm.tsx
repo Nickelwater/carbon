@@ -71,6 +71,8 @@ import type {
   SalesOrderLineType
 } from "../../types";
 import { PriceTracePopover } from "../Pricing/PriceTracePopover";
+import { ContractCustomerPartLabel } from "./ContractCustomerPartLabel";
+import { customerPartNumberLabel } from "./contractCustomerPartLabelLogic";
 import DeleteSalesOrderLine from "./DeleteSalesOrderLine";
 
 type SalesOrderLineFormProps = {
@@ -321,15 +323,29 @@ const SalesOrderLineForm = ({
 
   const customerPartOptions = useMemo(
     () =>
-      (routeData?.customerParts ?? []).map((cp) => ({
-        value: cp.itemId,
-        label: cp.customerPartRevision
-          ? `${cp.customerPartId}-${cp.customerPartRevision}`
-          : cp.customerPartId,
-        helper: undefined as string | undefined
-      })),
-    [routeData?.customerParts]
+      (routeData?.customerParts ?? []).map((cp) => {
+        const internal = getItemReadableId(items, cp.itemId);
+        const label =
+          internal !== undefined ? (
+            <ContractCustomerPartLabel
+              internalReadableId={internal}
+              contractCustomer={!!routeData?.customer?.contractCustomer}
+              customerParts={routeData?.customerParts ?? null}
+              itemId={cp.itemId}
+            />
+          ) : (
+            customerPartNumberLabel(cp)
+          );
+        return {
+          value: cp.itemId,
+          label,
+          helper: undefined as string | undefined
+        };
+      }),
+    [items, routeData?.customer?.contractCustomer, routeData?.customerParts]
   );
+
+  const headerReadableId = getItemReadableId(items, itemData?.itemId);
 
   return (
     <>
@@ -362,9 +378,22 @@ const SalesOrderLineForm = ({
                       isEditing && !itemData?.itemId && "text-muted-foreground"
                     )}
                   >
-                    {isEditing
-                      ? getItemReadableId(items, itemData?.itemId) || "..."
-                      : t`New Sales Order Line`}
+                    {isEditing ? (
+                      headerReadableId ? (
+                        <ContractCustomerPartLabel
+                          internalReadableId={headerReadableId}
+                          contractCustomer={
+                            !!routeData?.customer?.contractCustomer
+                          }
+                          customerParts={routeData?.customerParts ?? null}
+                          itemId={itemData?.itemId}
+                        />
+                      ) : (
+                        "..."
+                      )
+                    ) : (
+                      t`New Sales Order Line`
+                    )}
                   </ModalCardTitle>
                   <ModalCardDescription>
                     {isEditing ? (

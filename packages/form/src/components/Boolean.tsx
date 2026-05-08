@@ -58,6 +58,15 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
         setValue(controlledValue);
     }, [controlledValue, setValue]);
 
+    const inputProps = getInputProps();
+    const {
+      name: _fieldName,
+      onChange: onFieldChange,
+      onBlur,
+      ...switchRest
+    } = inputProps;
+    const isChecked = value === true;
+
     if (bordered) {
       return (
         <FormControl isInvalid={!!error} className={className}>
@@ -75,14 +84,19 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
                 <p className="text-xs text-muted-foreground">{description}</p>
               )}
             </VStack>
+            {isChecked ? (
+              <input type="hidden" name={name} value="on" readOnly />
+            ) : null}
             <Switch
               id={name}
               variant={variant}
-              {...getInputProps()}
+              {...switchRest}
               checked={value}
               disabled={isDisabled}
+              onBlur={onBlur}
               onCheckedChange={(checked) => {
                 setValue(checked);
+                onFieldChange?.();
                 onChange?.(checked);
               }}
               aria-label={label}
@@ -106,13 +120,18 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
           </FormLabel>
         )}
         <HStack>
+          {isChecked ? (
+            <input type="hidden" name={name} value="on" readOnly />
+          ) : null}
           <Switch
             variant={variant}
-            {...getInputProps()}
+            {...switchRest}
             checked={value}
             disabled={isDisabled}
+            onBlur={onBlur}
             onCheckedChange={(checked) => {
               setValue(checked);
+              onFieldChange?.();
               onChange?.(checked);
             }}
             aria-label={label}

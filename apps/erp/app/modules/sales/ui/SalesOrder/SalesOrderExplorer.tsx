@@ -70,6 +70,7 @@ import type {
   SalesOrderLine,
   SalesOrderRelatedItems
 } from "../../types";
+import { ContractCustomerPartLabel } from "./ContractCustomerPartLabel";
 import DeleteSalesOrderLine from "./DeleteSalesOrderLine";
 import SalesOrderLineForm from "./SalesOrderLineForm";
 
@@ -133,6 +134,13 @@ export default function SalesOrderExplorer() {
     salesOrder: SalesOrder;
     lines: SalesOrderLine[];
     customer: Customer;
+    customerParts:
+      | {
+          itemId: string;
+          customerPartId: string;
+          customerPartRevision: string | null;
+        }[]
+      | null;
   }>(path.to.salesOrder(orderId));
   const permissions = usePermissions();
 
@@ -161,10 +169,15 @@ export default function SalesOrderExplorer() {
     ? true
     : salesOrderData?.salesOrder?.status !== "Draft";
 
-  useRealtime(
-    "modelUpload",
-    `modelPath=in.(${salesOrderData?.lines.map((d) => d.modelPath).join(",")})`
-  );
+  const modelPathSegments = (salesOrderData?.lines ?? [])
+    .map((d) => d.modelPath)
+    .filter((p): p is string => Boolean(p));
+  const modelUploadFilter =
+    modelPathSegments.length > 0
+      ? `modelPath=in.(${modelPathSegments.join(",")})`
+      : undefined;
+
+  useRealtime("modelUpload", modelUploadFilter);
 
   const onDeleteLine = (line: SalesOrderLine) => {
     setDeleteLine(line);
@@ -241,6 +254,10 @@ export default function SalesOrderExplorer() {
                     lineIndex={index}
                     onDelete={onDeleteLine}
                     dragHandle={canReorder}
+                    contractCustomer={
+                      !!salesOrderData?.customer?.contractCustomer
+                    }
+                    customerParts={salesOrderData?.customerParts ?? null}
                   />
                 </Reorder.Item>
               ))}
@@ -299,12 +316,20 @@ export default function SalesOrderExplorer() {
   );
 }
 
+type CustomerPartRow = {
+  itemId: string;
+  customerPartId: string;
+  customerPartRevision: string | null;
+};
+
 type SalesOrderLineItemProps = {
   line: SalesOrderLine;
   lineIndex: number;
   isDisabled: boolean;
   onDelete: (line: SalesOrderLine) => void;
   dragHandle?: boolean;
+  contractCustomer: boolean;
+  customerParts: CustomerPartRow[] | null;
 };
 
 function SalesOrderLineItem({
@@ -312,7 +337,9 @@ function SalesOrderLineItem({
   lineIndex,
   isDisabled,
   onDelete,
-  dragHandle = false
+  dragHandle = false,
+  contractCustomer,
+  customerParts
 }: SalesOrderLineItemProps) {
   const { orderId, lineId } = useParams();
   if (!orderId) throw new Error("Could not find orderId");
@@ -339,6 +366,8 @@ function SalesOrderLineItem({
     }
   };
 
+  const lineReadableId = getItemReadableId(items, line.itemId);
+
   return (
     <VStack spacing={0} className="border-b">
       <HStack
@@ -364,7 +393,16 @@ function SalesOrderLineItem({
 
           <VStack spacing={0} className="min-w-0">
             <span className="font-semibold line-clamp-1">
-              {getItemReadableId(items, line.itemId)}
+              {lineReadableId ? (
+                <ContractCustomerPartLabel
+                  internalReadableId={lineReadableId}
+                  contractCustomer={contractCustomer}
+                  customerParts={customerParts}
+                  itemId={line.itemId}
+                />
+              ) : (
+                "..."
+              )}
             </span>
             <span className="text-muted-foreground text-xs truncate line-clamp-1">
               {line.description}

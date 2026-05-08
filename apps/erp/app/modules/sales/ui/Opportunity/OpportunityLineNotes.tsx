@@ -20,6 +20,7 @@ import { Editor } from "@carbon/react/Editor";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { nanoid } from "nanoid";
+import type { ReactNode } from "react";
 import { useState } from "react";
 import { usePermissions, useUser } from "~/hooks";
 import { getPrivateUrl } from "~/utils/path";
@@ -36,7 +37,7 @@ const OpportunityLineNotes = ({
   id: string | null;
   table: "salesRfqLine" | "quoteLine" | "salesOrderLine" | "salesInvoiceLine";
   title: string;
-  subTitle: string;
+  subTitle: ReactNode;
   isReadOnly?: boolean;
   internalNotes?: JSONContent;
   externalNotes?: JSONContent;
