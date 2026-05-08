@@ -4,7 +4,7 @@ import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { msg } from "@lingui/core/macro";
 import { FunctionRegion } from "@supabase/supabase-js";
-import type { LoaderFunctionArgs } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 import type { ShipmentSourceDocument } from "~/modules/inventory";
 import { getUserDefaults } from "~/modules/users/users.server";
@@ -29,16 +29,17 @@ export async function loader({ request }: LoaderFunctionArgs) {
   if (isPrefetchRequest(request)) {
     throw redirect(path.to.shipments);
   }
+}
 
+export async function action({ request }: ActionFunctionArgs) {
   const { client, companyId, userId } = await requirePermissions(request, {
     create: "inventory"
   });
 
-  const url = new URL(request.url);
+  const formData = await request.formData();
   const sourceDocument =
-    (url.searchParams.get("sourceDocument") as ShipmentSourceDocument) ??
-    undefined;
-  const sourceDocumentId = url.searchParams.get("sourceDocumentId") ?? "";
+    (formData.get("sourceDocument") as ShipmentSourceDocument) ?? undefined;
+  const sourceDocumentId = (formData.get("sourceDocumentId") as string) ?? "";
 
   const defaults = await getUserDefaults(client, userId, companyId);
   const serviceRole = getCarbonServiceRole();

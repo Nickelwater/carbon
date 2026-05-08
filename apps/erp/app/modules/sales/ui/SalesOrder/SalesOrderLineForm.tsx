@@ -46,8 +46,7 @@ import {
   NumberControlled,
   SelectControlled,
   StorageUnit,
-  Submit,
-  UnitOfMeasure
+  Submit
 } from "~/components/Form";
 import {
   useCurrencyFormatter,
@@ -485,6 +484,7 @@ const SalesOrderLineForm = ({
                       : undefined
                   }
                 />
+                <Hidden name="unitOfMeasureCode" value={itemData.uom} />
                 <VStack>
                   {canToggleCustomerParts && !isEditing && (
                     <HStack
@@ -584,11 +584,6 @@ const SalesOrderLineForm = ({
                           value={saleQuantity}
                           onChange={onQuantityChange}
                         />
-                        <UnitOfMeasure
-                          name="unitOfMeasureCode"
-                          label={t`Unit of Measure`}
-                          value={itemData.uom}
-                        />
                         <div className="flex flex-col gap-y-2 w-full">
                           <div className="flex items-center justify-between min-h-[16px]">
                             <span className="text-xs font-medium text-muted-foreground">
@@ -627,7 +622,7 @@ const SalesOrderLineForm = ({
                         ].includes(lineType) && (
                           <Location
                             name="locationId"
-                            label={t`Location`}
+                            label={t`Shipping Location`}
                             onChange={onLocationChange}
                           />
                         )}

@@ -3,7 +3,7 @@ import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import type { Database } from "@carbon/database";
 import { PackingSlipPDF } from "@carbon/documents/pdf";
 import type { JSONContent } from "@carbon/react";
-import { getPreferenceHeaders } from "@carbon/remix";
+import { getPreferenceHeaders } from "@carbon/react";
 import { renderToStream } from "@react-pdf/renderer";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LoaderFunctionArgs } from "react-router";

@@ -1,11 +1,9 @@
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import { VStack } from "@carbon/react";
 import { msg } from "@lingui/core/macro";
 import type { LoaderFunctionArgs } from "react-router";
 import { Outlet, redirect, useParams } from "react-router";
-import { PanelProvider } from "~/components/Layout";
 import {
   getAvailableSalesOrderLinesForCustomer,
   getShipment,
@@ -13,7 +11,6 @@ import {
   getShipmentRelatedItems,
   getShipmentTracking
 } from "~/modules/inventory";
-import ShipmentHeader from "~/modules/inventory/ui/Shipments/ShipmentHeader";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
@@ -82,15 +79,12 @@ export default function ShipmentRoute() {
   if (!shipmentId) throw new Error("Could not find shipmentId");
 
   return (
-    <PanelProvider>
-      <div className="flex flex-col h-[calc(100dvh-49px)] overflow-hidden w-full">
-        <ShipmentHeader />
-        <div className="flex h-[calc(100dvh-99px)] overflow-y-auto scrollbar-hide w-full">
-          <VStack spacing={4} className="h-full p-2 w-full max-w-5xl mx-auto">
-            <Outlet />
-          </VStack>
+    <div className="flex h-[calc(100dvh-49px)] overflow-y-auto scrollbar-hide w-full">
+      <div className="h-full p-4 w-full max-w-5xl mx-auto">
+        <div className="flex flex-col gap-2 pb-16 w-full">
+          <Outlet />
         </div>
       </div>
-    </PanelProvider>
+    </div>
   );
 }
