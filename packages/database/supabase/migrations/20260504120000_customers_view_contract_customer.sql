@@ -1,4 +1,5 @@
 -- Restore contractCustomer on customers view (column exists on customer; view dropped it in purchasing-info migration).
+-- taxId / vatNumber / eori live on customerTax after 20260430000001_tax-status.sql.
 DROP VIEW IF EXISTS "customers";
 CREATE OR REPLACE VIEW "customers" WITH(SECURITY_INVOKER=true) AS
   SELECT
@@ -6,7 +7,7 @@ CREATE OR REPLACE VIEW "customers" WITH(SECURITY_INVOKER=true) AS
     c.name,
     c."customerTypeId",
     c."customerStatusId",
-    c."taxId",
+    ctx."taxId",
     c."accountManagerId",
     c.logo,
     c.assignee,
@@ -22,8 +23,8 @@ CREATE OR REPLACE VIEW "customers" WITH(SECURITY_INVOKER=true) AS
     c."currencyCode",
     c."salesContactId",
     c."defaultCc",
-    c."vatNumber",
-    c."eori",
+    ctx."vatNumber",
+    ctx."eori",
     c."contractCustomer",
     (
       SELECT COALESCE(
@@ -45,6 +46,7 @@ CREATE OR REPLACE VIEW "customers" WITH(SECURITY_INVOKER=true) AS
     pc."workPhone" AS "phone",
     pc."fax" AS "fax"
   FROM "customer" c
+  LEFT JOIN "customerTax" ctx ON ctx."customerId" = c.id
   LEFT JOIN "customerType" ct ON ct.id = c."customerTypeId"
   LEFT JOIN "customerStatus" cs ON cs.id = c."customerStatusId"
   LEFT JOIN (
