@@ -3337,12 +3337,14 @@ export async function upsertQuote(
     | (Omit<z.infer<typeof quoteValidator>, "id" | "quoteId"> & {
         quoteId: string;
         companyId: string;
+        companyGroupId: string;
         createdBy: string;
         customFields?: Json;
       })
     | (Omit<z.infer<typeof quoteValidator>, "id" | "quoteId"> & {
         id: string;
         quoteId: string;
+        companyGroupId: string;
         updatedBy: string;
         customFields?: Json;
       })
@@ -3378,7 +3380,7 @@ export async function upsertQuote(
     if (quote.currencyCode) {
       const currency = await getCurrencyByCode(
         client,
-        quote.companyId,
+        quote.companyGroupId,
         quote.currencyCode
       );
       if (currency.data) {
@@ -3391,11 +3393,12 @@ export async function upsertQuote(
     }
 
     const locationId = employee?.data?.locationId ?? null;
+    const { companyGroupId: _companyGroupId, ...quoteData } = quote;
     const insert = await client
       .from("quote")
       .insert([
         {
-          ...quote,
+          ...quoteData,
           opportunityId: opportunity.data?.id
         }
       ])
@@ -3468,12 +3471,12 @@ export async function upsertQuote(
 
     if (existingQuote.error) return existingQuote;
 
-    const { companyId, currencyCode, opportunityId } = existingQuote.data;
+    const { currencyCode, opportunityId } = existingQuote.data;
 
     if (quote.currencyCode && currencyCode !== quote.currencyCode) {
       const currency = await getCurrencyByCode(
         client,
-        companyId,
+        quote.companyGroupId,
         quote.currencyCode
       );
       if (currency.data) {
@@ -3490,10 +3493,11 @@ export async function upsertQuote(
         .eq("id", opportunityId);
     }
 
+    const { companyGroupId: _cgId, ...quoteUpdateData } = quote;
     return client
       .from("quote")
       .update({
-        ...sanitize(quote),
+        ...sanitize(quoteUpdateData),
         updatedAt: today(getLocalTimeZone()).toString()
       })
       .eq("id", quote.id);
@@ -4910,12 +4914,14 @@ export async function upsertSalesOrder(
     | (Omit<z.infer<typeof salesOrderValidator>, "id" | "salesOrderId"> & {
         salesOrderId: string;
         companyId: string;
+        companyGroupId: string;
         createdBy: string;
         customFields?: Json;
       })
     | (Omit<z.infer<typeof salesOrderValidator>, "id" | "salesOrderId"> & {
         id: string;
         salesOrderId: string;
+        companyGroupId: string;
         updatedBy: string;
         customFields?: Json;
       })
@@ -4930,12 +4936,12 @@ export async function upsertSalesOrder(
 
     if (existingSalesOrder.error) return existingSalesOrder;
 
-    const { companyId, currencyCode, opportunityId } = existingSalesOrder.data;
+    const { currencyCode, opportunityId } = existingSalesOrder.data;
 
     if (salesOrder.currencyCode && currencyCode !== salesOrder.currencyCode) {
       const currency = await getCurrencyByCode(
         client,
-        companyId,
+        salesOrder.companyGroupId,
         salesOrder.currencyCode
       );
       if (currency.data) {
@@ -4952,9 +4958,10 @@ export async function upsertSalesOrder(
         .eq("id", opportunityId);
     }
 
+    const { companyGroupId: _cgId, ...salesOrderUpdateData } = salesOrder;
     return client
       .from("salesOrder")
-      .update(sanitize(salesOrder))
+      .update(sanitize(salesOrderUpdateData))
       .eq("id", salesOrder.id)
       .select("id, salesOrderId");
   }
@@ -4994,7 +5001,7 @@ export async function upsertSalesOrder(
   if (salesOrder.currencyCode) {
     const currency = await getCurrencyByCode(
       client,
-      salesOrder.companyId,
+      salesOrder.companyGroupId,
       salesOrder.currencyCode
     );
     if (currency.data) {
@@ -5006,7 +5013,12 @@ export async function upsertSalesOrder(
     salesOrder.exchangeRateUpdatedAt = new Date().toISOString();
   }
 
-  const { requestedDate, promisedDate, ...orderData } = salesOrder;
+  const {
+    requestedDate,
+    promisedDate,
+    companyGroupId: _companyGroupId,
+    ...orderData
+  } = salesOrder;
 
   const order = await client
     .from("salesOrder")
