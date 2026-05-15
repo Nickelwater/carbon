@@ -3807,7 +3807,7 @@ msgid "Invalid Invite"
 msgstr "Invitation invalide"
 
 msgid "Inventory"
-msgstr "Inventaire<<<<<<< HEAD"
+msgstr "Inventaire"
 
 msgid "Inventory actions"
 msgstr ""
@@ -3816,7 +3816,7 @@ msgid "Inventory Adjustment"
 msgstr "Ajustement d'inventaire"
 
 msgid "Inventory History"
-msgstr "Historique des stocks>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "Historique des stocks"
 
 msgid "Inventory Job Notifications"
 msgstr "Notifications de travaux d'inventaire"
@@ -5172,10 +5172,10 @@ msgid "Open"
 msgstr "Ouvrir"
 
 msgid "Open Actions"
-msgstr "Actions ouvertes<<<<<<< HEAD======="
+msgstr "Actions ouvertes======="
 
 msgid "Open Audit Log"
-msgstr "Ouvrir le journal d'audit>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "Ouvrir le journal d'audit"
 
 msgid "Open chat history"
 msgstr "Ouvrir l'historique des conversations"

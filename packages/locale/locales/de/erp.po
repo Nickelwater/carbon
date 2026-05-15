@@ -3807,7 +3807,7 @@ msgid "Invalid Invite"
 msgstr "UngÃƒÆ’Ã‚Â¼ltige Einladung"
 
 msgid "Inventory"
-msgstr "Bestand<<<<<<< HEAD"
+msgstr "Bestand"
 
 msgid "Inventory actions"
 msgstr ""
@@ -3816,7 +3816,7 @@ msgid "Inventory Adjustment"
 msgstr "Bestandsanpassung"
 
 msgid "Inventory History"
-msgstr "Inventarverlauf>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "Inventarverlauf"
 
 msgid "Inventory Job Notifications"
 msgstr "Bestandsverwaltungs-Jobbenachrichtigungen"
@@ -6790,10 +6790,10 @@ msgid "Shelf Life Start Process"
 msgstr "Haltbarkeitsstartprozess"
 
 msgid "Shelf-Life"
-msgstr "Haltbarkeit<<<<<<< HEAD======="
+msgstr "Haltbarkeit======="
 
 msgid "Shelf-Life History"
-msgstr "Haltbarkeitsverlauf>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "Haltbarkeitsverlauf"
 
 msgid "Shift"
 msgstr "Schicht"

@@ -3807,7 +3807,7 @@ msgid "Invalid Invite"
 msgstr "NieprawidÃƒâ€¦Ã¢â‚¬Å¡owe zaproszenie"
 
 msgid "Inventory"
-msgstr "Zapasy<<<<<<< HEAD"
+msgstr "Zapasy"
 
 msgid "Inventory actions"
 msgstr ""
@@ -3816,7 +3816,7 @@ msgid "Inventory Adjustment"
 msgstr "Korekta ZapasÃƒÆ’Ã‚Â³w"
 
 msgid "Inventory History"
-msgstr "Historia zapasów>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "Historia zapasów"
 
 msgid "Inventory Job Notifications"
 msgstr "Powiadomienia o zadaniach inwentaryzacyjnych"
@@ -6892,7 +6892,7 @@ msgid "Show sync options"
 msgstr "PokaÃƒâ€¦Ã‚Â¼ opcje synchronizacji"
 
 msgid "Shown as a faint background behind every page of generated PDFs"
-msgstr "WyÃƒâ€¦Ã¢â‚¬Âºwietlany jako delikatne tÃƒâ€¦Ã¢â‚¬Å¡o za kaÃƒâ€¦Ã‚Â¼dÃƒâ€žÃ¢â‚¬Â¦ stronÃƒâ€žÃ¢â‚¬Â¦ wygenerowanych plikÃƒÆ’Ã‚Â³w PDF>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "WyÃƒâ€¦Ã¢â‚¬Âºwietlany jako delikatne tÃƒâ€¦Ã¢â‚¬Å¡o za kaÃƒâ€¦Ã‚Â¼dÃƒâ€žÃ¢â‚¬Â¦ stronÃƒâ€žÃ¢â‚¬Â¦ wygenerowanych plikÃƒÆ’Ã‚Â³w PDF"
 
 msgid "Shown to the user when this rule fails."
 msgstr "WyÃƒâ€¦Ã¢â‚¬Âºwietlane uÃƒâ€¦Ã‚Â¼ytkownikowi, gdy ta reguÃƒâ€¦Ã¢â‚¬Å¡a siÃƒâ€žÃ¢â€žÂ¢ nie powiedzie."

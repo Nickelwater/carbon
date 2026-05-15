@@ -3807,7 +3807,7 @@ msgid "Invalid Invite"
 msgstr "Invalid Invite"
 
 msgid "Inventory"
-msgstr "Inventory<<<<<<< HEAD"
+msgstr "Inventory"
 
 msgid "Inventory actions"
 msgstr "Inventory actions"
@@ -3816,7 +3816,7 @@ msgid "Inventory Adjustment"
 msgstr "Inventory Adjustment"
 
 msgid "Inventory History"
-msgstr "Inventory History>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "Inventory History"
 
 msgid "Inventory Job Notifications"
 msgstr "Inventory Job Notifications"
@@ -5172,10 +5172,10 @@ msgid "Open"
 msgstr "Open"
 
 msgid "Open Actions"
-msgstr "Open Actions<<<<<<< HEAD======="
+msgstr "Open Actions======="
 
 msgid "Open Audit Log"
-msgstr "Open Audit Log>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "Open Audit Log"
 
 msgid "Open chat history"
 msgstr "Open chat history"
@@ -6790,10 +6790,10 @@ msgid "Shelf Life Start Process"
 msgstr "Shelf Life Start Process"
 
 msgid "Shelf-Life"
-msgstr "Shelf-Life<<<<<<< HEAD======="
+msgstr "Shelf-Life======="
 
 msgid "Shelf-Life History"
-msgstr "Shelf-Life History>>>>>>> 9e1c3d9da64a36a6c3dbea837996b3d42c752d6c"
+msgstr "Shelf-Life History"
 
 msgid "Shift"
 msgstr "Shift"
