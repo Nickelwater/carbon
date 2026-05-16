@@ -11,14 +11,14 @@ import {
 } from "../prompts.js";
 import { getWorktreeRoot, slugify } from "../worktree.js";
 
-export async function newWorktree() {
+export async function newWorktree(opts?: { branch?: string }) {
   intro("Carbon · new worktree");
 
   const here = await getWorktreeRoot();
   const parentDir = dirname(here);
   const repoBaseName = basename(here).replace(/-[a-z0-9-]+$/i, "");
 
-  const branch = await promptBranch();
+  const branch = await promptBranch(opts?.branch);
 
   const defaultDir = `${repoBaseName}-${slugify(branch)}`;
   const dirName = await promptDirName(parentDir, defaultDir);
