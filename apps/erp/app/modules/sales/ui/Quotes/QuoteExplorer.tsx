@@ -26,28 +26,28 @@ import {
 } from "@carbon/react";
 import { useDroppable } from "@dnd-kit/core";
 import { Trans } from "@lingui/react/macro";
-import { Reorder } from "framer-motion";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
   LuBraces,
   LuChevronDown,
   LuCirclePlus,
   LuDownload,
   LuEllipsisVertical,
-  LuGripVertical,
   LuSearch,
+  LuSettings2,
   LuTable,
   LuTrash
 } from "react-icons/lu";
-import {
-  Link,
-  useFetchers,
-  useNavigate,
-  useParams,
-  useRevalidator
-} from "react-router";
+import { Link, useFetchers, useNavigate, useParams } from "react-router";
 import { Empty, ItemThumbnail, MethodItemTypeIcon } from "~/components";
 import { QuoteLineStatusIcon } from "~/components/Icons";
+import type { DragHandleBindings } from "~/components/LineReorder";
+import {
+  ReorderableLineList,
+  ReorderableRow,
+  ReorderEditBar,
+  useLineOrderEditMode
+} from "~/components/LineReorder";
 import type { Tree } from "~/components/TreeView";
 import { flattenTree } from "~/components/TreeView";
 import {
@@ -90,7 +90,6 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
   const { id: userId } = useUser();
   const quoteLineInitialValues = {
     quoteId,
-    partSource: "quotePart" as const,
     description: "",
     estimatorId: userId,
     itemId: "",
@@ -138,80 +137,78 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
 
   const optimisticDrags = useOptimisticDocumentDrag();
 
-  const [lines, setLines] = useState<QuotationLine[]>(quoteData?.lines ?? []);
-  const revalidator = useRevalidator();
-  useEffect(() => {
-    setLines(quoteData?.lines ?? []);
-  }, [quoteData?.lines]);
+  const linesMap = new Map<string, QuotationLine | OptimisticQuoteLine>(
+    quoteData?.lines?.map((line) => [line.id!, line]) ?? []
+  );
 
+  for (let pendingItem of optimisticDrags) {
+    linesMap.set(pendingItem.itemId!, { ...pendingItem, quoteId });
+  }
+
+  // Server already returns lines ordered by sortOrder; the Map preserves
+  // insertion order so we just take values as-is. Optimistic items (added
+  // via .set() in the loop above) trail at the end, which is fine — they
+  // don't have a sortOrder yet.
+  const linesToRender = Array.from(linesMap.values());
+
+  const realQuoteLines = (quoteData?.lines ?? []) as QuotationLine[];
   const canReorder =
     !isDisabled &&
     permissions.can("update", "sales") &&
-    (lines?.length ?? 0) > 1;
+    realQuoteLines.length > 1;
 
-  const handleReorder = async (newLines: QuotationLine[]) => {
-    setLines(newLines);
-    const lineIds = newLines.map((l) => l.id!).filter(Boolean);
-    if (lineIds.length === 0) return;
-    const res = await fetch(path.to.quoteLinesReorder(quoteId), {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lineIds })
-    });
-    if (res.ok) revalidator.revalidate();
-  };
+  const editMode = useLineOrderEditMode<QuotationLine>({
+    actionPath: path.to.quoteLineOrder(quoteId),
+    lines: realQuoteLines
+  });
 
   return (
     <div
       ref={setExplorerRef}
       data-quote-explorer
       className={cn(
-        "transition-colors duration-200 w-full min-w-0",
+        "transition-colors duration-200",
         isOverExplorer && "bg-primary/10 border-2 border-dashed border-primary"
       )}
     >
       <VStack className="w-full h-[calc(100dvh-99px)] justify-between">
         <VStack
-          className="flex-1 min-w-0 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full"
+          className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent"
           spacing={0}
         >
-          {lines.length > 0 ? (
-            <Reorder.Group
-              axis="y"
-              values={lines}
-              onReorder={handleReorder}
-              className="flex w-full min-w-0 flex-col"
-            >
-              {lines.map((line, index) => (
-                <Reorder.Item
-                  key={line.id}
-                  value={line}
-                  id={line.id ?? undefined}
-                  className={cn(
-                    "w-full min-w-0",
-                    canReorder && "cursor-grab active:cursor-grabbing"
-                  )}
-                  dragListener={canReorder}
-                >
+          {linesToRender.length > 0 ? (
+            editMode.isEditing ? (
+              <ReorderableLineList<QuotationLine>
+                lines={editMode.draft}
+                activeLine={editMode.activeLine}
+                onDragStart={editMode.handleDragStart}
+                onDragEnd={editMode.handleDragEnd}
+                renderRow={(line, dragHandle) => (
+                  <QuoteLineBody line={line} dragHandle={dragHandle} />
+                )}
+                renderOverlay={(line) => (
+                  <QuoteLineBody line={line} isOverlay />
+                )}
+              />
+            ) : (
+              linesToRender.map((line) =>
+                !isQuoteLine(line) ? (
+                  <OptimisticQuoteLineItem
+                    key={line.itemId}
+                    line={line as OptimisticQuoteLine}
+                  />
+                ) : (
                   <DroppableQuoteLineItem
+                    key={line.id}
                     isDisabled={isDisabled}
-                    line={line}
-                    lineIndex={index}
+                    line={line as QuotationLine}
                     onDelete={onDeleteLine}
                     methods={methods}
-                    dragHandle={canReorder}
                   />
-                </Reorder.Item>
-              ))}
-            </Reorder.Group>
-          ) : null}
-          {optimisticDrags.length > 0
-            ? optimisticDrags.map((line) => (
-                <OptimisticQuoteLineItem key={line.itemId} line={line} />
-              ))
-            : null}
-          {lines.length === 0 && optimisticDrags.length === 0 ? (
+                )
+              )
+            )
+          ) : (
             <Empty>
               {permissions.can("update", "sales") && (
                 <Button
@@ -224,31 +221,53 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
                 </Button>
               )}
             </Empty>
-          ) : null}
+          )}
         </VStack>
-        <div className="w-full flex flex-0 sm:flex-row border-t border-border p-4 sm:justify-start sm:space-x-2">
-          <Tooltip>
-            <TooltipTrigger className="w-full">
-              <Button
-                ref={newButtonRef}
-                className="w-full"
-                isDisabled={isDisabled || !permissions.can("update", "sales")}
-                leftIcon={<LuCirclePlus />}
-                variant="secondary"
-                onClick={newQuoteLineDisclosure.onOpen}
-              >
-                <Trans>Add Line Item</Trans>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <HStack>
-                <span>
-                  <Trans>New Line Item</Trans>
-                </span>
-                <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
-              </HStack>
-            </TooltipContent>
-          </Tooltip>
+        <div className="w-full flex border-t border-border p-4 gap-2">
+          {editMode.isEditing ? (
+            <ReorderEditBar
+              isSaving={editMode.isSaving}
+              isDirty={editMode.isDirty}
+              onSave={editMode.save}
+              onCancel={editMode.cancelEditMode}
+            />
+          ) : (
+            <>
+              <Tooltip>
+                <TooltipTrigger className="flex-1">
+                  <Button
+                    ref={newButtonRef}
+                    className="w-full"
+                    isDisabled={
+                      isDisabled || !permissions.can("update", "sales")
+                    }
+                    leftIcon={<LuCirclePlus />}
+                    variant="secondary"
+                    onClick={newQuoteLineDisclosure.onOpen}
+                  >
+                    <Trans>Add Line Item</Trans>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <HStack>
+                    <span>
+                      <Trans>New Line Item</Trans>
+                    </span>
+                    <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
+                  </HStack>
+                </TooltipContent>
+              </Tooltip>
+              {canReorder && realQuoteLines.length > 0 && (
+                <IconButton
+                  aria-label="Reorder lines"
+                  icon={<LuSettings2 />}
+                  variant="ghost"
+                  className="text-muted-foreground"
+                  onClick={editMode.enterEditMode}
+                />
+              )}
+            </>
+          )}
         </div>
       </VStack>
       {newQuoteLineDisclosure.isOpen && (
@@ -263,6 +282,38 @@ export default function QuoteExplorer({ methods }: QuoteExplorerProps) {
       )}
     </div>
   );
+}
+
+function QuoteLineBody({
+  line,
+  dragHandle,
+  isOverlay
+}: {
+  line: QuotationLine;
+  dragHandle?: DragHandleBindings;
+  isOverlay?: boolean;
+}) {
+  return (
+    <ReorderableRow dragHandle={dragHandle} isOverlay={isOverlay}>
+      <HStack spacing={2} className="flex-grow min-w-0 p-2 pr-10">
+        <ItemThumbnail thumbnailPath={line.thumbnailPath} type="Part" />
+        <VStack spacing={0} className="min-w-0">
+          <span className="font-semibold line-clamp-1">
+            {line.itemReadableId || line.description || "Item"}
+          </span>
+          <span className="text-muted-foreground text-xs truncate line-clamp-1">
+            {line.description}
+          </span>
+        </VStack>
+      </HStack>
+    </ReorderableRow>
+  );
+}
+
+function isQuoteLine(
+  line: QuotationLine | OptimisticQuoteLine
+): line is QuotationLine {
+  return "id" in line && "status" in line && "methodType" in line;
 }
 
 type OptimisticQuoteLine = {
@@ -333,20 +384,16 @@ export function useOptimisticDocumentDrag() {
 
 type DroppableQuoteLineItemProps = {
   line: QuotationLine;
-  lineIndex: number;
   isDisabled: boolean;
   onDelete: (line: QuotationLine) => void;
   methods: Tree<QuoteMethod>[];
-  dragHandle?: boolean;
 };
 
 function DroppableQuoteLineItem({
   line,
-  lineIndex,
   isDisabled,
   onDelete,
-  methods,
-  dragHandle = false
+  methods
 }: DroppableQuoteLineItemProps) {
   const { setNodeRef, isOver } = useDroppable({
     id: `quote-line-${line.id}`,
@@ -363,11 +410,9 @@ function DroppableQuoteLineItem({
     >
       <QuoteLineItem
         line={line}
-        lineIndex={lineIndex}
         isDisabled={isDisabled}
         onDelete={onDelete}
         methods={methods}
-        dragHandle={dragHandle}
       />
     </div>
   );
@@ -375,20 +420,16 @@ function DroppableQuoteLineItem({
 
 type QuoteLineItemProps = {
   line: QuotationLine;
-  lineIndex: number;
   isDisabled: boolean;
   onDelete: (line: QuotationLine) => void;
   methods: Tree<QuoteMethod>[];
-  dragHandle?: boolean;
 };
 
 function QuoteLineItem({
   line,
-  lineIndex,
   isDisabled,
   onDelete,
-  methods,
-  dragHandle = false
+  methods
 }: QuoteLineItemProps) {
   const { quoteId, lineId } = useParams();
   if (!quoteId) throw new Error("Could not find quoteId");
@@ -434,14 +475,6 @@ function QuoteLineItem({
         onClick={() => onLineClick(line)}
       >
         <HStack spacing={2} className="flex-grow min-w-0 pr-10">
-          {dragHandle && (
-            <span className="text-muted-foreground flex-shrink-0 touch-none">
-              <LuGripVertical className="h-4 w-4" aria-hidden />
-            </span>
-          )}
-          <span className="text-muted-foreground text-sm tabular-nums w-6 flex-shrink-0">
-            {String(line.lineNumber ?? lineIndex + 1).padStart(2, "0")}
-          </span>
           <ItemThumbnail
             thumbnailPath={line.thumbnailPath}
             type={line.itemType as MethodItemType}

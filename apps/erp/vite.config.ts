@@ -1,38 +1,18 @@
+import { applyDotenvToProcessEnv } from "@carbon/dev/vite";
 import { lingui } from "@lingui/vite-plugin";
 import { reactRouter } from "@react-router/dev/vite";
+import tailwindcss from "@tailwindcss/vite";
 import path from "node:path";
-import { defineConfig, loadEnv, PluginOption } from "vite";
+import { defineConfig, PluginOption } from "vite";
 import babelMacros from "vite-plugin-babel-macros";
-import tsconfigPaths from "vite-tsconfig-paths";
-
-const repoRoot = path.resolve(__dirname, "../..");
-
-/**
- * Node does not read `.env`; `process.env` is only inherited from the
- * parent process. Vite normally exposes `.env` via `import.meta.env`, while
- * workspace packages (e.g. `@carbon/auth`) read `process.env` — merge file-based
- * env here so SSR and `getEnv()` match your repo-root and app-local `.env*`.
- * Shell-exported variables still win (we never overwrite existing keys).
- */
-function applyDotenvToProcessEnv(mode: string) {
-  const fromFiles = {
-    ...loadEnv(mode, repoRoot, ""),
-    ...loadEnv(mode, __dirname, ""),
-  };
-  for (const [key, value] of Object.entries(fromFiles)) {
-    if (process.env[key] === undefined) {
-      process.env[key] = value;
-    }
-  }
-}
 
 export default defineConfig(({ isSsrBuild, mode }) => {
-  applyDotenvToProcessEnv(mode);
+  applyDotenvToProcessEnv(mode, __dirname);
 
   return {
     build: {
       minify: true,
-      rollupOptions: {
+      rolldownOptions: {
         onwarn(warning, defaultHandler) {
           if (warning.code === "SOURCEMAP_ERROR") {
             return;
@@ -57,18 +37,20 @@ export default defineConfig(({ isSsrBuild, mode }) => {
     },
     server: {
       port: 3000,
+      strictPort: true,
       allowedHosts: [".ngrok-free.app", ".ngrok-free.dev", ".dev", ".localhost"],
       watch: {
         awaitWriteFinish: { stabilityThreshold: 250 },
       },
     },
     plugins: [
+      tailwindcss(),
       babelMacros(),
       lingui(),
       reactRouter(),
-      tsconfigPaths(),
     ] as PluginOption[],
     resolve: {
+      tsconfigPaths: true,
       alias: {
         "@carbon/utils": path.resolve(
           __dirname,

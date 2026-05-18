@@ -367,6 +367,7 @@ serve(async (req: Request) => {
               conversionFactor: line.conversionFactor,
               exchangeRate: line.exchangeRate ?? 1,
               jobOperationId: line.jobOperationId,
+              sortOrder: line.sortOrder ?? 1,
               companyId,
               createdBy: userId,
             }));
@@ -555,6 +556,7 @@ serve(async (req: Request) => {
                 exchangeRate: quote.data.exchangeRate ?? 1,
                 taxPercent: line.taxPercent,
                 shippingCost: selectedLines![line.id!].shippingCost,
+                sortOrder: line.sortOrder ?? 1,
               };
             });
 
@@ -781,6 +783,7 @@ serve(async (req: Request) => {
                 taxPercent: line.taxPercent ?? 0,
                 unitOfMeasureCode: line.unitOfMeasureCode ?? "EA",
                 exchangeRate: line.exchangeRate ?? 1,
+                sortOrder: line.sortOrder ?? 1,
                 companyId,
                 createdBy: userId,
               });
@@ -1080,6 +1083,8 @@ serve(async (req: Request) => {
               quantity: line.quantity,
               status: "Not Started",
               unitOfMeasureCode: line.unitOfMeasureCode,
+              // Sales RFQ uses "order" column; map it to quoteLine.sortOrder
+              sortOrder: line.order ?? 1,
               companyId,
               createdBy: userId,
             }));
@@ -1353,6 +1358,7 @@ serve(async (req: Request) => {
                 taxPercent: line.taxPercent ?? 0,
                 unitOfMeasureCode: line.unitOfMeasureCode ?? "EA",
                 exchangeRate: line.exchangeRate ?? 1,
+                sortOrder: line.sortOrder ?? 1,
                 companyId,
                 createdBy: userId,
               });
@@ -1535,6 +1541,7 @@ serve(async (req: Request) => {
                   supplierShippingCost:
                     selectedLines![line.id!].supplierShippingCost,
                   supplierTaxAmount: selectedLines![line.id!].supplierTaxAmount,
+                  sortOrder: line.sortOrder ?? 1,
                   createdBy: userId,
                   companyId,
                 };

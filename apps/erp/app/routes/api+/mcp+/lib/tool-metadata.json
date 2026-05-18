@@ -1,5 +1,5 @@
 {
-  "generated": "2026-05-14T00:16:04.983Z",
+  "generated": "2026-05-18T23:39:03.825Z",
   "totalTools": 1075,
   "modules": 15,
   "tools": [
@@ -13049,7 +13049,7 @@
       "description": "update sales r f q line order",
       "paramCount": 3,
       "serviceParams": [
-        "client",
+        "db",
         "updates"
       ],
       "injectAuth": [

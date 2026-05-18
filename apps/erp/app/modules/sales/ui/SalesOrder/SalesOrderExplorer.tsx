@@ -24,25 +24,18 @@ import {
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { Reorder } from "framer-motion";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useRef, useState } from "react";
 import {
   LuChevronDown,
   LuChevronRight,
   LuCirclePlus,
   LuEllipsisVertical,
-  LuGripVertical,
   LuSearch,
+  LuSettings2,
   LuTrash,
   LuTruck
 } from "react-icons/lu";
-import {
-  Await,
-  Link,
-  useNavigate,
-  useParams,
-  useRevalidator
-} from "react-router";
+import { Await, Link, useNavigate, useParams } from "react-router";
 import {
   Empty,
   Hyperlink,
@@ -50,6 +43,13 @@ import {
   MethodIcon,
   MethodItemTypeIcon
 } from "~/components";
+import type { DragHandleBindings } from "~/components/LineReorder";
+import {
+  ReorderableLineList,
+  ReorderableRow,
+  ReorderEditBar,
+  useLineOrderEditMode
+} from "~/components/LineReorder";
 import { LevelLine } from "~/components/TreeView";
 import {
   useOptimisticLocation,
@@ -70,7 +70,6 @@ import type {
   SalesOrderLine,
   SalesOrderRelatedItems
 } from "../../types";
-import { ContractCustomerPartLabel } from "./ContractCustomerPartLabel";
 import DeleteSalesOrderLine from "./DeleteSalesOrderLine";
 import SalesOrderLineForm from "./SalesOrderLineForm";
 
@@ -134,13 +133,6 @@ export default function SalesOrderExplorer() {
     salesOrder: SalesOrder;
     lines: SalesOrderLine[];
     customer: Customer;
-    customerParts:
-      | {
-          itemId: string;
-          customerPartId: string;
-          customerPartRevision: string | null;
-        }[]
-      | null;
   }>(path.to.salesOrder(orderId));
   const permissions = usePermissions();
 
@@ -169,15 +161,10 @@ export default function SalesOrderExplorer() {
     ? true
     : salesOrderData?.salesOrder?.status !== "Draft";
 
-  const modelPathSegments = (salesOrderData?.lines ?? [])
-    .map((d) => d.modelPath)
-    .filter((p): p is string => Boolean(p));
-  const modelUploadFilter =
-    modelPathSegments.length > 0
-      ? `modelPath=in.(${modelPathSegments.join(",")})`
-      : undefined;
-
-  useRealtime("modelUpload", modelUploadFilter);
+  useRealtime(
+    "modelUpload",
+    `modelPath=in.(${salesOrderData?.lines.map((d) => d.modelPath).join(",")})`
+  );
 
   const onDeleteLine = (line: SalesOrderLine) => {
     setDeleteLine(line);
@@ -197,71 +184,46 @@ export default function SalesOrderExplorer() {
     }
   });
 
-  const [lines, setLines] = useState<SalesOrderLine[]>(
-    salesOrderData?.lines ?? []
-  );
-  const revalidator = useRevalidator();
-  useEffect(() => {
-    setLines(salesOrderData?.lines ?? []);
-  }, [salesOrderData?.lines]);
-
+  const lines = salesOrderData?.lines ?? [];
   const canReorder =
-    !isDisabled &&
-    permissions.can("update", "sales") &&
-    (lines?.length ?? 0) > 1;
+    !isDisabled && permissions.can("update", "sales") && lines.length > 1;
 
-  const handleReorder = async (newLines: SalesOrderLine[]) => {
-    setLines(newLines);
-    const lineIds = newLines.map((l) => l.id!).filter(Boolean);
-    if (lineIds.length === 0) return;
-    const res = await fetch(path.to.salesOrderLinesReorder(orderId), {
-      method: "POST",
-      credentials: "same-origin",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ lineIds })
-    });
-    if (res.ok) revalidator.revalidate();
-  };
+  const editMode = useLineOrderEditMode<SalesOrderLine>({
+    actionPath: path.to.salesOrderLineOrder(orderId),
+    lines
+  });
 
   return (
     <>
       <VStack className="w-full h-[calc(100dvh-99px)] justify-between">
         <VStack
-          className="flex-1 min-w-0 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full"
+          className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent"
           spacing={0}
         >
-          {lines && lines.length > 0 ? (
-            <Reorder.Group
-              axis="y"
-              values={lines}
-              onReorder={handleReorder}
-              className="flex w-full min-w-0 flex-col"
-            >
-              {lines.map((line, index) => (
-                <Reorder.Item
+          {lines.length > 0 ? (
+            editMode.isEditing ? (
+              <ReorderableLineList<SalesOrderLine>
+                lines={editMode.draft}
+                activeLine={editMode.activeLine}
+                onDragStart={editMode.handleDragStart}
+                onDragEnd={editMode.handleDragEnd}
+                renderRow={(line, dragHandle) => (
+                  <SalesOrderLineBody line={line} dragHandle={dragHandle} />
+                )}
+                renderOverlay={(line) => (
+                  <SalesOrderLineBody line={line} isOverlay />
+                )}
+              />
+            ) : (
+              lines.map((line) => (
+                <SalesOrderLineItem
                   key={line.id}
-                  value={line}
-                  id={line.id ?? undefined}
-                  className={cn(
-                    "w-full min-w-0",
-                    canReorder && "cursor-grab active:cursor-grabbing"
-                  )}
-                  dragListener={canReorder}
-                >
-                  <SalesOrderLineItem
-                    isDisabled={isDisabled}
-                    line={line}
-                    lineIndex={index}
-                    onDelete={onDeleteLine}
-                    dragHandle={canReorder}
-                    contractCustomer={
-                      !!salesOrderData?.customer?.contractCustomer
-                    }
-                    customerParts={salesOrderData?.customerParts ?? null}
-                  />
-                </Reorder.Item>
-              ))}
-            </Reorder.Group>
+                  isDisabled={isDisabled}
+                  line={line}
+                  onDelete={onDeleteLine}
+                />
+              ))
+            )
           ) : (
             <Empty>
               {permissions.can("update", "sales") && (
@@ -277,29 +239,51 @@ export default function SalesOrderExplorer() {
             </Empty>
           )}
         </VStack>
-        <div className="w-full flex flex-0 sm:flex-row border-t border-border p-4 sm:justify-start sm:space-x-2">
-          <Tooltip>
-            <TooltipTrigger className="w-full">
-              <Button
-                ref={newButtonRef}
-                className="w-full"
-                isDisabled={isDisabled || !permissions.can("update", "sales")}
-                leftIcon={<LuCirclePlus />}
-                variant="secondary"
-                onClick={newSalesOrderLineDisclosure.onOpen}
-              >
-                <Trans>Add Line Item</Trans>
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <HStack>
-                <span>
-                  <Trans>New Line Item</Trans>
-                </span>
-                <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
-              </HStack>
-            </TooltipContent>
-          </Tooltip>
+        <div className="w-full flex border-t border-border p-4 gap-2">
+          {editMode.isEditing ? (
+            <ReorderEditBar
+              isSaving={editMode.isSaving}
+              isDirty={editMode.isDirty}
+              onSave={editMode.save}
+              onCancel={editMode.cancelEditMode}
+            />
+          ) : (
+            <>
+              <Tooltip>
+                <TooltipTrigger className="flex-1">
+                  <Button
+                    ref={newButtonRef}
+                    className="w-full"
+                    isDisabled={
+                      isDisabled || !permissions.can("update", "sales")
+                    }
+                    leftIcon={<LuCirclePlus />}
+                    variant="secondary"
+                    onClick={newSalesOrderLineDisclosure.onOpen}
+                  >
+                    <Trans>Add Line Item</Trans>
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <HStack>
+                    <span>
+                      <Trans>New Line Item</Trans>
+                    </span>
+                    <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
+                  </HStack>
+                </TooltipContent>
+              </Tooltip>
+              {canReorder && lines.length > 0 && (
+                <IconButton
+                  aria-label="Reorder lines"
+                  icon={<LuSettings2 />}
+                  variant="ghost"
+                  className="text-muted-foreground"
+                  onClick={editMode.enterEditMode}
+                />
+              )}
+            </>
+          )}
         </div>
       </VStack>
       {newSalesOrderLineDisclosure.isOpen && (
@@ -316,30 +300,43 @@ export default function SalesOrderExplorer() {
   );
 }
 
-type CustomerPartRow = {
-  itemId: string;
-  customerPartId: string;
-  customerPartRevision: string | null;
-};
+function SalesOrderLineBody({
+  line,
+  dragHandle,
+  isOverlay
+}: {
+  line: SalesOrderLine;
+  dragHandle?: DragHandleBindings;
+  isOverlay?: boolean;
+}) {
+  const [items] = useItems();
+  return (
+    <ReorderableRow dragHandle={dragHandle} isOverlay={isOverlay}>
+      <HStack spacing={2} className="flex-grow min-w-0 p-2 pr-10">
+        <ItemThumbnail thumbnailPath={line.thumbnailPath} type="Part" />
+        <VStack spacing={0} className="min-w-0">
+          <span className="font-semibold line-clamp-1">
+            {getItemReadableId(items, line.itemId)}
+          </span>
+          <span className="text-muted-foreground text-xs truncate line-clamp-1">
+            {line.description}
+          </span>
+        </VStack>
+      </HStack>
+    </ReorderableRow>
+  );
+}
 
 type SalesOrderLineItemProps = {
   line: SalesOrderLine;
-  lineIndex: number;
   isDisabled: boolean;
   onDelete: (line: SalesOrderLine) => void;
-  dragHandle?: boolean;
-  contractCustomer: boolean;
-  customerParts: CustomerPartRow[] | null;
 };
 
 function SalesOrderLineItem({
   line,
-  lineIndex,
   isDisabled,
-  onDelete,
-  dragHandle = false,
-  contractCustomer,
-  customerParts
+  onDelete
 }: SalesOrderLineItemProps) {
   const { orderId, lineId } = useParams();
   if (!orderId) throw new Error("Could not find orderId");
@@ -366,8 +363,6 @@ function SalesOrderLineItem({
     }
   };
 
-  const lineReadableId = getItemReadableId(items, line.itemId);
-
   return (
     <VStack spacing={0} className="border-b">
       <HStack
@@ -378,14 +373,6 @@ function SalesOrderLineItem({
         onClick={onLineClick}
       >
         <HStack spacing={2} className="flex-grow min-w-0 pr-10">
-          {dragHandle && (
-            <span className="text-muted-foreground flex-shrink-0 touch-none">
-              <LuGripVertical className="h-4 w-4" aria-hidden />
-            </span>
-          )}
-          <span className="text-muted-foreground text-sm tabular-nums w-6 flex-shrink-0">
-            {String(line.lineNumber ?? lineIndex + 1).padStart(2, "0")}
-          </span>
           <ItemThumbnail
             thumbnailPath={line.thumbnailPath}
             type="Part" // TODO
@@ -393,16 +380,7 @@ function SalesOrderLineItem({
 
           <VStack spacing={0} className="min-w-0">
             <span className="font-semibold line-clamp-1">
-              {lineReadableId ? (
-                <ContractCustomerPartLabel
-                  internalReadableId={lineReadableId}
-                  contractCustomer={contractCustomer}
-                  customerParts={customerParts}
-                  itemId={line.itemId}
-                />
-              ) : (
-                "..."
-              )}
+              {getItemReadableId(items, line.itemId)}
             </span>
             <span className="text-muted-foreground text-xs truncate line-clamp-1">
               {line.description}
