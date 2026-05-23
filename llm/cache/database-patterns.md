@@ -155,4 +155,10 @@ return data;
 - Named with timestamps and descriptive names
 - Applied automatically via Supabase CLI
 
+## Backup and Restore
+
+- Full procedure: `llm/workflows/database-backup-restore.md`
+- Quick reference: `llm/cache/database-backup-restore.md`
+- Local restore uses `crbn up --no-migrate`, then `psql`/`pg_restore` as `supabase_admin`, then `pnpm db:types`
+
 

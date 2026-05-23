@@ -360,6 +360,8 @@ To run a command against a single workspace, use `pnpm --filter`:
 $ pnpm --filter @carbon/react test
 ```
 
+For full backup/restore procedures (hosted and local), see [`llm/workflows/database-backup-restore.md`](llm/workflows/database-backup-restore.md).
+
 To restore a production database snapshot locally:
 
 1. Export a backup from your production Supabase project (`pg_dump` or Supabase Dashboard → Database → Backups).
