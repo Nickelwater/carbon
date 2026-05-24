@@ -55,6 +55,9 @@ msgstr "{scopeCount} permissÃƒÆ’Ã‚Âµes"
 msgid "/month/user"
 msgstr "/mÃƒÆ’Ã‚Âªs/utilizador"
 
+msgid "#"
+msgstr ""
+
 #. placeholder {0}: allItems.length - 3
 msgid "+{0} more"
 msgstr "+{0} mais"
@@ -436,6 +439,9 @@ msgstr "Todos os trabalhos concluÃƒÆ’Ã‚Â­dos"
 
 msgid "All members of selected groups and selected individuals will be able to approve requests"
 msgstr "Todos os membros dos grupos selecionados e indivÃƒÆ’Ã‚Â­duos selecionados poderÃƒÆ’Ã‚Â£o aprovar solicitaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes"
+
+msgid "All required samples have been recorded."
+msgstr ""
 
 msgid "All Suppliers"
 msgstr "Todos os Fornecedores"
@@ -1005,6 +1011,10 @@ msgstr "NÃƒÆ’Ã‚Âºmero do Lote"
 
 msgid "Batch Properties"
 msgstr "Propriedades em Lote"
+
+#. placeholder {0}: selected.quantity
+msgid "Batch quantity: {0}"
+msgstr ""
 
 msgid "Batch Size"
 msgstr "Tamanho do Lote"
@@ -3767,6 +3777,9 @@ msgstr "Inspecionar Item"
 msgid "Inspect Next Item"
 msgstr "Inspecionar PrÃƒÆ’Ã‚Â³ximo Item"
 
+msgid "Inspect Next Sample"
+msgstr ""
+
 msgid "Inspection"
 msgstr "InspeÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o"
 
@@ -6443,6 +6456,11 @@ msgstr "Digitalize ou pesquise..."
 msgid "Scan or select a tracked entity from this lot and record the inspection result."
 msgstr "Digitalize ou selecione uma entidade rastreada deste lote e registre o resultado da inspeÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o."
 
+#. placeholder {0}: samplesRemaining ?? 0
+#. placeholder {1}: sampleSize ?? 0
+msgid "Scan or select the batch and record each sample result. {0} of {1} required samples remaining."
+msgstr ""
+
 msgid "Scan the tracking ID for this line"
 msgstr "Digitalize o ID de rastreamento para esta linha"
 
@@ -7395,6 +7413,10 @@ msgstr "A quantidade de dias apÃƒÆ’Ã‚Â³s o mÃƒÆ’Ã‚Â©todo de 
 
 msgid "The amount of days after the calculation method that the payment is due"
 msgstr "A quantidade de dias apÃƒÆ’Ã‚Â³s o mÃƒÆ’Ã‚Â©todo de cÃƒÆ’Ã‚Â¡lculo em que o pagamento ÃƒÆ’Ã‚Â© devido"
+
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr ""
 
 msgid "The billing address used on purchase orders and other purchasing documents."
 msgstr "O endereÃƒÆ’Ã‚Â§o de cobranÃƒÆ’Ã‚Â§a usado em pedidos de compra e outros documentos de compra."

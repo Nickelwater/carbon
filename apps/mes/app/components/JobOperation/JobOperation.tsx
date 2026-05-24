@@ -170,6 +170,8 @@ type JobOperationProps = {
       blockingDispatchReadableId: string | null;
     }>
   >;
+  requiresInspection?: boolean;
+  isLastOperation?: boolean;
 };
 
 export const JobOperation = ({
@@ -185,7 +187,9 @@ export const JobOperation = ({
   procedure,
   thumbnailPath,
   trackedEntities,
-  workCenter
+  workCenter,
+  requiresInspection = false,
+  isLastOperation = false
 }: JobOperationProps) => {
   const { t } = useLingui();
   const { formatDate, formatRelativeTime } = useDateFormatter();
@@ -348,6 +352,60 @@ export const JobOperation = ({
     carbon,
     operationId,
     nonConformanceActions,
+    procedure,
+    companyId,
+    userId
+  ]);
+
+  // Final inspection checklist on the last operation when the part requires QA hold.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
+  useEffect(() => {
+    async function createFinalInspectionStep() {
+      if (!carbon || !operationId || !requiresInspection || !isLastOperation) {
+        return;
+      }
+
+      try {
+        const resolvedProcedure = await procedure;
+        const existingStep = resolvedProcedure.attributes.find(
+          (step) =>
+            step.type === "Inspection" && step.name === "Final Inspection"
+        );
+        if (existingStep) return;
+
+        const maxSortOrder = Math.max(
+          ...resolvedProcedure.attributes.map((s) => s.sortOrder ?? 0),
+          0
+        );
+
+        fetcher.submit(
+          JSON.stringify([
+            {
+              companyId,
+              createdBy: userId,
+              operationId,
+              name: "Final Inspection",
+              type: "Inspection" as const,
+              sortOrder: maxSortOrder + 1
+            }
+          ]),
+          {
+            method: "post",
+            action: path.to.inspectionSteps,
+            encType: "application/json"
+          }
+        );
+      } catch (error) {
+        console.error("Failed to create final inspection step:", error);
+      }
+    }
+
+    createFinalInspectionStep();
+  }, [
+    carbon,
+    operationId,
+    requiresInspection,
+    isLastOperation,
     procedure,
     companyId,
     userId

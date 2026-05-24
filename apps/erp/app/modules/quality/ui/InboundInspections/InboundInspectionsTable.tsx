@@ -93,16 +93,26 @@ const InboundInspectionsTable = memo(
           }
         },
         {
-          id: "receipt",
-          header: t`Receipt`,
-          cell: ({ row }) => (
-            <div className="flex flex-col gap-0 text-sm">
-              <span>{(row.original as any).receipt?.receiptId}</span>
-              <span className="text-xs text-muted-foreground">
-                {(row.original as any).supplier?.name}
-              </span>
-            </div>
-          ),
+          id: "source",
+          header: t`Source`,
+          cell: ({ row }) => {
+            const sourceType = (row.original as any).sourceType ?? "Receipt";
+            if (sourceType === "Job") {
+              return (
+                <span className="text-sm">
+                  {(row.original as any).job?.jobId ?? ""}
+                </span>
+              );
+            }
+            return (
+              <div className="flex flex-col gap-0 text-sm">
+                <span>{(row.original as any).receipt?.receiptId}</span>
+                <span className="text-xs text-muted-foreground">
+                  {(row.original as any).supplier?.name}
+                </span>
+              </div>
+            );
+          },
           meta: { icon: <LuTruck /> }
         },
         {

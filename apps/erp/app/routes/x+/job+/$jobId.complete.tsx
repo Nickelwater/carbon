@@ -1,5 +1,6 @@
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
+import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import { msg } from "@lingui/core/macro";
@@ -87,6 +88,17 @@ export async function action({ request, params }: ActionFunctionArgs) {
       requestReferrer(request) ?? path.to.job(jobId),
       await flash(request, error(rpc.error, "Failed to complete job"))
     );
+  }
+
+  const serviceRole = await getCarbonServiceRole();
+  const inspectionLot = await serviceRole.functions.invoke(
+    "create-inspection-lot",
+    {
+      body: { type: "job", jobId, companyId, userId }
+    }
+  );
+  if (inspectionLot.error) {
+    console.error("create-inspection-lot failed:", inspectionLot.error);
   }
 
   if (makeToOrder) {
