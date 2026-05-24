@@ -56,6 +56,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const customerId = quoteRes.data?.customerId ?? undefined;
 
   const result = await promoteQuotePartToItem(serviceRole, {
+    quoteId,
     quotePartId: line.quotePartId,
     quoteLineId,
     companyId,

@@ -8,6 +8,7 @@ import type {
   PostgrestSingleResponse,
   SupabaseClient
 } from "@supabase/supabase-js";
+import { FunctionRegion } from "@supabase/supabase-js";
 import type { z } from "zod";
 import { getSupplierPriceBreaksForItems } from "~/modules/items/items.service";
 import { getEmployeeJob } from "~/modules/people";
@@ -40,6 +41,7 @@ import type {
   quoteLineValidator,
   quoteMaterialValidator,
   quoteOperationValidator,
+  quotePartValidator,
   quotePaymentValidator,
   quoteShipmentValidator,
   quoteStatusType,
@@ -612,6 +614,20 @@ export async function getCustomerShipping(
     .select("*")
     .eq("customerId", customerId)
     .single();
+}
+
+export async function getCustomerPartsForCustomer(
+  client: SupabaseClient<Database>,
+  customerId: string,
+  companyId: string
+) {
+  return client
+    .from("customerPartToItem")
+    .select("id, customerPartId, customerPartRevision, itemId")
+    .eq("customerId", customerId)
+    .eq("companyId", companyId)
+    .order("customerPartId")
+    .order("customerPartRevision");
 }
 
 export async function getCustomerTax(
@@ -3469,6 +3485,189 @@ export async function upsertQuote(
       })
       .eq("id", quote.id);
   }
+}
+
+export async function upsertQuotePart(
+  client: SupabaseClient<Database>,
+  quotePart:
+    | (z.infer<typeof quotePartValidator> & {
+        companyId: string;
+        createdBy: string;
+      })
+    | (z.infer<typeof quotePartValidator> & {
+        id: string;
+        updatedBy: string;
+      })
+) {
+  if ("id" in quotePart && quotePart.id) {
+    return client
+      .from("quotePart")
+      .update(sanitize(quotePart))
+      .eq("id", quotePart.id)
+      .select("id")
+      .single();
+  }
+  return client
+    .from("quotePart")
+    .insert([sanitize(quotePart)])
+    .select("*")
+    .single();
+}
+
+export async function promoteQuotePartToItem(
+  client: SupabaseClient<Database>,
+  payload: {
+    quoteId: string;
+    quotePartId: string;
+    quoteLineId: string;
+    companyId: string;
+    userId: string;
+    customerId?: string | null;
+    customerPartId?: string | null;
+    customerPartRevision?: string | null;
+  }
+) {
+  const { quoteId, quotePartId, quoteLineId, companyId, userId } = payload;
+
+  const [quotePartRes, quoteLineRes] = await Promise.all([
+    client.from("quotePart").select("*").eq("id", quotePartId).single(),
+    client
+      .from("quoteLine")
+      .select("description")
+      .eq("id", quoteLineId)
+      .single()
+  ]);
+  if (quotePartRes.error || !quotePartRes.data) {
+    return {
+      data: null,
+      error: quotePartRes.error ?? new Error("Quote part not found")
+    };
+  }
+  const qp = quotePartRes.data as {
+    name: string;
+    description: string | null;
+    defaultMethodType: string;
+    unitOfMeasureCode: string | null;
+    modelUploadId: string | null;
+  };
+
+  // Quote part "name" is the customer part number; "description" is the short
+  // description. The quote line may also carry the short description when the
+  // line was edited after the quote part was created.
+  const shortDescription =
+    qp.description?.trim() || quoteLineRes.data?.description?.trim() || "";
+
+  const nextIdRes = await client.rpc("get_next_numeric_sequence", {
+    company_id: companyId,
+    item_type: "Part"
+  });
+  const readableId = (nextIdRes.data as string | null) ?? "000000001";
+
+  const itemInsert = await client
+    .from("item")
+    .insert({
+      readableId,
+      revision: "0",
+      name: shortDescription || qp.name,
+      description: shortDescription || undefined,
+      type: "Part",
+      replenishmentSystem: "Make",
+      defaultMethodType: qp.defaultMethodType,
+      itemTrackingType: "Inventory",
+      unitOfMeasureCode: qp.unitOfMeasureCode ?? "EA",
+      active: true,
+      modelUploadId: qp.modelUploadId ?? undefined,
+      companyId,
+      createdBy: userId
+    })
+    .select("id")
+    .single();
+  if (itemInsert.error) return itemInsert;
+  const itemId = itemInsert.data?.id;
+  if (!itemId)
+    return { data: null, error: new Error("Item id missing after insert") };
+
+  const partInsert = await client.from("part").upsert({
+    id: readableId,
+    companyId,
+    createdBy: userId
+  });
+  if (partInsert.error) return partInsert;
+
+  const lineUpdate = await client
+    .from("quoteLine")
+    .update({
+      itemId,
+      quotePartId: null,
+      updatedBy: userId,
+      updatedAt: today(getLocalTimeZone()).toString()
+    })
+    .eq("id", quoteLineId)
+    .select("id")
+    .single();
+  if (lineUpdate.error) return lineUpdate;
+
+  const [makeMethodRes, rootQuoteMethodRes] = await Promise.all([
+    client
+      .from("makeMethod")
+      .select("id")
+      .eq("itemId", itemId)
+      .eq("companyId", companyId)
+      .single(),
+    client
+      .from("quoteMakeMethod")
+      .select("id")
+      .eq("quoteLineId", quoteLineId)
+      .is("parentMaterialId", null)
+      .eq("companyId", companyId)
+      .maybeSingle()
+  ]);
+  if (makeMethodRes.data?.id && rootQuoteMethodRes.data?.id) {
+    const methodErr = await client.functions
+      .invoke("get-method", {
+        body: {
+          type: "quoteLineToItem",
+          sourceId: `${quoteId}:${quoteLineId}`,
+          targetId: makeMethodRes.data.id,
+          companyId,
+          userId,
+          parts: {
+            billOfMaterial: true,
+            billOfProcess: true,
+            parameters: true,
+            tools: true,
+            steps: true,
+            workInstructions: true
+          }
+        },
+        region: FunctionRegion.UsEast1
+      })
+      .then((r) => r.error);
+    if (methodErr) {
+      return {
+        data: null,
+        error:
+          methodErr instanceof Error ? methodErr : new Error(String(methodErr))
+      };
+    }
+  }
+
+  if (
+    payload.customerId &&
+    payload.customerPartId &&
+    payload.customerPartId.trim() !== ""
+  ) {
+    const { upsertItemCustomerPart } = await import("../items");
+    await upsertItemCustomerPart(client, {
+      itemId,
+      customerId: payload.customerId,
+      customerPartId: payload.customerPartId.trim(),
+      customerPartRevision: payload.customerPartRevision?.trim() ?? "",
+      companyId
+    });
+  }
+
+  return { data: { itemId, readableId }, error: null };
 }
 
 export async function upsertQuoteLine(

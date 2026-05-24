@@ -6,6 +6,7 @@ import { validationError, validator } from "@carbon/form";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 import {
+  calculatePricesForQuantities,
   getQuote,
   isQuoteLocked,
   newQuotePartLineValidator,
@@ -104,7 +105,31 @@ export async function action({ request, params }: ActionFunctionArgs) {
         )
       );
     }
-    throw redirect(path.to.quoteLine(quoteId, createQuotationLine.data.id));
+
+    const quoteLineId = createQuotationLine.data.id;
+    if (d.defaultMethodType === "Make to Order") {
+      const priceResult = await calculatePricesForQuantities(
+        serviceRole,
+        quoteId,
+        quoteLineId,
+        d.quantity ?? [1],
+        userId
+      );
+      if (priceResult?.error) {
+        throw redirect(
+          path.to.quoteLine(quoteId, quoteLineId),
+          await flash(
+            request,
+            error(
+              priceResult.error,
+              "Quote line created but failed to seed pricing."
+            )
+          )
+        );
+      }
+    }
+
+    throw redirect(path.to.quoteLine(quoteId, quoteLineId));
   }
 
   const validation = await validator(quoteLineValidator).validate(formData);
