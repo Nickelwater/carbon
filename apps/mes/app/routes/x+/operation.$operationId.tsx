@@ -77,9 +77,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     jobMakeMethod,
     kanban,
     bomIdMap,
-    companySettings,
-    itemRequiresInspection,
-    isLastOperation
+    companySettings
   ] = await Promise.all([
     getThumbnailPathByItemId(serviceRole, operation.data?.[0].itemId),
     getTrackedEntitiesByMakeMethodId(
@@ -89,13 +87,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     getJobMakeMethod(serviceRole, operation.data?.[0].jobMakeMethodId),
     getKanbanByJobId(serviceRole, job.data.id),
     getJobMethodBomIdMap(serviceRole, job.data.id!),
-    getCompanySettings(serviceRole, companyId),
-    serviceRole
-      .from("item")
-      .select("requiresInspection")
-      .eq("id", job.data.itemId)
-      .single(),
-    serviceRole.rpc("is_last_job_operation", { operation_id: operationId })
+    getCompanySettings(serviceRole, companyId)
   ]);
 
   const inventoryShelfLife = (companySettings.data?.inventoryShelfLife ??
@@ -156,9 +148,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }),
     operation: makeDurations(operation.data?.[0]) as OperationWithDetails,
     expiredEntityPolicy,
-    requiresInspection:
-      itemRequiresInspection.data?.requiresInspection ?? false,
-    isLastOperation: isLastOperation.data === true,
     procedure: getJobOperationProcedure(serviceRole, operation.data?.[0].id),
     workCenter: getWorkCenter(
       serviceRole,
@@ -193,9 +182,7 @@ export default function OperationRoute() {
     thumbnailPath,
     trackedEntities,
     workCenter,
-    nonConformanceActions,
-    requiresInspection,
-    isLastOperation
+    nonConformanceActions
   } = useLoaderData<typeof loader>();
 
   return (
@@ -214,8 +201,6 @@ export default function OperationRoute() {
       job={job}
       thumbnailPath={thumbnailPath}
       workCenter={workCenter}
-      requiresInspection={requiresInspection}
-      isLastOperation={isLastOperation}
     />
   );
 }

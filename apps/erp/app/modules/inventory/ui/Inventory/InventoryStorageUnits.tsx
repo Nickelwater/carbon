@@ -35,6 +35,9 @@ import {
   Td,
   Th,
   Thead,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
   Tr,
   useDisclosure,
   VStack
@@ -46,11 +49,12 @@ import { nanoid } from "nanoid";
 import { useMemo, useState } from "react";
 import {
   LuEllipsisVertical,
+  LuNetwork,
   LuPencil,
   LuPrinter,
   LuQrCode
 } from "react-icons/lu";
-import { Outlet } from "react-router";
+import { Link, Outlet } from "react-router";
 import type { z } from "zod";
 import { Enumerable } from "~/components/Enumerable";
 import {
@@ -249,6 +253,31 @@ const InventoryStorageUnits = ({
                             text={item.trackedEntityId}
                             withTextInTooltip
                           />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                asChild
+                                variant="secondary"
+                                size="sm"
+                                isIcon
+                                aria-label={t`View traceability`}
+                              >
+                                <Link
+                                  to={`${path.to.traceabilityGraph}?trackedEntityId=${item.trackedEntityId}`}
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <LuNetwork
+                                    className="size-3.5"
+                                    aria-hidden
+                                    focusable={false}
+                                  />
+                                </Link>
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <Trans>View traceability</Trans>
+                            </TooltipContent>
+                          </Tooltip>
                         </HStack>
                       )}
                     </Td>

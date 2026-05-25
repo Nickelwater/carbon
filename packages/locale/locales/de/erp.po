@@ -8132,6 +8132,9 @@ msgstr "Vorschlag anzeigen"
 msgid "View Suppliers"
 msgstr "Lieferanten anzeigen"
 
+msgid "View traceability"
+msgstr ""
+
 msgid "View Traceability Graph"
 msgstr "RÃƒÆ’Ã‚Â¼ckverfolgbarkeitsgraph anzeigen"
 
