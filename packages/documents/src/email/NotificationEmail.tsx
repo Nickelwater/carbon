@@ -236,24 +236,6 @@ export const NotificationEmail = ({
               style={{ borderCollapse: "collapse", width: "100%" }}
             >
               <tr>
-                <td
-                  width="3"
-                  style={{
-                    paddingRight: 16,
-                    verticalAlign: "top",
-                    width: 3
-                  }}
-                >
-                  <div
-                    className="nf-callout-accent"
-                    style={{
-                      backgroundColor: "#0e0e0e",
-                      borderRadius: 2,
-                      minHeight: 28,
-                      width: 3
-                    }}
-                  />
-                </td>
                 <td style={{ verticalAlign: "middle" }}>
                   <Text
                     className={`text-[15px] leading-[24px] m-0 ${themeClasses.text}`}
