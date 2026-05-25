@@ -1,5 +1,3 @@
-import type { Database } from "@carbon/database";
-import { path } from "@carbon/paths";
 // Notification event taxonomy. Kept as a standalone package because the
 // enums are referenced from app routes, scheduled jobs, and the inngest
 // notify function. The previous Novu trigger helpers have been removed —
@@ -104,88 +102,6 @@ export function getNotificationTopic(
       return NotificationTopic.Approval;
     default:
       return NotificationTopic.General;
-  }
-}
-
-type ApprovalDocumentType = Database["public"]["Enums"]["approvalDocumentType"];
-
-// Relative path that the notification deep-links to in the ERP app. Used for
-// email CTA buttons and (in future) topbar click handlers. Returns null if
-// the event doesn't correspond to a single navigable record.
-export type NotificationLinkContext = {
-  documentType?: ApprovalDocumentType;
-  jobId?: string;
-  operationId?: string;
-  makeMethodId?: string;
-  materialId?: string;
-};
-
-export function getNotificationLink(
-  event: NotificationEvent,
-  recordId: string,
-  context?: NotificationLinkContext
-): string | null {
-  switch (event) {
-    case NotificationEvent.JobAssignment:
-    case NotificationEvent.JobCompleted:
-      return path.to.job(recordId);
-    case NotificationEvent.JobOperationAssignment:
-    case NotificationEvent.JobOperationMessage: {
-      const { jobId, operationId, makeMethodId, materialId } = context ?? {};
-      if (!jobId || !operationId || !makeMethodId) return null;
-      const link = materialId
-        ? path.to.jobMakeMethod(jobId, makeMethodId)
-        : path.to.jobMethod(jobId, makeMethodId);
-      return `${link}?selectedOperation=${operationId}`;
-    }
-    case NotificationEvent.PurchaseInvoiceAssignment:
-      return path.to.purchaseInvoice(recordId);
-    case NotificationEvent.PurchaseOrderAssignment:
-      return path.to.purchaseOrder(recordId);
-    case NotificationEvent.QuoteAssignment:
-    case NotificationEvent.QuoteExpired:
-    case NotificationEvent.DigitalQuoteResponse:
-      return path.to.quote(recordId);
-    case NotificationEvent.SupplierQuoteAssignment:
-    case NotificationEvent.SupplierQuoteResponse:
-      return path.to.supplierQuote(recordId);
-    case NotificationEvent.SalesOrderAssignment:
-      return path.to.salesOrder(recordId);
-    case NotificationEvent.SalesRfqAssignment:
-    case NotificationEvent.SalesRfqReady:
-      return path.to.salesRfq(recordId);
-    case NotificationEvent.MaintenanceDispatchAssignment:
-    case NotificationEvent.MaintenanceDispatchCreated:
-      return path.to.maintenanceDispatch(recordId);
-    case NotificationEvent.GaugeCalibrationExpired:
-      return path.to.gauge(recordId);
-    case NotificationEvent.NonConformanceAssignment:
-      return path.to.issue(recordId);
-    case NotificationEvent.RiskAssignment:
-      return path.to.risk(recordId);
-    case NotificationEvent.ProcedureAssignment:
-      return path.to.procedure(recordId);
-    case NotificationEvent.TrainingAssignment:
-      return path.to.training(recordId);
-    case NotificationEvent.StockTransferAssignment:
-      return path.to.stockTransfer(recordId);
-    case NotificationEvent.SuggestionResponse:
-      return path.to.suggestion(recordId);
-    case NotificationEvent.ApprovalApproved:
-    case NotificationEvent.ApprovalRejected:
-    case NotificationEvent.ApprovalRequested:
-      if (context?.documentType === "purchaseOrder") {
-        return path.to.purchaseOrder(recordId);
-      }
-      if (context?.documentType === "qualityDocument") {
-        return path.to.qualityDocument(recordId);
-      }
-      if (context?.documentType === "supplier") {
-        return path.to.supplierApproval(recordId);
-      }
-      return null;
-    default:
-      return null;
   }
 }
 

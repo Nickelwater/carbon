@@ -1,10 +1,6 @@
 {
-  "dependencies": {
-    "@carbon/paths": "workspace:*"
-  },
   "devDependencies": {
     "@carbon/config": "workspace:*",
-    "@carbon/database": "workspace:*",
     "@types/node": "20.19.39",
     "sst": "catalog:",
     "typescript": "catalog:"

@@ -2340,39 +2340,16 @@ importers:
         version: 4.1.6(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.28.0)(jiti@2.6.1)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/notifications:
-    dependencies:
-      '@carbon/paths':
-        specifier: workspace:*
-        version: link:../paths
     devDependencies:
       '@carbon/config':
         specifier: workspace:*
         version: link:../config
-      '@carbon/database':
-        specifier: workspace:*
-        version: link:../database
       '@types/node':
         specifier: 20.19.39
         version: 20.19.39
       sst:
         specifier: 'catalog:'
         version: 4.6.9
-      typescript:
-        specifier: 'catalog:'
-        version: 5.8.3
-
-  packages/paths:
-    dependencies:
-      react-router:
-        specifier: 'catalog:'
-        version: 7.15.1(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-    devDependencies:
-      '@carbon/config':
-        specifier: workspace:*
-        version: link:../config
-      '@types/node':
-        specifier: 20.19.39
-        version: 20.19.39
       typescript:
         specifier: 'catalog:'
         version: 5.8.3

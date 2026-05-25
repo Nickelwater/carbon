@@ -12,7 +12,6 @@ import type { Events } from "@carbon/lib/events";
 import {
   getNotificationEmailCtaLabel,
   getNotificationEmailHeading,
-  getNotificationLink,
   getNotificationTopic,
   NotificationDestination,
   NotificationEvent
@@ -21,6 +20,16 @@ import { render } from "@react-email/components";
 import { inngest } from "../../client";
 
 type ApprovalDocumentType = Database["public"]["Enums"]["approvalDocumentType"];
+
+function buildNotificationLink(
+  event: NotificationEvent,
+  documentId: string,
+  documentType?: ApprovalDocumentType
+): string {
+  const params = new URLSearchParams({ event, documentId });
+  if (documentType) params.set("documentType", documentType);
+  return `${ERP_URL}/api/link?${params.toString()}`;
+}
 
 async function getCompanyIntegrations(
   client: ReturnType<typeof getCarbonServiceRole>,
@@ -769,32 +778,11 @@ export const notifyFunction = inngest.createFunction(
           const subject = description;
           const heading = getNotificationEmailHeading(payload.event);
           const ctaLabel = getNotificationEmailCtaLabel(payload.event);
-          const isJobOperationEvent =
-            payload.event === NotificationEvent.JobOperationAssignment ||
-            payload.event === NotificationEvent.JobOperationMessage;
-          let jobOperationContext: {
-            jobId?: string;
-            operationId?: string;
-            makeMethodId?: string;
-            materialId?: string;
-          } = {};
-          if (isJobOperationEvent) {
-            const [jobId, operationId, makeMethodId, materialId] =
-              payload.documentId.split(":");
-
-            jobOperationContext = {
-              jobId: jobId,
-              makeMethodId: makeMethodId,
-              materialId: materialId,
-              operationId: operationId
-            };
-          }
-
-          const link = getNotificationLink(payload.event, payload.documentId, {
-            documentType: payload.documentType,
-            ...jobOperationContext
-          });
-          const ctaUrl = link ? `${ERP_URL}${link}` : undefined;
+          const ctaUrl = buildNotificationLink(
+            payload.event,
+            payload.documentId,
+            payload.documentType
+          );
 
           const recipients = (users ?? []).filter((u) => u.email);
 
@@ -819,9 +807,7 @@ export const notifyFunction = inngest.createFunction(
                   companyId: payload.companyId,
                   html,
                   subject,
-                  text: ctaUrl
-                    ? `${description}\n\n${ctaLabel}: ${ctaUrl}`
-                    : description,
+                  text: `${description}\n\n${ctaLabel}: ${ctaUrl}`,
                   to: u.email
                 },
                 name: "carbon/send-email" as const
@@ -862,13 +848,12 @@ export const notifyFunction = inngest.createFunction(
           const accessToken = metadata?.access_token;
           if (!accessToken) return [];
 
-          const link = getNotificationLink(payload.event, payload.documentId, {
-            documentType: payload.documentType
-          });
-          const ctaUrl = link ? `${ERP_URL}${link}` : undefined;
-          const text = ctaUrl
-            ? `${description}\n<${ctaUrl}|View in Carbon>`
-            : description;
+          const ctaUrl = buildNotificationLink(
+            payload.event,
+            payload.documentId,
+            payload.documentType
+          );
+          const text = `${description}\n<${ctaUrl}|View in Carbon>`;
 
           const slackUserIds = await Promise.all(
             userIds.map((userId) =>
