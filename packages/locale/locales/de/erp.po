@@ -1934,6 +1934,9 @@ msgstr "Kundendetails"
 msgid "Customer ID"
 msgstr "Kunden-ID"
 
+msgid "Customer ID cannot be changed after creation"
+msgstr ""
+
 msgid "Customer Invoice Number"
 msgstr "Kundenrechnungsnummer"
 
@@ -6897,6 +6900,15 @@ msgstr "Kurzbeschreibung"
 msgid "Shortcuts"
 msgstr "Tastenkombinationen"
 
+msgid "Show a readable Customer ID column on the customer list, customer forms, and dropdowns. Customers are still identified internally either way."
+msgstr ""
+
+msgid "Show a readable Supplier ID column on the supplier list, supplier forms, and dropdowns. Suppliers are still identified internally either way."
+msgstr ""
+
+msgid "Show Customer IDs"
+msgstr ""
+
 msgid "Show Durations"
 msgstr "Dauern anzeigen"
 
@@ -6908,6 +6920,9 @@ msgstr "Zeige Teilminiaturen auf Bestellungen an."
 
 msgid "Show part thumbnails on quotes, sales orders, sales invoices, and shipments."
 msgstr "Zeigen Sie Teilminiaturen auf Angeboten, VerkaufsauftrÃƒÆ’Ã‚Â¤gen, Verkaufsrechnungen und Lieferungen an."
+
+msgid "Show Supplier IDs"
+msgstr ""
 
 msgid "Show sync options"
 msgstr "Synchronisierungsoptionen anzeigen"
@@ -7226,6 +7241,9 @@ msgstr "Lieferantenkontakt"
 
 msgid "Supplier ID"
 msgstr "Lieferanten-ID"
+
+msgid "Supplier ID cannot be changed after creation"
+msgstr ""
 
 msgid "Supplier Invoice Number"
 msgstr "Lieferantenrechnungsnummer"

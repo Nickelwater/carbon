@@ -1934,6 +1934,9 @@ msgstr "Customer Details"
 msgid "Customer ID"
 msgstr "Customer ID"
 
+msgid "Customer ID cannot be changed after creation"
+msgstr "Customer ID cannot be changed after creation"
+
 msgid "Customer Invoice Number"
 msgstr "Customer Invoice Number"
 
@@ -6897,6 +6900,15 @@ msgstr "Short Description"
 msgid "Shortcuts"
 msgstr "Shortcuts"
 
+msgid "Show a readable Customer ID column on the customer list, customer forms, and dropdowns. Customers are still identified internally either way."
+msgstr "Show a readable Customer ID column on the customer list, customer forms, and dropdowns. Customers are still identified internally either way."
+
+msgid "Show a readable Supplier ID column on the supplier list, supplier forms, and dropdowns. Suppliers are still identified internally either way."
+msgstr "Show a readable Supplier ID column on the supplier list, supplier forms, and dropdowns. Suppliers are still identified internally either way."
+
+msgid "Show Customer IDs"
+msgstr "Show Customer IDs"
+
 msgid "Show Durations"
 msgstr "Show Durations"
 
@@ -6908,6 +6920,9 @@ msgstr "Show part thumbnails on purchase orders."
 
 msgid "Show part thumbnails on quotes, sales orders, sales invoices, and shipments."
 msgstr "Show part thumbnails on quotes, sales orders, sales invoices, and shipments."
+
+msgid "Show Supplier IDs"
+msgstr "Show Supplier IDs"
 
 msgid "Show sync options"
 msgstr "Show sync options"
@@ -7226,6 +7241,9 @@ msgstr "Supplier Contact"
 
 msgid "Supplier ID"
 msgstr "Supplier ID"
+
+msgid "Supplier ID cannot be changed after creation"
+msgstr "Supplier ID cannot be changed after creation"
 
 msgid "Supplier Invoice Number"
 msgstr "Supplier Invoice Number"

@@ -30,7 +30,7 @@ import {
   SequenceOrCustomId,
   Submit
 } from "~/components/Form";
-import { usePermissions } from "~/hooks";
+import { useCompanySettings, usePermissions } from "~/hooks";
 import { path } from "~/utils/path";
 import { customerValidator } from "../../sales.models";
 import type { Customer } from "../../types";
@@ -48,6 +48,9 @@ const CustomerForm = ({
 }: CustomerFormProps) => {
   const { t } = useLingui();
   const permissions = usePermissions();
+  const companySettings = useCompanySettings();
+  const showCustomerReadableId =
+    companySettings?.showCustomerReadableId ?? false;
   const fetcher = useFetcher<PostgrestResponse<Customer>>();
 
   useEffect(() => {
@@ -113,15 +116,21 @@ const CustomerForm = ({
                         : "grid-cols-1 md:grid-cols-2"
                   )}
                 >
-                  {isEditing ? (
-                    <Input name="readableId" label={t`Customer ID`} />
-                  ) : (
-                    <SequenceOrCustomId
-                      name="readableId"
-                      label={t`Customer ID`}
-                      table="customer"
-                    />
-                  )}
+                  {showCustomerReadableId &&
+                    (isEditing ? (
+                      <Input
+                        name="readableId"
+                        label={t`Customer ID`}
+                        isReadOnly
+                        helperText={t`Customer ID cannot be changed after creation`}
+                      />
+                    ) : (
+                      <SequenceOrCustomId
+                        name="readableId"
+                        label={t`Customer ID`}
+                        table="customer"
+                      />
+                    ))}
                   <Input name="name" label={t`Name`} autoFocus={!isEditing} />
 
                   <CustomerStatus

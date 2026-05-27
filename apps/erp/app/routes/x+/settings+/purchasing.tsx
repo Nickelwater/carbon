@@ -55,6 +55,7 @@ import {
   updateLeadTimesOnReceiptSetting,
   updatePurchasePriceUpdateTimingSetting,
   updatePurchasingPdfThumbnails,
+  updateShowSupplierReadableIdSetting,
   updateSupplierQuoteNotificationSetting
 } from "~/modules/settings";
 import type { Handle } from "~/utils/handle";
@@ -184,6 +185,31 @@ export async function action({ request }: ActionFunctionArgs) {
       return {
         success: true,
         message: `Lead time updates on receipt ${updateLeadTimesOnReceipt ? "enabled" : "disabled"}`
+      };
+
+    case "showSupplierReadableIdToggle":
+      const showSupplierReadableId = formData.get("enabled") === "true";
+      const showSupplierReadableIdResult =
+        await updateShowSupplierReadableIdSetting(
+          client,
+          companyId,
+          showSupplierReadableId
+        );
+
+      if (showSupplierReadableIdResult.error) {
+        console.error(
+          "Failed to update supplier ID visibility setting:",
+          showSupplierReadableIdResult.error
+        );
+        return {
+          success: false,
+          message: showSupplierReadableIdResult.error.message
+        };
+      }
+
+      return {
+        success: true,
+        message: `Supplier IDs ${showSupplierReadableId ? "shown" : "hidden"}`
       };
 
     case "supplierQuoteNotification":
@@ -332,6 +358,20 @@ export default function PurchasingSettingsRoute() {
   const [leadTimesOnReceiptEnabled, setLeadTimesOnReceiptEnabled] = useState(
     (companySettings as { updateLeadTimesOnReceipt?: boolean })
       .updateLeadTimesOnReceipt ?? false
+  );
+
+  const [showSupplierReadableIdEnabled, setShowSupplierReadableIdEnabled] =
+    useState(companySettings.showSupplierReadableId ?? false);
+
+  const handleShowSupplierReadableIdToggle = useCallback(
+    (checked: boolean) => {
+      setShowSupplierReadableIdEnabled(checked);
+      toggleFetcher.submit(
+        { intent: "showSupplierReadableIdToggle", enabled: checked.toString() },
+        { method: "POST" }
+      );
+    },
+    [toggleFetcher]
   );
 
   const handleApAddressToggle = useCallback(
@@ -599,6 +639,29 @@ export default function PurchasingSettingsRoute() {
               <Switch
                 checked={leadTimesOnReceiptEnabled}
                 onCheckedChange={handleLeadTimesOnReceiptToggle}
+                disabled={toggleFetcher.state !== "idle"}
+              />
+            </HStack>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <HStack className="justify-between items-center">
+              <div>
+                <CardTitle>
+                  <Trans>Show Supplier IDs</Trans>
+                </CardTitle>
+                <CardDescription>
+                  <Trans>
+                    Show a readable Supplier ID column on the supplier list,
+                    supplier forms, and dropdowns. Suppliers are still
+                    identified internally either way.
+                  </Trans>
+                </CardDescription>
+              </div>
+              <Switch
+                checked={showSupplierReadableIdEnabled}
+                onCheckedChange={handleShowSupplierReadableIdToggle}
                 disabled={toggleFetcher.state !== "idle"}
               />
             </HStack>

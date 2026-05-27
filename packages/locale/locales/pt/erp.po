@@ -1934,6 +1934,9 @@ msgstr "Detalhes do Cliente"
 msgid "Customer ID"
 msgstr "ID do Cliente"
 
+msgid "Customer ID cannot be changed after creation"
+msgstr ""
+
 msgid "Customer Invoice Number"
 msgstr "NÃƒÆ’Ã‚Âºmero de Fatura do Cliente"
 
@@ -6897,6 +6900,15 @@ msgstr "DescriÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o Breve"
 msgid "Shortcuts"
 msgstr "Atalhos"
 
+msgid "Show a readable Customer ID column on the customer list, customer forms, and dropdowns. Customers are still identified internally either way."
+msgstr ""
+
+msgid "Show a readable Supplier ID column on the supplier list, supplier forms, and dropdowns. Suppliers are still identified internally either way."
+msgstr ""
+
+msgid "Show Customer IDs"
+msgstr ""
+
 msgid "Show Durations"
 msgstr "Mostrar DuraÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes"
 
@@ -6908,6 +6920,9 @@ msgstr "Mostrar miniaturas de peÃƒÆ’Ã‚Â§as em pedidos de compra."
 
 msgid "Show part thumbnails on quotes, sales orders, sales invoices, and shipments."
 msgstr "Mostrar miniaturas de peÃƒÆ’Ã‚Â§as em cotaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes, pedidos de venda, faturas de venda e remessas."
+
+msgid "Show Supplier IDs"
+msgstr ""
 
 msgid "Show sync options"
 msgstr "Mostrar opÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes de sincronizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o"
@@ -7226,6 +7241,9 @@ msgstr "Contato do Fornecedor"
 
 msgid "Supplier ID"
 msgstr "ID do Fornecedor"
+
+msgid "Supplier ID cannot be changed after creation"
+msgstr ""
 
 msgid "Supplier Invoice Number"
 msgstr "NÃƒÆ’Ã‚Âºmero da Fatura do Fornecedor"

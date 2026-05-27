@@ -57,7 +57,8 @@ import {
   updateDigitalQuoteSetting,
   updateQuoteLineCategoryMarkups,
   updateRfqReadySetting,
-  updateSalesPdfThumbnails
+  updateSalesPdfThumbnails,
+  updateShowCustomerReadableIdSetting
 } from "~/modules/settings";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
@@ -114,6 +115,25 @@ export async function action({ request }: ActionFunctionArgs) {
       return {
         success: true,
         message: `Accounts receivable billing address ${arToggleEnabled ? "enabled" : "disabled"}`
+      };
+
+    case "showCustomerReadableIdToggle":
+      const showCustomerReadableId = formData.get("enabled") === "true";
+      const showCustomerReadableIdResult =
+        await updateShowCustomerReadableIdSetting(
+          client,
+          companyId,
+          showCustomerReadableId
+        );
+      if (showCustomerReadableIdResult.error) {
+        return {
+          success: false,
+          message: showCustomerReadableIdResult.error.message
+        };
+      }
+      return {
+        success: true,
+        message: `Customer IDs ${showCustomerReadableId ? "shown" : "hidden"}`
       };
 
     case "digitalQuote":
@@ -276,6 +296,20 @@ export default function SalesSettingsRoute() {
     [toggleFetcher]
   );
 
+  const [showCustomerReadableIdEnabled, setShowCustomerReadableIdEnabled] =
+    useState(companySettings.showCustomerReadableId ?? false);
+
+  const handleShowCustomerReadableIdToggle = useCallback(
+    (checked: boolean) => {
+      setShowCustomerReadableIdEnabled(checked);
+      toggleFetcher.submit(
+        { intent: "showCustomerReadableIdToggle", enabled: checked.toString() },
+        { method: "POST" }
+      );
+    },
+    [toggleFetcher]
+  );
+
   const [digitalQuoteEnabled, setDigitalQuoteEnabled] = useState(
     companySettings.digitalQuoteEnabled ?? false
   );
@@ -405,6 +439,29 @@ export default function SalesSettingsRoute() {
               <Switch
                 checked={arAddressEnabled}
                 onCheckedChange={handleArAddressToggle}
+                disabled={toggleFetcher.state !== "idle"}
+              />
+            </HStack>
+          </CardHeader>
+        </Card>
+        <Card>
+          <CardHeader>
+            <HStack className="justify-between items-center">
+              <div>
+                <CardTitle>
+                  <Trans>Show Customer IDs</Trans>
+                </CardTitle>
+                <CardDescription>
+                  <Trans>
+                    Show a readable Customer ID column on the customer list,
+                    customer forms, and dropdowns. Customers are still
+                    identified internally either way.
+                  </Trans>
+                </CardDescription>
+              </div>
+              <Switch
+                checked={showCustomerReadableIdEnabled}
+                onCheckedChange={handleShowCustomerReadableIdToggle}
                 disabled={toggleFetcher.state !== "idle"}
               />
             </HStack>
