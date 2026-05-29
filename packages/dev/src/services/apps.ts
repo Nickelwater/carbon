@@ -5,6 +5,7 @@ import { type ExecaChildProcess, execa } from "execa";
 import { join } from "pathe";
 import pc from "picocolors";
 import { isAtLeastAsNew, onShutdown, readLines } from "../helpers.js";
+import { DEV_BIND_ALL, DEV_BIND_LOCAL } from "../network.js";
 import type { PortMap } from "../worktree.js";
 
 const APP_COLORS: Record<string, (s: string) => string> = {
@@ -55,8 +56,11 @@ export function spawnApps(opts: {
   apps: string[];
   ports: PortMap;
   portless: boolean;
+  /** When true, bind dev servers on 0.0.0.0 for LAN access. */
+  lan?: boolean;
 }): Promise<void> {
-  const { root, apps, ports, portless } = opts;
+  const { root, apps, ports, portless, lan } = opts;
+  const bindHost = lan ? DEV_BIND_ALL : DEV_BIND_LOCAL;
 
   // When portless is active, apps talk to Supabase over HTTPS using
   // portless's self-signed CA. Tell Node to trust it.
@@ -86,14 +90,14 @@ export function spawnApps(opts: {
         "dev",
         ...(port !== undefined ? ["--port", String(port)] : []),
         "--host",
-        "127.0.0.1"
+        bindHost
       ],
       {
         cwd: join(root, "apps", id),
         env: {
           ...appEnv,
           ...extraCaEnv,
-          HOST: "127.0.0.1",
+          HOST: bindHost,
           ...(port !== undefined ? { PORT: String(port) } : {}),
           ...(vercelUrl ? { VERCEL_URL: vercelUrl } : {})
         },

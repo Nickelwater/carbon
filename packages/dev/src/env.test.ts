@@ -98,9 +98,9 @@ describe("renderEnv (portless enabled)", () => {
       branchPrefix: "feat-x"
     });
     expect(out).toContain("CARBON_WORKTREE=feat-x");
-    expect(out).toContain("ERP_URL=https://feat-x.erp.dev");
-    expect(out).toContain("MES_URL=https://feat-x.mes.dev");
-    expect(out).toContain("SUPABASE_URL=https://feat-x.api.dev");
+    expect(out).toContain("ERP_URL=https://erp.feat-x.dev");
+    expect(out).toContain("MES_URL=https://mes.feat-x.dev");
+    expect(out).toContain("SUPABASE_URL=https://api.feat-x.dev");
     expect(out).toContain("PORTLESS_TLD=dev");
   });
 
@@ -158,5 +158,29 @@ describe("renderEnv (portless enabled)", () => {
       branchPrefix: "s"
     });
     expect(out.endsWith("\n")).toBe(true);
+  });
+});
+
+describe("renderEnv (LAN)", () => {
+  it("emits LAN URLs and disables portless hostnames", () => {
+    const out = renderEnv({
+      slug: "shop",
+      ports,
+      redisDb: 2,
+      jwt,
+      portless: false,
+      branchPrefix: "main",
+      lanHost: "192.168.1.42"
+    });
+    expect(out).toContain("CARBON_DEV_LAN=1");
+    expect(out).toContain("CARBON_DEV_HOST=192.168.1.42");
+    expect(out).toContain("ERP_URL=http://192.168.1.42:54005");
+    expect(out).toContain("MES_URL=http://192.168.1.42:54006");
+    expect(out).toContain("SUPABASE_URL=http://192.168.1.42:54005");
+    expect(out).toContain("SUPABASE_INTERNAL_URL=http://127.0.0.1:54001");
+    expect(out).toContain(
+      "SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI=http://192.168.1.42:54005/auth/v1/callback"
+    );
+    expect(out).not.toContain("PORTLESS_TLD");
   });
 });

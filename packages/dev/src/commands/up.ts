@@ -6,6 +6,7 @@ import type { AppId } from "../constants.js";
 import { renderEnv, syncAppPortlessConfigs, writeEnv } from "../env.js";
 import { currentBranch } from "../git.js";
 import { onShutdown } from "../helpers.js";
+import { isLanMode, resolveDevHost } from "../network.js";
 import { pickApps, pickBorrowSlug } from "../prompts.js";
 import {
   installDeps,
@@ -70,6 +71,8 @@ type UpOpts = {
   borrow?: boolean;
   /** When false, skip portless proxy and use localhost URLs. */
   portless?: boolean;
+  /** When true, bind on LAN and write URLs using this machine's IP (or CARBON_DEV_HOST). */
+  lan?: boolean;
 };
 
 type Ctx = {
@@ -79,6 +82,7 @@ type Ctx = {
   redisDb: number;
   jwt: JwtCreds;
   branchPrefix: string;
+  lanHost?: string;
 };
 
 export async function up(opts: UpOpts = {}) {
@@ -98,19 +102,37 @@ export async function up(opts: UpOpts = {}) {
   loadDotenv({ path: join(root, ".env.local"), override: false });
   loadDotenv({ path: join(root, ".env"), override: false });
 
+  const lanRequested = isLanMode({ lan: opts.lan });
+
   // --no-portless flag or CARBON_PORTLESS=0 to use http://localhost:PORT URLs
   // and skip the portless proxy setup (useful when the .dev TLD cert is not
-  // trusted). The flag takes precedence over the env var.
-  const portless =
+  // trusted). The flag takes precedence over the env var. LAN mode always
+  // disables portless (other devices cannot resolve *.dev or trust local CA).
+  let portless =
     opts.portless !== undefined
       ? opts.portless
       : process.env.CARBON_PORTLESS !== "0";
+  if (lanRequested) portless = false;
+
+  let lanHost: string | undefined;
+  if (lanRequested) {
+    lanHost = resolveDevHost();
+    if (!lanHost) {
+      throw new Error(
+        "LAN mode needs a reachable IPv4 address. Set CARBON_DEV_HOST to this machine's LAN IP (e.g. 192.168.1.42) and retry."
+      );
+    }
+  }
 
   intro("Carbon · dev up");
 
   if (portless) {
     await ensurePortlessInstalled();
     await ensureProxyPrivileges();
+  } else if (lanHost) {
+    log.info(
+      `LAN mode — ERP/MES/API on http://${lanHost} (fixed ports, no portless)`
+    );
   } else {
     log.info("portless disabled (CARBON_PORTLESS=0) — using localhost URLs");
   }
@@ -142,7 +164,7 @@ export async function up(opts: UpOpts = {}) {
   await refreshStaleCopyFiles(root);
   await ensureDepsInstalled(root);
 
-  const ctx = await provisionSlot(root, slug, portless, borrowedEntry);
+  const ctx = await provisionSlot(root, slug, portless, borrowedEntry, lanHost);
   if (borrowedEntry) {
     await waitForServices(ctx);
   } else {
@@ -165,17 +187,37 @@ export async function up(opts: UpOpts = {}) {
     summaryLines(
       ctx.ports,
       selectedApps,
-      portless ? ctx.branchPrefix : undefined
+      portless ? ctx.branchPrefix : undefined,
+      ctx.lanHost
     ).join("\n"),
     `Carbon dev — ${slug}`
   );
+
+  if (ctx.lanHost) {
+    log.message(
+      [
+        "",
+        "Open these URLs on other devices on the same Wi‑Fi/LAN:",
+        `  ERP  http://${ctx.lanHost}:${ctx.ports.PORT_ERP}`,
+        `  MES  http://${ctx.lanHost}:${ctx.ports.PORT_MES}`,
+        "",
+        "Auth/magic links use the ERP port (not :54321). Allow inbound TCP on 3000/3001 in your firewall."
+      ].join("\n")
+    );
+  }
 
   if (selectedApps.length === 0) {
     outro("services up (run `crbn down` to stop)");
     return;
   }
   outro("apps starting (Ctrl+C to stop)");
-  await runAppsThenTeardown(root, selectedApps, ctx.ports, portless);
+  await runAppsThenTeardown(
+    root,
+    selectedApps,
+    ctx.ports,
+    portless,
+    Boolean(ctx.lanHost)
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -207,7 +249,8 @@ async function provisionSlot(
   root: string,
   slug: string,
   portless: boolean,
-  borrowedEntry?: { ports: PortMap; redisDb: number; jwt: JwtCreds }
+  borrowedEntry?: { ports: PortMap; redisDb: number; jwt: JwtCreds },
+  lanHost?: string
 ): Promise<Ctx> {
   let ctx!: Ctx;
   await tasks([
@@ -242,9 +285,12 @@ async function provisionSlot(
         const branch = await currentBranch(root);
         const branchPrefix = branchToPrefix(branch, slug);
 
-        ctx = { root, slug, branchPrefix, ...slot };
+        ctx = { root, slug, branchPrefix, lanHost, ...slot };
 
-        writeEnv(root, renderEnv({ slug, portless, branchPrefix, ...slot }));
+        writeEnv(
+          root,
+          renderEnv({ slug, portless, branchPrefix, lanHost, ...slot })
+        );
         syncAppPortlessConfigs(root);
         // Use override: true so freshly written .env.local values replace any
         // stale values already in process.env from the initial load at startup.
@@ -252,9 +298,11 @@ async function provisionSlot(
         loadDotenv({ path: join(root, ".env"), override: false });
         return borrowedEntry
           ? `borrowed backend ports, own app ports (ERP :${slot.ports.PORT_ERP} MES :${slot.ports.PORT_MES}), redis db ${slot.redisDb}`
-          : portless
-            ? `prefix "${branchPrefix}", redis db ${slot.redisDb}`
-            : `localhost mode, redis db ${slot.redisDb}`;
+          : lanHost
+            ? `LAN ${lanHost}, redis db ${slot.redisDb}`
+            : portless
+              ? `prefix "${branchPrefix}", redis db ${slot.redisDb}`
+              : `localhost mode, redis db ${slot.redisDb}`;
       }
     },
     {
@@ -454,9 +502,10 @@ async function runAppsThenTeardown(
   root: string,
   selectedApps: AppId[],
   ports: PortMap,
-  portless: boolean
+  portless: boolean,
+  lan: boolean
 ) {
-  await spawnApps({ root, apps: selectedApps, ports, portless });
+  await spawnApps({ root, apps: selectedApps, ports, portless, lan });
 
   // Apps exit on Ctrl+C; auto-`down` so compose stack isn't orphaned.
   // Swallow further signals so a second Ctrl+C during teardown doesn't

@@ -52,6 +52,12 @@ const main = defineCommand({
           default: true,
           description:
             "Use portless .dev URLs (use --no-portless for localhost mode)"
+        },
+        lan: {
+          type: "boolean",
+          default: false,
+          description:
+            "Serve on LAN (0.0.0.0, HTTP URLs with this machine's IP). Implies --no-portless. Override IP with CARBON_DEV_HOST."
         }
       },
       run: ({ args }) =>
@@ -61,7 +67,8 @@ const main = defineCommand({
           apps: args.apps !== false,
           pull: args.pull === true,
           borrow: args.borrow === true,
-          portless: args.portless !== false
+          portless: args.portless !== false,
+          lan: args.lan === true
         })
     }),
     down: defineCommand({
