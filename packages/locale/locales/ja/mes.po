@@ -73,9 +73,6 @@ msgstr "スペアパーツを追加"
 msgid "All"
 msgstr "すべて"
 
-msgid "Are you sure you want to close out this operation? This will end all active production events for this operation."
-msgstr "この工程をクローズしてもよろしいですか？この工程のすべてのアクティブな生産イベントが終了します。"
-
 msgid "Are you sure you want to delete this step?"
 msgstr "このステップを削除してもよろしいですか？"
 
@@ -84,6 +81,12 @@ msgstr "このタイムカードを削除してもよろしいですか？この
 
 msgid "Are you sure you want to end all production events? This will end all active operations without completing or finishing them."
 msgstr "すべての生産イベントを終了してもよろしいですか？すべてのアクティブな工程が完了せずに終了します。"
+
+msgid "Are you sure you want to finish this operation? This will end all active production events for this operation."
+msgstr "この操作を終了してもよろしいですか？これにより、この操作のすべてのアクティブな生産イベントが終了します。"
+
+msgid "Are you sure you want to leave this page?"
+msgstr "このページを離れてもよろしいですか？"
 
 msgid "Assigned"
 msgstr "割当済み"
@@ -99,6 +102,9 @@ msgstr "ファイルを添付"
 
 msgid "Authentication Error"
 msgstr "認証エラー"
+
+msgid "Batch"
+msgstr "バッチ"
 
 #. placeholder {0}: batch.readableId
 #. placeholder {1}: batch.quantity
@@ -162,19 +168,6 @@ msgstr "退勤打刻"
 msgid "Clocked in since {0}"
 msgstr "{0} から出勤中"
 
-msgid "Close"
-msgstr "閉じる"
-
-msgid "Close Anyways"
-msgstr "強制的に閉じる"
-
-msgid "Close Out"
-msgstr "クローズ"
-
-#. placeholder {0}: operation.itemReadableId
-msgid "Close out {0}"
-msgstr "{0} をクローズ"
-
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -201,6 +194,9 @@ msgstr "会社"
 msgid "Complete"
 msgstr "完了"
 
+msgid "Complete All"
+msgstr "すべて完了"
+
 msgid "Completed"
 msgstr "完了済み"
 
@@ -217,6 +213,15 @@ msgstr "消費期限切れ"
 #. placeholder {0}: search.trim() === "" ? label : search
 msgid "Create {0}"
 msgstr "{0}を作成"
+
+msgid "Create Issue"
+msgstr "問題を作成"
+
+msgid "Create Quality Issue"
+msgstr "品質問題を作成"
+
+msgid "Create Rework"
+msgstr "リワーク作成"
 
 msgid "Customer"
 msgstr "顧客"
@@ -242,6 +247,12 @@ msgstr "ステップを削除"
 #. placeholder {0}: new Date(deletingEntry.clockIn).toLocaleString(locale)
 msgid "Delete Timecard ({0})"
 msgstr "タイムカードを削除（{0}）"
+
+msgid "Describe the problem..."
+msgstr "問題を説明してください..."
+
+msgid "Describe what needs to be reworked..."
+msgstr "再加工が必要な内容を説明してください..."
 
 msgid "Description"
 msgstr "説明"
@@ -269,8 +280,8 @@ msgid "Dragging {0} cancelled."
 msgstr "{0} のドラッグがキャンセルされました。"
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 msgid "Due {0}"
 msgstr "期限 {0}"
 
@@ -342,8 +353,21 @@ msgstr "ジョブおよび案件明細に関連するファイル。"
 msgid "Filter"
 msgstr "フィルター"
 
+msgid "Finish"
+msgstr "完了"
+
+#. placeholder {0}: operation.itemReadableId
+msgid "Finish {0}"
+msgstr "完了 {0}"
+
+msgid "Finish Anyways"
+msgstr "とにかく完了"
+
 msgid "Forgot to Clock Out?"
 msgstr "退勤打刻を忘れましたか？"
+
+msgid "Go back to operation"
+msgstr "操作に戻る"
 
 msgid "Have a technical issue? Contact <0>Carbon Support.</0>"
 msgstr "技術的な問題がありますか？<0>Carbonサポート</0>にお問い合わせください。"
@@ -387,6 +411,9 @@ msgstr "払出"
 msgid "Issue Material"
 msgstr "材料払出"
 
+msgid "Issue Type"
+msgstr "問題タイプ"
+
 msgid "Item"
 msgstr "品目"
 
@@ -403,13 +430,16 @@ msgid "Job Traveler"
 msgstr "ジョブトラベラー"
 
 msgid "Jobs"
-msgstr ""
+msgstr "ジョブ"
 
 msgid "Kit"
 msgstr "キット"
 
 msgid "Labor"
 msgstr "作業"
+
+msgid "Leave this page"
+msgstr "このページを離れる"
 
 msgid "Let's build something"
 msgstr "さあ、何かを作りましょう"
@@ -474,6 +504,9 @@ msgstr "レコードの最大数に達しました"
 msgid "Model"
 msgstr "モデル"
 
+msgid "More Actions"
+msgstr "その他のアクション"
+
 msgid "More options"
 msgstr "その他のオプション"
 
@@ -536,7 +569,7 @@ msgid "No materials"
 msgstr "材料なし"
 
 msgid "No open jobs"
-msgstr ""
+msgstr "オープンなジョブはありません"
 
 msgid "No operators"
 msgstr "オペレーターなし"
@@ -564,6 +597,9 @@ msgstr "予定時間なし"
 
 msgid "No serial numbers"
 msgstr "シリアル番号なし"
+
+msgid "No serial numbers found"
+msgstr "シリアル番号が見つかりません"
 
 msgid "No spare parts added yet"
 msgstr "スペアパーツはまだ追加されていません"
@@ -597,7 +633,7 @@ msgid "Open"
 msgstr "未対応"
 
 msgid "Open Jobs"
-msgstr ""
+msgstr "オープンジョブ"
 
 msgid "Operations"
 msgstr "工程"
@@ -665,11 +701,20 @@ msgstr "プロセス一覧"
 msgid "Progress"
 msgstr "進捗"
 
+msgid "Quality Issue"
+msgstr "品質問題"
+
+msgid "Quality issue created"
+msgstr "品質問題が作成されました"
+
 msgid "Quantity"
 msgstr "数量"
 
 msgid "Quantity must be greater than 0"
 msgstr "数量は0より大きい値を入力してください"
+
+msgid "Reason for rework"
+msgstr "リワークの理由"
 
 msgid "Recent"
 msgstr "最近"
@@ -693,6 +738,12 @@ msgstr "在庫削除"
 msgid "Remove part"
 msgstr "パーツを削除"
 
+msgid "Rework"
+msgstr "リワーク"
+
+msgid "Rework created successfully"
+msgstr "リワーク作成に成功しました"
+
 msgid "Sales Order"
 msgstr "受注"
 
@@ -705,8 +756,14 @@ msgstr "スキャン"
 msgid "Scan or enter serial number"
 msgstr "シリアル番号をスキャンまたは入力"
 
+msgid "Scan or search serial number..."
+msgstr "シリアル番号をスキャンまたは検索..."
+
 msgid "Schedule"
 msgstr "スケジュール"
+
+msgid "Scrap"
+msgstr "廃棄"
 
 msgid "Scrap Reason"
 msgstr "スクラップ理由"
@@ -718,7 +775,7 @@ msgid "Search"
 msgstr "検索"
 
 msgid "Search by job or item ID"
-msgstr ""
+msgstr "ジョブまたはアイテムIDで検索"
 
 msgid "Search operators..."
 msgstr "オペレーターを検索..."
@@ -758,6 +815,9 @@ msgstr "シリアル {0} を選択"
 msgid "Select Serial Number"
 msgstr "シリアル番号を選択"
 
+msgid "Select the operation to go back to. All operations from that point to the current operation will be redone."
+msgstr "戻る操作を選択してください。その時点から現在の操作までのすべての操作が再度実行されます。"
+
 msgid "Send"
 msgstr "送信"
 
@@ -777,6 +837,9 @@ msgstr "シリアル番号は利用できません"
 
 msgid "Serial number is required"
 msgstr "シリアル番号は必須です"
+
+msgid "Serial numbers"
+msgstr "シリアル番号"
 
 msgid "Serial Numbers"
 msgstr "シリアル番号"
@@ -798,6 +861,9 @@ msgstr "Googleでサインイン"
 
 msgid "Sign in with Outlook"
 msgstr "Outlookでサインイン"
+
+msgid "Sign in with Passkey"
+msgstr "パスキーでサインイン"
 
 msgid "Sign Out"
 msgstr "サインアウト"
@@ -831,6 +897,9 @@ msgstr "ステータス"
 
 msgid "Statuses"
 msgstr "ステータス一覧"
+
+msgid "Stay on this page"
+msgstr "このページに留まる"
 
 msgid "Steps"
 msgstr "ステップ"
@@ -891,7 +960,7 @@ msgid "Total: {0}"
 msgstr "合計: {0}"
 
 msgid "Tracking"
-msgstr ""
+msgstr "追跡"
 
 msgid "Tracking Labels"
 msgstr "追跡ラベル"
@@ -904,6 +973,9 @@ msgstr "未払出のシリアル/バッチ材料"
 
 msgid "Unknown"
 msgstr "不明"
+
+msgid "Unsaved changes"
+msgstr "未保存の変更"
 
 msgid "Update"
 msgstr "更新"

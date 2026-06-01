@@ -14,8 +14,12 @@ dist-ssr
 server/dist
 public/dist
 vite.config.ts.timestamp*
+.claude-flow
+.claude/settings.json
+.claude/settings.local.json
 .mcp.json
 opencode.json
+.windsurf
 
 # Lingui compiled catalogs
 packages/locale/locales/**/*.mjs

@@ -73,9 +73,6 @@ msgstr "Dodaj część zamienną"
 msgid "All"
 msgstr "Wszystkie"
 
-msgid "Are you sure you want to close out this operation? This will end all active production events for this operation."
-msgstr "Czy na pewno chcesz zamknąć tę operację? Spowoduje to zakończenie wszystkich aktywnych zdarzeń produkcyjnych dla tej operacji."
-
 msgid "Are you sure you want to delete this step?"
 msgstr "Czy na pewno chcesz usunąć ten krok?"
 
@@ -84,6 +81,12 @@ msgstr "Czy na pewno chcesz usunąć tę kartę czasu pracy? Tej operacji nie mo
 
 msgid "Are you sure you want to end all production events? This will end all active operations without completing or finishing them."
 msgstr "Czy na pewno chcesz zakończyć wszystkie zdarzenia produkcyjne? Spowoduje to zakończenie wszystkich aktywnych operacji bez ich ukończenia."
+
+msgid "Are you sure you want to finish this operation? This will end all active production events for this operation."
+msgstr "Czy na pewno chcesz zakończyć tę operację? Spowoduje to zakończenie wszystkich aktywnych zdarzeń produkcyjnych dla tej operacji."
+
+msgid "Are you sure you want to leave this page?"
+msgstr "Czy na pewno chcesz opuścić tę stronę?"
 
 msgid "Assigned"
 msgstr "Przypisane"
@@ -99,6 +102,9 @@ msgstr "Załącz plik"
 
 msgid "Authentication Error"
 msgstr "Błąd uwierzytelniania"
+
+msgid "Batch"
+msgstr "Partia"
 
 #. placeholder {0}: batch.readableId
 #. placeholder {1}: batch.quantity
@@ -162,19 +168,6 @@ msgstr "Zakończ zmianę"
 msgid "Clocked in since {0}"
 msgstr "Zalogowany od {0}"
 
-msgid "Close"
-msgstr "Zamknij"
-
-msgid "Close Anyways"
-msgstr "Zamknij mimo to"
-
-msgid "Close Out"
-msgstr "Zamknij"
-
-#. placeholder {0}: operation.itemReadableId
-msgid "Close out {0}"
-msgstr "Zamknij {0}"
-
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -201,6 +194,9 @@ msgstr "Firma"
 msgid "Complete"
 msgstr "Ukończ"
 
+msgid "Complete All"
+msgstr "Uzupełnij wszystko"
+
 msgid "Completed"
 msgstr "Ukończone"
 
@@ -217,6 +213,15 @@ msgstr "Zużyte wygasłe"
 #. placeholder {0}: search.trim() === "" ? label : search
 msgid "Create {0}"
 msgstr "Utwórz {0}"
+
+msgid "Create Issue"
+msgstr "Utwórz Problem"
+
+msgid "Create Quality Issue"
+msgstr "Utwórz Problem Jakości"
+
+msgid "Create Rework"
+msgstr "Utwórz Przerobienie"
 
 msgid "Customer"
 msgstr "Klient"
@@ -242,6 +247,12 @@ msgstr "Usuń krok"
 #. placeholder {0}: new Date(deletingEntry.clockIn).toLocaleString(locale)
 msgid "Delete Timecard ({0})"
 msgstr "Usuń kartę czasu pracy ({0})"
+
+msgid "Describe the problem..."
+msgstr "Opisz problem..."
+
+msgid "Describe what needs to be reworked..."
+msgstr "Opisz, co należy przerobić..."
 
 msgid "Description"
 msgstr "Opis"
@@ -269,8 +280,8 @@ msgid "Dragging {0} cancelled."
 msgstr "Przeciąganie {0} anulowane."
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 msgid "Due {0}"
 msgstr "Termin {0}"
 
@@ -342,8 +353,21 @@ msgstr "Pliki powiązane ze zleceniem i pozycją zapytania."
 msgid "Filter"
 msgstr "Filtr"
 
+msgid "Finish"
+msgstr "Zakończ"
+
+#. placeholder {0}: operation.itemReadableId
+msgid "Finish {0}"
+msgstr "Zakończ {0}"
+
+msgid "Finish Anyways"
+msgstr "Zakończ mimo wszystko"
+
 msgid "Forgot to Clock Out?"
 msgstr "Zapomniałeś zakończyć zmianę?"
+
+msgid "Go back to operation"
+msgstr "Wróć do operacji"
 
 msgid "Have a technical issue? Contact <0>Carbon Support.</0>"
 msgstr "Masz problem techniczny? Skontaktuj się z <0>Wsparciem Carbon.</0>"
@@ -387,6 +411,9 @@ msgstr "Wydaj"
 msgid "Issue Material"
 msgstr "Wydaj materiał"
 
+msgid "Issue Type"
+msgstr "Typ problemu"
+
 msgid "Item"
 msgstr "Pozycja"
 
@@ -403,13 +430,16 @@ msgid "Job Traveler"
 msgstr "Karta obiegowa zlecenia"
 
 msgid "Jobs"
-msgstr ""
+msgstr "Zadania"
 
 msgid "Kit"
 msgstr "Zestaw"
 
 msgid "Labor"
 msgstr "Robocizna"
+
+msgid "Leave this page"
+msgstr "Opuść tę stronę"
 
 msgid "Let's build something"
 msgstr "Zbudujmy coś"
@@ -474,6 +504,9 @@ msgstr "Osiągnięto maksymalną liczbę rekordów"
 msgid "Model"
 msgstr "Model"
 
+msgid "More Actions"
+msgstr "Więcej akcji"
+
 msgid "More options"
 msgstr "Więcej opcji"
 
@@ -536,7 +569,7 @@ msgid "No materials"
 msgstr "Brak materiałów"
 
 msgid "No open jobs"
-msgstr ""
+msgstr "Brak otwartych zadań"
 
 msgid "No operators"
 msgstr "Brak operatorów"
@@ -564,6 +597,9 @@ msgstr "Brak zaplanowanego czasu"
 
 msgid "No serial numbers"
 msgstr "Brak numerów seryjnych"
+
+msgid "No serial numbers found"
+msgstr "Nie znaleziono numerów seryjnych"
 
 msgid "No spare parts added yet"
 msgstr "Nie dodano jeszcze części zamiennych"
@@ -597,7 +633,7 @@ msgid "Open"
 msgstr "Otwarte"
 
 msgid "Open Jobs"
-msgstr ""
+msgstr "Otwarte Zadania"
 
 msgid "Operations"
 msgstr "Operacje"
@@ -665,11 +701,20 @@ msgstr "Procesy"
 msgid "Progress"
 msgstr "Postęp"
 
+msgid "Quality Issue"
+msgstr "Problem z jakością"
+
+msgid "Quality issue created"
+msgstr "Problem z jakością został utworzony"
+
 msgid "Quantity"
 msgstr "Ilość"
 
 msgid "Quantity must be greater than 0"
 msgstr "Ilość musi być większa od 0"
+
+msgid "Reason for rework"
+msgstr "Powód do przeróbki"
 
 msgid "Recent"
 msgstr "Ostatnie"
@@ -693,6 +738,12 @@ msgstr "Usuń zapasy"
 msgid "Remove part"
 msgstr "Usuń część"
 
+msgid "Rework"
+msgstr "Przeróbka"
+
+msgid "Rework created successfully"
+msgstr "Przeróbka utworzona pomyślnie"
+
 msgid "Sales Order"
 msgstr "Zamówienie sprzedaży"
 
@@ -705,8 +756,14 @@ msgstr "Skanuj"
 msgid "Scan or enter serial number"
 msgstr "Skanuj lub wprowadź numer seryjny"
 
+msgid "Scan or search serial number..."
+msgstr "Skanuj lub wyszukaj numer seryjny..."
+
 msgid "Schedule"
 msgstr "Harmonogram"
+
+msgid "Scrap"
+msgstr "Złom"
 
 msgid "Scrap Reason"
 msgstr "Przyczyna odrzutu"
@@ -718,7 +775,7 @@ msgid "Search"
 msgstr "Szukaj"
 
 msgid "Search by job or item ID"
-msgstr ""
+msgstr "Szukaj po ID zadania lub przedmiotu"
 
 msgid "Search operators..."
 msgstr "Szukaj operatorów..."
@@ -758,6 +815,9 @@ msgstr "Wybierz numer seryjny {0}"
 msgid "Select Serial Number"
 msgstr "Wybierz numer seryjny"
 
+msgid "Select the operation to go back to. All operations from that point to the current operation will be redone."
+msgstr "Wybierz operację, do której chcesz wrócić. Wszystkie operacje od tego punktu do bieżącej operacji będą powtórzone."
+
 msgid "Send"
 msgstr "Wyślij"
 
@@ -777,6 +837,9 @@ msgstr "Numer seryjny jest niedostępny"
 
 msgid "Serial number is required"
 msgstr "Numer seryjny jest wymagany"
+
+msgid "Serial numbers"
+msgstr "Numery seryjne"
 
 msgid "Serial Numbers"
 msgstr "Numery seryjne"
@@ -798,6 +861,9 @@ msgstr "Zaloguj się przez Google"
 
 msgid "Sign in with Outlook"
 msgstr "Zaloguj się przez Outlook"
+
+msgid "Sign in with Passkey"
+msgstr "Zaloguj się za pomocą klucza dostępu"
 
 msgid "Sign Out"
 msgstr "Wyloguj się"
@@ -831,6 +897,9 @@ msgstr "Status"
 
 msgid "Statuses"
 msgstr "Statusy"
+
+msgid "Stay on this page"
+msgstr "Zostań na tej stronie"
 
 msgid "Steps"
 msgstr "Kroki"
@@ -891,7 +960,7 @@ msgid "Total: {0}"
 msgstr "Razem: {0}"
 
 msgid "Tracking"
-msgstr ""
+msgstr "Śledzenie"
 
 msgid "Tracking Labels"
 msgstr "Etykiety śledzenia"
@@ -904,6 +973,9 @@ msgstr "Niewydane materiały seryjne/partyjne"
 
 msgid "Unknown"
 msgstr "Nieznane"
+
+msgid "Unsaved changes"
+msgstr "Niezapisane zmiany"
 
 msgid "Update"
 msgstr "Aktualizuj"

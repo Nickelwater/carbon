@@ -1661,6 +1661,13 @@ export async function getSalesOrdersList(
   );
 }
 
+export async function getSalesOrdersByIds(
+  client: SupabaseClient<Database>,
+  ids: string[]
+) {
+  return client.from("salesOrder").select("id, salesOrderId").in("id", ids);
+}
+
 export async function getSalesOrderPayment(
   client: SupabaseClient<Database>,
   salesOrderId: string
