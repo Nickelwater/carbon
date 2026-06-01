@@ -1007,13 +1007,13 @@ msgid "Auto-generated QR Code"
 msgstr "Código QR generado automáticamente"
 
 msgid "Automatic Cost Updates"
-msgstr ""
+msgstr "Actualizaciones automáticas de costos"
 
 msgid "Automatic Lead Time Updates"
-msgstr ""
+msgstr "Actualizaciones Automáticas de Tiempo de Entrega"
 
 msgid "Automatic Updates"
-msgstr ""
+msgstr "Actualizaciones Automáticas"
 
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "Liberar automáticamente el trabajo cuando se escanea el kanban"
@@ -1263,7 +1263,7 @@ msgid "CC"
 msgstr "CC"
 
 msgid "Centralized Billing Address"
-msgstr ""
+msgstr "Dirección de Facturación Centralizada"
 
 msgid "Change"
 msgstr "Cambiar"
@@ -1510,7 +1510,7 @@ msgid "Configure the start months for your fiscal and tax years"
 msgstr "Configura los meses de inicio para tus años fiscales y tributarios"
 
 msgid "Configure when purchased item costs should be updated from supplier transactions."
-msgstr ""
+msgstr "Configura cuándo se deben actualizar los costos de artículos comprados a partir de transacciones de proveedores."
 
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "Configura quién debe recibir notificaciones cuando un proveedor envía una cotización."
@@ -3921,10 +3921,10 @@ msgid "Include Inactive"
 msgstr "Incluir Inactivos"
 
 msgid "Include Thumbnails on Purchasing Documents"
-msgstr ""
+msgstr "Incluir miniaturas en documentos de compra"
 
 msgid "Include Thumbnails on Sales Documents"
-msgstr ""
+msgstr "Incluir miniaturas en documentos de ventas"
 
 msgid "Includes tax and shipping costs"
 msgstr "Incluye impuestos y costos de envío"
@@ -6209,7 +6209,7 @@ msgid "Quotes"
 msgstr "Cotizaciones"
 
 msgid "Quoting"
-msgstr ""
+msgstr "Cotización"
 
 msgid "Rate Limit"
 msgstr "Límite de Velocidad"
@@ -6613,10 +6613,10 @@ msgid "Role:"
 msgstr "Rol:"
 
 msgid "Route all AP invoices to one address (e.g. corporate headquarters) instead of individual purchasers."
-msgstr ""
+msgstr "Enruta todas las facturas de AP a una dirección (p. ej., sede corporativa) en lugar de compradores individuales."
 
 msgid "Route all AR invoices to one address (e.g. corporate headquarters) instead of individual locations."
-msgstr ""
+msgstr "Enruta todas las facturas de AR a una dirección (p. ej. sede corporativa) en lugar de ubicaciones individuales."
 
 msgid "rows"
 msgstr "filas"
@@ -7211,10 +7211,10 @@ msgid "Show parent items"
 msgstr "Mostrar elementos principales"
 
 msgid "Show part thumbnails on purchase order PDFs."
-msgstr ""
+msgstr "Mostrar miniaturas de piezas en los PDF de órdenes de compra."
 
 msgid "Show part thumbnails on quotes, sales orders, invoices, and shipments."
-msgstr ""
+msgstr "Mostrar miniaturas de piezas en cotizaciones, órdenes de venta, facturas y envíos."
 
 msgid "Show Supplier IDs"
 msgstr "Mostrar IDs de Proveedores"
@@ -8196,7 +8196,7 @@ msgid "Update"
 msgstr "Actualizar"
 
 msgid "Update costs on"
-msgstr ""
+msgstr "Actualizar costos en"
 
 msgid "Update Inventory"
 msgstr "Actualizar Inventario"

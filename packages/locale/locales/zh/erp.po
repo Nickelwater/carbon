@@ -1007,13 +1007,13 @@ msgid "Auto-generated QR Code"
 msgstr "自动生成的二维码"
 
 msgid "Automatic Cost Updates"
-msgstr ""
+msgstr "自动成本更新"
 
 msgid "Automatic Lead Time Updates"
-msgstr ""
+msgstr "自动提前期更新"
 
 msgid "Automatic Updates"
-msgstr ""
+msgstr "自动更新"
 
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "当扫描看板时自动释放作业"
@@ -1263,7 +1263,7 @@ msgid "CC"
 msgstr "抄送"
 
 msgid "Centralized Billing Address"
-msgstr ""
+msgstr "集中式账单地址"
 
 msgid "Change"
 msgstr "更改"
@@ -1510,7 +1510,7 @@ msgid "Configure the start months for your fiscal and tax years"
 msgstr "配置您的财政年度和税务年度的开始月份"
 
 msgid "Configure when purchased item costs should be updated from supplier transactions."
-msgstr ""
+msgstr "配置何时应从供应商交易更新采购项目成本。"
 
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "配置供应商提交报价时谁应该收到通知。"
@@ -3921,10 +3921,10 @@ msgid "Include Inactive"
 msgstr "包括不活跃"
 
 msgid "Include Thumbnails on Purchasing Documents"
-msgstr ""
+msgstr "在采购文件上包含缩略图"
 
 msgid "Include Thumbnails on Sales Documents"
-msgstr ""
+msgstr "在销售文件上包含缩略图"
 
 msgid "Includes tax and shipping costs"
 msgstr "包括税费和运费"
@@ -6209,7 +6209,7 @@ msgid "Quotes"
 msgstr "报价"
 
 msgid "Quoting"
-msgstr ""
+msgstr "报价"
 
 msgid "Rate Limit"
 msgstr "速率限制"
@@ -6613,10 +6613,10 @@ msgid "Role:"
 msgstr "角色："
 
 msgid "Route all AP invoices to one address (e.g. corporate headquarters) instead of individual purchasers."
-msgstr ""
+msgstr "将所有应付账款发票路由到一个地址（例如公司总部），而不是个别采购员。"
 
 msgid "Route all AR invoices to one address (e.g. corporate headquarters) instead of individual locations."
-msgstr ""
+msgstr "将所有应收账款发票路由到一个地址（例如公司总部），而不是各个地点。"
 
 msgid "rows"
 msgstr "行"
@@ -7211,10 +7211,10 @@ msgid "Show parent items"
 msgstr "显示父项"
 
 msgid "Show part thumbnails on purchase order PDFs."
-msgstr ""
+msgstr "在采购订单 PDF 上显示零件缩略图。"
 
 msgid "Show part thumbnails on quotes, sales orders, invoices, and shipments."
-msgstr ""
+msgstr "在报价单、销售订单、发票和发货单上显示零件缩略图。"
 
 msgid "Show Supplier IDs"
 msgstr "显示供应商ID"
@@ -8196,7 +8196,7 @@ msgid "Update"
 msgstr "更新"
 
 msgid "Update costs on"
-msgstr ""
+msgstr "更新成本于"
 
 msgid "Update Inventory"
 msgstr "更新库存"

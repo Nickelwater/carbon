@@ -1007,13 +1007,13 @@ msgid "Auto-generated QR Code"
 msgstr "स्वचालित रूप से उत्पन्न QR कोड"
 
 msgid "Automatic Cost Updates"
-msgstr ""
+msgstr "स्वचालित लागत अपडेट"
 
 msgid "Automatic Lead Time Updates"
-msgstr ""
+msgstr "स्वचालित लीड टाइम अपडेट"
 
 msgid "Automatic Updates"
-msgstr ""
+msgstr "स्वचालित अपडेट"
 
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "कनबन स्कैन किए जाने पर जॉब को स्वचालित रूप से रिलीज़ करें"
@@ -1263,7 +1263,7 @@ msgid "CC"
 msgstr "CC"
 
 msgid "Centralized Billing Address"
-msgstr ""
+msgstr "केंद्रीकृत बिलिंग पता"
 
 msgid "Change"
 msgstr "बदलें"
@@ -1510,7 +1510,7 @@ msgid "Configure the start months for your fiscal and tax years"
 msgstr "अपने वित्तीय और कर वर्षों के लिए शुरुआती महीनों को कॉन्फ़िगर करें"
 
 msgid "Configure when purchased item costs should be updated from supplier transactions."
-msgstr ""
+msgstr "खरीदी गई वस्तु की लागत को आपूर्तिकर्ता लेनदेन से कब अपडेट किया जाना चाहिए, इसे कॉन्फ़िगर करें।"
 
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "सप्लायर द्वारा कोट सबमिट करने पर कौन सूचनाएं प्राप्त करेगा, इसे कॉन्फ़िगर करें।"
@@ -3921,10 +3921,10 @@ msgid "Include Inactive"
 msgstr "निष्क्रिय शामिल करें"
 
 msgid "Include Thumbnails on Purchasing Documents"
-msgstr ""
+msgstr "खरीद दस्तावेजों पर थंबनेल शामिल करें"
 
 msgid "Include Thumbnails on Sales Documents"
-msgstr ""
+msgstr "बिक्रय दस्तावेज़ों पर थंबनेल शामिल करें"
 
 msgid "Includes tax and shipping costs"
 msgstr "कर और शिपिंग लागत शामिल है"
@@ -6209,7 +6209,7 @@ msgid "Quotes"
 msgstr "उद्धरण"
 
 msgid "Quoting"
-msgstr ""
+msgstr "उद्धरण"
 
 msgid "Rate Limit"
 msgstr "दर सीमा"
@@ -6613,10 +6613,10 @@ msgid "Role:"
 msgstr "भूमिका:"
 
 msgid "Route all AP invoices to one address (e.g. corporate headquarters) instead of individual purchasers."
-msgstr ""
+msgstr "सभी AP चालानों को एक पते पर भेजें (जैसे कॉर्पोरेट मुख्यालय) व्यक्तिगत खरीदारों के बजाय।"
 
 msgid "Route all AR invoices to one address (e.g. corporate headquarters) instead of individual locations."
-msgstr ""
+msgstr "सभी AR चालानों को एक पते पर भेजें (जैसे कॉर्पोरेट मुख्यालय) व्यक्तिगत स्थानों के बजाय।"
 
 msgid "rows"
 msgstr "पंक्तियाँ"
@@ -7211,10 +7211,10 @@ msgid "Show parent items"
 msgstr "माता-पिता की वस्तुओं को दिखाएं"
 
 msgid "Show part thumbnails on purchase order PDFs."
-msgstr ""
+msgstr "खरीद आदेश पीडीएफ पर भाग थंबनेल दिखाएं।"
 
 msgid "Show part thumbnails on quotes, sales orders, invoices, and shipments."
-msgstr ""
+msgstr "उद्धरण, बिक्री आदेश, चालान और शिपमेंट पर भाग थंबनेल दिखाएं।"
 
 msgid "Show Supplier IDs"
 msgstr "आपूर्तिकर्ता आईडी दिखाएं"
@@ -8196,7 +8196,7 @@ msgid "Update"
 msgstr "अपडेट करें"
 
 msgid "Update costs on"
-msgstr ""
+msgstr "लागत अपडेट करें"
 
 msgid "Update Inventory"
 msgstr "इन्वेंटरी अपडेट करें"

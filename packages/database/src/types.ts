@@ -3072,6 +3072,8 @@ export type Database = {
           salesJobCompletedNotificationGroup: string[]
           samplingStandard: Database["public"]["Enums"]["samplingStandard"]
           shelfLabelSize: string | null
+          showCustomerReadableId: boolean
+          showSupplierReadableId: boolean
           supplierQuoteNotificationGroup: string[]
           timeCardEnabled: boolean
           updateLeadTimesOnReceipt: boolean
@@ -3115,6 +3117,8 @@ export type Database = {
           salesJobCompletedNotificationGroup?: string[]
           samplingStandard?: Database["public"]["Enums"]["samplingStandard"]
           shelfLabelSize?: string | null
+          showCustomerReadableId?: boolean
+          showSupplierReadableId?: boolean
           supplierQuoteNotificationGroup?: string[]
           timeCardEnabled?: boolean
           updateLeadTimesOnReceipt?: boolean
@@ -3158,6 +3162,8 @@ export type Database = {
           salesJobCompletedNotificationGroup?: string[]
           samplingStandard?: Database["public"]["Enums"]["samplingStandard"]
           shelfLabelSize?: string | null
+          showCustomerReadableId?: boolean
+          showSupplierReadableId?: boolean
           supplierQuoteNotificationGroup?: string[]
           timeCardEnabled?: boolean
           updateLeadTimesOnReceipt?: boolean
@@ -4644,6 +4650,7 @@ export type Database = {
           logo: string | null
           name: string
           phone: string | null
+          readableId: string
           salesContactId: string | null
           tags: string[] | null
           taxPercent: number
@@ -4669,6 +4676,7 @@ export type Database = {
           logo?: string | null
           name: string
           phone?: string | null
+          readableId?: string
           salesContactId?: string | null
           tags?: string[] | null
           taxPercent?: number
@@ -4694,6 +4702,7 @@ export type Database = {
           logo?: string | null
           name?: string
           phone?: string | null
+          readableId?: string
           salesContactId?: string | null
           tags?: string[] | null
           taxPercent?: number
@@ -16398,6 +16407,13 @@ export type Database = {
             columns: ["processId"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobOperation_reworkId_fkey"
+            columns: ["reworkId"]
+            isOneToOne: false
+            referencedRelation: "rework"
             referencedColumns: ["id"]
           },
           {
@@ -35400,6 +35416,175 @@ export type Database = {
           },
         ]
       }
+      rework: {
+        Row: {
+          companyId: string
+          completedAt: string | null
+          createdAt: string
+          id: string
+          jobId: string
+          quantity: number
+          reason: string
+          requestedById: string
+          targetJobOperationId: string
+          triggeredAtJobOperationId: string
+          updatedAt: string | null
+        }
+        Insert: {
+          companyId: string
+          completedAt?: string | null
+          createdAt?: string
+          id?: string
+          jobId: string
+          quantity: number
+          reason: string
+          requestedById: string
+          targetJobOperationId: string
+          triggeredAtJobOperationId: string
+          updatedAt?: string | null
+        }
+        Update: {
+          companyId?: string
+          completedAt?: string | null
+          createdAt?: string
+          id?: string
+          jobId?: string
+          quantity?: number
+          reason?: string
+          requestedById?: string
+          targetJobOperationId?: string
+          triggeredAtJobOperationId?: string
+          updatedAt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rework_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "rework_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "rework_jobId_fkey"
+            columns: ["jobId"]
+            isOneToOne: false
+            referencedRelation: "job"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_jobId_fkey"
+            columns: ["jobId"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_jobId_fkey"
+            columns: ["jobId"]
+            isOneToOne: false
+            referencedRelation: "openProductionOrders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_requestedById_fkey"
+            columns: ["requestedById"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_requestedById_fkey"
+            columns: ["requestedById"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_requestedById_fkey"
+            columns: ["requestedById"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_requestedById_fkey"
+            columns: ["requestedById"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_requestedById_fkey"
+            columns: ["requestedById"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "rework_targetJobOperationId_fkey"
+            columns: ["targetJobOperationId"]
+            isOneToOne: false
+            referencedRelation: "jobOperation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_targetJobOperationId_fkey"
+            columns: ["targetJobOperationId"]
+            isOneToOne: false
+            referencedRelation: "jobOperationsWithDependencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_targetJobOperationId_fkey"
+            columns: ["targetJobOperationId"]
+            isOneToOne: false
+            referencedRelation: "jobOperationsWithMakeMethods"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_triggeredAtJobOperationId_fkey"
+            columns: ["triggeredAtJobOperationId"]
+            isOneToOne: false
+            referencedRelation: "jobOperation"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_triggeredAtJobOperationId_fkey"
+            columns: ["triggeredAtJobOperationId"]
+            isOneToOne: false
+            referencedRelation: "jobOperationsWithDependencies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rework_triggeredAtJobOperationId_fkey"
+            columns: ["triggeredAtJobOperationId"]
+            isOneToOne: false
+            referencedRelation: "jobOperationsWithMakeMethods"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       riskRegister: {
         Row: {
           assignee: string | null
@@ -38517,49 +38702,7 @@ export type Database = {
           },
         ]
       }
-      searchIndex_PAoZnxZFhuiaaU6EsvyrVS: {
-        Row: {
-          createdAt: string
-          description: string | null
-          entityId: string
-          entityType: string
-          id: number
-          link: string
-          metadata: Json | null
-          searchVector: unknown
-          tags: string[] | null
-          title: string
-          updatedAt: string | null
-        }
-        Insert: {
-          createdAt?: string
-          description?: string | null
-          entityId: string
-          entityType: string
-          id?: number
-          link: string
-          metadata?: Json | null
-          searchVector?: unknown
-          tags?: string[] | null
-          title: string
-          updatedAt?: string | null
-        }
-        Update: {
-          createdAt?: string
-          description?: string | null
-          entityId?: string
-          entityType?: string
-          id?: number
-          link?: string
-          metadata?: Json | null
-          searchVector?: unknown
-          tags?: string[] | null
-          title?: string
-          updatedAt?: string | null
-        }
-        Relationships: []
-      }
-      searchIndex_WbvVgr1aYFZjGDegRYLAqe: {
+      searchIndex_HbxJR5a29zNzUNDsXv9coo: {
         Row: {
           createdAt: string
           description: string | null
@@ -41164,6 +41307,7 @@ export type Database = {
           name: string
           phone: string | null
           purchasingContactId: string | null
+          readableId: string
           supplierStatus:
             | Database["public"]["Enums"]["supplierStatusType"]
             | null
@@ -41191,6 +41335,7 @@ export type Database = {
           name: string
           phone?: string | null
           purchasingContactId?: string | null
+          readableId?: string
           supplierStatus?:
             | Database["public"]["Enums"]["supplierStatusType"]
             | null
@@ -41218,6 +41363,7 @@ export type Database = {
           name?: string
           phone?: string | null
           purchasingContactId?: string | null
+          readableId?: string
           supplierStatus?:
             | Database["public"]["Enums"]["supplierStatusType"]
             | null
@@ -41955,6 +42101,7 @@ export type Database = {
           id: string
           itemId: string
           minimumOrderQuantity: number | null
+          orderMultiple: number | null
           supplierId: string
           supplierPartId: string | null
           supplierUnitOfMeasureCode: string | null
@@ -41973,6 +42120,7 @@ export type Database = {
           id?: string
           itemId: string
           minimumOrderQuantity?: number | null
+          orderMultiple?: number | null
           supplierId: string
           supplierPartId?: string | null
           supplierUnitOfMeasureCode?: string | null
@@ -41991,6 +42139,7 @@ export type Database = {
           id?: string
           itemId?: string
           minimumOrderQuantity?: number | null
+          orderMultiple?: number | null
           supplierId?: string
           supplierPartId?: string | null
           supplierUnitOfMeasureCode?: string | null
@@ -49664,6 +49813,7 @@ export type Database = {
           name: string | null
           orderCount: number | null
           phone: string | null
+          readableId: string | null
           salesContactId: string | null
           status: string | null
           tags: string[] | null
@@ -51558,12 +51708,14 @@ export type Database = {
         Row: {
           assignee: string | null
           companyId: string | null
+          conflictReason: string | null
           createdAt: string | null
           createdBy: string | null
           customFields: Json | null
           dependencies: string[] | null
           description: string | null
           dueDate: string | null
+          hasConflict: boolean | null
           id: string | null
           jobId: string | null
           jobMakeMethodId: string | null
@@ -51573,6 +51725,7 @@ export type Database = {
           machineRate: number | null
           machineTime: number | null
           machineUnit: Database["public"]["Enums"]["factor"] | null
+          manuallyScheduled: boolean | null
           operationLeadTime: number | null
           operationMinimumCost: number | null
           operationOrder:
@@ -51596,6 +51749,7 @@ export type Database = {
           startDate: string | null
           status: Database["public"]["Enums"]["jobOperationStatus"] | null
           tags: string[] | null
+          targetQuantity: number | null
           updatedAt: string | null
           updatedBy: string | null
           workCenterId: string | null
@@ -51604,12 +51758,14 @@ export type Database = {
         Insert: {
           assignee?: string | null
           companyId?: string | null
+          conflictReason?: string | null
           createdAt?: string | null
           createdBy?: string | null
           customFields?: Json | null
           dependencies?: never
           description?: string | null
           dueDate?: string | null
+          hasConflict?: boolean | null
           id?: string | null
           jobId?: string | null
           jobMakeMethodId?: string | null
@@ -51619,6 +51775,7 @@ export type Database = {
           machineRate?: number | null
           machineTime?: number | null
           machineUnit?: Database["public"]["Enums"]["factor"] | null
+          manuallyScheduled?: boolean | null
           operationLeadTime?: number | null
           operationMinimumCost?: number | null
           operationOrder?:
@@ -51642,6 +51799,7 @@ export type Database = {
           startDate?: string | null
           status?: Database["public"]["Enums"]["jobOperationStatus"] | null
           tags?: string[] | null
+          targetQuantity?: number | null
           updatedAt?: string | null
           updatedBy?: string | null
           workCenterId?: string | null
@@ -51650,12 +51808,14 @@ export type Database = {
         Update: {
           assignee?: string | null
           companyId?: string | null
+          conflictReason?: string | null
           createdAt?: string | null
           createdBy?: string | null
           customFields?: Json | null
           dependencies?: never
           description?: string | null
           dueDate?: string | null
+          hasConflict?: boolean | null
           id?: string | null
           jobId?: string | null
           jobMakeMethodId?: string | null
@@ -51665,6 +51825,7 @@ export type Database = {
           machineRate?: number | null
           machineTime?: number | null
           machineUnit?: Database["public"]["Enums"]["factor"] | null
+          manuallyScheduled?: boolean | null
           operationLeadTime?: number | null
           operationMinimumCost?: number | null
           operationOrder?:
@@ -51688,6 +51849,7 @@ export type Database = {
           startDate?: string | null
           status?: Database["public"]["Enums"]["jobOperationStatus"] | null
           tags?: string[] | null
+          targetQuantity?: number | null
           updatedAt?: string | null
           updatedBy?: string | null
           workCenterId?: string | null
@@ -51860,6 +52022,13 @@ export type Database = {
             columns: ["processId"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobOperation_reworkId_fkey"
+            columns: ["reworkId"]
+            isOneToOne: false
+            referencedRelation: "rework"
             referencedColumns: ["id"]
           },
           {
@@ -51931,10 +52100,13 @@ export type Database = {
         Row: {
           assignee: string | null
           companyId: string | null
+          conflictReason: string | null
           createdAt: string | null
           createdBy: string | null
           customFields: Json | null
           description: string | null
+          dueDate: string | null
+          hasConflict: boolean | null
           id: string | null
           jobId: string | null
           jobMakeMethodId: string | null
@@ -51945,6 +52117,7 @@ export type Database = {
           machineTime: number | null
           machineUnit: Database["public"]["Enums"]["factor"] | null
           makeMethodId: string | null
+          manuallyScheduled: boolean | null
           operationLeadTime: number | null
           operationMinimumCost: number | null
           operationOrder:
@@ -51965,8 +52138,10 @@ export type Database = {
           reworkId: string | null
           setupTime: number | null
           setupUnit: Database["public"]["Enums"]["factor"] | null
+          startDate: string | null
           status: Database["public"]["Enums"]["jobOperationStatus"] | null
           tags: string[] | null
+          targetQuantity: number | null
           updatedAt: string | null
           updatedBy: string | null
           workCenterId: string | null
@@ -52139,6 +52314,13 @@ export type Database = {
             columns: ["processId"]
             isOneToOne: false
             referencedRelation: "processes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobOperation_reworkId_fkey"
+            columns: ["reworkId"]
+            isOneToOne: false
+            referencedRelation: "rework"
             referencedColumns: ["id"]
           },
           {
@@ -55687,14 +55869,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["supplierCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["supplierCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -59120,14 +59302,14 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["customerCountryCode"]
+            columns: ["invoiceCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
           },
           {
             foreignKeyName: "address_countryCode_fkey"
-            columns: ["invoiceCountryCode"]
+            columns: ["customerCountryCode"]
             isOneToOne: false
             referencedRelation: "country"
             referencedColumns: ["alpha2"]
@@ -61994,6 +62176,7 @@ export type Database = {
           partCount: number | null
           phone: string | null
           purchasingContactId: string | null
+          readableId: string | null
           status: Database["public"]["Enums"]["supplierStatusType"] | null
           supplierTypeId: string | null
           tags: string[] | null

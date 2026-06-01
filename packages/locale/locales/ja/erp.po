@@ -1007,13 +1007,13 @@ msgid "Auto-generated QR Code"
 msgstr "自動生成されたQRコード"
 
 msgid "Automatic Cost Updates"
-msgstr ""
+msgstr "自動コスト更新"
 
 msgid "Automatic Lead Time Updates"
-msgstr ""
+msgstr "自動リードタイム更新"
 
 msgid "Automatic Updates"
-msgstr ""
+msgstr "自動更新"
 
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "カンバンがスキャンされたときに自動的にジョブをリリースします"
@@ -1263,7 +1263,7 @@ msgid "CC"
 msgstr "CC"
 
 msgid "Centralized Billing Address"
-msgstr ""
+msgstr "一元化された請求先住所"
 
 msgid "Change"
 msgstr "変更"
@@ -1510,7 +1510,7 @@ msgid "Configure the start months for your fiscal and tax years"
 msgstr "会計年度と税務年度の開始月を設定します"
 
 msgid "Configure when purchased item costs should be updated from supplier transactions."
-msgstr ""
+msgstr "購入した品目のコストをサプライヤー取引から更新するタイミングを設定します。"
 
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "サプライヤーが見積もりを送信したときに通知を受け取るべき人を設定します。"
@@ -3921,10 +3921,10 @@ msgid "Include Inactive"
 msgstr "非アクティブを含める"
 
 msgid "Include Thumbnails on Purchasing Documents"
-msgstr ""
+msgstr "購買ドキュメントにサムネイルを含める"
 
 msgid "Include Thumbnails on Sales Documents"
-msgstr ""
+msgstr "販売ドキュメントにサムネイルを含める"
 
 msgid "Includes tax and shipping costs"
 msgstr "税金と送料を含みます"
@@ -6209,7 +6209,7 @@ msgid "Quotes"
 msgstr "見積"
 
 msgid "Quoting"
-msgstr ""
+msgstr "見積"
 
 msgid "Rate Limit"
 msgstr "レート制限"
@@ -6613,10 +6613,10 @@ msgid "Role:"
 msgstr "役割:"
 
 msgid "Route all AP invoices to one address (e.g. corporate headquarters) instead of individual purchasers."
-msgstr ""
+msgstr "すべてのAP請求書を1つのアドレス（例：企業本社）にルーティングして、個別の購買担当者の代わりに使用します。"
 
 msgid "Route all AR invoices to one address (e.g. corporate headquarters) instead of individual locations."
-msgstr ""
+msgstr "すべてのAR請求書を1つのアドレス（例：企業本部）にルーティングして、個別の場所の代わりに使用します。"
 
 msgid "rows"
 msgstr "行"
@@ -7211,10 +7211,10 @@ msgid "Show parent items"
 msgstr "親アイテムを表示"
 
 msgid "Show part thumbnails on purchase order PDFs."
-msgstr ""
+msgstr "購買注文PDFに部品のサムネイルを表示します。"
 
 msgid "Show part thumbnails on quotes, sales orders, invoices, and shipments."
-msgstr ""
+msgstr "見積書、販売注文書、請求書、および出荷書にパーツサムネイルを表示します。"
 
 msgid "Show Supplier IDs"
 msgstr "仕入先IDを表示"
@@ -8196,7 +8196,7 @@ msgid "Update"
 msgstr "更新"
 
 msgid "Update costs on"
-msgstr ""
+msgstr "コストを更新"
 
 msgid "Update Inventory"
 msgstr "在庫を更新"
