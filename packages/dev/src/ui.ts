@@ -131,11 +131,15 @@ export function summaryLines(
   ports: PortMap,
   apps: readonly AppId[],
   /** When provided, show portless hostnames; otherwise show localhost URLs. */
-  branchPrefix?: string
+  branchPrefix?: string,
+  /** When provided, show LAN URLs for phones/tablets on the same network. */
+  lanHost?: string
 ): string[] {
-  const url = branchPrefix
-    ? (sub: string, _port?: number) => `https://${sub}.${branchPrefix}.${TLD}`
-    : (sub: string, port: number) => `http://localhost:${port}`;
+  const url = lanHost
+    ? (_sub: string, port: number) => `http://${lanHost}:${port}`
+    : branchPrefix
+      ? (sub: string, _port?: number) => `https://${sub}.${branchPrefix}.${TLD}`
+      : (sub: string, port: number) => `http://localhost:${port}`;
   const dbUrl = `postgresql://postgres:postgres@localhost:${ports.PORT_DB}/postgres`;
   const lines: string[] = [];
   if (apps.includes("erp"))

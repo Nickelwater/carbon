@@ -29,6 +29,7 @@ source ./setup.sh   # adds crbn to PATH + installs shell wrapper
 |---|---|
 | `crbn up` | Boot compose stack + apps. |
 | `crbn up --no-portless` | Localhost mode: fixed ports (API `:54321`, ERP `:3000`, MES `:3001`). |
+| `crbn up --lan` | LAN mode: same fixed ports, URLs use this machine's IP, apps bind `0.0.0.0`. |
 | `crbn up --borrow` | Reuse another worktree's running containers (DB, API, etc). |
 | `crbn up --no-apps` | Services only (postgres, kong, supabase, inngest, mail). |
 | `crbn up --no-migrate` | Skip database migrations. |
@@ -59,6 +60,27 @@ By default, `crbn up` uses [portless](https://github.com/nicholasgasior/portless
 OAuth redirect URIs in localhost mode use `http://localhost:54321/auth/v1/callback`.
 
 `pnpm dev` defaults to `crbn up --no-portless`.
+
+## LAN access (tablets / other devices on your network)
+
+Use **`crbn up --lan`** (or set `CARBON_DEV_LAN=1` / `CARBON_DEV_HOST=192.168.x.x` in `.env` before `crbn up`).
+
+- Disables portless (`.dev` hostnames do not work on other devices).
+- Writes `ERP_URL`, `MES_URL`, and `SUPABASE_URL` with your LAN IP.
+- Binds ERP/MES dev servers on **`0.0.0.0`** with fixed ports **3000** / **3001** / **54321**.
+- Open **`http://<your-ip>:3000`** (ERP) and **`http://<your-ip>:3001`** (MES) from phones or shop-floor devices on the same network.
+- **Magic links** use the ERP port (`http://<your-ip>:3000/auth/v1/...`), not `:54321` — you do not need to expose the Supabase API port on the firewall.
+- Allow inbound TCP **3000** and **3001** through your OS firewall if connections time out.
+
+After changing LAN settings, run **`crbn down`** then **`crbn up --lan`** so Docker (GoTrue) reloads `API_EXTERNAL_URL` from `.env.local`.
+
+To pin a specific interface IP when auto-detection picks the wrong one:
+
+```bash
+CARBON_DEV_HOST=192.168.1.42 crbn up --lan
+```
+
+Register OAuth redirect URIs against `http://<your-ip>:54321/auth/v1/callback` if you use Google/Azure login on LAN devices.
 
 ## Project naming
 

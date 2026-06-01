@@ -1,4 +1,7 @@
-import { applyDotenvToProcessEnv } from "@carbon/dev/vite";
+import {
+  applyDotenvToProcessEnv,
+  devServerLanServerConfig,
+} from "@carbon/dev/vite";
 import { lingui } from "@lingui/vite-plugin";
 import { reactRouter } from "@react-router/dev/vite";
 import tailwindcss from "@tailwindcss/vite";
@@ -42,6 +45,7 @@ export default defineConfig(({ isSsrBuild, mode }) => {
       watch: {
         awaitWriteFinish: { stabilityThreshold: 250 },
       },
+      ...devServerLanServerConfig(),
     },
     plugins: [
       tailwindcss(),
