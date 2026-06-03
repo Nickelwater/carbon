@@ -19,6 +19,14 @@ import {
   ModalTitle,
   VStack
 } from "@carbon/react";
+import {
+  cyclesFromParts,
+  cyclesToParts,
+  normalizePartsPerCycle,
+  remainingCycles,
+  targetCycles,
+  usesCycleQuantity
+} from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMemo, useState } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
@@ -67,6 +75,27 @@ export function QuantityModal({
   const [quantity, setQuantity] = useState(parentIsSerial ? 1 : 0);
   const [confirmedUnissued, setConfirmedUnissued] = useState(false);
 
+  const partsPerCycle = normalizePartsPerCycle(
+    // @ts-expect-error partsPerCycle added via migration
+    operation.partsPerCycle
+  );
+  const trackCycles =
+    type === "complete" &&
+    usesCycleQuantity(
+      partsPerCycle,
+      // @ts-expect-error timeBasis added via migration
+      operation.timeBasis
+    ) &&
+    !parentIsSerial;
+
+  const requiredParts =
+    operation.operationQuantity ?? operation.targetQuantity ?? 0;
+  const targetCycleCount = targetCycles(requiredParts, partsPerCycle);
+  const completedCycleCount = cyclesFromParts(
+    operation.quantityComplete ?? 0,
+    partsPerCycle
+  );
+
   const titleMap = {
     scrap: t`Log scrap for ${operation.itemReadableId}`,
     rework: t`Log rework for ${operation.itemReadableId}`,
@@ -74,13 +103,16 @@ export function QuantityModal({
     finish: t`Finish ${operation.itemReadableId}`
   };
 
-  const isOperationComplete =
-    operation.quantityComplete >= operation.operationQuantity;
+  const isOperationComplete = trackCycles
+    ? completedCycleCount >= targetCycleCount
+    : (operation.quantityComplete ?? 0) >= requiredParts;
 
   const descriptionMap = {
     scrap: t`Select a scrap quantity and reason`,
     rework: t`Select a rework quantity`,
-    complete: t`Select a completion quantity`,
+    complete: trackCycles
+      ? t`Select how many cycles to log as complete`
+      : t`Select a completion quantity`,
     finish: t`Are you sure you want to finish this operation? This will end all active production events for this operation.`
   };
 
@@ -105,10 +137,14 @@ export function QuantityModal({
     finish: finishValidator
   };
 
+  const partsFromEnteredQuantity = trackCycles
+    ? cyclesToParts(quantity, partsPerCycle)
+    : quantity;
+
   const hasUnissuedTrackedMaterials = useMemo(() => {
     const totalPartsAfterCompletion = parentIsSerial
       ? 1
-      : operation.quantityComplete + quantity;
+      : (operation.quantityComplete ?? 0) + partsFromEnteredQuantity;
 
     return materials.some(
       (material) =>
@@ -121,9 +157,20 @@ export function QuantityModal({
     materials,
     operation.id,
     operation.quantityComplete,
-    quantity,
+    partsFromEnteredQuantity,
     parentIsSerial
   ]);
+
+  const totalAfterEntry = trackCycles
+    ? completedCycleCount +
+      quantity +
+      (type === "rework"
+        ? cyclesFromParts(operation.quantityReworked ?? 0, partsPerCycle)
+        : 0)
+    : quantity +
+      (type === "rework"
+        ? (operation.quantityReworked ?? 0)
+        : (operation.quantityComplete ?? 0));
 
   return (
     <Modal
@@ -171,7 +218,17 @@ export function QuantityModal({
             <Hidden name="setupProductionEventId" />
             <Hidden name="laborProductionEventId" />
             <Hidden name="machineProductionEventId" />
+            {trackCycles && <Hidden name="quantityUnit" value="cycles" />}
             <VStack spacing={2}>
+              {trackCycles && type === "complete" && (
+                <p className="text-sm text-muted-foreground">
+                  <Trans>
+                    {partsPerCycle} parts per cycle · {targetCycleCount} cycles
+                    required for {requiredParts} parts
+                  </Trans>
+                </p>
+              )}
+
               {hasUnissuedTrackedMaterials && type === "complete" && (
                 <Alert variant="destructive">
                   <LuTriangleAlert className="h-4 w-4" />
@@ -209,10 +266,17 @@ export function QuantityModal({
                     <Trans>Insufficient quantity</Trans>
                   </AlertTitle>
                   <AlertDescription>
-                    <Trans>
-                      The completed quantity for this operation is less than the
-                      required quantity of {operation.operationQuantity}.
-                    </Trans>
+                    {trackCycles ? (
+                      <Trans>
+                        The completed cycles for this operation are less than
+                        the required {targetCycleCount} cycles.
+                      </Trans>
+                    ) : (
+                      <Trans>
+                        The completed quantity for this operation is less than
+                        the required quantity of {requiredParts}.
+                      </Trans>
+                    )}
                   </AlertDescription>
                 </Alert>
               )}
@@ -234,7 +298,7 @@ export function QuantityModal({
                   <div className="flex-grow">
                     <NumberControlled
                       name="quantity"
-                      label={t`Quantity`}
+                      label={trackCycles ? t`Cycles` : t`Quantity`}
                       value={quantity}
                       onChange={setQuantity}
                       isReadOnly={parentIsSerial}
@@ -249,9 +313,16 @@ export function QuantityModal({
                       className="h-12"
                       onClick={() =>
                         setQuantity(
-                          operation.operationQuantity -
-                            operation.quantityComplete -
-                            (operation.quantityReworked ?? 0)
+                          trackCycles
+                            ? remainingCycles({
+                                targetParts: requiredParts,
+                                partsComplete: operation.quantityComplete ?? 0,
+                                partsReworked: operation.quantityReworked ?? 0,
+                                partsPerCycle
+                              })
+                            : requiredParts -
+                                (operation.quantityComplete ?? 0) -
+                                (operation.quantityReworked ?? 0)
                         )
                       }
                     >
@@ -273,16 +344,20 @@ export function QuantityModal({
                 <>
                   <NumberControlled
                     name="totalQuantity"
-                    label={t`Total Quantity`}
+                    label={trackCycles ? t`Total Cycles` : t`Total Quantity`}
                     size="lg"
-                    value={
-                      quantity +
-                      (type === "rework"
-                        ? operation.quantityReworked
-                        : operation.quantityComplete)
-                    }
+                    value={totalAfterEntry}
                     isReadOnly
                   />
+                  {trackCycles && type === "complete" && (
+                    <NumberControlled
+                      name="totalPartsPreview"
+                      label={t`Total Parts`}
+                      size="lg"
+                      value={cyclesToParts(totalAfterEntry, partsPerCycle)}
+                      isReadOnly
+                    />
+                  )}
                 </>
               )}
             </VStack>

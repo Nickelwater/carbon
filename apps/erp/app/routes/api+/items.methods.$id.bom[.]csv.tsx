@@ -171,6 +171,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         machineUnit: op.machineUnit,
         operationUnitCost: op.operationUnitCost,
         operationMinimumCost: op.operationMinimumCost,
+        partsPerCycle: op.partsPerCycle,
+        timeBasis: op.timeBasis,
         ...rates
       };
     });

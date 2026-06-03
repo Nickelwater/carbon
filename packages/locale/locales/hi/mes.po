@@ -12,10 +12,30 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr ""
+
 #. placeholder {0}: attribute.name
 #. placeholder {1}: activeStep + 1
 msgid "{0} - Set {1}"
 msgstr "{0} - सेट {1}"
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr ""
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr ""
 
 #. placeholder {0}: employeeIds.length
 msgid "{0} Active"
@@ -25,10 +45,12 @@ msgstr "{0} सक्रिय"
 msgid "{0} available"
 msgstr "{0} उपलब्ध"
 
-#. placeholder {0}: operation.quantityComplete
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr ""
+
 #. placeholder {0}: serialIndex + 1
 #. placeholder {1}: operation.operationQuantity
-#. placeholder {1}: operation.targetQuantity
 msgid "{0} of {1}"
 msgstr "{0} में से {1}"
 
@@ -42,9 +64,26 @@ msgstr "{0} में से {1} पूर्ण"
 msgid "{0} of {1} completed"
 msgstr "{0} में से {1} पूर्ण"
 
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr ""
+
 #. placeholder {0}: item.quantityScrapped
 msgid "{0} Scrapped"
 msgstr "{0} स्क्रैप किया गया"
+
+msgid "{completedCycleCount} of {targetCycleCount} cycles"
+msgstr ""
+
+msgid "{completedParts} of {targetParts}"
+msgstr ""
+
+msgid "{completedParts} of {targetParts} parts ({partsPerCycle} per cycle)"
+msgstr ""
+
+msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
+msgstr ""
 
 msgid "About"
 msgstr "के बारे में"
@@ -226,6 +265,9 @@ msgstr "रीवर्क बनाएं"
 msgid "Customer"
 msgstr "ग्राहक"
 
+msgid "Cycles"
+msgstr ""
+
 msgid "Dark Mode"
 msgstr "डार्क मोड"
 
@@ -280,8 +322,8 @@ msgid "Dragging {0} cancelled."
 msgstr "\"{0}\" को ड्रैग करना रद्द किया गया।"
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 msgid "Due {0}"
 msgstr "Due {0} के लिए"
 
@@ -808,6 +850,9 @@ msgstr "एक आइटम चुनें..."
 msgid "Select Batch {0}"
 msgstr "बैच {0} चुनें"
 
+msgid "Select how many cycles to log as complete"
+msgstr ""
+
 #. placeholder {0}: index + 1
 msgid "Select Serial {0}"
 msgstr "सीरियल {0} चुनें"
@@ -925,9 +970,11 @@ msgstr "ऑपरेटर स्विच करें"
 msgid "Tag"
 msgstr "टैग"
 
-#. placeholder {0}: operation.operationQuantity
-msgid "The completed quantity for this operation is less than the required quantity of {0}."
-msgstr "इस ऑपरेशन के लिए पूर्ण मात्रा आवश्यक मात्रा {0} से कम है।"
+msgid "The completed cycles for this operation are less than the required {targetCycleCount} cycles."
+msgstr ""
+
+msgid "The completed quantity for this operation is less than the required quantity of {requiredParts}."
+msgstr ""
 
 msgid "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
 msgstr "बिल ऑफ मेटेरियल पर सीरियल या बैच ट्रैक किए गए मेटेरियल हैं जो पूरी तरह से जारी नहीं किए गए हैं। जारी किए बिना पूरा करने से गलत ट्रेसेबिलिटी रिकॉर्ड हो सकते हैं।"
@@ -947,6 +994,12 @@ msgstr "आज"
 
 msgid "Tools"
 msgstr "उपकरण"
+
+msgid "Total Cycles"
+msgstr ""
+
+msgid "Total Parts"
+msgstr ""
 
 msgid "Total Quantity"
 msgstr "कुल मात्रा"

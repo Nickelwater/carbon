@@ -21,6 +21,30 @@ msgstr "„${storageUnitName}\" hat ${childCount} direkt verschachtelte Speicher
 msgid "\"{storageUnitName}\" has 1 direct nested storage unit. Deleting it will also delete that unit and anything underneath it. This cannot be undone."
 msgstr "„${storageUnitName}\" hat 1 direkt verschachtelte Speichereinheit. Das Löschen wird auch diese Einheit und alles darunter löschen. Dies kann nicht rückgängig gemacht werden."
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr ""
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr ""
+
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr ""
+
 #. placeholder {0}: rule.escalationDays
 msgid "{0} days"
 msgstr "{0} Tage"
@@ -33,6 +57,11 @@ msgstr "{0} erfolgreich gelöscht"
 #. placeholder {0}: history.length
 msgid "{0} orders"
 msgstr "{0} Bestellungen"
+
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr ""
 
 #. placeholder {0}: selectedProcesses.length
 msgid "{0} Processes"
@@ -2079,6 +2108,12 @@ msgstr "Kundentypen"
 msgid "Customers"
 msgstr "Kunden"
 
+msgid "Cycles/Hour"
+msgstr ""
+
+msgid "Cycles/Minute"
+msgstr ""
+
 msgid "Daily Usage"
 msgstr "Tägliche Nutzung"
 
@@ -3821,11 +3856,20 @@ msgstr "Telefon zu Hause"
 msgid "Hours per Week"
 msgstr "Stunden pro Woche"
 
+msgid "Hours/100 Cycles"
+msgstr ""
+
 msgid "Hours/100 Pieces"
 msgstr "Stunden/100 Stück"
 
+msgid "Hours/1000 Cycles"
+msgstr ""
+
 msgid "Hours/1000 Pieces"
 msgstr "Stunden/1000 Stück"
+
+msgid "Hours/Cycle"
+msgstr ""
 
 msgid "Hours/Piece"
 msgstr "Stunden/Stück"
@@ -4732,11 +4776,20 @@ msgstr "Mindestbestellmenge"
 msgid "Minimum Order:"
 msgstr "Mindestbestellung:"
 
+msgid "Minutes/100 Cycles"
+msgstr ""
+
 msgid "Minutes/100 Pieces"
 msgstr "Minuten/100 Stück"
 
+msgid "Minutes/1000 Cycles"
+msgstr ""
+
 msgid "Minutes/1000 Pieces"
 msgstr "Minuten/1000 Stück"
+
+msgid "Minutes/Cycle"
+msgstr ""
 
 msgid "Minutes/Piece"
 msgstr "Minuten/Stück"
@@ -5657,6 +5710,9 @@ msgstr "Partner"
 msgid "Parts"
 msgstr "Teile"
 
+msgid "Parts per Cycle"
+msgstr ""
+
 msgid "Pass"
 msgstr "Bestanden"
 
@@ -5696,8 +5752,17 @@ msgstr "Ausstehend"
 msgid "People"
 msgstr "Personen"
 
-msgid "Per Unit"
-msgstr "Pro Einheit"
+msgid "Per cycle"
+msgstr ""
+
+msgid "Per Cycle"
+msgstr ""
+
+msgid "Per piece"
+msgstr ""
+
+msgid "Per Piece"
+msgstr ""
 
 msgid "Percentage of Lot"
 msgstr "Prozentsatz des Loses"
@@ -6841,6 +6906,9 @@ msgstr "Im Web suchen"
 msgid "Search..."
 msgstr "Suchen..."
 
+msgid "Seconds/Cycle"
+msgstr ""
+
 msgid "Seconds/Piece"
 msgstr "Sekunden/Stück"
 
@@ -7936,6 +8004,9 @@ msgstr "Explorer umschalten"
 
 msgid "Toggle level"
 msgstr "Ebene umschalten"
+
+msgid "Toggle per cycle timing"
+msgstr ""
 
 msgid "Toggle Properties"
 msgstr "Eigenschaften umschalten"

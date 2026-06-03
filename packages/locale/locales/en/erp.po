@@ -21,6 +21,30 @@ msgstr "\"{storageUnitName}\" has {childCount} direct nested storage units. Dele
 msgid "\"{storageUnitName}\" has 1 direct nested storage unit. Deleting it will also delete that unit and anything underneath it. This cannot be undone."
 msgstr "\"{storageUnitName}\" has 1 direct nested storage unit. Deleting it will also delete that unit and anything underneath it. This cannot be undone."
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr "{0}"
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr "{0} / {1}"
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr "{0} / {1} cycles"
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr "{0} / {1} parts ({2} per cycle)"
+
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr "{0} cycles"
+
 #. placeholder {0}: rule.escalationDays
 msgid "{0} days"
 msgstr "{0} days"
@@ -33,6 +57,11 @@ msgstr "{0} deleted successfully"
 #. placeholder {0}: history.length
 msgid "{0} orders"
 msgstr "{0} orders"
+
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr "{0} parts ({1} per cycle)"
 
 #. placeholder {0}: selectedProcesses.length
 msgid "{0} Processes"
@@ -2079,6 +2108,12 @@ msgstr "Customer Types"
 msgid "Customers"
 msgstr "Customers"
 
+msgid "Cycles/Hour"
+msgstr "Cycles/Hour"
+
+msgid "Cycles/Minute"
+msgstr "Cycles/Minute"
+
 msgid "Daily Usage"
 msgstr "Daily Usage"
 
@@ -3821,11 +3856,20 @@ msgstr "Home Phone"
 msgid "Hours per Week"
 msgstr "Hours per Week"
 
+msgid "Hours/100 Cycles"
+msgstr "Hours/100 Cycles"
+
 msgid "Hours/100 Pieces"
 msgstr "Hours/100 Pieces"
 
+msgid "Hours/1000 Cycles"
+msgstr "Hours/1000 Cycles"
+
 msgid "Hours/1000 Pieces"
 msgstr "Hours/1000 Pieces"
+
+msgid "Hours/Cycle"
+msgstr "Hours/Cycle"
 
 msgid "Hours/Piece"
 msgstr "Hours/Piece"
@@ -4732,11 +4776,20 @@ msgstr "Minimum Order Quantity"
 msgid "Minimum Order:"
 msgstr "Minimum Order:"
 
+msgid "Minutes/100 Cycles"
+msgstr "Minutes/100 Cycles"
+
 msgid "Minutes/100 Pieces"
 msgstr "Minutes/100 Pieces"
 
+msgid "Minutes/1000 Cycles"
+msgstr "Minutes/1000 Cycles"
+
 msgid "Minutes/1000 Pieces"
 msgstr "Minutes/1000 Pieces"
+
+msgid "Minutes/Cycle"
+msgstr "Minutes/Cycle"
 
 msgid "Minutes/Piece"
 msgstr "Minutes/Piece"
@@ -5657,6 +5710,9 @@ msgstr "Partners"
 msgid "Parts"
 msgstr "Parts"
 
+msgid "Parts per Cycle"
+msgstr "Parts per Cycle"
+
 msgid "Pass"
 msgstr "Pass"
 
@@ -5696,8 +5752,17 @@ msgstr "Pending"
 msgid "People"
 msgstr "People"
 
-msgid "Per Unit"
-msgstr "Per Unit"
+msgid "Per cycle"
+msgstr "Per cycle"
+
+msgid "Per Cycle"
+msgstr "Per Cycle"
+
+msgid "Per piece"
+msgstr "Per piece"
+
+msgid "Per Piece"
+msgstr "Per Piece"
 
 msgid "Percentage of Lot"
 msgstr "Percentage of Lot"
@@ -6841,6 +6906,9 @@ msgstr "Search the web"
 msgid "Search..."
 msgstr "Search..."
 
+msgid "Seconds/Cycle"
+msgstr "Seconds/Cycle"
+
 msgid "Seconds/Piece"
 msgstr "Seconds/Piece"
 
@@ -7936,6 +8004,9 @@ msgstr "Toggle Explorer"
 
 msgid "Toggle level"
 msgstr "Toggle level"
+
+msgid "Toggle per cycle timing"
+msgstr "Toggle per cycle timing"
 
 msgid "Toggle Properties"
 msgstr "Toggle Properties"

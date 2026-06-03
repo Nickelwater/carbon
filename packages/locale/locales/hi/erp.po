@@ -21,6 +21,30 @@ msgstr "\"{storageUnitName}\" के {childCount} सीधे नेस्ट�
 msgid "\"{storageUnitName}\" has 1 direct nested storage unit. Deleting it will also delete that unit and anything underneath it. This cannot be undone."
 msgstr "\"{storageUnitName}\" के पास 1 सीधी नेस्टेड स्टोरेज यूनिट है। इसे हटाने से वह यूनिट और इसके अंदर की कोई भी चीज़ भी हटा दी जाएगी। यह पूर्ववत नहीं किया जा सकता।"
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr ""
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr ""
+
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr ""
+
 #. placeholder {0}: rule.escalationDays
 msgid "{0} days"
 msgstr "{0} दिन"
@@ -33,6 +57,11 @@ msgstr "{0} सफलतापूर्वक हटाया गया"
 #. placeholder {0}: history.length
 msgid "{0} orders"
 msgstr "{0} ऑर्डर"
+
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr ""
 
 #. placeholder {0}: selectedProcesses.length
 msgid "{0} Processes"
@@ -2079,6 +2108,12 @@ msgstr "ग्राहक प्रकार"
 msgid "Customers"
 msgstr "ग्राहक"
 
+msgid "Cycles/Hour"
+msgstr ""
+
+msgid "Cycles/Minute"
+msgstr ""
+
 msgid "Daily Usage"
 msgstr "दैनिक उपयोग"
 
@@ -3821,11 +3856,20 @@ msgstr "होम फोन"
 msgid "Hours per Week"
 msgstr "सप्ताह में घंटे"
 
+msgid "Hours/100 Cycles"
+msgstr ""
+
 msgid "Hours/100 Pieces"
 msgstr "घंटे/100 पीस"
 
+msgid "Hours/1000 Cycles"
+msgstr ""
+
 msgid "Hours/1000 Pieces"
 msgstr "घंटे/1000 पीस"
+
+msgid "Hours/Cycle"
+msgstr ""
 
 msgid "Hours/Piece"
 msgstr "घंटे/टुकड़ा"
@@ -4732,11 +4776,20 @@ msgstr "न्यूनतम ऑर्डर मात्रा"
 msgid "Minimum Order:"
 msgstr "न्यूनतम ऑर्डर:"
 
+msgid "Minutes/100 Cycles"
+msgstr ""
+
 msgid "Minutes/100 Pieces"
 msgstr "मिनट/100 पीस"
 
+msgid "Minutes/1000 Cycles"
+msgstr ""
+
 msgid "Minutes/1000 Pieces"
 msgstr "मिनट/1000 पीस"
+
+msgid "Minutes/Cycle"
+msgstr ""
 
 msgid "Minutes/Piece"
 msgstr "मिनट/टुकड़ा"
@@ -5657,6 +5710,9 @@ msgstr "भागीदार"
 msgid "Parts"
 msgstr "पार्ट्स"
 
+msgid "Parts per Cycle"
+msgstr ""
+
 msgid "Pass"
 msgstr "पास"
 
@@ -5696,8 +5752,17 @@ msgstr "लंबित"
 msgid "People"
 msgstr "लोग"
 
-msgid "Per Unit"
-msgstr "प्रति यूनिट"
+msgid "Per cycle"
+msgstr ""
+
+msgid "Per Cycle"
+msgstr ""
+
+msgid "Per piece"
+msgstr ""
+
+msgid "Per Piece"
+msgstr ""
 
 msgid "Percentage of Lot"
 msgstr "लॉट का प्रतिशत"
@@ -6841,6 +6906,9 @@ msgstr "वेब खोजें"
 msgid "Search..."
 msgstr "खोजें..."
 
+msgid "Seconds/Cycle"
+msgstr ""
+
 msgid "Seconds/Piece"
 msgstr "सेकंड/पीस"
 
@@ -7936,6 +8004,9 @@ msgstr "एक्सप्लोरर टॉगल करें"
 
 msgid "Toggle level"
 msgstr "स्तर टॉगल करें"
+
+msgid "Toggle per cycle timing"
+msgstr ""
 
 msgid "Toggle Properties"
 msgstr "गुण टॉगल करें"

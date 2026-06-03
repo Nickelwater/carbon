@@ -95,9 +95,10 @@ import {
   UnitOfMeasure,
   WorkCenter
 } from "~/components/Form";
+import { OperationTimeBasisFields } from "~/components/Form/OperationTimeBasisFields";
 import Procedure from "~/components/Form/Procedure";
 import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
-import { getUnitHint } from "~/components/Form/UnitHint";
+import { getUnitHint, unitForHint } from "~/components/Form/UnitHint";
 import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";
 import { ProcedureStepTypeIcon } from "~/components/Icons";
 import { ConfirmDelete } from "~/components/Modals";
@@ -196,7 +197,9 @@ const initialOperation: Omit<
   workInstruction: {},
   operationMinimumCost: 0,
   operationLeadTime: 0,
-  operationUnitCost: 0
+  operationUnitCost: 0,
+  partsPerCycle: 1,
+  timeBasis: "Piece"
 };
 
 const BillOfProcess = ({
@@ -965,14 +968,17 @@ function OperationForm({
     operationMinimumCost: number;
     operationLeadTime: number;
     operationUnitCost: number;
+    timeBasis: string;
+    partsPerCycle: number;
   }>({
+    timeBasis: item.data.timeBasis ?? "Piece",
     description: item.data.description ?? "",
     laborTime: item.data.laborTime ?? 0,
     laborUnit: item.data.laborUnit ?? "Hours/Piece",
-    laborUnitHint: getUnitHint(item.data.laborUnit),
+    laborUnitHint: getUnitHint(item.data.laborUnit, item.data.timeBasis),
     machineTime: item.data.machineTime ?? 0,
     machineUnit: item.data.machineUnit ?? "Hours/Piece",
-    machineUnitHint: getUnitHint(item.data.machineUnit),
+    machineUnitHint: getUnitHint(item.data.machineUnit, item.data.timeBasis),
     operationOrder: item.data.operationOrder ?? "After Previous",
     operationType: item.data.operationType ?? "Inside",
     processId: item.data.processId ?? "",
@@ -980,10 +986,11 @@ function OperationForm({
     workCenterId: item.data.workCenterId ?? "",
     setupTime: item.data.setupTime ?? 0,
     setupUnit: item.data.setupUnit ?? "Total Minutes",
-    setupUnitHint: getUnitHint(item.data.setupUnit),
+    setupUnitHint: getUnitHint(item.data.setupUnit, item.data.timeBasis),
     operationMinimumCost: item.data.operationMinimumCost ?? 0,
     operationLeadTime: item.data.operationLeadTime ?? 0,
-    operationUnitCost: item.data.operationUnitCost ?? 0
+    operationUnitCost: item.data.operationUnitCost ?? 0,
+    partsPerCycle: item.data.partsPerCycle ?? 1
   });
 
   const onProcessChange = async (processId: string) => {
@@ -1276,6 +1283,10 @@ function OperationForm({
 
       {processData.operationType === "Inside" && (
         <>
+          <OperationTimeBasisFields
+            processData={processData}
+            setProcessData={setProcessData}
+          />
           <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
             <HStack
               className="w-full justify-between cursor-pointer"
@@ -1319,13 +1330,13 @@ function OperationForm({
               <UnitHint
                 name="setupHint"
                 label={t`Setup`}
+                timeBasis={processData.timeBasis}
                 value={processData.setupUnitHint}
                 onChange={(hint) => {
                   setProcessData((d) => ({
                     ...d,
                     setupUnitHint: hint,
-                    setupUnit:
-                      hint === "Fixed" ? "Total Minutes" : "Minutes/Piece"
+                    setupUnit: unitForHint(hint, d.timeBasis)
                   }));
                 }}
               />
@@ -1363,6 +1374,7 @@ function OperationForm({
                 label={t`Setup Unit`}
                 isOptional={false}
                 hint={processData.setupUnitHint}
+                timeBasis={processData.timeBasis}
                 value={processData.setupUnit}
                 onChange={(newValue) => {
                   setProcessData((d) => ({
@@ -1434,13 +1446,13 @@ function OperationForm({
               <UnitHint
                 name="laborHint"
                 label={t`Labor`}
+                timeBasis={processData.timeBasis}
                 value={processData.laborUnitHint}
                 onChange={(hint) => {
                   setProcessData((d) => ({
                     ...d,
                     laborUnitHint: hint,
-                    laborUnit:
-                      hint === "Fixed" ? "Total Minutes" : "Minutes/Piece"
+                    laborUnit: unitForHint(hint, d.timeBasis)
                   }));
                 }}
               />
@@ -1478,6 +1490,7 @@ function OperationForm({
                 label={t`Labor Unit`}
                 isOptional={false}
                 hint={processData.laborUnitHint}
+                timeBasis={processData.timeBasis}
                 value={processData.laborUnit}
                 onChange={(newValue) => {
                   setProcessData((d) => ({
@@ -1550,13 +1563,13 @@ function OperationForm({
               <UnitHint
                 name="machineHint"
                 label={t`Machine`}
+                timeBasis={processData.timeBasis}
                 value={processData.machineUnitHint}
                 onChange={(hint) => {
                   setProcessData((d) => ({
                     ...d,
                     machineUnitHint: hint,
-                    machineUnit:
-                      hint === "Fixed" ? "Total Minutes" : "Minutes/Piece"
+                    machineUnit: unitForHint(hint, d.timeBasis)
                   }));
                 }}
               />
@@ -1594,6 +1607,7 @@ function OperationForm({
                 label={t`Machine Unit`}
                 isOptional={false}
                 hint={processData.machineUnitHint}
+                timeBasis={processData.timeBasis}
                 value={processData.machineUnit}
                 onChange={(newValue) => {
                   setProcessData((d) => ({

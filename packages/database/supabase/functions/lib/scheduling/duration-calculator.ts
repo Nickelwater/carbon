@@ -1,84 +1,39 @@
-import type { BaseOperation, FactorUnit } from "./types.ts";
+import type { BaseOperation } from "./types.ts";
+import {
+  convertTimeToMilliseconds,
+  normalizeTimeToHours,
+  resolveDurationQuantity
+} from "../operation-time.ts";
 
 const HOURS_PER_WORKDAY = 8;
-const MS_PER_HOUR = 3600000;
-const MS_PER_MINUTE = 60000;
-const MS_PER_SECOND = 1000;
+const MS_PER_HOUR = 3_600_000;
 
-/**
- * Convert time value to hours based on the unit type
- */
-function convertToHours(
-  time: number | null | undefined,
-  unit: FactorUnit | null | undefined,
-  quantity: number
-): number {
-  if (!time || !unit) return 0;
-
-  switch (unit) {
-    case "Total Hours":
-      return time;
-    case "Total Minutes":
-      return time / 60;
-    case "Hours/Piece":
-      return time * quantity;
-    case "Hours/100 Pieces":
-      return (time / 100) * quantity;
-    case "Hours/1000 Pieces":
-      return (time / 1000) * quantity;
-    case "Minutes/Piece":
-      return (time * quantity) / 60;
-    case "Minutes/100 Pieces":
-      return ((time / 100) * quantity) / 60;
-    case "Minutes/1000 Pieces":
-      return ((time / 1000) * quantity) / 60;
-    case "Pieces/Hour":
-      return time > 0 ? quantity / time : 0;
-    case "Pieces/Minute":
-      return time > 0 ? quantity / (time * 60) : 0;
-    case "Seconds/Piece":
-      return (time * quantity) / 3600;
-    default:
-      return 0;
-  }
+function durationQuantityFor(operation: BaseOperation): number {
+  return resolveDurationQuantity({
+    partQuantity: operation.operationQuantity ?? 1,
+    partsPerCycle: operation.partsPerCycle,
+    timeBasis: operation.timeBasis
+  });
 }
 
-/**
- * Convert time value to milliseconds based on the unit type
- */
-function convertToMilliseconds(
+function convertToHours(
   time: number | null | undefined,
-  unit: FactorUnit | null | undefined,
-  quantity: number
+  unit: string | null | undefined,
+  operation: BaseOperation
 ): number {
   if (!time || !unit) return 0;
+  const { fixedHours, hoursPerUnit } = normalizeTimeToHours(time, unit);
+  const quantity = durationQuantityFor(operation);
+  return fixedHours + hoursPerUnit * quantity;
+}
 
-  switch (unit) {
-    case "Total Hours":
-      return time * MS_PER_HOUR;
-    case "Total Minutes":
-      return time * MS_PER_MINUTE;
-    case "Hours/Piece":
-      return time * quantity * MS_PER_HOUR;
-    case "Hours/100 Pieces":
-      return (time / 100) * quantity * MS_PER_HOUR;
-    case "Hours/1000 Pieces":
-      return (time / 1000) * quantity * MS_PER_HOUR;
-    case "Minutes/Piece":
-      return time * quantity * MS_PER_MINUTE;
-    case "Minutes/100 Pieces":
-      return (time / 100) * quantity * MS_PER_MINUTE;
-    case "Minutes/1000 Pieces":
-      return (time / 1000) * quantity * MS_PER_MINUTE;
-    case "Pieces/Hour":
-      return time > 0 ? (quantity / time) * MS_PER_HOUR : 0;
-    case "Pieces/Minute":
-      return time > 0 ? (quantity / time) * MS_PER_MINUTE : 0;
-    case "Seconds/Piece":
-      return time * quantity * MS_PER_SECOND;
-    default:
-      return 0;
-  }
+function convertToMilliseconds(
+  time: number | null | undefined,
+  unit: string | null | undefined,
+  operation: BaseOperation
+): number {
+  if (!time || !unit) return 0;
+  return convertTimeToMilliseconds(time, unit, durationQuantityFor(operation));
 }
 
 /**
@@ -86,25 +41,22 @@ function convertToMilliseconds(
  * Total = setup + max(labor, machine) since labor and machine can overlap
  */
 export function calculateDurationHours(operation: BaseOperation): number {
-  const quantity = operation.operationQuantity || 1;
-
   const setupHours = convertToHours(
     operation.setupTime,
     operation.setupUnit,
-    quantity
+    operation
   );
   const laborHours = convertToHours(
     operation.laborTime,
     operation.laborUnit,
-    quantity
+    operation
   );
   const machineHours = convertToHours(
     operation.machineTime,
     operation.machineUnit,
-    quantity
+    operation
   );
 
-  // Total = setup + max(labor, machine) since labor and machine can overlap
   return setupHours + Math.max(laborHours, machineHours);
 }
 
@@ -125,25 +77,22 @@ export function calculateDurationDays(
  * Used for load balancing calculations
  */
 export function calculateDurationMs(operation: BaseOperation): number {
-  const quantity = operation.operationQuantity || 1;
-
   const setupMs = convertToMilliseconds(
     operation.setupTime,
     operation.setupUnit,
-    quantity
+    operation
   );
   const laborMs = convertToMilliseconds(
     operation.laborTime,
     operation.laborUnit,
-    quantity
+    operation
   );
   const machineMs = convertToMilliseconds(
     operation.machineTime,
     operation.machineUnit,
-    quantity
+    operation
   );
 
-  // Total = setup + max(labor, machine) since labor and machine can overlap
   return setupMs + Math.max(laborMs, machineMs);
 }
 
@@ -158,22 +107,20 @@ export function calculateDurationBreakdown(operation: BaseOperation): {
   totalDays: number;
   totalMs: number;
 } {
-  const quantity = operation.operationQuantity || 1;
-
   const setupHours = convertToHours(
     operation.setupTime,
     operation.setupUnit,
-    quantity
+    operation
   );
   const laborHours = convertToHours(
     operation.laborTime,
     operation.laborUnit,
-    quantity
+    operation
   );
   const machineHours = convertToHours(
     operation.machineTime,
     operation.machineUnit,
-    quantity
+    operation
   );
 
   const totalHours = setupHours + Math.max(laborHours, machineHours);
@@ -186,7 +133,7 @@ export function calculateDurationBreakdown(operation: BaseOperation): {
     machineHours,
     totalHours,
     totalDays,
-    totalMs,
+    totalMs
   };
 }
 

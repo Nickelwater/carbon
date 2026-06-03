@@ -13,10 +13,12 @@ import {
   DropdownMenuTrigger,
   HStack,
   IconButton,
+  KanbanOperationQuantity,
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from "@carbon/react";
+import { getKanbanOperationQuantities } from "@carbon/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { parseDate } from "@internationalized/date";
@@ -225,6 +227,15 @@ export function JobCard({ item, isOverlay, progressByItemId }: JobCardProps) {
       status === "Completed" &&
       item.completedDate.split("T")[0] > item.dueDate);
 
+  const qty = getKanbanOperationQuantities({
+    targetQuantity: item.quantity,
+    quantity: item.quantity,
+    quantityCompleted: item.quantityCompleted,
+    quantityScrapped: item.quantityScrapped,
+    partsPerCycle: item.partsPerCycle,
+    timeBasis: item.timeBasis
+  });
+
   return (
     <Card
       ref={setNodeRef}
@@ -274,50 +285,63 @@ export function JobCard({ item, isOverlay, progressByItemId }: JobCardProps) {
               </span>
             )}
           </div>
-          <HStack spacing={1} className="flex-shrink-0 -mr-2">
-            <IconButton
-              aria-label={t`Move item`}
-              icon={<LuGripVertical />}
-              variant={"ghost"}
-              {...attributes}
-              {...listeners}
-              className="cursor-grab"
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <IconButton
-                  aria-label={t`More options`}
-                  icon={<LuEllipsisVertical />}
-                  variant="secondary"
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {displaySettings.showQuantity &&
+              (qty.progressMax > 0 || qty.targetParts > 0) && (
+                <KanbanOperationQuantity
+                  targetQuantity={item.quantity}
+                  quantity={item.quantity}
+                  quantityCompleted={item.quantityCompleted}
+                  quantityScrapped={item.quantityScrapped}
+                  partsPerCycle={item.partsPerCycle}
+                  timeBasis={item.timeBasis}
                 />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {item.link && (
-                  <DropdownMenuItem asChild>
-                    <Link to={item.link}>
-                      <DropdownMenuIcon icon={<LuPencil />} />
-                      Edit Job
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  onClick={() =>
-                    setSelectedGroup?.(
-                      isHighlighted ? null : item.jobReadableId
-                    )
-                  }
-                  destructive={isHighlighted}
-                >
-                  <DropdownMenuIcon
-                    icon={
-                      isHighlighted ? <LuFlashlightOff /> : <LuFlashlight />
-                    }
+              )}
+            <HStack spacing={1} className="-mr-2">
+              <IconButton
+                aria-label={t`Move item`}
+                icon={<LuGripVertical />}
+                variant={"ghost"}
+                {...attributes}
+                {...listeners}
+                className="cursor-grab"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <IconButton
+                    aria-label={t`More options`}
+                    icon={<LuEllipsisVertical />}
+                    variant="secondary"
                   />
-                  {isHighlighted ? "Remove Highlight" : "Highlight Job"}
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </HStack>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {item.link && (
+                    <DropdownMenuItem asChild>
+                      <Link to={item.link}>
+                        <DropdownMenuIcon icon={<LuPencil />} />
+                        Edit Job
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() =>
+                      setSelectedGroup?.(
+                        isHighlighted ? null : item.jobReadableId
+                      )
+                    }
+                    destructive={isHighlighted}
+                  >
+                    <DropdownMenuIcon
+                      icon={
+                        isHighlighted ? <LuFlashlightOff /> : <LuFlashlight />
+                      }
+                    />
+                    {isHighlighted ? "Remove Highlight" : "Highlight Job"}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </HStack>
+          </div>
         </div>
 
         {displaySettings.showProgress &&
@@ -399,16 +423,22 @@ export function JobCard({ item, isOverlay, progressByItemId }: JobCardProps) {
           </HStack>
         )}
 
-        {displaySettings.showQuantity &&
-          Number.isFinite(item.quantity) &&
-          Number(item.quantity) > 0 && (
-            <HStack className="justify-start space-x-2">
-              <LuCircleCheck className="text-muted-foreground" />
-              <span className="text-sm">
-                {item.quantityCompleted ?? 0}/{item.quantity} completed
-              </span>
-            </HStack>
-          )}
+        {displaySettings.showQuantity && qty.progressMax > 0 && (
+          <HStack className="justify-start space-x-2 items-start">
+            <LuCircleCheck className="text-muted-foreground mt-0.5 shrink-0" />
+            <KanbanOperationQuantity
+              mode="progress"
+              targetQuantity={item.quantity}
+              quantity={item.quantity}
+              quantityCompleted={item.quantityCompleted}
+              quantityScrapped={item.quantityScrapped}
+              partsPerCycle={item.partsPerCycle}
+              timeBasis={item.timeBasis}
+              className="items-start text-left"
+              headingClassName="text-sm font-normal"
+            />
+          </HStack>
+        )}
 
         {displaySettings.showSalesOrder &&
           item.salesOrderReadableId &&

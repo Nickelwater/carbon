@@ -1,4 +1,8 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import {
+  costingQuantityMultiplier,
+  normalizeTimeToHours
+} from "./operation-time.ts";
 import { Database } from "./types.ts";
 
 export type JobMethod = NonNullable<
@@ -404,50 +408,6 @@ function lookupBuyPriceFromMap(
   );
 }
 
-function normalizeTimeToHours(
-  time: number,
-  unit: string
-): { fixedHours: number; hoursPerUnit: number } {
-  let fixedHours = 0;
-  let hoursPerUnit = 0;
-  switch (unit) {
-    case "Total Hours":
-      fixedHours = time;
-      break;
-    case "Total Minutes":
-      fixedHours = time / 60;
-      break;
-    case "Hours/Piece":
-      hoursPerUnit = time;
-      break;
-    case "Hours/100 Pieces":
-      hoursPerUnit = time / 100;
-      break;
-    case "Hours/1000 Pieces":
-      hoursPerUnit = time / 1000;
-      break;
-    case "Minutes/Piece":
-      hoursPerUnit = time / 60;
-      break;
-    case "Minutes/100 Pieces":
-      hoursPerUnit = time / 100 / 60;
-      break;
-    case "Minutes/1000 Pieces":
-      hoursPerUnit = time / 1000 / 60;
-      break;
-    case "Pieces/Hour":
-      hoursPerUnit = 1 / time;
-      break;
-    case "Pieces/Minute":
-      hoursPerUnit = 1 / (time / 60);
-      break;
-    case "Seconds/Piece":
-      hoursPerUnit = time / 3600;
-      break;
-  }
-  return { fixedHours, hoursPerUnit };
-}
-
 export async function calculateQuoteLinePrices(
   client: SupabaseClient<Database>,
   quoteId: string,
@@ -642,17 +602,26 @@ export async function calculateQuoteLinePrices(
             operation.setupUnit
           );
           effects.laborCost.push((quantity) => {
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: quantity,
+              nodeQuantity: node.quantity,
+              partsPerCycle: operation.partsPerCycle,
+              timeBasis: operation.timeBasis
+            });
             return (
-              hoursPerUnit * quantity * node.quantity * (operation.laborRate ?? 0) +
+              hoursPerUnit * mult * (operation.laborRate ?? 0) +
               fixedHours * (operation.laborRate ?? 0)
             );
           });
           effects.overheadCost.push((quantity) => {
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: quantity,
+              nodeQuantity: node.quantity,
+              partsPerCycle: operation.partsPerCycle,
+              timeBasis: operation.timeBasis
+            });
             return (
-              hoursPerUnit *
-                quantity *
-                node.quantity *
-                (operation.overheadRate ?? 0) +
+              hoursPerUnit * mult * (operation.overheadRate ?? 0) +
               fixedHours * (operation.overheadRate ?? 0)
             );
           });
@@ -672,11 +641,14 @@ export async function calculateQuoteLinePrices(
           laborHoursPerUnit = normalized.hoursPerUnit;
 
           effects.laborCost.push((quantity) => {
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: quantity,
+              nodeQuantity: node.quantity,
+              partsPerCycle: operation.partsPerCycle,
+              timeBasis: operation.timeBasis
+            });
             return (
-              laborHoursPerUnit *
-                quantity *
-                node.quantity *
-                (operation.laborRate ?? 0) +
+              laborHoursPerUnit * mult * (operation.laborRate ?? 0) +
               laborFixedHours * (operation.laborRate ?? 0)
             );
           });
@@ -691,11 +663,14 @@ export async function calculateQuoteLinePrices(
           machineHoursPerUnit = normalized.hoursPerUnit;
 
           effects.machineCost.push((quantity) => {
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: quantity,
+              nodeQuantity: node.quantity,
+              partsPerCycle: operation.partsPerCycle,
+              timeBasis: operation.timeBasis
+            });
             return (
-              machineHoursPerUnit *
-                quantity *
-                node.quantity *
-                (operation.machineRate ?? 0) +
+              machineHoursPerUnit * mult * (operation.machineRate ?? 0) +
               machineFixedHours * (operation.machineRate ?? 0)
             );
           });
@@ -705,16 +680,16 @@ export async function calculateQuoteLinePrices(
         const fixedHours = Math.max(laborFixedHours, machineFixedHours);
 
         effects.overheadCost.push((quantity) => {
-          if (hoursPerUnit * quantity * node.quantity > fixedHours) {
-            return (
-              hoursPerUnit *
-              quantity *
-              node.quantity *
-              (operation.overheadRate ?? 0)
-            );
-          } else {
-            return fixedHours * (operation.overheadRate ?? 0);
+          const mult = costingQuantityMultiplier({
+            quotePartQuantity: quantity,
+            nodeQuantity: node.quantity,
+            partsPerCycle: operation.partsPerCycle,
+            timeBasis: operation.timeBasis
+          });
+          if (hoursPerUnit * mult > fixedHours) {
+            return hoursPerUnit * mult * (operation.overheadRate ?? 0);
           }
+          return fixedHours * (operation.overheadRate ?? 0);
         });
       } else if (operation.operationType === "Outside") {
         effects.outsideCost.push((quantity) => {

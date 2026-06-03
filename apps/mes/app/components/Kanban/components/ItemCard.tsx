@@ -6,8 +6,8 @@ import {
   CardFooter,
   CardHeader,
   cn,
-  Heading,
   HStack,
+  KanbanOperationQuantity,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -15,7 +15,8 @@ import {
 } from "@carbon/react";
 import {
   convertDateStringToIsoString,
-  formatDurationMilliseconds
+  formatDurationMilliseconds,
+  getKanbanOperationQuantities
 } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { cva } from "class-variance-authority";
@@ -108,6 +109,16 @@ export function ItemCard({
     ? Array.from(progressByItemId[item.id].employees!)
     : undefined;
 
+  const qty = getKanbanOperationQuantities({
+    targetQuantity: item.targetQuantity,
+    quantity: item.quantity,
+    quantityCompleted: item.quantityCompleted,
+    quantityReworked: item.quantityReworked,
+    quantityScrapped: item.quantityScrapped,
+    partsPerCycle: item.partsPerCycle,
+    timeBasis: item.timeBasis
+  });
+
   return (
     <Link to={path.to.operation(item.id)}>
       <Card
@@ -130,9 +141,17 @@ export function ItemCard({
                 {item.itemDescription || item.itemReadableId}
               </span>
             </div>
-            <Heading size="h4" className="text-foreground">
-              {item.targetQuantity}
-            </Heading>
+            {(qty.progressMax > 0 || qty.targetParts > 0) && (
+              <KanbanOperationQuantity
+                targetQuantity={item.targetQuantity}
+                quantity={item.quantity}
+                quantityCompleted={item.quantityCompleted}
+                quantityReworked={item.quantityReworked}
+                quantityScrapped={item.quantityScrapped}
+                partsPerCycle={item.partsPerCycle}
+                timeBasis={item.timeBasis}
+              />
+            )}
           </div>
 
           {showProgress &&
@@ -161,35 +180,33 @@ export function ItemCard({
                 <LuTimer className="text-muted-foreground w-4 h-4" />
               </HStack>
             )}
-          {showProgress &&
-            Number.isFinite(item.quantity) &&
-            Number(item.quantity) > 0 && (
-              <HStack className="mt-2">
-                <BarProgress
-                  segments={[
-                    {
-                      value: item.quantityCompleted ?? 0,
-                      className: "bg-emerald-500"
-                    },
-                    {
-                      value: item.quantityReworked ?? 0,
-                      className: "bg-yellow-500"
-                    },
-                    {
-                      value: item.quantityScrapped ?? 0,
-                      className: "bg-red-500"
-                    }
-                  ]}
-                  max={item.targetQuantity || 1}
-                  progress={
-                    item.quantityCompleted && item.targetQuantity
-                      ? (item.quantityCompleted / item.targetQuantity) * 100
-                      : 0
+          {showProgress && qty.progressMax > 0 && (
+            <HStack className="mt-2">
+              <BarProgress
+                segments={[
+                  {
+                    value: qty.segmentCompleted,
+                    className: "bg-emerald-500"
+                  },
+                  {
+                    value: qty.segmentReworked,
+                    className: "bg-yellow-500"
+                  },
+                  {
+                    value: qty.segmentScrapped,
+                    className: "bg-red-500"
                   }
-                />
-                <LuCircleCheck className="text-muted-foreground w-4 h-4" />
-              </HStack>
-            )}
+                ]}
+                max={qty.progressMax || 1}
+                progress={
+                  qty.progressCompleted && qty.progressMax
+                    ? (qty.progressCompleted / qty.progressMax) * 100
+                    : 0
+                }
+              />
+              <LuCircleCheck className="text-muted-foreground w-4 h-4" />
+            </HStack>
+          )}
         </CardHeader>
 
         <CardContent className="gap-2 text-left whitespace-pre-wrap text-sm">

@@ -34,6 +34,8 @@ export type BaseOperation = {
   machineUnit?: FactorUnit;
   operationOrder?: MethodOperationOrder;
   operationQuantity?: number | null;
+  partsPerCycle?: number | null;
+  timeBasis?: "Piece" | "Cycle" | null;
   operationType?: OperationType;
   operationLeadTime?: number;
   priority?: number;

@@ -16119,10 +16119,12 @@ export type Database = {
           operationUnitCost: number
           order: number
           overheadRate: number
+          partsPerCycle: number
           priority: number
           procedureId: string | null
           processId: string
           quantityComplete: number | null
+          timeBasis: Database["public"]["Enums"]["operationTimeBasis"]
           quantityReworked: number | null
           quantityScrapped: number | null
           reworkId: string | null
@@ -16166,6 +16168,7 @@ export type Database = {
           operationUnitCost?: number
           order?: number
           overheadRate?: number
+          partsPerCycle?: number
           priority?: number
           procedureId?: string | null
           processId: string
@@ -16177,6 +16180,7 @@ export type Database = {
           setupUnit?: Database["public"]["Enums"]["factor"]
           startDate?: string | null
           status?: Database["public"]["Enums"]["jobOperationStatus"]
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           tags?: string[] | null
           targetQuantity?: number | null
           updatedAt?: string | null
@@ -16213,6 +16217,7 @@ export type Database = {
           operationUnitCost?: number
           order?: number
           overheadRate?: number
+          partsPerCycle?: number
           priority?: number
           procedureId?: string | null
           processId?: string
@@ -21416,11 +21421,13 @@ export type Database = {
           operationType: Database["public"]["Enums"]["operationType"]
           operationUnitCost: number | null
           order: number
+          partsPerCycle: number
           procedureId: string | null
           processId: string
           setupTime: number
           setupUnit: Database["public"]["Enums"]["factor"]
           tags: string[] | null
+          timeBasis: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt: string | null
           updatedBy: string | null
           workCenterId: string | null
@@ -21445,11 +21452,13 @@ export type Database = {
           operationType?: Database["public"]["Enums"]["operationType"]
           operationUnitCost?: number | null
           order?: number
+          partsPerCycle?: number
           procedureId?: string | null
           processId: string
           setupTime?: number
           setupUnit?: Database["public"]["Enums"]["factor"]
           tags?: string[] | null
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt?: string | null
           updatedBy?: string | null
           workCenterId?: string | null
@@ -21474,11 +21483,13 @@ export type Database = {
           operationType?: Database["public"]["Enums"]["operationType"]
           operationUnitCost?: number | null
           order?: number
+          partsPerCycle?: number
           procedureId?: string | null
           processId?: string
           setupTime?: number
           setupUnit?: Database["public"]["Enums"]["factor"]
           tags?: string[] | null
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt?: string | null
           updatedBy?: string | null
           workCenterId?: string | null
@@ -33715,6 +33726,7 @@ export type Database = {
           operationUnitCost: number
           order: number
           overheadRate: number
+          partsPerCycle: number
           procedureId: string | null
           processId: string
           quoteId: string
@@ -33723,6 +33735,7 @@ export type Database = {
           setupTime: number
           setupUnit: Database["public"]["Enums"]["factor"]
           tags: string[] | null
+          timeBasis: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt: string | null
           updatedBy: string | null
           workCenterId: string | null
@@ -33749,11 +33762,13 @@ export type Database = {
           operationUnitCost?: number
           order?: number
           overheadRate?: number
+          partsPerCycle?: number
           procedureId?: string | null
           processId: string
           quoteId: string
           quoteLineId: string
           quoteMakeMethodId?: string | null
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           setupTime?: number
           setupUnit?: Database["public"]["Enums"]["factor"]
           tags?: string[] | null
@@ -33783,6 +33798,7 @@ export type Database = {
           operationUnitCost?: number
           order?: number
           overheadRate?: number
+          partsPerCycle?: number
           procedureId?: string | null
           processId?: string
           quoteId?: string
@@ -33791,6 +33807,7 @@ export type Database = {
           setupTime?: number
           setupUnit?: Database["public"]["Enums"]["factor"]
           tags?: string[] | null
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt?: string | null
           updatedBy?: string | null
           workCenterId?: string | null
@@ -66590,9 +66607,19 @@ export const Constants = {
         "Pieces/Hour",
         "Pieces/Minute",
         "Seconds/Piece",
+        "Hours/Cycle",
+        "Hours/100 Cycles",
+        "Hours/1000 Cycles",
+        "Minutes/Cycle",
+        "Minutes/100 Cycles",
+        "Minutes/1000 Cycles",
+        "Cycles/Hour",
+        "Cycles/Minute",
+        "Seconds/Cycle",
         "Total Hours",
         "Total Minutes",
       ],
+      operationTimeBasis: ["Piece", "Cycle"],
       fixedAssetStatus: ["Draft", "Active", "Fully Depreciated", "Disposed"],
       fulfillmentType: ["Inventory", "Job"],
       gaugeCalibrationStatus: [

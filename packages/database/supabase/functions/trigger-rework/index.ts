@@ -235,6 +235,8 @@ async function triggerRework(
         procedureId: sourceOp.procedureId,
         operationQuantity: quantity,
         targetQuantity: quantity,
+        partsPerCycle: sourceOp.partsPerCycle ?? 1,
+        timeBasis: sourceOp.timeBasis ?? "Piece",
         tags: sourceOp.tags,
         companyId,
         createdBy: userId,

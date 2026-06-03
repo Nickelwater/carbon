@@ -3,6 +3,7 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
+import { cyclesToParts, normalizePartsPerCycle } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
 import { data, redirect } from "react-router";
 import { nonScrapQuantityValidator } from "~/services/models";
@@ -44,11 +45,19 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
+  const quantityUnit = formData.get("quantityUnit");
+  const partsPerCycle = normalizePartsPerCycle(jobOperation.data.partsPerCycle);
+  const timeBasis = jobOperation.data.timeBasis ?? "Piece";
+  const completionQuantity =
+    quantityUnit === "cycles" || timeBasis === "Cycle"
+      ? cyclesToParts(validation.data.quantity, partsPerCycle)
+      : validation.data.quantity;
+
   const totalAccountedQuantity =
     (jobOperation.data.quantityComplete ?? 0) +
     (jobOperation.data.quantityReworked ?? 0) +
     (jobOperation.data.quantityScrapped ?? 0) +
-    validation.data.quantity;
+    completionQuantity;
 
   const willBeFinished =
     totalAccountedQuantity >=
@@ -61,6 +70,7 @@ export async function action({ request }: ActionFunctionArgs) {
       body: {
         type: "jobOperationSerialComplete",
         ...validation.data,
+        quantity: completionQuantity,
         companyId,
         userId
       }
@@ -119,6 +129,7 @@ export async function action({ request }: ActionFunctionArgs) {
       body: {
         type: "jobOperationBatchComplete",
         ...validation.data,
+        quantity: completionQuantity,
         companyId,
         userId
       }
@@ -166,6 +177,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const { trackedEntityId, trackingType, ...d } = validation.data;
     const insertProduction = await insertProductionQuantity(client, {
       ...d,
+      quantity: completionQuantity,
       companyId,
       createdBy: userId
     });
@@ -187,7 +199,7 @@ export async function action({ request }: ActionFunctionArgs) {
       body: {
         id: validation.data.jobOperationId,
         type: "jobOperation",
-        quantity: validation.data.quantity,
+        quantity: completionQuantity,
         companyId,
         userId
       }

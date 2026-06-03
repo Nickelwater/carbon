@@ -1,15 +1,17 @@
 import type { SelectProps } from "@carbon/form";
 import { SelectControlled } from "@carbon/form";
+import { factorUnitsForTimeBasis } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
-import { standardFactorType } from "~/modules/shared";
 
 export type StandardFactorSelectProps = Omit<SelectProps, "options"> & {
   hint?: string;
+  timeBasis?: string;
 };
 
 const StandardFactor = ({
   label,
   hint,
+  timeBasis = "Piece",
   ...props
 }: StandardFactorSelectProps) => {
   const { t } = useLingui();
@@ -34,6 +36,24 @@ const StandardFactor = ({
         return t`Pieces/Minute`;
       case "Seconds/Piece":
         return t`Seconds/Piece`;
+      case "Hours/Cycle":
+        return t`Hours/Cycle`;
+      case "Hours/100 Cycles":
+        return t`Hours/100 Cycles`;
+      case "Hours/1000 Cycles":
+        return t`Hours/1000 Cycles`;
+      case "Minutes/Cycle":
+        return t`Minutes/Cycle`;
+      case "Minutes/100 Cycles":
+        return t`Minutes/100 Cycles`;
+      case "Minutes/1000 Cycles":
+        return t`Minutes/1000 Cycles`;
+      case "Cycles/Hour":
+        return t`Cycles/Hour`;
+      case "Cycles/Minute":
+        return t`Cycles/Minute`;
+      case "Seconds/Cycle":
+        return t`Seconds/Cycle`;
       case "Total Hours":
         return t`Total Hours`;
       case "Total Minutes":
@@ -43,17 +63,13 @@ const StandardFactor = ({
     }
   };
 
-  const options = standardFactorType
-    .filter((type) => {
-      if (hint === "Fixed") {
-        return ["Total Hours", "Total Minutes"].includes(type);
-      } else if (hint === "Per Unit") {
-        return !["Total Hours", "Total Minutes"].includes(type);
-      } else {
-        return true;
-      }
-    })
-    .map((type) => ({ value: type, label: translateStandardFactorType(type) }));
+  const options = factorUnitsForTimeBasis(
+    timeBasis,
+    hint as "Fixed" | "Per Unit" | "Per Cycle" | undefined
+  ).map((type) => ({
+    value: type,
+    label: translateStandardFactorType(type)
+  }));
 
   return (
     <SelectControlled

@@ -14,13 +14,15 @@ import {
   DropdownMenuTrigger,
   HStack,
   IconButton,
+  KanbanOperationQuantity,
   Tooltip,
   TooltipContent,
   TooltipTrigger
 } from "@carbon/react";
 import {
   convertDateStringToIsoString,
-  formatDurationMilliseconds
+  formatDurationMilliseconds,
+  getKanbanOperationQuantities
 } from "@carbon/utils";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -140,6 +142,16 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
     ? Array.from(progressByItemId[item.id].employees!)
     : undefined;
 
+  const qty = getKanbanOperationQuantities({
+    targetQuantity: item.targetQuantity,
+    quantity: item.quantity,
+    quantityCompleted: item.quantityCompleted,
+    quantityReworked: item.quantityReworked,
+    quantityScrapped: item.quantityScrapped,
+    partsPerCycle: item.partsPerCycle,
+    timeBasis: item.timeBasis
+  });
+
   return (
     <Card
       ref={setNodeRef}
@@ -169,56 +181,69 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
               {item.itemDescription || item.itemReadableId}
             </Link>
           </div>
-          <HStack spacing={1} className="flex-shrink-0 -mr-2">
-            <IconButton
-              aria-label={t`Move item`}
-              icon={<LuGripVertical />}
-              variant={"ghost"}
-              {...attributes}
-              {...listeners}
-              className="cursor-grab"
-            />
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <IconButton
-                  aria-label={t`More options`}
-                  icon={<LuEllipsisVertical />}
-                  variant="secondary"
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                {item.link && (
-                  <DropdownMenuItem asChild>
-                    <Link to={`${item.link}?selectedOperation=${item.id}`}>
-                      <DropdownMenuIcon icon={<LuPencil />} />
-                      Edit Operation
-                    </Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem
-                  onClick={() =>
-                    setSelectedGroup?.(
-                      isHighlighted ? null : item.jobReadableId
-                    )
-                  }
-                  destructive={isHighlighted}
-                >
-                  <DropdownMenuIcon
-                    icon={
-                      isHighlighted ? <LuFlashlightOff /> : <LuFlashlight />
-                    }
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            {(qty.progressMax > 0 || qty.targetParts > 0) && (
+              <KanbanOperationQuantity
+                targetQuantity={item.targetQuantity}
+                quantity={item.quantity}
+                quantityCompleted={item.quantityCompleted}
+                quantityReworked={item.quantityReworked}
+                quantityScrapped={item.quantityScrapped}
+                partsPerCycle={item.partsPerCycle}
+                timeBasis={item.timeBasis}
+              />
+            )}
+            <HStack spacing={1} className="-mr-2">
+              <IconButton
+                aria-label={t`Move item`}
+                icon={<LuGripVertical />}
+                variant={"ghost"}
+                {...attributes}
+                {...listeners}
+                className="cursor-grab"
+              />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <IconButton
+                    aria-label={t`More options`}
+                    icon={<LuEllipsisVertical />}
+                    variant="secondary"
                   />
-                  {isHighlighted ? "Remove Highlight" : "Highlight Job"}
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <a href={path.to.external.mesJobOperation(item.id)}>
-                    <DropdownMenuIcon icon={<LuPlay />} />
-                    Open in MES
-                  </a>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </HStack>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  {item.link && (
+                    <DropdownMenuItem asChild>
+                      <Link to={`${item.link}?selectedOperation=${item.id}`}>
+                        <DropdownMenuIcon icon={<LuPencil />} />
+                        Edit Operation
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() =>
+                      setSelectedGroup?.(
+                        isHighlighted ? null : item.jobReadableId
+                      )
+                    }
+                    destructive={isHighlighted}
+                  >
+                    <DropdownMenuIcon
+                      icon={
+                        isHighlighted ? <LuFlashlightOff /> : <LuFlashlight />
+                      }
+                    />
+                    {isHighlighted ? "Remove Highlight" : "Highlight Job"}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <a href={path.to.external.mesJobOperation(item.id)}>
+                      <DropdownMenuIcon icon={<LuPlay />} />
+                      Open in MES
+                    </a>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </HStack>
+          </div>
         </div>
 
         {displaySettings.showProgress &&
@@ -244,36 +269,30 @@ export function ItemCard({ item, isOverlay, progressByItemId }: ItemCardProps) {
               <LuTimer className="text-muted-foreground w-4 h-4" />
             </HStack>
           )}
-        {displaySettings.showProgress &&
-          Number.isFinite(item.targetQuantity ?? item.quantity) &&
-          Number(item.targetQuantity ?? item.quantity) > 0 && (
-            <HStack>
-              <BarProgress
-                segments={[
-                  {
-                    value: item.quantityCompleted ?? 0,
-                    className: "bg-emerald-500"
-                  },
-                  {
-                    value: item.quantityReworked ?? 0,
-                    className: "bg-yellow-500"
-                  },
-                  { value: item.quantityScrapped ?? 0, className: "bg-red-500" }
-                ]}
-                max={(item.targetQuantity ?? item.quantity) || 1}
-                progress={
-                  item.quantityCompleted &&
-                  (item.targetQuantity ?? item.quantity)
-                    ? (item.quantityCompleted /
-                        // @ts-expect-error TS2532 - TODO: fix type
-                        (item.targetQuantity ?? item.quantity)) *
-                      100
-                    : 0
-                }
-              />
-              <LuCircleCheck className="text-muted-foreground w-4 h-4" />
-            </HStack>
-          )}
+        {displaySettings.showProgress && qty.progressMax > 0 && (
+          <HStack>
+            <BarProgress
+              segments={[
+                {
+                  value: qty.segmentCompleted,
+                  className: "bg-emerald-500"
+                },
+                {
+                  value: qty.segmentReworked,
+                  className: "bg-yellow-500"
+                },
+                { value: qty.segmentScrapped, className: "bg-red-500" }
+              ]}
+              max={qty.progressMax || 1}
+              progress={
+                qty.progressCompleted && qty.progressMax
+                  ? (qty.progressCompleted / qty.progressMax) * 100
+                  : 0
+              }
+            />
+            <LuCircleCheck className="text-muted-foreground w-4 h-4" />
+          </HStack>
+        )}
       </CardHeader>
       <CardContent className="gap-2 text-left whitespace-pre-wrap text-sm">
         {displaySettings.showThumbnail && item.thumbnailPath && (

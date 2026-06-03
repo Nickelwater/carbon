@@ -1,5 +1,10 @@
 import { useField } from "@carbon/form";
 import { FormControl, FormHelperText, FormLabel } from "@carbon/react";
+import {
+  defaultVariableFactorUnit,
+  getUnitHint as getUnitHintFromUtils,
+  isCycleTimeBasis
+} from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
 
 import { Select } from "~/components";
@@ -13,13 +18,14 @@ export type UnitHintProps = Omit<SelectProps, "onChange" | "options"> & {
   helperText?: string;
   isOptional?: boolean;
   isConfigured?: boolean;
+  timeBasis?: string;
   value: string;
   onChange: (newValue: string) => void;
   onConfigure?: () => void;
 };
 
-export const getUnitHint = (u?: string) =>
-  ["Total Minutes", "Total Hours"].includes(u ?? "") ? "Fixed" : "Per Unit";
+export const getUnitHint = (u?: string, timeBasis?: string) =>
+  getUnitHintFromUtils(u, timeBasis);
 
 const UnitHint = ({
   defaultUnit,
@@ -28,20 +34,29 @@ const UnitHint = ({
   helperText,
   isOptional,
   isConfigured,
-  value = getUnitHint(defaultUnit),
+  timeBasis = "Piece",
+  value = getUnitHint(defaultUnit, timeBasis),
   onConfigure,
   ...props
 }: UnitHintProps) => {
   const { t } = useLingui();
   const { isOptional: fieldIsOptional } = useField(name);
   const resolvedIsOptional = isOptional ?? fieldIsOptional ?? false;
+  const cycleMode = isCycleTimeBasis(timeBasis);
 
-  const onChange = (value: string) => {
-    props?.onChange?.(value);
+  const hintOptions = cycleMode
+    ? (["Fixed", "Per Cycle"] as const)
+    : (["Fixed", "Per Unit"] as const);
+
+  const translateUnitHint = (v: string) => {
+    if (v === "Fixed") return t`Fixed`;
+    if (v === "Per Cycle") return t`Per Cycle`;
+    return t`Per Piece`;
   };
 
-  const translateUnitHint = (v: string) =>
-    v === "Fixed" ? t`Fixed` : t`Per Unit`;
+  const onChange = (hint: string) => {
+    props?.onChange?.(hint);
+  };
 
   return (
     <FormControl className={props.className}>
@@ -61,7 +76,7 @@ const UnitHint = ({
         value={value}
         onChange={onChange}
         className="w-full"
-        options={["Fixed", "Per Unit"].map((u) => ({
+        options={hintOptions.map((u) => ({
           value: u,
           label: translateUnitHint(u)
         }))}
@@ -75,3 +90,10 @@ const UnitHint = ({
 UnitHint.displayName = "UnitHint";
 
 export default UnitHint;
+
+export function unitForHint(hint: string, timeBasis: string): StandardFactor {
+  if (hint === "Fixed") {
+    return "Total Minutes";
+  }
+  return defaultVariableFactorUnit(timeBasis);
+}

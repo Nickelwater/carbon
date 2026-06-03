@@ -113,6 +113,8 @@ export class WorkCenterSelector {
         "machineTime",
         "machineUnit",
         "operationQuantity",
+        "partsPerCycle",
+        "timeBasis",
       ])
       .where("workCenterId", "=", workCenterId)
       .where("companyId", "=", this.companyId)
@@ -137,6 +139,8 @@ export class WorkCenterSelector {
         machineTime: op.machineTime ?? undefined,
         machineUnit: op.machineUnit ?? undefined,
         operationQuantity: op.operationQuantity ?? undefined,
+        partsPerCycle: op.partsPerCycle ?? undefined,
+        timeBasis: op.timeBasis ?? undefined,
       });
     }
 

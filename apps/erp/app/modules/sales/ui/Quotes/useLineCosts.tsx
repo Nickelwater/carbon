@@ -1,3 +1,4 @@
+import { costingQuantityMultiplier, normalizeTimeToHours } from "@carbon/utils";
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import type { Tree } from "~/components/TreeView";
@@ -151,68 +152,43 @@ export function useLineCosts({
       data.operations?.forEach((operation: QuotationOperation) => {
         if (operation.operationType === "Inside") {
           if (operation.setupTime) {
-            // normalize production standard to hours
-            let hoursPerUnit = 0;
-            let fixedHours = 0;
-            switch (operation.setupUnit) {
-              case "Total Hours":
-                fixedHours = operation.setupTime;
-                break;
-              case "Total Minutes":
-                fixedHours = operation.setupTime / 60;
-                break;
-              case "Hours/Piece":
-                hoursPerUnit = operation.setupTime;
-                break;
-              case "Hours/100 Pieces":
-                hoursPerUnit = operation.setupTime / 100;
-                break;
-              case "Hours/1000 Pieces":
-                hoursPerUnit = operation.setupTime / 1000;
-                break;
-
-              case "Minutes/Piece":
-                hoursPerUnit = operation.setupTime / 60;
-                break;
-              case "Minutes/100 Pieces":
-                hoursPerUnit = operation.setupTime / 100 / 60;
-                break;
-              case "Minutes/1000 Pieces":
-                hoursPerUnit = operation.setupTime / 1000 / 60;
-                break;
-              case "Pieces/Hour":
-                hoursPerUnit = 1 / operation.setupTime;
-                break;
-              case "Pieces/Minute":
-                hoursPerUnit = 1 / (operation.setupTime / 60);
-                break;
-              case "Seconds/Piece":
-                hoursPerUnit = operation.setupTime / 3600;
-                break;
-              default:
-                break;
-            }
+            const { fixedHours, hoursPerUnit } = normalizeTimeToHours(
+              operation.setupTime,
+              operation.setupUnit
+            );
 
             effects.setupHours.push((quantity) => {
-              return hoursPerUnit * quantity * data.quantity + fixedHours;
+              const mult = costingQuantityMultiplier({
+                quotePartQuantity: quantity,
+                nodeQuantity: data.quantity,
+                partsPerCycle: operation.partsPerCycle,
+                timeBasis: operation.timeBasis
+              });
+              return hoursPerUnit * mult + fixedHours;
             });
 
             effects.laborCost.push((quantity) => {
+              const mult = costingQuantityMultiplier({
+                quotePartQuantity: quantity,
+                nodeQuantity: data.quantity,
+                partsPerCycle: operation.partsPerCycle,
+                timeBasis: operation.timeBasis
+              });
               return (
-                hoursPerUnit *
-                  quantity *
-                  data.quantity *
-                  (operation.laborRate ?? 0) +
+                hoursPerUnit * mult * (operation.laborRate ?? 0) +
                 fixedHours * (operation.laborRate ?? 0)
               );
             });
 
             effects.overheadCost.push((quantity) => {
+              const mult = costingQuantityMultiplier({
+                quotePartQuantity: quantity,
+                nodeQuantity: data.quantity,
+                partsPerCycle: operation.partsPerCycle,
+                timeBasis: operation.timeBasis
+              });
               return (
-                hoursPerUnit *
-                  quantity *
-                  data.quantity *
-                  (operation.overheadRate ?? 0) +
+                hoursPerUnit * mult * (operation.overheadRate ?? 0) +
                 fixedHours * (operation.overheadRate ?? 0)
               );
             });
@@ -224,129 +200,64 @@ export function useLineCosts({
           let machineHoursPerUnit = 0;
 
           if (operation.laborTime) {
-            // normalize production standard to hours
-
-            switch (operation.laborUnit) {
-              case "Total Hours":
-                laborFixedHours = operation.laborTime;
-                break;
-              case "Total Minutes":
-                laborFixedHours = operation.laborTime / 60;
-                break;
-              case "Hours/Piece":
-                laborHoursPerUnit = operation.laborTime;
-                break;
-              case "Hours/100 Pieces":
-                laborHoursPerUnit = operation.laborTime / 100;
-                break;
-              case "Hours/1000 Pieces":
-                laborHoursPerUnit = operation.laborTime / 1000;
-                break;
-
-              case "Minutes/Piece":
-                laborHoursPerUnit = operation.laborTime / 60;
-                break;
-              case "Minutes/100 Pieces":
-                laborHoursPerUnit = operation.laborTime / 100 / 60;
-                break;
-              case "Minutes/1000 Pieces":
-                laborHoursPerUnit = operation.laborTime / 1000 / 60;
-                break;
-              case "Pieces/Hour":
-                laborHoursPerUnit = 1 / operation.laborTime;
-                break;
-              case "Pieces/Minute":
-                laborHoursPerUnit = 1 / (operation.laborTime / 60);
-                break;
-              case "Seconds/Piece":
-                laborHoursPerUnit = operation.laborTime / 3600;
-                break;
-              default:
-                break;
-            }
-            const cavityMultiplier = Math.max(
-              1,
-              Number(operation.cavityMultiplier) || 1
+            const laborNormalized = normalizeTimeToHours(
+              operation.laborTime,
+              operation.laborUnit
             );
-            laborHoursPerUnit /= cavityMultiplier;
+            laborFixedHours = laborNormalized.fixedHours;
+            laborHoursPerUnit = laborNormalized.hoursPerUnit;
 
             effects.laborHours.push((quantity) => {
-              return (
-                laborHoursPerUnit * quantity * data.quantity + laborFixedHours
-              );
+              const mult = costingQuantityMultiplier({
+                quotePartQuantity: quantity,
+                nodeQuantity: data.quantity,
+                partsPerCycle: operation.partsPerCycle,
+                timeBasis: operation.timeBasis
+              });
+              return laborHoursPerUnit * mult + laborFixedHours;
             });
 
             effects.laborCost.push((quantity) => {
+              const mult = costingQuantityMultiplier({
+                quotePartQuantity: quantity,
+                nodeQuantity: data.quantity,
+                partsPerCycle: operation.partsPerCycle,
+                timeBasis: operation.timeBasis
+              });
               return (
-                laborHoursPerUnit *
-                  quantity *
-                  data.quantity *
-                  (operation.laborRate ?? 0) +
+                laborHoursPerUnit * mult * (operation.laborRate ?? 0) +
                 laborFixedHours * (operation.laborRate ?? 0)
               );
             });
           }
 
           if (operation.machineTime) {
-            // normalize production standard to hours
-
-            switch (operation.machineUnit) {
-              case "Total Hours":
-                machineFixedHours = operation.machineTime;
-                break;
-              case "Total Minutes":
-                machineFixedHours = operation.machineTime / 60;
-                break;
-              case "Hours/Piece":
-                machineHoursPerUnit = operation.machineTime;
-                break;
-              case "Hours/100 Pieces":
-                machineHoursPerUnit = operation.machineTime / 100;
-                break;
-              case "Hours/1000 Pieces":
-                machineHoursPerUnit = operation.machineTime / 1000;
-                break;
-
-              case "Minutes/Piece":
-                machineHoursPerUnit = operation.machineTime / 60;
-                break;
-              case "Minutes/100 Pieces":
-                machineHoursPerUnit = operation.machineTime / 100 / 60;
-                break;
-              case "Minutes/1000 Pieces":
-                machineHoursPerUnit = operation.machineTime / 1000 / 60;
-                break;
-              case "Pieces/Hour":
-                machineHoursPerUnit = 1 / operation.machineTime;
-                break;
-              case "Pieces/Minute":
-                machineHoursPerUnit = 1 / (operation.machineTime / 60);
-                break;
-              case "Seconds/Piece":
-                machineHoursPerUnit = operation.machineTime / 3600;
-                break;
-              default:
-                break;
-            }
-            const cavityMultiplier = Math.max(
-              1,
-              Number(operation.cavityMultiplier) || 1
+            const machineNormalized = normalizeTimeToHours(
+              operation.machineTime,
+              operation.machineUnit
             );
-            machineHoursPerUnit /= cavityMultiplier;
+            machineFixedHours = machineNormalized.fixedHours;
+            machineHoursPerUnit = machineNormalized.hoursPerUnit;
 
             effects.machineHours.push((quantity) => {
-              return (
-                machineHoursPerUnit * quantity * data.quantity +
-                machineFixedHours
-              );
+              const mult = costingQuantityMultiplier({
+                quotePartQuantity: quantity,
+                nodeQuantity: data.quantity,
+                partsPerCycle: operation.partsPerCycle,
+                timeBasis: operation.timeBasis
+              });
+              return machineHoursPerUnit * mult + machineFixedHours;
             });
 
             effects.machineCost.push((quantity) => {
+              const mult = costingQuantityMultiplier({
+                quotePartQuantity: quantity,
+                nodeQuantity: data.quantity,
+                partsPerCycle: operation.partsPerCycle,
+                timeBasis: operation.timeBasis
+              });
               return (
-                machineHoursPerUnit *
-                  quantity *
-                  data.quantity *
-                  (operation.machineRate ?? 0) +
+                machineHoursPerUnit * mult * (operation.machineRate ?? 0) +
                 machineFixedHours * (operation.machineRate ?? 0)
               );
             });
@@ -356,16 +267,16 @@ export function useLineCosts({
           const fixedHours = Math.max(laborFixedHours, machineFixedHours);
 
           effects.overheadCost.push((quantity) => {
-            if (hoursPerUnit * quantity * data.quantity > fixedHours) {
-              return (
-                hoursPerUnit *
-                quantity *
-                data.quantity *
-                (operation.overheadRate ?? 0)
-              );
-            } else {
-              return fixedHours * (operation.overheadRate ?? 0);
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: quantity,
+              nodeQuantity: data.quantity,
+              partsPerCycle: operation.partsPerCycle,
+              timeBasis: operation.timeBasis
+            });
+            if (hoursPerUnit * mult > fixedHours) {
+              return hoursPerUnit * mult * (operation.overheadRate ?? 0);
             }
+            return fixedHours * (operation.overheadRate ?? 0);
           });
         } else if (operation.operationType === "Outside") {
           effects.outsideCost.push((quantity) => {

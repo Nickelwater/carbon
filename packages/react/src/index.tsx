@@ -170,6 +170,7 @@ import {
   InputOTPSeparator,
   InputOTPSlot
 } from "./InputOTP";
+import { KanbanOperationQuantity } from "./KanbanOperationQuantity";
 import { Kbd } from "./Kbd";
 import { Label } from "./Label";
 import { Loading } from "./Loading";
@@ -461,6 +462,7 @@ export {
   InputOTPSlot,
   InputRightAddon,
   InputRightElement,
+  KanbanOperationQuantity,
   Kbd,
   Label,
   Loading,

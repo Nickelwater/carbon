@@ -2,6 +2,7 @@ import type { Database, Json } from "@carbon/database";
 import { fetchAllFromTable } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
 import type { PickPartial } from "@carbon/utils";
+import { costingQuantityMultiplier, normalizeTimeToHours } from "@carbon/utils";
 import { getLocalTimeZone, now, today } from "@internationalized/date";
 import type {
   PostgrestError,
@@ -3918,50 +3919,6 @@ async function buildCostEffects(
     effects[key] = [];
   }
 
-  function normalizeTime(
-    time: number,
-    unit: string
-  ): { fixedHours: number; hoursPerUnit: number } {
-    let fixedHours = 0;
-    let hoursPerUnit = 0;
-    switch (unit) {
-      case "Total Hours":
-        fixedHours = time;
-        break;
-      case "Total Minutes":
-        fixedHours = time / 60;
-        break;
-      case "Hours/Piece":
-        hoursPerUnit = time;
-        break;
-      case "Hours/100 Pieces":
-        hoursPerUnit = time / 100;
-        break;
-      case "Hours/1000 Pieces":
-        hoursPerUnit = time / 1000;
-        break;
-      case "Minutes/Piece":
-        hoursPerUnit = time / 60;
-        break;
-      case "Minutes/100 Pieces":
-        hoursPerUnit = time / 100 / 60;
-        break;
-      case "Minutes/1000 Pieces":
-        hoursPerUnit = time / 1000 / 60;
-        break;
-      case "Pieces/Hour":
-        hoursPerUnit = 1 / time;
-        break;
-      case "Pieces/Minute":
-        hoursPerUnit = 1 / (time / 60);
-        break;
-      case "Seconds/Piece":
-        hoursPerUnit = time / 3600;
-        break;
-    }
-    return { fixedHours, hoursPerUnit };
-  }
-
   function pushBuyCostEffect(
     itemId: string,
     itemType: string,
@@ -4020,19 +3977,31 @@ async function buildCostEffects(
     for (const op of nodeOps) {
       if (op.operationType === "Inside") {
         if (op.setupTime) {
-          const { fixedHours, hoursPerUnit } = normalizeTime(
+          const { fixedHours, hoursPerUnit } = normalizeTimeToHours(
             op.setupTime,
             op.setupUnit
           );
           effects.laborCost.push((outerQty) => {
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: outerQty,
+              nodeQuantity: qty,
+              partsPerCycle: op.partsPerCycle,
+              timeBasis: op.timeBasis
+            });
             return (
-              hoursPerUnit * outerQty * qty * (op.laborRate ?? 0) +
+              hoursPerUnit * mult * (op.laborRate ?? 0) +
               fixedHours * (op.laborRate ?? 0)
             );
           });
           effects.overheadCost.push((outerQty) => {
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: outerQty,
+              nodeQuantity: qty,
+              partsPerCycle: op.partsPerCycle,
+              timeBasis: op.timeBasis
+            });
             return (
-              hoursPerUnit * outerQty * qty * (op.overheadRate ?? 0) +
+              hoursPerUnit * mult * (op.overheadRate ?? 0) +
               fixedHours * (op.overheadRate ?? 0)
             );
           });
@@ -4044,24 +4013,36 @@ async function buildCostEffects(
         let machineHoursPerUnit = 0;
 
         if (op.laborTime) {
-          const n = normalizeTime(op.laborTime, op.laborUnit);
+          const n = normalizeTimeToHours(op.laborTime, op.laborUnit);
           laborFixedHours = n.fixedHours;
           laborHoursPerUnit = n.hoursPerUnit;
           effects.laborCost.push((outerQty) => {
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: outerQty,
+              nodeQuantity: qty,
+              partsPerCycle: op.partsPerCycle,
+              timeBasis: op.timeBasis
+            });
             return (
-              laborHoursPerUnit * outerQty * qty * (op.laborRate ?? 0) +
+              laborHoursPerUnit * mult * (op.laborRate ?? 0) +
               laborFixedHours * (op.laborRate ?? 0)
             );
           });
         }
 
         if (op.machineTime) {
-          const n = normalizeTime(op.machineTime, op.machineUnit);
+          const n = normalizeTimeToHours(op.machineTime, op.machineUnit);
           machineFixedHours = n.fixedHours;
           machineHoursPerUnit = n.hoursPerUnit;
           effects.machineCost.push((outerQty) => {
+            const mult = costingQuantityMultiplier({
+              quotePartQuantity: outerQty,
+              nodeQuantity: qty,
+              partsPerCycle: op.partsPerCycle,
+              timeBasis: op.timeBasis
+            });
             return (
-              machineHoursPerUnit * outerQty * qty * (op.machineRate ?? 0) +
+              machineHoursPerUnit * mult * (op.machineRate ?? 0) +
               machineFixedHours * (op.machineRate ?? 0)
             );
           });
@@ -4070,8 +4051,14 @@ async function buildCostEffects(
         const hpu = Math.max(laborHoursPerUnit, machineHoursPerUnit);
         const fh = Math.max(laborFixedHours, machineFixedHours);
         effects.overheadCost.push((outerQty) => {
-          if (hpu * outerQty * qty > fh) {
-            return hpu * outerQty * qty * (op.overheadRate ?? 0);
+          const mult = costingQuantityMultiplier({
+            quotePartQuantity: outerQty,
+            nodeQuantity: qty,
+            partsPerCycle: op.partsPerCycle,
+            timeBasis: op.timeBasis
+          });
+          if (hpu * mult > fh) {
+            return hpu * mult * (op.overheadRate ?? 0);
           }
           return fh * (op.overheadRate ?? 0);
         });

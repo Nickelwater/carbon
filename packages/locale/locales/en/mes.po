@@ -12,10 +12,30 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr "{0}"
+
 #. placeholder {0}: attribute.name
 #. placeholder {1}: activeStep + 1
 msgid "{0} - Set {1}"
 msgstr "{0} - Set {1}"
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr "{0} / {1}"
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr "{0} / {1} cycles"
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr "{0} / {1} parts ({2} per cycle)"
 
 #. placeholder {0}: employeeIds.length
 msgid "{0} Active"
@@ -25,10 +45,12 @@ msgstr "{0} Active"
 msgid "{0} available"
 msgstr "{0} available"
 
-#. placeholder {0}: operation.quantityComplete
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr "{0} cycles"
+
 #. placeholder {0}: serialIndex + 1
 #. placeholder {1}: operation.operationQuantity
-#. placeholder {1}: operation.targetQuantity
 msgid "{0} of {1}"
 msgstr "{0} of {1}"
 
@@ -42,9 +64,26 @@ msgstr "{0} of {1} complete"
 msgid "{0} of {1} completed"
 msgstr "{0} of {1} completed"
 
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr "{0} parts ({1} per cycle)"
+
 #. placeholder {0}: item.quantityScrapped
 msgid "{0} Scrapped"
 msgstr "{0} Scrapped"
+
+msgid "{completedCycleCount} of {targetCycleCount} cycles"
+msgstr "{completedCycleCount} of {targetCycleCount} cycles"
+
+msgid "{completedParts} of {targetParts}"
+msgstr "{completedParts} of {targetParts}"
+
+msgid "{completedParts} of {targetParts} parts ({partsPerCycle} per cycle)"
+msgstr "{completedParts} of {targetParts} parts ({partsPerCycle} per cycle)"
+
+msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
+msgstr "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
 
 msgid "About"
 msgstr "About"
@@ -226,6 +265,9 @@ msgstr "Create Rework"
 msgid "Customer"
 msgstr "Customer"
 
+msgid "Cycles"
+msgstr "Cycles"
+
 msgid "Dark Mode"
 msgstr "Dark Mode"
 
@@ -280,8 +322,8 @@ msgid "Dragging {0} cancelled."
 msgstr "Dragging {0} cancelled."
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 msgid "Due {0}"
 msgstr "Due {0}"
 
@@ -808,6 +850,9 @@ msgstr "Select an item..."
 msgid "Select Batch {0}"
 msgstr "Select Batch {0}"
 
+msgid "Select how many cycles to log as complete"
+msgstr "Select how many cycles to log as complete"
+
 #. placeholder {0}: index + 1
 msgid "Select Serial {0}"
 msgstr "Select Serial {0}"
@@ -925,9 +970,11 @@ msgstr "Switch Operator"
 msgid "Tag"
 msgstr "Tag"
 
-#. placeholder {0}: operation.operationQuantity
-msgid "The completed quantity for this operation is less than the required quantity of {0}."
-msgstr "The completed quantity for this operation is less than the required quantity of {0}."
+msgid "The completed cycles for this operation are less than the required {targetCycleCount} cycles."
+msgstr "The completed cycles for this operation are less than the required {targetCycleCount} cycles."
+
+msgid "The completed quantity for this operation is less than the required quantity of {requiredParts}."
+msgstr "The completed quantity for this operation is less than the required quantity of {requiredParts}."
 
 msgid "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
 msgstr "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
@@ -947,6 +994,12 @@ msgstr "Today"
 
 msgid "Tools"
 msgstr "Tools"
+
+msgid "Total Cycles"
+msgstr "Total Cycles"
+
+msgid "Total Parts"
+msgstr "Total Parts"
 
 msgid "Total Quantity"
 msgstr "Total Quantity"

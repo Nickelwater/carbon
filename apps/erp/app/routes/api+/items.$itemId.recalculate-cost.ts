@@ -136,6 +136,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
         machineUnit: op.machineUnit,
         operationUnitCost: op.operationUnitCost,
         operationMinimumCost: op.operationMinimumCost,
+        partsPerCycle: op.partsPerCycle,
+        timeBasis: op.timeBasis,
         ...rates
       };
     });

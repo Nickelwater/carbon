@@ -17,8 +17,17 @@ const factorAbbreviations: Record<Factor, string> = {
   "Minutes/1000 Pieces": "min/1000 pcs",
   "Pieces/Hour": "pcs/hr",
   "Pieces/Minute": "pcs/min",
-  "Seconds/Piece": "sec/pc"
-};
+  "Seconds/Piece": "sec/pc",
+  "Hours/Cycle": "hr/cyc",
+  "Hours/100 Cycles": "hr/100 cyc",
+  "Hours/1000 Cycles": "hr/1000 cyc",
+  "Minutes/Cycle": "min/cyc",
+  "Minutes/100 Cycles": "min/100 cyc",
+  "Minutes/1000 Cycles": "min/1000 cyc",
+  "Cycles/Hour": "cyc/hr",
+  "Cycles/Minute": "cyc/min",
+  "Seconds/Cycle": "sec/cyc"
+} as Record<string, string>;
 
 export function formatFactor(value: number, unit: Factor): string {
   if (value === 0) return "";

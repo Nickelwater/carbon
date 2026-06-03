@@ -328,9 +328,20 @@ export const standardFactorType = [
   "Pieces/Hour",
   "Pieces/Minute",
   "Seconds/Piece",
+  "Hours/Cycle",
+  "Hours/100 Cycles",
+  "Hours/1000 Cycles",
+  "Minutes/Cycle",
+  "Minutes/100 Cycles",
+  "Minutes/1000 Cycles",
+  "Cycles/Hour",
+  "Cycles/Minute",
+  "Seconds/Cycle",
   "Total Hours",
   "Total Minutes"
 ] as const;
+
+export const operationTimeBasisType = ["Piece", "Cycle"] as const;
 
 export type PriceBreak = {
   quantity: number;

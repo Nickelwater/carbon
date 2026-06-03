@@ -52,9 +52,13 @@ import type { TrackedEntityAttributes } from "@carbon/utils";
 import {
   convertDateStringToIsoString,
   convertKbToString,
+  cyclesFromParts,
   formatDurationMilliseconds,
   getItemReadableId,
-  labelSizes
+  labelSizes,
+  normalizePartsPerCycle,
+  targetCycles,
+  usesCycleQuantity
 } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestSingleResponse } from "@supabase/supabase-js";
@@ -275,6 +279,22 @@ export const JobOperation = ({
     operation.machineDuration,
     operation.setupDuration
   ]);
+
+  const partsPerCycle = normalizePartsPerCycle(
+    // @ts-expect-error partsPerCycle added via migration
+    operation.partsPerCycle
+  );
+  const trackCycles = usesCycleQuantity(
+    partsPerCycle,
+    // @ts-expect-error timeBasis added via migration
+    operation.timeBasis
+  );
+  const targetParts = operation.targetQuantity ?? 0;
+  const completedParts = operation.quantityComplete ?? 0;
+  const targetCycleCount = targetCycles(targetParts, partsPerCycle);
+  const completedCycleCount = cyclesFromParts(completedParts, partsPerCycle);
+  const progressComplete = trackCycles ? completedCycleCount : completedParts;
+  const progressTarget = trackCycles ? targetCycleCount : targetParts;
 
   const mode = useMode();
   const { operationId } = useParams();
@@ -642,11 +662,24 @@ export const JobOperation = ({
 
                   <CardContent>
                     <Heading size="h1">
-                      <Trans>
-                        {operation.quantityComplete} of{" "}
-                        {operation.targetQuantity}
-                      </Trans>
+                      {trackCycles ? (
+                        <Trans>
+                          {completedCycleCount} of {targetCycleCount} cycles
+                        </Trans>
+                      ) : (
+                        <Trans>
+                          {completedParts} of {targetParts}
+                        </Trans>
+                      )}
                     </Heading>
+                    {trackCycles && (
+                      <p className="text-sm text-muted-foreground">
+                        <Trans>
+                          {completedParts} of {targetParts} parts (
+                          {partsPerCycle} per cycle)
+                        </Trans>
+                      </p>
+                    )}
                   </CardContent>
                 </Card>
                 <Card>
@@ -2219,32 +2252,39 @@ export const JobOperation = ({
                       <FaTasks className="h-4 w-4 mr-1" />
                     </TooltipTrigger>
                     <TooltipContent side="right">
-                      <Trans>Quantity</Trans>
+                      {trackCycles ? (
+                        <Trans>Cycles</Trans>
+                      ) : (
+                        <Trans>Quantity</Trans>
+                      )}
                     </TooltipContent>
                   </Tooltip>
                   <span className="text-xs text-muted-foreground font-mono flex-shrink-0 flex-nowrap min-w-[100px]">
-                    {operation.quantityComplete}/{operation.targetQuantity}
+                    {trackCycles
+                      ? `${completedCycleCount}/${targetCycleCount}`
+                      : `${completedParts}/${targetParts}`}
                   </span>
                   <BarProgress
                     segments={[
                       {
-                        value: operation.quantityComplete,
+                        value: progressComplete,
                         className: "bg-emerald-500"
                       },
-                      {
-                        value: operation.quantityReworked ?? 0,
-                        className: "bg-yellow-500"
-                      },
-                      {
-                        value: operation.quantityScrapped ?? 0,
-                        className: "bg-red-500"
-                      }
+                      ...(trackCycles
+                        ? []
+                        : [
+                            {
+                              value: operation.quantityReworked ?? 0,
+                              className: "bg-yellow-500"
+                            },
+                            {
+                              value: operation.quantityScrapped ?? 0,
+                              className: "bg-red-500"
+                            }
+                          ])
                     ]}
-                    max={operation.targetQuantity || 1}
-                    progress={
-                      (operation.quantityComplete / operation.targetQuantity) *
-                      100
-                    }
+                    max={progressTarget || 1}
+                    progress={(progressComplete / (progressTarget || 1)) * 100}
                   />
                 </>
               </div>
