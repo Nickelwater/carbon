@@ -786,6 +786,9 @@ msgstr "Rework"
 msgid "Rework created successfully"
 msgstr "Rework created successfully"
 
+msgid "Run"
+msgstr "Run"
+
 msgid "Sales Order"
 msgstr "Sales Order"
 

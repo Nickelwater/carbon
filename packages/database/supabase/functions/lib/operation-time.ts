@@ -177,12 +177,7 @@ export function computeOperationDurations<
     operation.setupUnit,
     durationQuantity
   );
-  const laborDuration = convertTimeToMilliseconds(
-    operation.laborTime,
-    operation.laborUnit,
-    durationQuantity
-  );
-  const machineDuration = convertTimeToMilliseconds(
+  const runDuration = convertTimeToMilliseconds(
     operation.machineTime,
     operation.machineUnit,
     durationQuantity
@@ -190,10 +185,10 @@ export function computeOperationDurations<
 
   return {
     ...operation,
-    duration: setupDuration + laborDuration + machineDuration,
+    duration: setupDuration + runDuration,
     setupDuration,
-    laborDuration,
-    machineDuration
+    laborDuration: 0,
+    machineDuration: runDuration
   };
 }
 

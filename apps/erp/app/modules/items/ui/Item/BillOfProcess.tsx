@@ -96,6 +96,7 @@ import {
   WorkCenter
 } from "~/components/Form";
 import { OperationTimeBasisFields } from "~/components/Form/OperationTimeBasisFields";
+import { OperatorAttentionField } from "~/components/Form/OperatorAttentionField";
 import Procedure from "~/components/Form/Procedure";
 import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
 import { getUnitHint, unitForHint } from "~/components/Form/UnitHint";
@@ -186,6 +187,7 @@ const initialOperation: Omit<
   laborUnit: "Minutes/Piece",
   machineTime: 0,
   machineUnit: "Minutes/Piece",
+  operatorAttention: 1,
   operationOrder: "After Previous",
   operationType: "Inside",
   processId: "",
@@ -957,6 +959,7 @@ function OperationForm({
     machineTime: number;
     machineUnit: string;
     machineUnitHint: string;
+    operatorAttention: number;
     operationType: string;
     operationOrder: string;
     processId: string;
@@ -979,6 +982,7 @@ function OperationForm({
     machineTime: item.data.machineTime ?? 0,
     machineUnit: item.data.machineUnit ?? "Hours/Piece",
     machineUnitHint: getUnitHint(item.data.machineUnit, item.data.timeBasis),
+    operatorAttention: Number(item.data.operatorAttention ?? 1),
     operationOrder: item.data.operationOrder ?? "After Previous",
     operationType: item.data.operationType ?? "Inside",
     processId: item.data.processId ?? "",
@@ -1403,7 +1407,7 @@ function OperationForm({
             </div>
           </div>
 
-          <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
+          <div className="hidden border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
             <HStack
               className="w-full justify-between cursor-pointer"
               onClick={laborDisclosure.onToggle}
@@ -1526,7 +1530,7 @@ function OperationForm({
               <HStack>
                 <TimeTypeIcon type="Machine" />
                 <Label>
-                  <Trans>Machine</Trans>
+                  <Trans>Run</Trans>
                 </Label>
               </HStack>
               <HStack>
@@ -1562,7 +1566,7 @@ function OperationForm({
             >
               <UnitHint
                 name="machineHint"
-                label={t`Machine`}
+                label={t`Run`}
                 timeBasis={processData.timeBasis}
                 value={processData.machineUnitHint}
                 onChange={(hint) => {
@@ -1575,7 +1579,7 @@ function OperationForm({
               />
               <NumberControlled
                 name="machineTime"
-                label={t`Machine Time`}
+                label={t`Run time`}
                 isOptional={false}
                 minValue={0}
                 value={processData.machineTime}
@@ -1590,7 +1594,7 @@ function OperationForm({
                   configurable && !temporaryItems[item.id]
                     ? () => {
                         onConfigure({
-                          label: t`Machine Time`,
+                          label: t`Run time`,
                           field: key("machineTime"),
                           code: rulesByField.get(key("machineTime"))?.code,
                           defaultValue: processData.machineTime,
@@ -1604,7 +1608,7 @@ function OperationForm({
               />
               <StandardFactor
                 name="machineUnit"
-                label={t`Machine Unit`}
+                label={t`Run unit`}
                 isOptional={false}
                 hint={processData.machineUnitHint}
                 timeBasis={processData.timeBasis}
@@ -1620,7 +1624,7 @@ function OperationForm({
                   configurable && !temporaryItems[item.id]
                     ? () => {
                         onConfigure({
-                          label: t`Machine Unit`,
+                          label: t`Run unit`,
                           field: key("machineUnit"),
                           code: rulesByField.get(key("machineUnit"))?.code,
                           defaultValue: processData.machineUnit,
@@ -1631,6 +1635,15 @@ function OperationForm({
                         });
                       }
                     : undefined
+                }
+              />
+              <OperatorAttentionField
+                value={processData.operatorAttention}
+                onChange={(newValue) =>
+                  setProcessData((d) => ({
+                    ...d,
+                    operatorAttention: newValue
+                  }))
                 }
               />
             </div>

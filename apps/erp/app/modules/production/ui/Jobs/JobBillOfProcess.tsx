@@ -111,6 +111,7 @@ import {
   WorkCenter
 } from "~/components/Form";
 import { OperationTimeBasisFields } from "~/components/Form/OperationTimeBasisFields";
+import { OperatorAttentionField } from "~/components/Form/OperatorAttentionField";
 import Procedure from "~/components/Form/Procedure";
 import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
 import { getUnitHint, unitForHint } from "~/components/Form/UnitHint";
@@ -345,9 +346,11 @@ const initialOperation: Omit<
   laborRate: 0,
   laborTime: 0,
   laborUnit: "Minutes/Piece",
+  setupRate: 0,
   machineRate: 0,
   machineTime: 0,
   machineUnit: "Minutes/Piece",
+  operatorAttention: 1,
   operationUnitCost: 0,
   operationLeadTime: 0,
   operationOrder: "After Previous",
@@ -2169,6 +2172,8 @@ function OperationForm({
     machineTime: number;
     machineUnit: string;
     machineUnitHint: string;
+    operatorAttention: number;
+    setupRate: number;
     operationMinimumCost: number;
     operationLeadTime: number;
     operationType: string;
@@ -2192,6 +2197,8 @@ function OperationForm({
     machineTime: item.data.machineTime ?? 0,
     machineUnit: item.data.machineUnit ?? "Hours/Piece",
     machineUnitHint: getUnitHint(item.data.machineUnit, item.data.timeBasis),
+    operatorAttention: Number(item.data.operatorAttention ?? 1),
+    setupRate: item.data.setupRate ?? 0,
     operationMinimumCost: item.data.operationMinimumCost ?? 0,
     operationLeadTime: item.data.operationLeadTime ?? 0,
     operationType: item.data.operationType ?? "Inside",
@@ -2229,6 +2236,11 @@ function OperationForm({
       description: process.data?.name ?? "",
       laborUnit: process.data?.defaultStandardFactor ?? "Hours/Piece",
       laborUnitHint: getUnitHint(process.data?.defaultStandardFactor),
+      setupRate: activeWorkCenters.length
+        ? activeWorkCenters.reduce((acc, workCenter) => {
+            return (acc += workCenter.workCenter?.setupRate ?? 0);
+          }, 0) / activeWorkCenters.length
+        : p.setupRate,
       laborRate:
         // get the average labor rate from the work centers
         activeWorkCenters.length
@@ -2287,6 +2299,7 @@ function OperationForm({
 
     setProcessData((d) => ({
       ...d,
+      setupRate: data?.setupRate ?? 0,
       laborRate: data?.laborRate ?? 0,
       laborUnit: data?.defaultStandardFactor ?? "Hours/Piece",
       laborUnitHint: getUnitHint(data?.defaultStandardFactor),
@@ -2370,6 +2383,7 @@ function OperationForm({
               setupUnit: "Total Minutes",
               laborUnit: "Minutes/Piece",
               machineUnit: "Minutes/Piece",
+              operatorAttention: 1,
               operationType: value?.value as string
             }));
           }}
@@ -2549,7 +2563,7 @@ function OperationForm({
             </div>
           </div>
 
-          <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
+          <div className="hidden border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
             <HStack
               className="w-full justify-between cursor-pointer"
               onClick={laborDisclosure.onToggle}
@@ -2640,7 +2654,7 @@ function OperationForm({
               <HStack>
                 <TimeTypeIcon type="Machine" />
                 <Label>
-                  <Trans>Machine</Trans>
+                  <Trans>Run</Trans>
                 </Label>
               </HStack>
               <HStack>
@@ -2676,7 +2690,7 @@ function OperationForm({
             >
               <UnitHint
                 name="machineHint"
-                label={t`Machine`}
+                label={t`Run`}
                 timeBasis={processData.timeBasis}
                 value={processData.machineUnitHint}
                 onChange={(hint) => {
@@ -2689,7 +2703,7 @@ function OperationForm({
               />
               <NumberControlled
                 name="machineTime"
-                label={t`Machine Time`}
+                label={t`Run time`}
                 isOptional={false}
                 minValue={0}
                 value={processData.machineTime}
@@ -2702,7 +2716,7 @@ function OperationForm({
               />
               <StandardFactor
                 name="machineUnit"
-                label={t`Machine Unit`}
+                label={t`Run unit`}
                 isOptional={false}
                 hint={processData.machineUnitHint}
                 timeBasis={processData.timeBasis}
@@ -2713,6 +2727,15 @@ function OperationForm({
                     machineUnit: newValue?.value ?? "Total Minutes"
                   }));
                 }}
+              />
+              <OperatorAttentionField
+                value={processData.operatorAttention}
+                onChange={(newValue) =>
+                  setProcessData((d) => ({
+                    ...d,
+                    operatorAttention: newValue
+                  }))
+                }
               />
             </div>
           </div>
@@ -2751,6 +2774,22 @@ function OperationForm({
                 costingDisclosure.isOpen ? "" : "hidden"
               }`}
             >
+              <NumberControlled
+                name="setupRate"
+                label={t`Setup Rate`}
+                minValue={0}
+                value={processData.setupRate}
+                formatOptions={{
+                  style: "currency",
+                  currency: baseCurrency
+                }}
+                onChange={(newValue) =>
+                  setProcessData((d) => ({
+                    ...d,
+                    setupRate: newValue
+                  }))
+                }
+              />
               <NumberControlled
                 name="laborRate"
                 label={t`Labor Rate`}

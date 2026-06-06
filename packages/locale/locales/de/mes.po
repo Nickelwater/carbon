@@ -786,6 +786,9 @@ msgstr "Überarbeitung"
 msgid "Rework created successfully"
 msgstr "Überarbeitung erfolgreich erstellt"
 
+msgid "Run"
+msgstr ""
+
 msgid "Sales Order"
 msgstr "Kundenauftrag"
 

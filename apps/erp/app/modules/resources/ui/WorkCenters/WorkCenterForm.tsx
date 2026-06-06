@@ -117,6 +117,14 @@ const WorkCenterForm = ({
                 <Department name="departmentId" label={t`Department`} />
 
                 <Number
+                  name="setupRate"
+                  label={t`Setup Rate (Hourly)`}
+                  formatOptions={{
+                    style: "currency",
+                    currency: baseCurrency
+                  }}
+                />
+                <Number
                   name="laborRate"
                   label={t`Labor Rate (Hourly)`}
                   formatOptions={{

@@ -38,7 +38,7 @@ function convertToMilliseconds(
 
 /**
  * Calculate the total duration of an operation in hours
- * Total = setup + max(labor, machine) since labor and machine can overlap
+ * Total = setup + run (machine time)
  */
 export function calculateDurationHours(operation: BaseOperation): number {
   const setupHours = convertToHours(
@@ -46,18 +46,13 @@ export function calculateDurationHours(operation: BaseOperation): number {
     operation.setupUnit,
     operation
   );
-  const laborHours = convertToHours(
-    operation.laborTime,
-    operation.laborUnit,
-    operation
-  );
-  const machineHours = convertToHours(
+  const runHours = convertToHours(
     operation.machineTime,
     operation.machineUnit,
     operation
   );
 
-  return setupHours + Math.max(laborHours, machineHours);
+  return setupHours + runHours;
 }
 
 /**
@@ -82,18 +77,13 @@ export function calculateDurationMs(operation: BaseOperation): number {
     operation.setupUnit,
     operation
   );
-  const laborMs = convertToMilliseconds(
-    operation.laborTime,
-    operation.laborUnit,
-    operation
-  );
-  const machineMs = convertToMilliseconds(
+  const runMs = convertToMilliseconds(
     operation.machineTime,
     operation.machineUnit,
     operation
   );
 
-  return setupMs + Math.max(laborMs, machineMs);
+  return setupMs + runMs;
 }
 
 /**
@@ -112,25 +102,20 @@ export function calculateDurationBreakdown(operation: BaseOperation): {
     operation.setupUnit,
     operation
   );
-  const laborHours = convertToHours(
-    operation.laborTime,
-    operation.laborUnit,
-    operation
-  );
-  const machineHours = convertToHours(
+  const runHours = convertToHours(
     operation.machineTime,
     operation.machineUnit,
     operation
   );
 
-  const totalHours = setupHours + Math.max(laborHours, machineHours);
+  const totalHours = setupHours + runHours;
   const totalDays = Math.max(Math.ceil(totalHours / HOURS_PER_WORKDAY), 1);
   const totalMs = totalHours * MS_PER_HOUR;
 
   return {
     setupHours,
-    laborHours,
-    machineHours,
+    laborHours: 0,
+    machineHours: runHours,
     totalHours,
     totalDays,
     totalMs

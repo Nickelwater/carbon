@@ -106,6 +106,9 @@ msgstr "<0>update</0> आपको पंक्तियों को अपड�
 msgid "<0>update</0> will also return the replaced values for UPDATE."
 msgstr "<0>update</0> UPDATE के लिए प्रतिस्थापित मानों को भी वापस करेगा।"
 
+msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
+msgstr ""
+
 msgid "1 day"
 msgstr "1 दिन"
 
@@ -4489,9 +4492,6 @@ msgstr "लॉट आकार"
 msgid "Lot Size:"
 msgstr "लॉट साइज:"
 
-msgid "Machine"
-msgstr "मशीन"
-
 msgid "Machine Rate"
 msgstr "मशीन दर"
 
@@ -4500,9 +4500,6 @@ msgstr "मशीन दर (प्रति घंटा)"
 
 msgid "Machine Time"
 msgstr "मशीन समय"
-
-msgid "Machine Unit"
-msgstr "मशीन यूनिट"
 
 msgid "Maintenance"
 msgstr "रखरखाव"
@@ -5532,6 +5529,9 @@ msgstr "संचालन प्रकार"
 
 msgid "Operator"
 msgstr "ऑपरेटर"
+
+msgid "Operator attention"
+msgstr ""
 
 msgid "Operator gets a warning. Stock still goes through."
 msgstr "ऑपरेटर को एक चेतावनी मिलती है। स्टॉक अभी भी आगे बढ़ता है।"
@@ -6692,8 +6692,17 @@ msgstr "नियम प्रकार"
 msgid "Rules"
 msgstr "नियम"
 
+msgid "Run"
+msgstr ""
+
 msgid "Run Test"
 msgstr "टेस्ट चलाएं"
+
+msgid "Run time"
+msgstr ""
+
+msgid "Run unit"
+msgstr ""
 
 msgid "Running Total"
 msgstr "कुल चल रहा है"
@@ -7130,6 +7139,12 @@ msgstr "सेटअप"
 
 msgid "Setup instructions"
 msgstr "सेटअप निर्देश"
+
+msgid "Setup Rate"
+msgstr ""
+
+msgid "Setup Rate (Hourly)"
+msgstr ""
 
 msgid "Setup Time"
 msgstr "सेटअप समय"

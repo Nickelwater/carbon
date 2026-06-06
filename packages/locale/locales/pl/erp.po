@@ -106,6 +106,9 @@ msgstr "<0>update</0> pozwala na aktualizowanie wierszy. <1>update</1> domyślni
 msgid "<0>update</0> will also return the replaced values for UPDATE."
 msgstr "<0>update</0> zwróci również zastąpione wartości dla UPDATE."
 
+msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
+msgstr ""
+
 msgid "1 day"
 msgstr "1 dzień"
 
@@ -4489,9 +4492,6 @@ msgstr "Rozmiar partii"
 msgid "Lot Size:"
 msgstr "Rozmiar partii:"
 
-msgid "Machine"
-msgstr "Maszyna"
-
 msgid "Machine Rate"
 msgstr "Stawka maszyny"
 
@@ -4500,9 +4500,6 @@ msgstr "Stawka maszyny (godzinowo)"
 
 msgid "Machine Time"
 msgstr "Czas pracy maszyny"
-
-msgid "Machine Unit"
-msgstr "Jednostka maszyny"
 
 msgid "Maintenance"
 msgstr "Konserwacja"
@@ -5532,6 +5529,9 @@ msgstr "Typ operacyjny"
 
 msgid "Operator"
 msgstr "Operator"
+
+msgid "Operator attention"
+msgstr ""
 
 msgid "Operator gets a warning. Stock still goes through."
 msgstr "Operator otrzymuje ostrzeżenie. Zapasy przechodzą dalej."
@@ -6692,8 +6692,17 @@ msgstr "Typ reguły"
 msgid "Rules"
 msgstr "Reguły"
 
+msgid "Run"
+msgstr ""
+
 msgid "Run Test"
 msgstr "Uruchom Test"
+
+msgid "Run time"
+msgstr ""
+
+msgid "Run unit"
+msgstr ""
 
 msgid "Running Total"
 msgstr "Suma bieżąca"
@@ -7130,6 +7139,12 @@ msgstr "Konfiguracja"
 
 msgid "Setup instructions"
 msgstr "Instrukcje konfiguracji"
+
+msgid "Setup Rate"
+msgstr ""
+
+msgid "Setup Rate (Hourly)"
+msgstr ""
 
 msgid "Setup Time"
 msgstr "Czas przygotowania"

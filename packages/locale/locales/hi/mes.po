@@ -786,6 +786,9 @@ msgstr "रीवर्क"
 msgid "Rework created successfully"
 msgstr "रीवर्क सफलतापूर्वक बनाया गया"
 
+msgid "Run"
+msgstr ""
+
 msgid "Sales Order"
 msgstr "बिक्रय आदेश"
 

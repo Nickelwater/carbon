@@ -417,6 +417,7 @@ export const methodOperationValidator = z
       })
       .optional(),
     machineTime: zfd.numeric(z.number().min(0).optional()),
+    operatorAttention: zfd.numeric(z.number().min(0).optional()),
     operationSupplierProcessId: zfd.text(z.string().optional()),
     operationMinimumCost: zfd.numeric(z.number().min(0).optional()),
     operationUnitCost: zfd.numeric(z.number().min(0).optional()),
@@ -475,24 +476,12 @@ export const methodOperationValidator = z
   .refine(
     (data) => {
       if (data.operationType === "Inside") {
-        return Number.isFinite(data.laborTime);
-      }
-      return true;
-    },
-    {
-      message: "Labor time is required",
-      path: ["laborTime"]
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.operationType === "Inside") {
         return Number.isFinite(data.machineTime);
       }
       return true;
     },
     {
-      message: "Machine time is required",
+      message: "Run time is required",
       path: ["machineTime"]
     }
   );

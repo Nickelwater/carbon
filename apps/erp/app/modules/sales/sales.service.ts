@@ -2,7 +2,7 @@ import type { Database, Json } from "@carbon/database";
 import { fetchAllFromTable } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
 import type { PickPartial } from "@carbon/utils";
-import { costingQuantityMultiplier, normalizeTimeToHours } from "@carbon/utils";
+import { computeInsideOperationCostEffects } from "@carbon/utils";
 import { getLocalTimeZone, now, today } from "@internationalized/date";
 import type {
   PostgrestError,
@@ -3976,92 +3976,29 @@ async function buildCostEffects(
 
     for (const op of nodeOps) {
       if (op.operationType === "Inside") {
-        if (op.setupTime) {
-          const { fixedHours, hoursPerUnit } = normalizeTimeToHours(
-            op.setupTime,
-            op.setupUnit
-          );
-          effects.laborCost.push((outerQty) => {
-            const mult = costingQuantityMultiplier({
-              quotePartQuantity: outerQty,
-              nodeQuantity: qty,
-              partsPerCycle: op.partsPerCycle,
-              timeBasis: op.timeBasis
-            });
-            return (
-              hoursPerUnit * mult * (op.laborRate ?? 0) +
-              fixedHours * (op.laborRate ?? 0)
-            );
-          });
-          effects.overheadCost.push((outerQty) => {
-            const mult = costingQuantityMultiplier({
-              quotePartQuantity: outerQty,
-              nodeQuantity: qty,
-              partsPerCycle: op.partsPerCycle,
-              timeBasis: op.timeBasis
-            });
-            return (
-              hoursPerUnit * mult * (op.overheadRate ?? 0) +
-              fixedHours * (op.overheadRate ?? 0)
-            );
-          });
-        }
-
-        let laborFixedHours = 0;
-        let laborHoursPerUnit = 0;
-        let machineFixedHours = 0;
-        let machineHoursPerUnit = 0;
-
-        if (op.laborTime) {
-          const n = normalizeTimeToHours(op.laborTime, op.laborUnit);
-          laborFixedHours = n.fixedHours;
-          laborHoursPerUnit = n.hoursPerUnit;
-          effects.laborCost.push((outerQty) => {
-            const mult = costingQuantityMultiplier({
-              quotePartQuantity: outerQty,
-              nodeQuantity: qty,
-              partsPerCycle: op.partsPerCycle,
-              timeBasis: op.timeBasis
-            });
-            return (
-              laborHoursPerUnit * mult * (op.laborRate ?? 0) +
-              laborFixedHours * (op.laborRate ?? 0)
-            );
-          });
-        }
-
-        if (op.machineTime) {
-          const n = normalizeTimeToHours(op.machineTime, op.machineUnit);
-          machineFixedHours = n.fixedHours;
-          machineHoursPerUnit = n.hoursPerUnit;
-          effects.machineCost.push((outerQty) => {
-            const mult = costingQuantityMultiplier({
-              quotePartQuantity: outerQty,
-              nodeQuantity: qty,
-              partsPerCycle: op.partsPerCycle,
-              timeBasis: op.timeBasis
-            });
-            return (
-              machineHoursPerUnit * mult * (op.machineRate ?? 0) +
-              machineFixedHours * (op.machineRate ?? 0)
-            );
-          });
-        }
-
-        const hpu = Math.max(laborHoursPerUnit, machineHoursPerUnit);
-        const fh = Math.max(laborFixedHours, machineFixedHours);
-        effects.overheadCost.push((outerQty) => {
-          const mult = costingQuantityMultiplier({
-            quotePartQuantity: outerQty,
-            nodeQuantity: qty,
+        const opEffects = computeInsideOperationCostEffects({
+          op: {
+            setupTime: op.setupTime,
+            setupUnit: op.setupUnit,
+            machineTime: op.machineTime,
+            machineUnit: op.machineUnit,
+            operatorAttention: op.operatorAttention,
+            setupRate: op.setupRate,
+            laborRate: op.laborRate,
+            machineRate: op.machineRate,
+            overheadRate: op.overheadRate,
             partsPerCycle: op.partsPerCycle,
             timeBasis: op.timeBasis
-          });
-          if (hpu * mult > fh) {
-            return hpu * mult * (op.overheadRate ?? 0);
-          }
-          return fh * (op.overheadRate ?? 0);
+          },
+          nodeQuantity: qty
         });
+
+        effects.laborCost.push((outerQty) => opEffects.setupCost(outerQty));
+        effects.laborCost.push((outerQty) => opEffects.laborCost(outerQty));
+        effects.machineCost.push((outerQty) => opEffects.machineCost(outerQty));
+        effects.overheadCost.push((outerQty) =>
+          opEffects.overheadCost(outerQty)
+        );
       } else if (op.operationType === "Outside") {
         effects.outsideCost.push((outerQty) => {
           const cost = op.operationUnitCost * qty * outerQty;

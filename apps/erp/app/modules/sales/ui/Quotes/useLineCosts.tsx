@@ -1,4 +1,9 @@
-import { costingQuantityMultiplier, normalizeTimeToHours } from "@carbon/utils";
+import {
+  computeInsideOperationCostEffects,
+  costingQuantityMultiplier,
+  normalizeOperatorAttention,
+  normalizeTimeToHours
+} from "@carbon/utils";
 import { useCallback, useMemo } from "react";
 import { useParams } from "react-router";
 import type { Tree } from "~/components/TreeView";
@@ -151,12 +156,28 @@ export function useLineCosts({
 
       data.operations?.forEach((operation: QuotationOperation) => {
         if (operation.operationType === "Inside") {
+          const opEffects = computeInsideOperationCostEffects({
+            op: {
+              setupTime: operation.setupTime,
+              setupUnit: operation.setupUnit,
+              machineTime: operation.machineTime,
+              machineUnit: operation.machineUnit,
+              operatorAttention: operation.operatorAttention,
+              setupRate: operation.setupRate,
+              laborRate: operation.laborRate,
+              machineRate: operation.machineRate,
+              overheadRate: operation.overheadRate,
+              partsPerCycle: operation.partsPerCycle,
+              timeBasis: operation.timeBasis
+            },
+            nodeQuantity: data.quantity
+          });
+
           if (operation.setupTime) {
             const { fixedHours, hoursPerUnit } = normalizeTimeToHours(
               operation.setupTime,
               operation.setupUnit
             );
-
             effects.setupHours.push((quantity) => {
               const mult = costingQuantityMultiplier({
                 quotePartQuantity: quantity,
@@ -166,69 +187,6 @@ export function useLineCosts({
               });
               return hoursPerUnit * mult + fixedHours;
             });
-
-            effects.laborCost.push((quantity) => {
-              const mult = costingQuantityMultiplier({
-                quotePartQuantity: quantity,
-                nodeQuantity: data.quantity,
-                partsPerCycle: operation.partsPerCycle,
-                timeBasis: operation.timeBasis
-              });
-              return (
-                hoursPerUnit * mult * (operation.laborRate ?? 0) +
-                fixedHours * (operation.laborRate ?? 0)
-              );
-            });
-
-            effects.overheadCost.push((quantity) => {
-              const mult = costingQuantityMultiplier({
-                quotePartQuantity: quantity,
-                nodeQuantity: data.quantity,
-                partsPerCycle: operation.partsPerCycle,
-                timeBasis: operation.timeBasis
-              });
-              return (
-                hoursPerUnit * mult * (operation.overheadRate ?? 0) +
-                fixedHours * (operation.overheadRate ?? 0)
-              );
-            });
-          }
-
-          let laborFixedHours = 0;
-          let laborHoursPerUnit = 0;
-          let machineFixedHours = 0;
-          let machineHoursPerUnit = 0;
-
-          if (operation.laborTime) {
-            const laborNormalized = normalizeTimeToHours(
-              operation.laborTime,
-              operation.laborUnit
-            );
-            laborFixedHours = laborNormalized.fixedHours;
-            laborHoursPerUnit = laborNormalized.hoursPerUnit;
-
-            effects.laborHours.push((quantity) => {
-              const mult = costingQuantityMultiplier({
-                quotePartQuantity: quantity,
-                nodeQuantity: data.quantity,
-                partsPerCycle: operation.partsPerCycle,
-                timeBasis: operation.timeBasis
-              });
-              return laborHoursPerUnit * mult + laborFixedHours;
-            });
-
-            effects.laborCost.push((quantity) => {
-              const mult = costingQuantityMultiplier({
-                quotePartQuantity: quantity,
-                nodeQuantity: data.quantity,
-                partsPerCycle: operation.partsPerCycle,
-                timeBasis: operation.timeBasis
-              });
-              return (
-                laborHoursPerUnit * mult * (operation.laborRate ?? 0) +
-                laborFixedHours * (operation.laborRate ?? 0)
-              );
-            });
           }
 
           if (operation.machineTime) {
@@ -236,9 +194,6 @@ export function useLineCosts({
               operation.machineTime,
               operation.machineUnit
             );
-            machineFixedHours = machineNormalized.fixedHours;
-            machineHoursPerUnit = machineNormalized.hoursPerUnit;
-
             effects.machineHours.push((quantity) => {
               const mult = costingQuantityMultiplier({
                 quotePartQuantity: quantity,
@@ -246,38 +201,36 @@ export function useLineCosts({
                 partsPerCycle: operation.partsPerCycle,
                 timeBasis: operation.timeBasis
               });
-              return machineHoursPerUnit * mult + machineFixedHours;
+              return (
+                machineNormalized.hoursPerUnit * mult +
+                machineNormalized.fixedHours
+              );
             });
-
-            effects.machineCost.push((quantity) => {
+            effects.laborHours.push((quantity) => {
               const mult = costingQuantityMultiplier({
                 quotePartQuantity: quantity,
                 nodeQuantity: data.quantity,
                 partsPerCycle: operation.partsPerCycle,
                 timeBasis: operation.timeBasis
               });
+              const runHours =
+                machineNormalized.hoursPerUnit * mult +
+                machineNormalized.fixedHours;
               return (
-                machineHoursPerUnit * mult * (operation.machineRate ?? 0) +
-                machineFixedHours * (operation.machineRate ?? 0)
+                runHours *
+                normalizeOperatorAttention(operation.operatorAttention)
               );
             });
           }
 
-          const hoursPerUnit = Math.max(laborHoursPerUnit, machineHoursPerUnit);
-          const fixedHours = Math.max(laborFixedHours, machineFixedHours);
-
-          effects.overheadCost.push((quantity) => {
-            const mult = costingQuantityMultiplier({
-              quotePartQuantity: quantity,
-              nodeQuantity: data.quantity,
-              partsPerCycle: operation.partsPerCycle,
-              timeBasis: operation.timeBasis
-            });
-            if (hoursPerUnit * mult > fixedHours) {
-              return hoursPerUnit * mult * (operation.overheadRate ?? 0);
-            }
-            return fixedHours * (operation.overheadRate ?? 0);
-          });
+          effects.laborCost.push((quantity) => opEffects.setupCost(quantity));
+          effects.laborCost.push((quantity) => opEffects.laborCost(quantity));
+          effects.machineCost.push((quantity) =>
+            opEffects.machineCost(quantity)
+          );
+          effects.overheadCost.push((quantity) =>
+            opEffects.overheadCost(quantity)
+          );
         } else if (operation.operationType === "Outside") {
           effects.outsideCost.push((quantity) => {
             const unitCost =

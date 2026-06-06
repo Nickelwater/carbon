@@ -106,6 +106,9 @@ msgstr "<0>update</0> ermöglicht es dir, Zeilen zu aktualisieren. <1>update</1>
 msgid "<0>update</0> will also return the replaced values for UPDATE."
 msgstr "<0>update</0> gibt auch die ersetzten Werte für UPDATE zurück."
 
+msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
+msgstr ""
+
 msgid "1 day"
 msgstr "1 Tag"
 
@@ -4489,9 +4492,6 @@ msgstr "Losgröße"
 msgid "Lot Size:"
 msgstr "Losgröße:"
 
-msgid "Machine"
-msgstr "Maschine"
-
 msgid "Machine Rate"
 msgstr "Maschinenrate"
 
@@ -4500,9 +4500,6 @@ msgstr "Maschinenrate (stündlich)"
 
 msgid "Machine Time"
 msgstr "Maschinenzeit"
-
-msgid "Machine Unit"
-msgstr "Maschineneinheit"
 
 msgid "Maintenance"
 msgstr "Wartung"
@@ -5532,6 +5529,9 @@ msgstr "Betriebstyp"
 
 msgid "Operator"
 msgstr "Operator"
+
+msgid "Operator attention"
+msgstr ""
 
 msgid "Operator gets a warning. Stock still goes through."
 msgstr "Operator erhält eine Warnung. Bestand wird trotzdem verarbeitet."
@@ -6692,8 +6692,17 @@ msgstr "Regeltyp"
 msgid "Rules"
 msgstr "Regeln"
 
+msgid "Run"
+msgstr ""
+
 msgid "Run Test"
 msgstr "Test ausführen"
+
+msgid "Run time"
+msgstr ""
+
+msgid "Run unit"
+msgstr ""
 
 msgid "Running Total"
 msgstr "Laufender Gesamtbetrag"
@@ -7130,6 +7139,12 @@ msgstr "Einrichtung"
 
 msgid "Setup instructions"
 msgstr "Setupanleitung"
+
+msgid "Setup Rate"
+msgstr ""
+
+msgid "Setup Rate (Hourly)"
+msgstr ""
 
 msgid "Setup Time"
 msgstr "Rüstzeit"

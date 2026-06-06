@@ -24,12 +24,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   let trackedEntityId = url.searchParams.get("trackedEntityId");
 
-  let type = (url.searchParams.get("type") ?? "Labor") as
+  let type = (url.searchParams.get("type") ?? "Machine") as
     | "Setup"
     | "Labor"
     | "Machine";
   if (!["Setup", "Labor", "Machine"].includes(type)) {
-    type = "Labor";
+    type = "Machine";
   }
 
   const serviceRole = await getCarbonServiceRole();
@@ -147,22 +147,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
       );
     }
-  }
-
-  // If type is Machine, cancel all setup and labor production events for this operation
-  if (type === "Machine") {
-    const currentTime = now(getLocalTimeZone()).toAbsoluteString();
-
-    await serviceRole
-      .from("productionEvent")
-      .update({
-        endTime: currentTime,
-        updatedAt: currentTime,
-        updatedBy: userId
-      })
-      .eq("jobOperationId", operationId)
-      .in("type", ["Setup", "Labor"])
-      .is("endTime", null);
   }
 
   const startEvent = await startProductionEvent(

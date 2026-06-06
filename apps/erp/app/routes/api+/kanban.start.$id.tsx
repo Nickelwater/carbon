@@ -48,13 +48,8 @@ async function handleKanbanStart({
     };
   }
 
-  let setupTime = operation.setupTime;
-  let laborTime = operation.laborTime;
-  let machineTime = operation.machineTime;
-  let type: "Setup" | "Labor" | "Machine" = "Labor";
-  if (machineTime && !laborTime) {
-    type = "Machine";
-  }
+  const setupTime = operation.setupTime;
+  let type: "Setup" | "Labor" | "Machine" = "Machine";
   if (setupTime) {
     type = "Setup";
   }

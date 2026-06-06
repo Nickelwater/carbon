@@ -786,6 +786,9 @@ msgstr "リワーク"
 msgid "Rework created successfully"
 msgstr "リワーク作成に成功しました"
 
+msgid "Run"
+msgstr ""
+
 msgid "Sales Order"
 msgstr "受注"
 

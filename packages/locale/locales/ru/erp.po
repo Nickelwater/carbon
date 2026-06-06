@@ -106,6 +106,9 @@ msgstr "<0>update</0> позволяет обновлять строки. <1>upd
 msgid "<0>update</0> will also return the replaced values for UPDATE."
 msgstr "<0>update</0> также вернёт заменённые значения для UPDATE."
 
+msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
+msgstr ""
+
 msgid "1 day"
 msgstr "1 день"
 
@@ -4489,9 +4492,6 @@ msgstr "Размер партии"
 msgid "Lot Size:"
 msgstr "Размер партии:"
 
-msgid "Machine"
-msgstr "Машина"
-
 msgid "Machine Rate"
 msgstr "Ставка машины"
 
@@ -4500,9 +4500,6 @@ msgstr "Ставка машины (в час)"
 
 msgid "Machine Time"
 msgstr "Время машины"
-
-msgid "Machine Unit"
-msgstr "Единица машины"
 
 msgid "Maintenance"
 msgstr "Техническое обслуживание"
@@ -5532,6 +5529,9 @@ msgstr "Тип операций"
 
 msgid "Operator"
 msgstr "Оператор"
+
+msgid "Operator attention"
+msgstr ""
 
 msgid "Operator gets a warning. Stock still goes through."
 msgstr "Оператор получит предупреждение. Товар все равно будет отпущен."
@@ -6692,8 +6692,17 @@ msgstr "Тип правила"
 msgid "Rules"
 msgstr "Правила"
 
+msgid "Run"
+msgstr ""
+
 msgid "Run Test"
 msgstr "Запустить тест"
+
+msgid "Run time"
+msgstr ""
+
+msgid "Run unit"
+msgstr ""
 
 msgid "Running Total"
 msgstr "Итоговая сумма"
@@ -7130,6 +7139,12 @@ msgstr "Настройка"
 
 msgid "Setup instructions"
 msgstr "Инструкции по настройке"
+
+msgid "Setup Rate"
+msgstr ""
+
+msgid "Setup Rate (Hourly)"
+msgstr ""
 
 msgid "Setup Time"
 msgstr "Время подготовки"

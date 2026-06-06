@@ -786,6 +786,9 @@ msgstr "返工"
 msgid "Rework created successfully"
 msgstr "返工创建成功"
 
+msgid "Run"
+msgstr ""
+
 msgid "Sales Order"
 msgstr "销售订单"
 

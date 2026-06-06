@@ -786,6 +786,9 @@ msgstr "Переделка"
 msgid "Rework created successfully"
 msgstr "Переработка успешно создана"
 
+msgid "Run"
+msgstr ""
+
 msgid "Sales Order"
 msgstr "Заказ на продажу"
 
