@@ -2204,9 +2204,6 @@ msgstr "Aprovador Padrão"
 msgid "Default Attachments"
 msgstr "Anexos Padrão"
 
-msgid "Default Attachments on Purchase Orders"
-msgstr "Anexos Padrão em Pedidos de Compra"
-
 msgid "Default CC Recipients"
 msgstr "Destinatários CC Padrão"
 
@@ -3649,9 +3646,6 @@ msgstr "Os arquivos anexados aqui são incluídos em todos os emails de pedido d
 
 msgid "Files attached here ride along on every purchase order email sent to this supplier (in addition to company-wide defaults)."
 msgstr "Arquivos anexados aqui são incluídos em todos os emails de pedido de compra enviados para este fornecedor (além dos padrões em toda a empresa)."
-
-msgid "Files attached here ride along whenever this item appears on a purchase order email."
-msgstr "Arquivos anexados aqui são incluídos sempre que este item aparece em um email de pedido de compra."
 
 msgid "Filter"
 msgstr "Filtro"

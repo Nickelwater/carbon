@@ -2204,9 +2204,6 @@ msgstr "Approvatore Predefinito"
 msgid "Default Attachments"
 msgstr "Allegati Predefiniti"
 
-msgid "Default Attachments on Purchase Orders"
-msgstr "Allegati predefiniti negli ordini di acquisto"
-
 msgid "Default CC Recipients"
 msgstr "Destinatari CC predefiniti"
 
@@ -3649,9 +3646,6 @@ msgstr "I file allegati qui vengono inviati automaticamente con ogni email di or
 
 msgid "Files attached here ride along on every purchase order email sent to this supplier (in addition to company-wide defaults)."
 msgstr "I file allegati qui vengono inclusi in ogni email di ordine d'acquisto inviata a questo fornitore (in aggiunta ai valori predefiniti a livello aziendale)."
-
-msgid "Files attached here ride along whenever this item appears on a purchase order email."
-msgstr "I file allegati qui vengono inclusi ogni volta che questo articolo appare in un'email di ordine di acquisto."
 
 msgid "Filter"
 msgstr "Filtro"

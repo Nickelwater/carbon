@@ -2204,9 +2204,6 @@ msgstr "Approbateur par défaut"
 msgid "Default Attachments"
 msgstr "Pièces jointes par défaut"
 
-msgid "Default Attachments on Purchase Orders"
-msgstr "Pièces jointes par défaut sur les commandes d'achat"
-
 msgid "Default CC Recipients"
 msgstr "Destinataires CC par défaut"
 
@@ -3649,9 +3646,6 @@ msgstr "Les fichiers joints ici sont automatiquement envoyés avec chaque email 
 
 msgid "Files attached here ride along on every purchase order email sent to this supplier (in addition to company-wide defaults)."
 msgstr "Les fichiers joints ici sont inclus dans chaque email de bon de commande envoyé à ce fournisseur (en plus des paramètres par défaut à l'échelle de l'entreprise)."
-
-msgid "Files attached here ride along whenever this item appears on a purchase order email."
-msgstr "Les fichiers joints ici sont inclus chaque fois que cet article apparaît dans un e-mail de commande d'achat."
 
 msgid "Filter"
 msgstr "Filtre"
