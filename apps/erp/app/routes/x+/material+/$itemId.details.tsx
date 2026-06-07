@@ -10,11 +10,9 @@ import { DeferredFiles } from "~/components";
 import { usePermissions, useRouteData } from "~/hooks";
 import type { ItemFile, MaterialSummary } from "~/modules/items";
 import { materialValidator, upsertMaterial } from "~/modules/items";
-import {
-  ItemDocuments,
-  ItemNotes,
-  ItemRiskRegister
-} from "~/modules/items/ui/Item";
+import ItemDocuments from "~/modules/items/ui/Item/ItemDocuments";
+import ItemNotes from "~/modules/items/ui/Item/ItemNotes";
+import ItemRiskRegister from "~/modules/items/ui/Item/ItemRiskRegister";
 import { setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
 

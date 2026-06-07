@@ -196,6 +196,12 @@ export default function ToolDetailsRoute() {
 
   return (
     <VStack spacing={2} className="p-2">
+      <ItemNotes
+        id={toolData.toolSummary?.id ?? null}
+        title={toolData.toolSummary?.name ?? ""}
+        subTitle={toolData.toolSummary?.readableIdWithRevision ?? ""}
+        notes={toolData.toolSummary?.notes as JSONContent}
+      />
       {permissions.is("employee") && methodData && (
         <>
           <Suspense fallback={<Menubar />}>
@@ -219,12 +225,6 @@ export default function ToolDetailsRoute() {
               withConfiguration={false}
             />
           )}
-          <ItemNotes
-            id={toolData.toolSummary?.id ?? null}
-            title={toolData.toolSummary?.name ?? ""}
-            subTitle={toolData.toolSummary?.readableIdWithRevision ?? ""}
-            notes={toolData.toolSummary?.notes as JSONContent}
-          />
           {["Make", "Buy and Make"].includes(
             toolData.toolSummary?.replenishmentSystem ?? ""
           ) && (
