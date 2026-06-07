@@ -1,9 +1,9 @@
-import { VERCEL_URL } from "@carbon/auth";
+import { getAppUrl } from "@carbon/env";
 import type { LoaderFunctionArgs } from "react-router";
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const url = new URL(request.url);
-  const issuer = VERCEL_URL || url.origin;
+  const issuer = getAppUrl() || url.origin;
 
   const metadata = {
     issuer,

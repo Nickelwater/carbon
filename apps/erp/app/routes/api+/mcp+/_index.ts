@@ -84,12 +84,33 @@ async function resolveAuth(request: Request): Promise<{
           request
         };
       }
+
+      // OAuth token was provided but invalid — return 401 so the client
+      // can re-authenticate rather than falling through to cookie auth
+      throw new Response(null, {
+        status: 401,
+        headers: {
+          "WWW-Authenticate": `Bearer resource_metadata="${new URL(request.url).origin}/.well-known/oauth-protected-resource"`,
+          ...corsHeaders
+        }
+      });
     }
 
     // Fall back to carbon-key auth
     const headers = new Headers(request.headers);
     headers.set("carbon-key", token);
     request = new Request(request, { headers });
+  }
+
+  // No Authorization header at all — return 401 for OAuth discovery
+  if (!authHeader && !hasCarbonKey) {
+    throw new Response(null, {
+      status: 401,
+      headers: {
+        "WWW-Authenticate": `Bearer resource_metadata="${new URL(request.url).origin}/.well-known/oauth-protected-resource"`,
+        ...corsHeaders
+      }
+    });
   }
 
   const { client, companyId, companyGroupId, userId } =
