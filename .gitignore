@@ -63,4 +63,4 @@ packages/database/supabase/seed.sql
 docs/superpowers
 llm/tasks
 apps/*/portless.json
-packages/database/supabase/snippets/**
+packages/database/supabase/snippets/**.superpowers/
