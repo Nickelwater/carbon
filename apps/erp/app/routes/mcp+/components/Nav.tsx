@@ -1,4 +1,4 @@
-import { McpButton } from "./McpButton";
+import { Button } from "@carbon/react";
 import { ThemeToggle } from "./ThemeToggle";
 
 export function Nav() {
@@ -22,9 +22,9 @@ export function Nav() {
         </a>
         <div className="ml-auto flex items-center gap-[10px]">
           <ThemeToggle />
-          <McpButton variant="primary" size="sm" href="/x/settings/api-keys">
-            Get an API key
-          </McpButton>
+          <Button asChild variant="primary" size="md">
+            <a href="/x/settings/api-keys">Get an API key</a>
+          </Button>
         </div>
       </div>
     </header>

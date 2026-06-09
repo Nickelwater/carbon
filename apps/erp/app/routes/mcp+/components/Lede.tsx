@@ -1,5 +1,5 @@
+import { Button } from "@carbon/react";
 import { CopyButton } from "./CopyButton";
-import { McpButton } from "./McpButton";
 import { ENDPOINT } from "./mcp-content";
 import { goToQuickstart } from "./quickstart-nav";
 
@@ -29,25 +29,28 @@ export function Lede({ total }: { total: number }) {
         />
       </div>
       <div className="flex gap-[10px] flex-wrap">
-        <McpButton
-          variant="accent"
-          href="#quickstart"
-          onClick={(e) => {
-            e.preventDefault();
-            goToQuickstart();
-          }}
-        >
-          Get started
-        </McpButton>
-        <McpButton
-          href="#quickstart"
-          onClick={(e) => {
-            e.preventDefault();
-            goToQuickstart("Claude Code");
-          }}
-        >
-          Connect to Claude
-        </McpButton>
+        <Button asChild variant="primary" size="lg">
+          <a
+            href="#quickstart"
+            onClick={(e) => {
+              e.preventDefault();
+              goToQuickstart();
+            }}
+          >
+            Get started
+          </a>
+        </Button>
+        <Button asChild variant="secondary" size="lg">
+          <a
+            href="#quickstart"
+            onClick={(e) => {
+              e.preventDefault();
+              goToQuickstart("Claude Code");
+            }}
+          >
+            Connect to Claude
+          </a>
+        </Button>
       </div>
     </div>
   );

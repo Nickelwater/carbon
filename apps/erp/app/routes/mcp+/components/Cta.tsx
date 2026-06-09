@@ -1,5 +1,5 @@
+import { Button } from "@carbon/react";
 import { useInViewClass } from "../hooks/useInViewClass";
-import { McpButton } from "./McpButton";
 import { goToQuickstart } from "./quickstart-nav";
 
 export function Cta() {
@@ -14,23 +14,26 @@ export function Cta() {
           Bring your manufacturing system into every AI assistant.
         </p>
         <div className="flex gap-[10px] flex-wrap justify-center">
-          <McpButton
-            variant="accent"
-            href="#quickstart"
-            onClick={(e) => {
-              e.preventDefault();
-              goToQuickstart("Claude Code");
-            }}
-          >
-            Connect to Claude
-          </McpButton>
-          <McpButton
-            href="https://www.carbon.ms/sales"
-            target="_blank"
-            rel="noopener"
-          >
-            Talk to sales
-          </McpButton>
+          <Button asChild variant="primary" size="lg">
+            <a
+              href="#quickstart"
+              onClick={(e) => {
+                e.preventDefault();
+                goToQuickstart("Claude Code");
+              }}
+            >
+              Connect to Claude
+            </a>
+          </Button>
+          <Button asChild variant="secondary" size="lg">
+            <a
+              href="https://www.carbon.ms/sales"
+              target="_blank"
+              rel="noopener"
+            >
+              Talk to sales
+            </a>
+          </Button>
         </div>
       </div>
     </section>
