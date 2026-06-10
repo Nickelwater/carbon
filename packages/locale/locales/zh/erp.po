@@ -439,6 +439,12 @@ msgstr "地址第1行"
 msgid "Address Line 2"
 msgstr "地址第2行"
 
+msgid "Adjust"
+msgstr ""
+
+msgid "Adjust Tool Life"
+msgstr ""
+
 msgid "Adjustment Type"
 msgstr "调整类型"
 
@@ -1044,6 +1050,9 @@ msgstr "自动启动作业"
 msgid "Auto-generated QR Code"
 msgstr "自动生成的二维码"
 
+msgid "Auto-issued on job operations for the dedicated part"
+msgstr ""
+
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "当扫描看板时自动释放作业"
 
@@ -1067,6 +1076,9 @@ msgstr "返回可追溯性"
 
 msgid "Backflush"
 msgstr "反冲"
+
+msgid "Balance"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "资产负债表"
@@ -2111,6 +2123,12 @@ msgstr "客户类型"
 msgid "Customers"
 msgstr "客户"
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
 msgid "Cycles/Hour"
 msgstr ""
 
@@ -2213,6 +2231,9 @@ msgstr "截止日期类型"
 
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "决定操作员在尝试发放已过期的批次或序列号时看到的内容。"
+
+msgid "Dedicated Part"
+msgstr ""
 
 msgid "Default Accounts"
 msgstr "默认账户"
@@ -2504,6 +2525,9 @@ msgstr "交货日期"
 
 msgid "Delivery Location"
 msgstr "送货地点"
+
+msgid "Delta"
+msgstr ""
 
 msgid "Demand"
 msgstr "需求"
@@ -3856,6 +3880,9 @@ msgstr "假期"
 msgid "Home Phone"
 msgstr "家庭电话"
 
+msgid "hours"
+msgstr ""
+
 msgid "Hours per Week"
 msgstr "每周小时数"
 
@@ -4372,6 +4399,15 @@ msgstr "让我们设置您的账户"
 msgid "Letter"
 msgstr "字母"
 
+msgid "Life Basis"
+msgstr ""
+
+msgid "Life History"
+msgstr ""
+
+msgid "Life Limit"
+msgstr ""
+
 msgid "Light"
 msgstr "浅色"
 
@@ -4491,6 +4527,12 @@ msgstr "批量大小"
 
 msgid "Lot Size:"
 msgstr "批量大小："
+
+msgid "Low"
+msgstr ""
+
+msgid "Low life"
+msgstr ""
 
 msgid "Machine Rate"
 msgstr "机器费率"
@@ -5057,6 +5099,9 @@ msgstr "新收据"
 msgid "New record created"
 msgstr "新记录已创建"
 
+msgid "New Remaining"
+msgstr ""
+
 msgid "New Revision"
 msgstr "新修订版"
 
@@ -5397,6 +5442,9 @@ msgstr "未设置"
 
 msgid "Not started training for"
 msgstr "未开始培训"
+
+msgid "Not tracked"
+msgstr ""
 
 msgid "Note"
 msgstr "备注"
@@ -5773,6 +5821,9 @@ msgstr "非常适合低成本评估"
 msgid "Period"
 msgstr "期间"
 
+msgid "Permanent Tool"
+msgstr ""
+
 msgid "Permanently Delete"
 msgstr "永久删除"
 
@@ -5883,6 +5934,9 @@ msgstr "政策"
 
 msgid "Policy & Procedure"
 msgstr "政策与程序"
+
+msgid "Policy History"
+msgstr ""
 
 msgid "Portal Link"
 msgstr "门户链接"
@@ -6400,8 +6454,14 @@ msgstr "发布工作"
 msgid "Released"
 msgstr "已发布"
 
+msgid "Remaining"
+msgstr ""
+
 msgid "Remaining after split stays on the original row."
 msgstr "分割后的剩余部分保留在原始行上。"
+
+msgid "Remaining:"
+msgstr ""
 
 msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
 msgstr "记住此PIN。您需要它来退出MES终端上的控制台模式。"
@@ -6541,6 +6601,9 @@ msgstr "必需操作"
 
 msgid "Required Date"
 msgstr "所需日期"
+
+msgid "Required for permanent tools"
+msgstr ""
 
 msgid "Requires Action"
 msgstr "需要采取行动"
@@ -6701,6 +6764,9 @@ msgstr "运行测试"
 msgid "Run time"
 msgstr ""
 
+msgid "Run Time"
+msgstr ""
+
 msgid "Run unit"
 msgstr ""
 
@@ -6788,11 +6854,17 @@ msgstr "保存"
 msgid "Save & Close"
 msgstr "保存并关闭"
 
+msgid "Save Adjustment"
+msgstr ""
+
 msgid "Save and Overwrite"
 msgstr "保存并覆盖"
 
 msgid "Save Method"
 msgstr "保存方法"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save View"
 msgstr "保存视图"
@@ -8046,6 +8118,12 @@ msgstr "工具详情"
 
 msgid "Tool ID"
 msgstr "工具ID"
+
+msgid "Tool Life"
+msgstr ""
+
+msgid "Tool Life Policy History"
+msgstr ""
 
 msgid "Tools"
 msgstr "工具"

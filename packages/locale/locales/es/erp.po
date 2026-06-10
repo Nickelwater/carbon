@@ -439,6 +439,12 @@ msgstr "Línea de Dirección 1"
 msgid "Address Line 2"
 msgstr "Línea de Dirección 2"
 
+msgid "Adjust"
+msgstr ""
+
+msgid "Adjust Tool Life"
+msgstr ""
+
 msgid "Adjustment Type"
 msgstr "Tipo de Ajuste"
 
@@ -1044,6 +1050,9 @@ msgstr "Iniciar Trabajo Automáticamente"
 msgid "Auto-generated QR Code"
 msgstr "Código QR generado automáticamente"
 
+msgid "Auto-issued on job operations for the dedicated part"
+msgstr ""
+
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "Liberar automáticamente el trabajo cuando se escanea el kanban"
 
@@ -1067,6 +1076,9 @@ msgstr "Volver a trazabilidad"
 
 msgid "Backflush"
 msgstr "Retroceso"
+
+msgid "Balance"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "Balance General"
@@ -2111,6 +2123,12 @@ msgstr "Tipos de Cliente"
 msgid "Customers"
 msgstr "Clientes"
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
 msgid "Cycles/Hour"
 msgstr ""
 
@@ -2213,6 +2231,9 @@ msgstr "Tipo de Plazo"
 
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "Decide qué ve un operador si intenta emitir un lote o número de serie que ya ha expirado."
+
+msgid "Dedicated Part"
+msgstr ""
 
 msgid "Default Accounts"
 msgstr "Cuentas Predeterminadas"
@@ -2504,6 +2525,9 @@ msgstr "Fecha de Entrega"
 
 msgid "Delivery Location"
 msgstr "Ubicación de Entrega"
+
+msgid "Delta"
+msgstr ""
 
 msgid "Demand"
 msgstr "Demanda"
@@ -3856,6 +3880,9 @@ msgstr "Días festivos"
 msgid "Home Phone"
 msgstr "Teléfono de Casa"
 
+msgid "hours"
+msgstr ""
+
 msgid "Hours per Week"
 msgstr "Horas por Semana"
 
@@ -4372,6 +4399,15 @@ msgstr "Configuremos tu cuenta"
 msgid "Letter"
 msgstr "Letra"
 
+msgid "Life Basis"
+msgstr ""
+
+msgid "Life History"
+msgstr ""
+
+msgid "Life Limit"
+msgstr ""
+
 msgid "Light"
 msgstr "Claro"
 
@@ -4491,6 +4527,12 @@ msgstr "Tamaño de Lote"
 
 msgid "Lot Size:"
 msgstr "Tamaño de lote:"
+
+msgid "Low"
+msgstr ""
+
+msgid "Low life"
+msgstr ""
 
 msgid "Machine Rate"
 msgstr "Tarifa de Máquina"
@@ -5057,6 +5099,9 @@ msgstr "Nuevo Recibo"
 msgid "New record created"
 msgstr "Nuevo registro creado"
 
+msgid "New Remaining"
+msgstr ""
+
 msgid "New Revision"
 msgstr "Nueva Revisión"
 
@@ -5397,6 +5442,9 @@ msgstr "No establecido"
 
 msgid "Not started training for"
 msgstr "Sin comenzar el entrenamiento para"
+
+msgid "Not tracked"
+msgstr ""
 
 msgid "Note"
 msgstr "Nota"
@@ -5773,6 +5821,9 @@ msgstr "Perfecto para evaluación de bajo costo"
 msgid "Period"
 msgstr "Período"
 
+msgid "Permanent Tool"
+msgstr ""
+
 msgid "Permanently Delete"
 msgstr "Eliminar permanentemente"
 
@@ -5883,6 +5934,9 @@ msgstr "Política"
 
 msgid "Policy & Procedure"
 msgstr "Política y Procedimiento"
+
+msgid "Policy History"
+msgstr ""
 
 msgid "Portal Link"
 msgstr "Enlace del Portal"
@@ -6400,8 +6454,14 @@ msgstr "Liberar Trabajo"
 msgid "Released"
 msgstr "Liberado"
 
+msgid "Remaining"
+msgstr ""
+
 msgid "Remaining after split stays on the original row."
 msgstr "Lo restante después de dividir permanece en la fila original."
+
+msgid "Remaining:"
+msgstr ""
 
 msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
 msgstr "Recuerda este PIN. Lo necesitarás para salir del modo consola en terminales MES."
@@ -6541,6 +6601,9 @@ msgstr "Acciones Requeridas"
 
 msgid "Required Date"
 msgstr "Fecha Requerida"
+
+msgid "Required for permanent tools"
+msgstr ""
 
 msgid "Requires Action"
 msgstr "Requiere Acción"
@@ -6701,6 +6764,9 @@ msgstr "Ejecutar Prueba"
 msgid "Run time"
 msgstr ""
 
+msgid "Run Time"
+msgstr ""
+
 msgid "Run unit"
 msgstr ""
 
@@ -6788,11 +6854,17 @@ msgstr "Guardar"
 msgid "Save & Close"
 msgstr "Guardar y cerrar"
 
+msgid "Save Adjustment"
+msgstr ""
+
 msgid "Save and Overwrite"
 msgstr "Guardar y Sobrescribir"
 
 msgid "Save Method"
 msgstr "Guardar Método"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save View"
 msgstr "Guardar Vista"
@@ -8046,6 +8118,12 @@ msgstr "Detalles de la herramienta"
 
 msgid "Tool ID"
 msgstr "ID de herramienta"
+
+msgid "Tool Life"
+msgstr ""
+
+msgid "Tool Life Policy History"
+msgstr ""
 
 msgid "Tools"
 msgstr "Herramientas"

@@ -1,4 +1,4 @@
-import { error } from "@carbon/auth";
+import { error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
@@ -14,6 +14,7 @@ import {
   getTrackedEntitiesByMakeMethodId,
   startProductionEvent
 } from "~/services/operations.service";
+import { autoIssuePermanentTools } from "~/services/tool-life.service";
 import { path } from "~/utils/path";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -149,6 +150,39 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
   }
 
+  const autoIssue = await autoIssuePermanentTools(
+    serviceRole,
+    operationId,
+    userId
+  );
+
+  if (autoIssue.error) {
+    throw redirect(
+      path.to.operation(operationId),
+      await flash(
+        request,
+        error(autoIssue.error, "Failed to auto-issue permanent tools")
+      )
+    );
+  }
+
+  const issueErrors = autoIssue.data.errors ?? [];
+  if (issueErrors.length > 0) {
+    throw redirect(
+      path.to.operation(operationId),
+      await flash(
+        request,
+        error(
+          issueErrors[0]?.message ?? "Permanent tool issue failed",
+          "Cannot start operation"
+        )
+      )
+    );
+  }
+
+  const toolSelectionWarnings = autoIssue.data.requiresSelection ?? [];
+  const toolSelectionMessage = toolSelectionWarnings[0]?.message;
+
   const startEvent = await startProductionEvent(
     serviceRole,
     {
@@ -170,5 +204,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     );
   }
 
-  throw redirect(path.to.operation(operationId));
+  throw redirect(
+    path.to.operation(operationId),
+    toolSelectionMessage
+      ? await flash(
+          request,
+          success(`Operation started. ${toolSelectionMessage}`)
+        )
+      : undefined
+  );
 }

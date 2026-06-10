@@ -494,6 +494,12 @@ export const JobOperation = ({
                 <TabsTrigger value="procedure">
                   <Trans>Procedure</Trans>
                 </TabsTrigger>
+                <Button variant="ghost" size="sm" className="h-8 px-3" asChild>
+                  <Link to={path.to.operationTools(operation.id)}>
+                    <LuWrench className="mr-1.5 size-4" />
+                    <Trans>Tools</Trans>
+                  </Link>
+                </Button>
                 <TabsTrigger value="chat">
                   <Trans>Chat</Trans>
                 </TabsTrigger>

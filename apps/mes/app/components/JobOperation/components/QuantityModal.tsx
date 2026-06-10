@@ -80,7 +80,7 @@ export function QuantityModal({
     operation.partsPerCycle
   );
   const trackCycles =
-    type === "complete" &&
+    (type === "complete" || type === "scrap") &&
     usesCycleQuantity(
       partsPerCycle,
       // @ts-expect-error timeBasis added via migration
@@ -108,7 +108,9 @@ export function QuantityModal({
     : (operation.quantityComplete ?? 0) >= requiredParts;
 
   const descriptionMap = {
-    scrap: t`Select a scrap quantity and reason`,
+    scrap: trackCycles
+      ? t`Select how many cycles to log as scrap`
+      : t`Select a scrap quantity and reason`,
     rework: t`Select a rework quantity`,
     complete: trackCycles
       ? t`Select how many cycles to log as complete`

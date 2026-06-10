@@ -27,5 +27,6 @@ export * from "./string";
 export * from "./supabase";
 export * from "./themes";
 export * from "./tiptap";
+export * from "./tool-life";
 export * from "./types";
 export * from "./url";

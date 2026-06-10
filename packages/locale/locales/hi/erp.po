@@ -439,6 +439,12 @@ msgstr "पता पंक्ति 1"
 msgid "Address Line 2"
 msgstr "पता लाइन 2"
 
+msgid "Adjust"
+msgstr ""
+
+msgid "Adjust Tool Life"
+msgstr ""
+
 msgid "Adjustment Type"
 msgstr "समायोजन प्रकार"
 
@@ -1044,6 +1050,9 @@ msgstr "ऑटो स्टार्ट जॉब"
 msgid "Auto-generated QR Code"
 msgstr "स्वचालित रूप से उत्पन्न QR कोड"
 
+msgid "Auto-issued on job operations for the dedicated part"
+msgstr ""
+
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "कनबन स्कैन किए जाने पर जॉब को स्वचालित रूप से रिलीज़ करें"
 
@@ -1067,6 +1076,9 @@ msgstr "ट्रेसेबिलिटी पर वापस जाएं"
 
 msgid "Backflush"
 msgstr "बैकफ्लश"
+
+msgid "Balance"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "बैलेंस शीट"
@@ -2111,6 +2123,12 @@ msgstr "ग्राहक प्रकार"
 msgid "Customers"
 msgstr "ग्राहक"
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
 msgid "Cycles/Hour"
 msgstr ""
 
@@ -2213,6 +2231,9 @@ msgstr "समय सीमा प्रकार"
 
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "तय करें कि यदि कोई ऑपरेटर एक बैच या सीरियल जारी करने का प्रयास करता है जो पहले से ही समाप्त हो गया है तो वह क्या देखता है।"
+
+msgid "Dedicated Part"
+msgstr ""
 
 msgid "Default Accounts"
 msgstr "डिफ़ॉल्ट खाते"
@@ -2504,6 +2525,9 @@ msgstr "डिलीवरी तारीख"
 
 msgid "Delivery Location"
 msgstr "डिलीवरी स्थान"
+
+msgid "Delta"
+msgstr ""
 
 msgid "Demand"
 msgstr "मांग"
@@ -3856,6 +3880,9 @@ msgstr "छुट्टियाँ"
 msgid "Home Phone"
 msgstr "होम फोन"
 
+msgid "hours"
+msgstr ""
+
 msgid "Hours per Week"
 msgstr "सप्ताह में घंटे"
 
@@ -4372,6 +4399,15 @@ msgstr "आइए अपना खाता सेट अप करें"
 msgid "Letter"
 msgstr "अक्षर"
 
+msgid "Life Basis"
+msgstr ""
+
+msgid "Life History"
+msgstr ""
+
+msgid "Life Limit"
+msgstr ""
+
 msgid "Light"
 msgstr "हल्का"
 
@@ -4491,6 +4527,12 @@ msgstr "लॉट आकार"
 
 msgid "Lot Size:"
 msgstr "लॉट साइज:"
+
+msgid "Low"
+msgstr ""
+
+msgid "Low life"
+msgstr ""
 
 msgid "Machine Rate"
 msgstr "मशीन दर"
@@ -5057,6 +5099,9 @@ msgstr "नई रसीद"
 msgid "New record created"
 msgstr "नया रिकॉर्ड बनाया गया"
 
+msgid "New Remaining"
+msgstr ""
+
 msgid "New Revision"
 msgstr "नया संस्करण"
 
@@ -5397,6 +5442,9 @@ msgstr "सेट नहीं है"
 
 msgid "Not started training for"
 msgstr "प्रशिक्षण शुरू नहीं किया गया"
+
+msgid "Not tracked"
+msgstr ""
 
 msgid "Note"
 msgstr "नोट"
@@ -5773,6 +5821,9 @@ msgstr "कम लागत मूल्यांकन के लिए बि�
 msgid "Period"
 msgstr "अवधि"
 
+msgid "Permanent Tool"
+msgstr ""
+
 msgid "Permanently Delete"
 msgstr "स्थायी रूप से हटाएं"
 
@@ -5883,6 +5934,9 @@ msgstr "नीति"
 
 msgid "Policy & Procedure"
 msgstr "नीति और प्रक्रिया"
+
+msgid "Policy History"
+msgstr ""
 
 msgid "Portal Link"
 msgstr "पोर्टल लिंक"
@@ -6400,8 +6454,14 @@ msgstr "जॉब रिलीज़ करें"
 msgid "Released"
 msgstr "जारी किया गया"
 
+msgid "Remaining"
+msgstr ""
+
 msgid "Remaining after split stays on the original row."
 msgstr "विभाजन के बाद शेष मूल पंक्ति पर रहता है।"
+
+msgid "Remaining:"
+msgstr ""
 
 msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
 msgstr "इस PIN को याद रखें। MES टर्मिनल पर कंसोल मोड से बाहर निकलने के लिए आपको इसकी आवश्यकता होगी।"
@@ -6541,6 +6601,9 @@ msgstr "आवश्यक कार्य"
 
 msgid "Required Date"
 msgstr "आवश्यक तारीख"
+
+msgid "Required for permanent tools"
+msgstr ""
 
 msgid "Requires Action"
 msgstr "कार्रवाई आवश्यक है"
@@ -6701,6 +6764,9 @@ msgstr "टेस्ट चलाएं"
 msgid "Run time"
 msgstr ""
 
+msgid "Run Time"
+msgstr ""
+
 msgid "Run unit"
 msgstr ""
 
@@ -6788,11 +6854,17 @@ msgstr "सहेजें"
 msgid "Save & Close"
 msgstr "सहेजें और बंद करें"
 
+msgid "Save Adjustment"
+msgstr ""
+
 msgid "Save and Overwrite"
 msgstr "सहेजें और अधिलेखित करें"
 
 msgid "Save Method"
 msgstr "विधि सहेजें"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save View"
 msgstr "दृश्य सहेजें"
@@ -8046,6 +8118,12 @@ msgstr "उपकरण विवरण"
 
 msgid "Tool ID"
 msgstr "टूल आईडी"
+
+msgid "Tool Life"
+msgstr ""
+
+msgid "Tool Life Policy History"
+msgstr ""
 
 msgid "Tools"
 msgstr "उपकरण"

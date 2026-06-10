@@ -982,7 +982,7 @@ function OperationForm({
     machineTime: item.data.machineTime ?? 0,
     machineUnit: item.data.machineUnit ?? "Hours/Piece",
     machineUnitHint: getUnitHint(item.data.machineUnit, item.data.timeBasis),
-    operatorAttention: Number(item.data.operatorAttention ?? 1),
+    operatorAttention: +(item.data.operatorAttention ?? 1),
     operationOrder: item.data.operationOrder ?? "After Previous",
     operationType: item.data.operationType ?? "Inside",
     processId: item.data.processId ?? "",

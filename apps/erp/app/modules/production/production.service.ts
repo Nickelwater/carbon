@@ -2366,6 +2366,33 @@ export async function upsertJobOperationTool(
         updatedAt: string;
       })
 ) {
+  const operation = await client
+    .from("jobOperation")
+    .select("jobMakeMethodId, jobMakeMethod!inner(itemId)")
+    .eq("id", jobOperationTool.operationId)
+    .maybeSingle();
+
+  if (operation.error) return { data: null, error: operation.error };
+
+  const makeMethodItemId = (
+    operation.data?.jobMakeMethod as { itemId: string } | null
+  )?.itemId;
+
+  if (makeMethodItemId) {
+    const { validatePermanentToolForMethod } = await import(
+      "~/modules/items/tool-life.service"
+    );
+    const validation = await validatePermanentToolForMethod(
+      client,
+      jobOperationTool.toolId,
+      makeMethodItemId,
+      jobOperationTool.companyId
+    );
+    if (validation.error) {
+      return { data: null, error: validation.error };
+    }
+  }
+
   if ("createdBy" in jobOperationTool) {
     return client
       .from("jobOperationTool")

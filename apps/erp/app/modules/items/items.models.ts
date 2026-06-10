@@ -743,19 +743,78 @@ export const supplierPartValidator = z.object({
   unitPrice: zfd.numeric(z.number().min(0).optional())
 });
 
+export const toolLifeBasisValidator = z.enum(["Cycles", "RunTime"]).optional();
+
 export const toolValidator = applyStorageAndShelfLifeRefines(
-  itemValidator.merge(
-    z.object({
-      id: z.string().min(1, { message: "Tool ID is required" }).max(255),
-      revision: z.string().min(1, { message: "Revision is required" }),
-      modelUploadId: zfd.text(z.string().optional()),
-      unitOfMeasureCode: z
-        .string()
-        .min(1, { message: "Unit of Measure is required" }),
-      lotSize: zfd.numeric(z.number().min(0).optional())
+  itemValidator
+    .merge(
+      z.object({
+        id: z.string().min(1, { message: "Tool ID is required" }).max(255),
+        revision: z.string().min(1, { message: "Revision is required" }),
+        modelUploadId: zfd.text(z.string().optional()),
+        unitOfMeasureCode: z
+          .string()
+          .min(1, { message: "Unit of Measure is required" }),
+        lotSize: zfd.numeric(z.number().min(0).optional()),
+        lifeBasis: toolLifeBasisValidator,
+        lifeLimit: zfd.numeric(z.number().min(0).optional()),
+        isPermanent: zfd.checkbox(),
+        dedicatedPartReadableId: zfd.text(z.string().optional())
+      })
+    )
+    .superRefine((data, ctx) => {
+      if (data.isPermanent && !data.dedicatedPartReadableId?.trim()) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Dedicated part is required for permanent tools",
+          path: ["dedicatedPartReadableId"]
+        });
+      }
+      if (data.lifeBasis && (data.lifeLimit == null || data.lifeLimit <= 0)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Life limit is required when tool life is tracked",
+          path: ["lifeLimit"]
+        });
+      }
     })
-  )
 );
+
+export const toolLifePolicyValidator = z
+  .object({
+    lifeBasis: zfd.text(
+      z.union([z.enum(["Cycles", "RunTime"]), z.literal("none")]).optional()
+    ),
+    lifeLimit: zfd.numeric(z.number().min(0).optional()),
+    isPermanent: zfd.checkbox(),
+    dedicatedPartReadableId: zfd.text(z.string().optional())
+  })
+  .superRefine((data, ctx) => {
+    if (data.isPermanent && !data.dedicatedPartReadableId?.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Dedicated part is required for permanent tools",
+        path: ["dedicatedPartReadableId"]
+      });
+    }
+    const basis =
+      data.lifeBasis === "none" || data.lifeBasis == null
+        ? null
+        : data.lifeBasis;
+    if (basis && (data.lifeLimit == null || data.lifeLimit <= 0)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Life limit is required when tool life is tracked",
+        path: ["lifeLimit"]
+      });
+    }
+  });
+
+export const toolLifeAdjustValidator = z.object({
+  newRemaining: zfd.numeric(z.number().min(0)),
+  reason: z.string().min(1, { message: "Reason is required" }),
+  trackedEntityId: zfd.text(z.string().optional())
+});
 
 export const unitOfMeasureValidator = z.object({
   id: zfd.text(z.string().optional()),

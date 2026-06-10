@@ -439,6 +439,12 @@ msgstr "Адрес, строка 1"
 msgid "Address Line 2"
 msgstr "Адрес, строка 2"
 
+msgid "Adjust"
+msgstr ""
+
+msgid "Adjust Tool Life"
+msgstr ""
+
 msgid "Adjustment Type"
 msgstr "Тип корректировки"
 
@@ -1044,6 +1050,9 @@ msgstr "Автоматический запуск задания"
 msgid "Auto-generated QR Code"
 msgstr "Автоматически созданный QR-код"
 
+msgid "Auto-issued on job operations for the dedicated part"
+msgstr ""
+
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "Автоматически отпустить задание при сканировании канбана"
 
@@ -1067,6 +1076,9 @@ msgstr "Вернуться к отслеживанию"
 
 msgid "Backflush"
 msgstr "Обратный отвод"
+
+msgid "Balance"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "Баланс"
@@ -2111,6 +2123,12 @@ msgstr "Типы клиентов"
 msgid "Customers"
 msgstr "Клиенты"
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
 msgid "Cycles/Hour"
 msgstr ""
 
@@ -2213,6 +2231,9 @@ msgstr "Тип срока"
 
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "Решите, что видит оператор при попытке выдать партию или серийный номер, срок действия которого уже истек."
+
+msgid "Dedicated Part"
+msgstr ""
 
 msgid "Default Accounts"
 msgstr "Счета по умолчанию"
@@ -2504,6 +2525,9 @@ msgstr "Дата доставки"
 
 msgid "Delivery Location"
 msgstr "Место доставки"
+
+msgid "Delta"
+msgstr ""
 
 msgid "Demand"
 msgstr "Спрос"
@@ -3856,6 +3880,9 @@ msgstr "Праздники"
 msgid "Home Phone"
 msgstr "Домашний телефон"
 
+msgid "hours"
+msgstr ""
+
 msgid "Hours per Week"
 msgstr "Часов в неделю"
 
@@ -4372,6 +4399,15 @@ msgstr "Давайте настроим вашу учетную запись"
 msgid "Letter"
 msgstr "Буква"
 
+msgid "Life Basis"
+msgstr ""
+
+msgid "Life History"
+msgstr ""
+
+msgid "Life Limit"
+msgstr ""
+
 msgid "Light"
 msgstr "Светлая"
 
@@ -4491,6 +4527,12 @@ msgstr "Размер партии"
 
 msgid "Lot Size:"
 msgstr "Размер партии:"
+
+msgid "Low"
+msgstr ""
+
+msgid "Low life"
+msgstr ""
 
 msgid "Machine Rate"
 msgstr "Ставка машины"
@@ -5057,6 +5099,9 @@ msgstr "Новая квитанция"
 msgid "New record created"
 msgstr "Создана новая запись"
 
+msgid "New Remaining"
+msgstr ""
+
 msgid "New Revision"
 msgstr "Новая редакция"
 
@@ -5397,6 +5442,9 @@ msgstr "Не установлено"
 
 msgid "Not started training for"
 msgstr "Обучение не начато для"
+
+msgid "Not tracked"
+msgstr ""
 
 msgid "Note"
 msgstr "Примечание"
@@ -5773,6 +5821,9 @@ msgstr "Идеально для недорогой оценки"
 msgid "Period"
 msgstr "Период"
 
+msgid "Permanent Tool"
+msgstr ""
+
 msgid "Permanently Delete"
 msgstr "Окончательно удалить"
 
@@ -5883,6 +5934,9 @@ msgstr "Политика"
 
 msgid "Policy & Procedure"
 msgstr "Политика и процедура"
+
+msgid "Policy History"
+msgstr ""
 
 msgid "Portal Link"
 msgstr "Ссылка портала"
@@ -6400,8 +6454,14 @@ msgstr "Выпустить задание"
 msgid "Released"
 msgstr "Выпущено"
 
+msgid "Remaining"
+msgstr ""
+
 msgid "Remaining after split stays on the original row."
 msgstr "Остаток после разделения остается в исходной строке."
+
+msgid "Remaining:"
+msgstr ""
 
 msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
 msgstr "Запомните этот PIN-код. Он потребуется вам для выхода из режима консоли на терминалах MES."
@@ -6541,6 +6601,9 @@ msgstr "Требуемые действия"
 
 msgid "Required Date"
 msgstr "Требуемая дата"
+
+msgid "Required for permanent tools"
+msgstr ""
 
 msgid "Requires Action"
 msgstr "Требует действия"
@@ -6701,6 +6764,9 @@ msgstr "Запустить тест"
 msgid "Run time"
 msgstr ""
 
+msgid "Run Time"
+msgstr ""
+
 msgid "Run unit"
 msgstr ""
 
@@ -6788,11 +6854,17 @@ msgstr "Сохранить"
 msgid "Save & Close"
 msgstr "Сохранить и закрыть"
 
+msgid "Save Adjustment"
+msgstr ""
+
 msgid "Save and Overwrite"
 msgstr "Сохранить и перезаписать"
 
 msgid "Save Method"
 msgstr "Сохранить метод"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save View"
 msgstr "Сохранить представление"
@@ -8046,6 +8118,12 @@ msgstr "Детали инструмента"
 
 msgid "Tool ID"
 msgstr "ID инструмента"
+
+msgid "Tool Life"
+msgstr ""
+
+msgid "Tool Life Policy History"
+msgstr ""
 
 msgid "Tools"
 msgstr "Инструменты"

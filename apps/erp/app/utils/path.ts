@@ -1744,6 +1744,7 @@ export const path = {
     tool: (id: string) => generatePath(`${x}/tool/${id}`),
     toolCosting: (id: string) => generatePath(`${x}/tool/${id}/costing`),
     toolDetails: (id: string) => generatePath(`${x}/tool/${id}/details`),
+    toolLife: (id: string) => generatePath(`${x}/tool/${id}/tool-life`),
     toolInventory: (id: string) => generatePath(`${x}/tool/${id}/inventory`),
     toolInventoryLocation: (id: string, locationId: string) =>
       generatePath(`${x}/tool/${id}/inventory?location=${locationId}`),

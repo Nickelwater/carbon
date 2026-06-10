@@ -85,6 +85,9 @@ msgstr ""
 msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
 msgstr ""
 
+msgid "3D Model"
+msgstr ""
+
 msgid "About"
 msgstr "Informazioni"
 
@@ -108,6 +111,9 @@ msgstr "Aggiungi Inventario"
 
 msgid "Add Spare Part"
 msgstr "Aggiungi Ricambio"
+
+msgid "Add tools on the part method Bill of Process → Tools tab, then refresh the job method if needed."
+msgstr ""
 
 msgid "All"
 msgstr "Tutti"
@@ -141,6 +147,9 @@ msgstr "Allega File"
 
 msgid "Authentication Error"
 msgstr "Errore di Autenticazione"
+
+msgid "Auto-issued"
+msgstr ""
 
 msgid "Batch"
 msgstr "Lotto"
@@ -264,6 +273,9 @@ msgstr "Crea Rielaborazione"
 
 msgid "Customer"
 msgstr "Cliente"
+
+msgid "cycles"
+msgstr ""
 
 msgid "Cycles"
 msgstr ""
@@ -414,6 +426,9 @@ msgstr "Torna all'operazione"
 msgid "Have a technical issue? Contact <0>Carbon Support.</0>"
 msgstr "Hai un problema tecnico? Contatta il <0>Supporto Carbon.</0>"
 
+msgid "hours"
+msgstr ""
+
 msgid "I understand and want to complete without issuing"
 msgstr "Comprendo e desidero completare senza prelevare"
 
@@ -453,8 +468,18 @@ msgstr "Preleva"
 msgid "Issue Material"
 msgstr "Preleva Materiale"
 
+msgid "Issue Tool"
+msgstr ""
+
+#. placeholder {0}: tool.toolReadableId
+msgid "Issue Tool {0}"
+msgstr ""
+
 msgid "Issue Type"
 msgstr "Tipo di Problema"
+
+msgid "Issued"
+msgstr ""
 
 msgid "Item"
 msgstr "Articolo"
@@ -485,6 +510,12 @@ msgstr "Lascia questa pagina"
 
 msgid "Let's build something"
 msgstr "Costruiamo qualcosa"
+
+msgid "Life limit"
+msgstr ""
+
+msgid "Life remaining"
+msgstr ""
 
 msgid "Loading item details..."
 msgstr "Caricamento dettagli articolo..."
@@ -518,6 +549,9 @@ msgstr "Registra scarti per {0}"
 
 msgid "Login"
 msgstr "Accedi"
+
+msgid "Low"
+msgstr ""
 
 msgid "Machine"
 msgstr "Macchina"
@@ -579,6 +613,9 @@ msgstr "Nuova Registrazione"
 
 msgid "Next"
 msgstr "Successivo"
+
+msgid "No 3D model uploaded for this tool"
+msgstr ""
 
 msgid "No active maintenance dispatches"
 msgstr "Nessun intervento di manutenzione attivo"
@@ -649,11 +686,17 @@ msgstr "Nessun ricambio ancora aggiunto"
 msgid "No time entries for this week"
 msgstr "Nessuna registrazione oraria per questa settimana"
 
+msgid "No tools on this operation"
+msgstr ""
+
 msgid "No work centers are blocked"
 msgstr "Nessun centro di lavoro bloccato"
 
 msgid "No work centers exist"
 msgstr "Nessun centro di lavoro esistente"
+
+msgid "Not issued"
+msgstr ""
 
 msgid "Notes"
 msgstr "Note"
@@ -676,6 +719,9 @@ msgstr "Aperto"
 
 msgid "Open Jobs"
 msgstr "Lavori Aperti"
+
+msgid "Operation"
+msgstr ""
 
 msgid "Operations"
 msgstr "Operazioni"
@@ -843,6 +889,9 @@ msgstr "Seleziona una quantità di scarto e il motivo"
 msgid "Select a serial number to continue with this operation"
 msgstr "Seleziona un numero di serie per continuare con questa operazione"
 
+msgid "Select a tool"
+msgstr ""
+
 msgid "Select an item and specify the quantity to issue"
 msgstr "Seleziona un articolo e specifica la quantità da prelevare"
 
@@ -854,6 +903,12 @@ msgid "Select Batch {0}"
 msgstr "Seleziona Lotto {0}"
 
 msgid "Select how many cycles to log as complete"
+msgstr ""
+
+msgid "Select how many cycles to log as scrap"
+msgstr ""
+
+msgid "Select serial"
 msgstr ""
 
 #. placeholder {0}: index + 1

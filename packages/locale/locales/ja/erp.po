@@ -439,6 +439,12 @@ msgstr "住所 1行目"
 msgid "Address Line 2"
 msgstr "住所2行目"
 
+msgid "Adjust"
+msgstr ""
+
+msgid "Adjust Tool Life"
+msgstr ""
+
 msgid "Adjustment Type"
 msgstr "調整タイプ"
 
@@ -1044,6 +1050,9 @@ msgstr "自動ジョブ開始"
 msgid "Auto-generated QR Code"
 msgstr "自動生成されたQRコード"
 
+msgid "Auto-issued on job operations for the dedicated part"
+msgstr ""
+
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "カンバンがスキャンされたときに自動的にジョブをリリースします"
 
@@ -1067,6 +1076,9 @@ msgstr "トレーサビリティに戻る"
 
 msgid "Backflush"
 msgstr "バックフラッシュ"
+
+msgid "Balance"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "貸借対照表"
@@ -2111,6 +2123,12 @@ msgstr "顧客タイプ"
 msgid "Customers"
 msgstr "顧客"
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
 msgid "Cycles/Hour"
 msgstr ""
 
@@ -2213,6 +2231,9 @@ msgstr "期限タイプ"
 
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "オペレーターが既に期限切れのバッチまたはシリアルを発行しようとした場合に表示される内容を決定します。"
+
+msgid "Dedicated Part"
+msgstr ""
 
 msgid "Default Accounts"
 msgstr "デフォルトアカウント"
@@ -2504,6 +2525,9 @@ msgstr "配送日"
 
 msgid "Delivery Location"
 msgstr "配送先"
+
+msgid "Delta"
+msgstr ""
 
 msgid "Demand"
 msgstr "需要"
@@ -3856,6 +3880,9 @@ msgstr "休日"
 msgid "Home Phone"
 msgstr "自宅電話"
 
+msgid "hours"
+msgstr ""
+
 msgid "Hours per Week"
 msgstr "週間あたりの時間"
 
@@ -4372,6 +4399,15 @@ msgstr "アカウントをセットアップしましょう"
 msgid "Letter"
 msgstr "文字"
 
+msgid "Life Basis"
+msgstr ""
+
+msgid "Life History"
+msgstr ""
+
+msgid "Life Limit"
+msgstr ""
+
 msgid "Light"
 msgstr "ライト"
 
@@ -4491,6 +4527,12 @@ msgstr "ロットサイズ"
 
 msgid "Lot Size:"
 msgstr "ロットサイズ:"
+
+msgid "Low"
+msgstr ""
+
+msgid "Low life"
+msgstr ""
 
 msgid "Machine Rate"
 msgstr "機械レート"
@@ -5057,6 +5099,9 @@ msgstr "新しい領収書"
 msgid "New record created"
 msgstr "新しいレコードが作成されました"
 
+msgid "New Remaining"
+msgstr ""
+
 msgid "New Revision"
 msgstr "新しいリビジョン"
 
@@ -5397,6 +5442,9 @@ msgstr "未設定"
 
 msgid "Not started training for"
 msgstr "まだトレーニングを開始していません"
+
+msgid "Not tracked"
+msgstr ""
 
 msgid "Note"
 msgstr "メモ"
@@ -5773,6 +5821,9 @@ msgstr "低コスト評価に最適"
 msgid "Period"
 msgstr "期間"
 
+msgid "Permanent Tool"
+msgstr ""
+
 msgid "Permanently Delete"
 msgstr "完全に削除"
 
@@ -5883,6 +5934,9 @@ msgstr "ポリシー"
 
 msgid "Policy & Procedure"
 msgstr "ポリシーと手順"
+
+msgid "Policy History"
+msgstr ""
 
 msgid "Portal Link"
 msgstr "ポータルリンク"
@@ -6400,8 +6454,14 @@ msgstr "ジョブをリリース"
 msgid "Released"
 msgstr "リリース済み"
 
+msgid "Remaining"
+msgstr ""
+
 msgid "Remaining after split stays on the original row."
 msgstr "分割後の残りは元の行に留まります。"
+
+msgid "Remaining:"
+msgstr ""
 
 msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
 msgstr "このPINを覚えておいてください。MES端末でコンソールモードを終了するために必要になります。"
@@ -6541,6 +6601,9 @@ msgstr "必須アクション"
 
 msgid "Required Date"
 msgstr "必須日付"
+
+msgid "Required for permanent tools"
+msgstr ""
 
 msgid "Requires Action"
 msgstr "対応が必要"
@@ -6701,6 +6764,9 @@ msgstr "テストを実行"
 msgid "Run time"
 msgstr ""
 
+msgid "Run Time"
+msgstr ""
+
 msgid "Run unit"
 msgstr ""
 
@@ -6788,11 +6854,17 @@ msgstr "保存"
 msgid "Save & Close"
 msgstr "保存して閉じる"
 
+msgid "Save Adjustment"
+msgstr ""
+
 msgid "Save and Overwrite"
 msgstr "保存して上書き"
 
 msgid "Save Method"
 msgstr "メソッドを保存"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save View"
 msgstr "ビューを保存"
@@ -8046,6 +8118,12 @@ msgstr "ツール詳細"
 
 msgid "Tool ID"
 msgstr "ツールID"
+
+msgid "Tool Life"
+msgstr ""
+
+msgid "Tool Life Policy History"
+msgstr ""
 
 msgid "Tools"
 msgstr "ツール"

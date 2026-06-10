@@ -1,6 +1,5 @@
 import { Hidden, NumberControlled } from "@carbon/form";
-import { FormHelperText } from "@carbon/react";
-import { Trans, useLingui } from "@lingui/react/macro";
+import { useLingui } from "@lingui/react/macro";
 
 type OperatorAttentionFieldProps = {
   name?: string;
@@ -27,12 +26,8 @@ export function OperatorAttentionField({
         minValue={0}
         value={value}
         onChange={onChange}
+        helperText={t`1 = full operator per run hour; 0 = unattended; 2 = two operators`}
       />
-      <FormHelperText>
-        <Trans>
-          1 = full operator per run hour; 0 = unattended; 2 = two operators
-        </Trans>
-      </FormHelperText>
     </div>
   );
 }

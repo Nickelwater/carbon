@@ -85,6 +85,9 @@ msgstr ""
 msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
 msgstr ""
 
+msgid "3D Model"
+msgstr ""
+
 msgid "About"
 msgstr "О системе"
 
@@ -108,6 +111,9 @@ msgstr "Добавить запас"
 
 msgid "Add Spare Part"
 msgstr "Добавить запасную часть"
+
+msgid "Add tools on the part method Bill of Process → Tools tab, then refresh the job method if needed."
+msgstr ""
 
 msgid "All"
 msgstr "Все"
@@ -141,6 +147,9 @@ msgstr "Прикрепить файл"
 
 msgid "Authentication Error"
 msgstr "Ошибка аутентификации"
+
+msgid "Auto-issued"
+msgstr ""
 
 msgid "Batch"
 msgstr "Партия"
@@ -264,6 +273,9 @@ msgstr "Создать переделку"
 
 msgid "Customer"
 msgstr "Заказчик"
+
+msgid "cycles"
+msgstr ""
 
 msgid "Cycles"
 msgstr ""
@@ -414,6 +426,9 @@ msgstr "Вернуться к операции"
 msgid "Have a technical issue? Contact <0>Carbon Support.</0>"
 msgstr "Возникла техническая проблема? Обратитесь в <0>службу поддержки Carbon.</0>"
 
+msgid "hours"
+msgstr ""
+
 msgid "I understand and want to complete without issuing"
 msgstr "Я понимаю и хочу завершить без выдачи"
 
@@ -453,8 +468,18 @@ msgstr "Выдать"
 msgid "Issue Material"
 msgstr "Выдать материал"
 
+msgid "Issue Tool"
+msgstr ""
+
+#. placeholder {0}: tool.toolReadableId
+msgid "Issue Tool {0}"
+msgstr ""
+
 msgid "Issue Type"
 msgstr "Тип проблемы"
+
+msgid "Issued"
+msgstr ""
 
 msgid "Item"
 msgstr "Номенклатура"
@@ -485,6 +510,12 @@ msgstr "Покинуть эту страницу"
 
 msgid "Let's build something"
 msgstr "Давайте создадим что-то"
+
+msgid "Life limit"
+msgstr ""
+
+msgid "Life remaining"
+msgstr ""
 
 msgid "Loading item details..."
 msgstr "Загрузка данных номенклатуры..."
@@ -518,6 +549,9 @@ msgstr "Записать брак для {0}"
 
 msgid "Login"
 msgstr "Вход"
+
+msgid "Low"
+msgstr ""
 
 msgid "Machine"
 msgstr "Станок"
@@ -579,6 +613,9 @@ msgstr "Новая запись"
 
 msgid "Next"
 msgstr "Далее"
+
+msgid "No 3D model uploaded for this tool"
+msgstr ""
 
 msgid "No active maintenance dispatches"
 msgstr "Нет активных нарядов на обслуживание"
@@ -649,11 +686,17 @@ msgstr "Запасные части ещё не добавлены"
 msgid "No time entries for this week"
 msgstr "Нет записей учёта времени за эту неделю"
 
+msgid "No tools on this operation"
+msgstr ""
+
 msgid "No work centers are blocked"
 msgstr "Нет заблокированных рабочих центров"
 
 msgid "No work centers exist"
 msgstr "Рабочие центры отсутствуют"
+
+msgid "Not issued"
+msgstr ""
 
 msgid "Notes"
 msgstr "Примечания"
@@ -676,6 +719,9 @@ msgstr "Открытые"
 
 msgid "Open Jobs"
 msgstr "Открытые задания"
+
+msgid "Operation"
+msgstr ""
 
 msgid "Operations"
 msgstr "Операции"
@@ -843,6 +889,9 @@ msgstr "Выберите количество брака и причину"
 msgid "Select a serial number to continue with this operation"
 msgstr "Выберите серийный номер для продолжения операции"
 
+msgid "Select a tool"
+msgstr ""
+
 msgid "Select an item and specify the quantity to issue"
 msgstr "Выберите номенклатуру и укажите количество для выдачи"
 
@@ -854,6 +903,12 @@ msgid "Select Batch {0}"
 msgstr "Выберите партию {0}"
 
 msgid "Select how many cycles to log as complete"
+msgstr ""
+
+msgid "Select how many cycles to log as scrap"
+msgstr ""
+
+msgid "Select serial"
 msgstr ""
 
 #. placeholder {0}: index + 1

@@ -11,6 +11,7 @@ import {
   finishJobOperation,
   insertProductionQuantity
 } from "~/services/operations.service";
+import { accrueToolLifeForOperation } from "~/services/tool-life.service";
 import { path } from "~/utils/path";
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -86,6 +87,14 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
+    await accrueToolLifeForOperation(
+      serviceRole,
+      validation.data.jobOperationId,
+      completionQuantity,
+      "complete",
+      userId
+    );
+
     const trackedEntityId = response.data?.newTrackedEntityId;
 
     if (willBeFinished) {
@@ -144,6 +153,14 @@ export async function action({ request }: ActionFunctionArgs) {
         })
       );
     }
+
+    await accrueToolLifeForOperation(
+      serviceRole,
+      validation.data.jobOperationId,
+      completionQuantity,
+      "complete",
+      userId
+    );
 
     if (willBeFinished) {
       const finishOperation = await finishJobOperation(serviceRole, {
@@ -214,6 +231,14 @@ export async function action({ request }: ActionFunctionArgs) {
         })
       );
     }
+
+    await accrueToolLifeForOperation(
+      serviceRole,
+      validation.data.jobOperationId,
+      completionQuantity,
+      "complete",
+      userId
+    );
 
     if (willBeFinished) {
       const finishOperation = await finishJobOperation(serviceRole, {

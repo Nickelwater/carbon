@@ -85,6 +85,9 @@ msgstr ""
 msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
 msgstr ""
 
+msgid "3D Model"
+msgstr ""
+
 msgid "About"
 msgstr "关于"
 
@@ -108,6 +111,9 @@ msgstr "添加库存"
 
 msgid "Add Spare Part"
 msgstr "添加备件"
+
+msgid "Add tools on the part method Bill of Process → Tools tab, then refresh the job method if needed."
+msgstr ""
 
 msgid "All"
 msgstr "全部"
@@ -141,6 +147,9 @@ msgstr "附加文件"
 
 msgid "Authentication Error"
 msgstr "认证错误"
+
+msgid "Auto-issued"
+msgstr ""
 
 msgid "Batch"
 msgstr "批次"
@@ -264,6 +273,9 @@ msgstr "创建返工"
 
 msgid "Customer"
 msgstr "客户"
+
+msgid "cycles"
+msgstr ""
 
 msgid "Cycles"
 msgstr ""
@@ -414,6 +426,9 @@ msgstr "返回操作"
 msgid "Have a technical issue? Contact <0>Carbon Support.</0>"
 msgstr "遇到技术问题？联系<0>Carbon 支持。</0>"
 
+msgid "hours"
+msgstr ""
+
 msgid "I understand and want to complete without issuing"
 msgstr "我理解并希望在不发放物料的情况下完成"
 
@@ -453,8 +468,18 @@ msgstr "发放"
 msgid "Issue Material"
 msgstr "发放物料"
 
+msgid "Issue Tool"
+msgstr ""
+
+#. placeholder {0}: tool.toolReadableId
+msgid "Issue Tool {0}"
+msgstr ""
+
 msgid "Issue Type"
 msgstr "问题类型"
+
+msgid "Issued"
+msgstr ""
 
 msgid "Item"
 msgstr "物料"
@@ -485,6 +510,12 @@ msgstr "离开此页面"
 
 msgid "Let's build something"
 msgstr "让我们开始构建"
+
+msgid "Life limit"
+msgstr ""
+
+msgid "Life remaining"
+msgstr ""
 
 msgid "Loading item details..."
 msgstr "正在加载物料详情..."
@@ -518,6 +549,9 @@ msgstr "记录 {0} 的报废"
 
 msgid "Login"
 msgstr "登录"
+
+msgid "Low"
+msgstr ""
 
 msgid "Machine"
 msgstr "机器"
@@ -579,6 +613,9 @@ msgstr "新记录"
 
 msgid "Next"
 msgstr "下一个"
+
+msgid "No 3D model uploaded for this tool"
+msgstr ""
 
 msgid "No active maintenance dispatches"
 msgstr "无活跃的维护工单"
@@ -649,11 +686,17 @@ msgstr "尚未添加备件"
 msgid "No time entries for this week"
 msgstr "本周无考勤记录"
 
+msgid "No tools on this operation"
+msgstr ""
+
 msgid "No work centers are blocked"
 msgstr "无工作中心被阻塞"
 
 msgid "No work centers exist"
 msgstr "无工作中心"
+
+msgid "Not issued"
+msgstr ""
 
 msgid "Notes"
 msgstr "备注"
@@ -676,6 +719,9 @@ msgstr "打开"
 
 msgid "Open Jobs"
 msgstr "开放工作"
+
+msgid "Operation"
+msgstr ""
 
 msgid "Operations"
 msgstr "工序"
@@ -843,6 +889,9 @@ msgstr "选择报废数量和原因"
 msgid "Select a serial number to continue with this operation"
 msgstr "选择一个序列号以继续此工序"
 
+msgid "Select a tool"
+msgstr ""
+
 msgid "Select an item and specify the quantity to issue"
 msgstr "选择物料并指定发放数量"
 
@@ -854,6 +903,12 @@ msgid "Select Batch {0}"
 msgstr "选择批次 {0}"
 
 msgid "Select how many cycles to log as complete"
+msgstr ""
+
+msgid "Select how many cycles to log as scrap"
+msgstr ""
+
+msgid "Select serial"
 msgstr ""
 
 #. placeholder {0}: index + 1

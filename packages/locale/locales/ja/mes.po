@@ -85,6 +85,9 @@ msgstr ""
 msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
 msgstr ""
 
+msgid "3D Model"
+msgstr ""
+
 msgid "About"
 msgstr "バージョン情報"
 
@@ -108,6 +111,9 @@ msgstr "在庫追加"
 
 msgid "Add Spare Part"
 msgstr "スペアパーツを追加"
+
+msgid "Add tools on the part method Bill of Process → Tools tab, then refresh the job method if needed."
+msgstr ""
 
 msgid "All"
 msgstr "すべて"
@@ -141,6 +147,9 @@ msgstr "ファイルを添付"
 
 msgid "Authentication Error"
 msgstr "認証エラー"
+
+msgid "Auto-issued"
+msgstr ""
 
 msgid "Batch"
 msgstr "バッチ"
@@ -264,6 +273,9 @@ msgstr "リワーク作成"
 
 msgid "Customer"
 msgstr "顧客"
+
+msgid "cycles"
+msgstr ""
 
 msgid "Cycles"
 msgstr ""
@@ -414,6 +426,9 @@ msgstr "操作に戻る"
 msgid "Have a technical issue? Contact <0>Carbon Support.</0>"
 msgstr "技術的な問題がありますか？<0>Carbonサポート</0>にお問い合わせください。"
 
+msgid "hours"
+msgstr ""
+
 msgid "I understand and want to complete without issuing"
 msgstr "理解した上で払出なしで完了します"
 
@@ -453,8 +468,18 @@ msgstr "払出"
 msgid "Issue Material"
 msgstr "材料払出"
 
+msgid "Issue Tool"
+msgstr ""
+
+#. placeholder {0}: tool.toolReadableId
+msgid "Issue Tool {0}"
+msgstr ""
+
 msgid "Issue Type"
 msgstr "問題タイプ"
+
+msgid "Issued"
+msgstr ""
 
 msgid "Item"
 msgstr "品目"
@@ -485,6 +510,12 @@ msgstr "このページを離れる"
 
 msgid "Let's build something"
 msgstr "さあ、何かを作りましょう"
+
+msgid "Life limit"
+msgstr ""
+
+msgid "Life remaining"
+msgstr ""
 
 msgid "Loading item details..."
 msgstr "品目詳細を読み込み中..."
@@ -518,6 +549,9 @@ msgstr "{0} のスクラップを記録"
 
 msgid "Login"
 msgstr "ログイン"
+
+msgid "Low"
+msgstr ""
 
 msgid "Machine"
 msgstr "機械"
@@ -579,6 +613,9 @@ msgstr "新規レコード"
 
 msgid "Next"
 msgstr "次へ"
+
+msgid "No 3D model uploaded for this tool"
+msgstr ""
 
 msgid "No active maintenance dispatches"
 msgstr "アクティブなメンテナンスディスパッチはありません"
@@ -649,11 +686,17 @@ msgstr "スペアパーツはまだ追加されていません"
 msgid "No time entries for this week"
 msgstr "今週のタイムエントリーはありません"
 
+msgid "No tools on this operation"
+msgstr ""
+
 msgid "No work centers are blocked"
 msgstr "ブロックされているワークセンターはありません"
 
 msgid "No work centers exist"
 msgstr "ワークセンターがありません"
+
+msgid "Not issued"
+msgstr ""
 
 msgid "Notes"
 msgstr "備考"
@@ -676,6 +719,9 @@ msgstr "未対応"
 
 msgid "Open Jobs"
 msgstr "オープンジョブ"
+
+msgid "Operation"
+msgstr ""
 
 msgid "Operations"
 msgstr "工程"
@@ -843,6 +889,9 @@ msgstr "スクラップ数量と理由を選択"
 msgid "Select a serial number to continue with this operation"
 msgstr "この工程を続行するシリアル番号を選択してください"
 
+msgid "Select a tool"
+msgstr ""
+
 msgid "Select an item and specify the quantity to issue"
 msgstr "品目を選択し、払出数量を指定してください"
 
@@ -854,6 +903,12 @@ msgid "Select Batch {0}"
 msgstr "バッチ {0} を選択"
 
 msgid "Select how many cycles to log as complete"
+msgstr ""
+
+msgid "Select how many cycles to log as scrap"
+msgstr ""
+
+msgid "Select serial"
 msgstr ""
 
 #. placeholder {0}: index + 1

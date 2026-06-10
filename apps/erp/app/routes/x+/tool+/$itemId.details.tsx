@@ -18,6 +18,9 @@ import {
   getMakeMethods,
   getMethodMaterialsByMakeMethod,
   getMethodOperationsByMakeMethodId,
+  getToolLifeLedger,
+  getToolLifePolicy,
+  getToolSerialLife,
   itemManufacturingValidator,
   toolValidator,
   upsertItemManufacturing,
@@ -32,6 +35,7 @@ import {
   MakeMethodTools
 } from "~/modules/items/ui/Item";
 import ItemManufacturingForm from "~/modules/items/ui/Item/ItemManufacturingForm";
+import ToolLifeForm from "~/modules/items/ui/Tools/ToolLifeForm";
 import type { MethodItemType, MethodType } from "~/modules/shared";
 import { getTagsList } from "~/modules/shared";
 import { getCustomFields, setCustomFields } from "~/utils/form";
@@ -57,8 +61,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     : (makeMethods.data?.find((m) => m.status === "Active") ??
       makeMethods.data?.[0]);
 
+  const toolLifePolicy = await getToolLifePolicy(client, itemId, companyId);
+
   if (!makeMethod) {
-    return { methodData: null, tags: [] };
+    return {
+      methodData: null,
+      tags: [],
+      toolLifePolicy: toolLifePolicy.data,
+      serialLife: [],
+      toolLifeLedger: []
+    };
   }
 
   const fullMethod = await getMakeMethodById(client, makeMethod.id, companyId);
@@ -66,13 +78,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return { methodData: null, tags: [] };
   }
 
-  const [methodMaterials, methodOperations, tags, toolManufacturing] =
-    await Promise.all([
-      getMethodMaterialsByMakeMethod(client, fullMethod.data.id),
-      getMethodOperationsByMakeMethodId(client, fullMethod.data.id),
-      getTagsList(client, companyId, "operation"),
-      getItemManufacturing(client, itemId, companyId)
-    ]);
+  const [
+    methodMaterials,
+    methodOperations,
+    tags,
+    toolManufacturing,
+    serialLife,
+    toolLifeLedger
+  ] = await Promise.all([
+    getMethodMaterialsByMakeMethod(client, fullMethod.data.id),
+    getMethodOperationsByMakeMethodId(client, fullMethod.data.id),
+    getTagsList(client, companyId, "operation"),
+    getItemManufacturing(client, itemId, companyId),
+    toolLifePolicy.data?.itemTrackingType === "Serial"
+      ? getToolSerialLife(client, itemId, companyId)
+      : Promise.resolve({ data: [], error: null }),
+    toolLifePolicy.data?.readableId
+      ? getToolLifeLedger(client, toolLifePolicy.data.readableId, companyId)
+      : Promise.resolve({ data: [], error: null })
+  ]);
 
   return {
     methodData: {
@@ -94,7 +118,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         })) ?? [],
       toolManufacturing: toolManufacturing.data
     },
-    tags: tags.data ?? []
+    tags: tags.data ?? [],
+    toolLifePolicy: toolLifePolicy.data,
+    serialLife: serialLife.data ?? [],
+    toolLifeLedger: toolLifeLedger.data ?? []
   };
 }
 
@@ -176,7 +203,8 @@ export default function ToolDetailsRoute() {
   if (!itemId) throw new Error("Could not find itemId");
 
   const permissions = usePermissions();
-  const { methodData, tags } = useLoaderData<typeof loader>();
+  const { methodData, tags, toolLifePolicy, serialLife, toolLifeLedger } =
+    useLoaderData<typeof loader>();
 
   const toolData = useRouteData<{
     toolSummary: ToolSummary;
@@ -202,6 +230,14 @@ export default function ToolDetailsRoute() {
         subTitle={toolData.toolSummary?.readableIdWithRevision ?? ""}
         notes={toolData.toolSummary?.notes as JSONContent}
       />
+      {toolLifePolicy && (
+        <ToolLifeForm
+          itemId={itemId}
+          policy={toolLifePolicy}
+          serialLife={serialLife}
+          ledger={toolLifeLedger}
+        />
+      )}
       {permissions.is("employee") && methodData && (
         <>
           <Suspense fallback={<Menubar />}>

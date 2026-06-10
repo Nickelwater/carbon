@@ -439,6 +439,12 @@ msgstr "Linia adresu 1"
 msgid "Address Line 2"
 msgstr "Linia adresu 2"
 
+msgid "Adjust"
+msgstr ""
+
+msgid "Adjust Tool Life"
+msgstr ""
+
 msgid "Adjustment Type"
 msgstr "Typ korekty"
 
@@ -1044,6 +1050,9 @@ msgstr "Automatyczne uruchomienie zadania"
 msgid "Auto-generated QR Code"
 msgstr "Automatycznie generowany kod QR"
 
+msgid "Auto-issued on job operations for the dedicated part"
+msgstr ""
+
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "Automatycznie zwolnij zadanie po zeskanowaniu kanban"
 
@@ -1067,6 +1076,9 @@ msgstr "Wróć do śledzenia"
 
 msgid "Backflush"
 msgstr "Cofnięcie"
+
+msgid "Balance"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "Bilans"
@@ -2111,6 +2123,12 @@ msgstr "Typy klientów"
 msgid "Customers"
 msgstr "Klienci"
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
 msgid "Cycles/Hour"
 msgstr ""
 
@@ -2213,6 +2231,9 @@ msgstr "Typ terminu"
 
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "Zdecyduj, co operator widzi, jeśli spróbuje wydać partię lub numer seryjny, który już wygasł."
+
+msgid "Dedicated Part"
+msgstr ""
 
 msgid "Default Accounts"
 msgstr "Konta domyślne"
@@ -2504,6 +2525,9 @@ msgstr "Data dostawy"
 
 msgid "Delivery Location"
 msgstr "Lokalizacja dostawy"
+
+msgid "Delta"
+msgstr ""
 
 msgid "Demand"
 msgstr "Popyt"
@@ -3856,6 +3880,9 @@ msgstr "Święta"
 msgid "Home Phone"
 msgstr "Telefon domowy"
 
+msgid "hours"
+msgstr ""
+
 msgid "Hours per Week"
 msgstr "Godziny na tydzień"
 
@@ -4372,6 +4399,15 @@ msgstr "Skonfigurujmy Twoje konto"
 msgid "Letter"
 msgstr "Litera"
 
+msgid "Life Basis"
+msgstr ""
+
+msgid "Life History"
+msgstr ""
+
+msgid "Life Limit"
+msgstr ""
+
 msgid "Light"
 msgstr "Jasne"
 
@@ -4491,6 +4527,12 @@ msgstr "Rozmiar partii"
 
 msgid "Lot Size:"
 msgstr "Rozmiar partii:"
+
+msgid "Low"
+msgstr ""
+
+msgid "Low life"
+msgstr ""
 
 msgid "Machine Rate"
 msgstr "Stawka maszyny"
@@ -5057,6 +5099,9 @@ msgstr "Nowy Paragon"
 msgid "New record created"
 msgstr "Nowy rekord utworzony"
 
+msgid "New Remaining"
+msgstr ""
+
 msgid "New Revision"
 msgstr "Nowa Wersja"
 
@@ -5397,6 +5442,9 @@ msgstr "Nie ustawiono"
 
 msgid "Not started training for"
 msgstr "Nie rozpoczęto szkolenia dla"
+
+msgid "Not tracked"
+msgstr ""
 
 msgid "Note"
 msgstr "Notatka"
@@ -5773,6 +5821,9 @@ msgstr "Idealne do niedrogiej oceny"
 msgid "Period"
 msgstr "Okres"
 
+msgid "Permanent Tool"
+msgstr ""
+
 msgid "Permanently Delete"
 msgstr "Trwale usunąć"
 
@@ -5883,6 +5934,9 @@ msgstr "Polityka"
 
 msgid "Policy & Procedure"
 msgstr "Polityka i procedura"
+
+msgid "Policy History"
+msgstr ""
 
 msgid "Portal Link"
 msgstr "Link do portalu"
@@ -6400,8 +6454,14 @@ msgstr "Zwolnij zadanie"
 msgid "Released"
 msgstr "Wydane"
 
+msgid "Remaining"
+msgstr ""
+
 msgid "Remaining after split stays on the original row."
 msgstr "Pozostała ilość po podziale pozostaje w oryginalnym wierszu."
+
+msgid "Remaining:"
+msgstr ""
 
 msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
 msgstr "Zapamiętaj ten PIN. Będziesz go potrzebować, aby wyjść z trybu konsoli na terminalach MES."
@@ -6541,6 +6601,9 @@ msgstr "Wymagane działania"
 
 msgid "Required Date"
 msgstr "Data wymagana"
+
+msgid "Required for permanent tools"
+msgstr ""
 
 msgid "Requires Action"
 msgstr "Wymaga działania"
@@ -6701,6 +6764,9 @@ msgstr "Uruchom Test"
 msgid "Run time"
 msgstr ""
 
+msgid "Run Time"
+msgstr ""
+
 msgid "Run unit"
 msgstr ""
 
@@ -6788,11 +6854,17 @@ msgstr "Zapisz"
 msgid "Save & Close"
 msgstr "Zapisz i zamknij"
 
+msgid "Save Adjustment"
+msgstr ""
+
 msgid "Save and Overwrite"
 msgstr "Zapisz i Zastąp"
 
 msgid "Save Method"
 msgstr "Zapisz metodę"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save View"
 msgstr "Zapisz Widok"
@@ -8046,6 +8118,12 @@ msgstr "Szczegóły narzędzia"
 
 msgid "Tool ID"
 msgstr "ID narzędzia"
+
+msgid "Tool Life"
+msgstr ""
+
+msgid "Tool Life Policy History"
+msgstr ""
 
 msgid "Tools"
 msgstr "Narzędzia"

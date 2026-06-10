@@ -1844,7 +1844,7 @@ function OperationForm({
     machineTime: item.data.machineTime ?? 0,
     machineUnit: item.data.machineUnit ?? "Hours/Piece",
     machineUnitHint: getUnitHint(item.data.machineUnit, item.data.timeBasis),
-    operatorAttention: Number(item.data.operatorAttention ?? 1),
+    operatorAttention: +(item.data.operatorAttention ?? 1),
     setupRate: item.data.setupRate ?? 0,
     operationMinimumCost: item.data.operationMinimumCost ?? 0,
     operationLeadTime: item.data.operationLeadTime ?? 0,
