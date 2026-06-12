@@ -29,6 +29,7 @@ import {
 import {
   applyBootstrapSql,
   applyMigrations,
+  ensureSmokeTestUser,
   waitForPostgres,
   waitForStorageReady,
   waitForTcp
@@ -173,6 +174,7 @@ export async function up(opts: UpOpts = {}) {
     await waitForServices(ctx);
   }
   await runDatabaseMigrations(ctx, { shouldMigrate, shouldRegen });
+  await seedSmokeTestUser(ctx);
   if (portless) {
     await setupPortless(ctx, selectedApps);
     await ensureHostsFile();
@@ -440,6 +442,22 @@ async function runDatabaseMigrations(
           }
         ]
       : [])
+  ]);
+}
+
+async function seedSmokeTestUser(ctx: Ctx) {
+  await tasks([
+    {
+      title: "Seed smoke-test user (test@carbon.ms)",
+      task: async () => {
+        const r = await ensureSmokeTestUser(
+          ctx.root,
+          ctx.ports.PORT_DB,
+          ctx.ports.PORT_API
+        );
+        return r.seeded ? "user created" : "already exists";
+      }
+    }
   ]);
 }
 

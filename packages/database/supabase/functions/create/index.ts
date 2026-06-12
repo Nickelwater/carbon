@@ -4,7 +4,7 @@ import { DB, getConnectionPool, getDatabaseClient } from "../lib/database.ts";
 
 import z from "npm:zod@^3.24.1";
 import { corsHeaders } from "../lib/headers.ts";
-import { getSupabaseServiceRole } from "../lib/supabase.ts";
+import { requirePermissions } from "../lib/supabase.ts";
 import { Database } from "../lib/types.ts";
 import { getNextSequence } from "../shared/get-next-sequence.ts";
 
@@ -127,6 +127,31 @@ serve(async (req: Request) => {
   const payload = await req.json();
 
   const { type, companyId, userId } = payloadValidator.parse(payload);
+
+  const permissionsByType: Record<string, { view?: string | string[]; create?: string | string[]; update?: string | string[]; delete?: string | string[] }> = {
+    nonConformanceTasks: { update: "quality" },
+    purchaseOrderFromJob: { create: ["purchasing", "production"] },
+    receiptDefault: { create: "inventory" },
+    receiptFromPurchaseOrder: { create: "inventory" },
+    receiptFromInboundTransfer: { create: "inventory" },
+    receiptFromWarehouseTransfer: { create: "inventory" },
+    receiptLineSplit: { create: "inventory" },
+    shipmentDefault: { create: "inventory" },
+    shipmentFromPurchaseOrder: { create: "inventory" },
+    shipmentFromWarehouseTransfer: { create: "inventory" },
+    shipmentFromSalesOrder: { create: "inventory" },
+    shipmentFromSalesOrderLine: { create: "inventory" },
+    shipmentLineSplit: { create: "inventory" },
+    journalEntry: { create: "accounting" },
+  };
+
+  const client = await requirePermissions(
+    req,
+    companyId,
+    userId,
+    permissionsByType[type] ?? { update: "settings" }
+  );
+
   switch (type) {
     case "nonConformanceTasks": {
       const { id } = payload;
@@ -138,11 +163,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [
           nonConformance,
@@ -394,11 +414,6 @@ serve(async (req: Request) => {
         userId,
       });
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [job, jobOperations] = await Promise.all([
           client.from("job").select("*").eq("id", jobId).single(),
@@ -779,11 +794,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [purchaseOrder, purchaseOrderLines, fixedAssetPoLines, receipt] = await Promise.all([
           client
@@ -1056,11 +1066,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [warehouseTransfer, warehouseTransferLines, receipt] =
           await Promise.all([
@@ -1235,11 +1240,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [warehouseTransfer, warehouseTransferLines, receipt] =
           await Promise.all([
@@ -1421,11 +1421,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [receiptLine, trackedEntities] = await Promise.all([
           client
@@ -1606,11 +1601,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [warehouseTransfer, warehouseTransferLines, shipment] =
           await Promise.all([
@@ -1788,11 +1778,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [
           purchaseOrder,
@@ -1999,11 +1984,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [
           salesOrder,
@@ -2364,11 +2344,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const salesOrderLine = await client
           .from("salesOrderLine")
@@ -2855,11 +2830,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          companyId
-        );
 
         const [shipmentLine] = await Promise.all([
           client

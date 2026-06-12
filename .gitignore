@@ -61,7 +61,9 @@ packages/database/supabase/seed.sql
 .carbon-worktree
 .superpowers
 docs/superpowers
+docs/e2e
 llm/tasks
 apps/*/portless.json
 packages/database/supabase/snippets/**
 pnpm-lock.yaml
+.superpowers/
