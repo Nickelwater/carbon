@@ -101,6 +101,8 @@ serve(async (req: Request) => {
       throw new Error("Failed to fetch jobs");
     }
 
+    const splitEntityIds: string[] = [];
+
     switch (type) {
       case "post": {
         const lineIds = [
@@ -725,6 +727,7 @@ serve(async (req: Request) => {
                 originalQuantity: number;
                 shippedQuantity: number;
                 remainingQuantity: number;
+                readableId: string | null;
                 attributes: TrackedEntityAttributes;
                 sourceDocument: string;
                 sourceDocumentId: string;
@@ -762,6 +765,7 @@ serve(async (req: Request) => {
                     shippedQuantity: shipmentLine.shippedQuantity,
                     remainingQuantity:
                       trackedEntity.quantity - shipmentLine.shippedQuantity,
+                    readableId: trackedEntity.readableId,
                     attributes:
                       trackedEntity.attributes as TrackedEntityAttributes,
                     sourceDocument: trackedEntity.sourceDocument,
@@ -919,6 +923,7 @@ serve(async (req: Request) => {
                   const newTrackedEntity = await trx
                     .insertInto("trackedEntity")
                     .values({
+                      readableId: splitInfo.readableId,
                       quantity: splitInfo.remainingQuantity,
                       status: "Available",
                       sourceDocument: splitInfo.sourceDocument,
@@ -936,6 +941,7 @@ serve(async (req: Request) => {
                     .execute();
 
                   const newTrackedEntityId = newTrackedEntity[0].id!;
+                  splitEntityIds.push(newTrackedEntityId);
 
                   // Update the original entity's attributes to include the split entity ID
                   const originalEntity = await trx
@@ -1415,6 +1421,7 @@ serve(async (req: Request) => {
                 originalQuantity: number;
                 shippedQuantity: number;
                 remainingQuantity: number;
+                readableId: string | null;
                 attributes: TrackedEntityAttributes;
                 sourceDocument: string;
                 sourceDocumentId: string;
@@ -1452,6 +1459,7 @@ serve(async (req: Request) => {
                     shippedQuantity: shipmentLine.shippedQuantity,
                     remainingQuantity:
                       trackedEntity.quantity - shipmentLine.shippedQuantity,
+                    readableId: trackedEntity.readableId,
                     attributes:
                       trackedEntity.attributes as TrackedEntityAttributes,
                     sourceDocument: trackedEntity.sourceDocument,
@@ -1557,6 +1565,7 @@ serve(async (req: Request) => {
                   const newTrackedEntity = await trx
                     .insertInto("trackedEntity")
                     .values({
+                      readableId: splitInfo.readableId,
                       quantity: splitInfo.remainingQuantity,
                       status: "Available",
                       sourceDocument: splitInfo.sourceDocument,
@@ -1574,6 +1583,7 @@ serve(async (req: Request) => {
                     .execute();
 
                   const newTrackedEntityId = newTrackedEntity[0].id!;
+                  splitEntityIds.push(newTrackedEntityId);
 
                   // Update the original entity's attributes to include the split entity ID
                   const originalEntity = await trx
@@ -2939,6 +2949,7 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
+        splitEntityIds,
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -1,11 +1,15 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
-import type { Database } from "@carbon/database";
-import { PackingSlipPDF } from "@carbon/documents/pdf";
+import { ensureFont, PackingSlipPDF } from "@carbon/documents/pdf";
+import {
+  collectSectionIds,
+  resolveTemplate,
+  templateShowsThumbnails,
+  toDocumentTemplate
+} from "@carbon/documents/template";
 import type { JSONContent } from "@carbon/react";
 import { getPreferenceHeaders } from "@carbon/react";
 import { renderToStream } from "@react-pdf/renderer";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LoaderFunctionArgs } from "react-router";
 import { getPaymentTerm } from "~/modules/accounting";
 import {
@@ -26,40 +30,42 @@ import {
   getSalesOrderShipment,
   getSalesTerms
 } from "~/modules/sales";
-import { getCompany, getCompanySettings } from "~/modules/settings";
+import {
+  getCompany,
+  getDocumentTemplate,
+  resolveSections
+} from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
 
-/** Builds a map of source line id (salesOrderLine.id) -> customerReference for packing slip line-level PO display */
-async function getCustomerReferenceByLineId(
-  client: SupabaseClient<Database>,
-  lines: { lineId: string | null }[]
-): Promise<Record<string, string | null>> {
-  const lineIds = lines
-    .map((l) => l.lineId)
-    .filter((id): id is string => id != null && id !== "");
-  if (lineIds.length === 0) return {};
+async function loadThumbnails(
+  showThumbnails: boolean,
+  shipmentLines: { id?: string | null; thumbnailPath?: string | null }[],
+  fetchImage: (path: string) => Promise<string | null>
+) {
+  if (!showThumbnails) return {};
 
-  const sol = await client
-    .from("salesOrderLine")
-    .select("id, salesOrderId")
-    .in("id", lineIds);
-  if (sol.error || !sol.data?.length) return {};
-
-  const orderIds = [...new Set(sol.data.map((r) => r.salesOrderId))];
-  const so = await client
-    .from("salesOrder")
-    .select("id, customerReference")
-    .in("id", orderIds);
-  if (so.error || !so.data?.length) return {};
-
-  const refByOrderId = Object.fromEntries(
-    so.data.map((r) => [r.id, r.customerReference ?? null])
+  const thumbnailPaths = shipmentLines.reduce<Record<string, string | null>>(
+    (acc, line) => {
+      if (line.thumbnailPath && line.id) {
+        acc[line.id] = line.thumbnailPath;
+      }
+      return acc;
+    },
+    {}
   );
-  const result: Record<string, string | null> = {};
-  for (const row of sol.data) {
-    result[row.id] = refByOrderId[row.salesOrderId] ?? null;
-  }
-  return result;
+
+  const results = await Promise.all(
+    Object.entries(thumbnailPaths).map(async ([id, path]) => {
+      if (!path) return null;
+      const data = await fetchImage(path);
+      return data ? { id, data } : null;
+    })
+  );
+
+  return results.reduce<Record<string, string | null>>((acc, thumbnail) => {
+    if (thumbnail) acc[thumbnail.id] = thumbnail.data;
+    return acc;
+  }, {});
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -70,14 +76,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { id } = params;
   if (!id) throw new Error("Could not find id");
 
-  const [company, companySettings, shipment, shipmentLines] = await Promise.all(
-    [
-      getCompany(client, companyId),
-      getCompanySettings(client, companyId),
-      getShipment(client, id),
-      getShipmentLinesWithDetails(client, id)
-    ]
-  );
+  const [company, shipment, shipmentLines] = await Promise.all([
+    getCompany(client, companyId),
+    getShipment(client, id),
+    getShipmentLinesWithDetails(client, id)
+  ]);
 
   if (company.error) {
     console.error(company.error);
@@ -104,7 +107,24 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const { locale } = getPreferenceHeaders(request);
 
-  // Customer-only shipment (no source document): use customerId to load customer and address
+  const documentTemplate = await getDocumentTemplate(
+    client,
+    companyId,
+    "packingSlip"
+  );
+  const templateConfig = toDocumentTemplate(
+    documentTemplate.data,
+    "packingSlip"
+  );
+  const resolvedTemplate = resolveTemplate("packingSlip", templateConfig);
+  const showThumbnails = templateShowsThumbnails(templateConfig, "packingSlip");
+  const templateSections = await resolveSections(
+    client,
+    companyId,
+    collectSectionIds(resolvedTemplate)
+  );
+  await ensureFont(resolvedTemplate.settings.fontFamily);
+
   const isCustomerOnlyShipment =
     !shipment.data.sourceDocument ||
     !shipment.data.sourceDocumentId ||
@@ -138,45 +158,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
 
     const firstLocation = customerLocations.data?.[0];
-    const shippingAddress = firstLocation?.address ?? null;
-
-    const customerReferenceByLineId = await getCustomerReferenceByLineId(
-      serviceRole,
-      shipmentLines.data ?? []
+    const thumbnails = await loadThumbnails(
+      showThumbnails,
+      shipmentLines.data ?? [],
+      (path) => getBase64ImageFromSupabase(serviceRole, path)
     );
-
-    let thumbnails: Record<string, string | null> = {};
-
-    if (companySettings.data?.includeThumbnailsOnSalesPdfs ?? true) {
-      const thumbnailPaths = shipmentLines.data?.reduce<
-        Record<string, string | null>
-      >((acc, line) => {
-        if (line.thumbnailPath) {
-          acc[line.id!] = line.thumbnailPath;
-        }
-        return acc;
-      }, {});
-
-      thumbnails =
-        (thumbnailPaths
-          ? await Promise.all(
-              Object.entries(thumbnailPaths).map(([id, path]) => {
-                if (!path) return null;
-                return getBase64ImageFromSupabase(serviceRole, path).then(
-                  (data) => ({ id, data })
-                );
-              })
-            )
-          : []
-        )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
-          if (thumbnail) acc[thumbnail.id] = thumbnail.data;
-          return acc;
-        }, {}) ?? {};
-    }
 
     const stream = await renderToStream(
       <PackingSlipPDF
-        company={company.data}
+        company={company.data as any}
         customer={customer.data}
         locale={locale}
         meta={{
@@ -184,19 +174,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           keywords: "packing slip",
           subject: "Packing Slip"
         }}
-        sourceDocument={undefined}
-        sourceDocumentId={undefined}
         shipment={shipment.data}
         shipmentLines={shipmentLines.data ?? []}
-        customerReferenceByLineId={customerReferenceByLineId}
-        // @ts-ignore
-        shippingAddress={shippingAddress}
+        // @ts-expect-error
+        shippingAddress={firstLocation?.address ?? null}
         terms={(terms?.data?.salesTerms ?? {}) as JSONContent}
         paymentTerm={paymentTerm.data ?? { id: "", name: "" }}
         shippingMethod={shippingMethod.data ?? { id: "", name: "" }}
         trackedEntities={shipmentTracking.data ?? []}
         title="Packing Slip"
         thumbnails={thumbnails}
+        template={templateConfig}
+        sections={templateSections}
       />
     );
 
@@ -211,7 +200,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${company.data.name} - ${shipment.data.shipmentId}.pdf"`
     });
-    return new Response(body, { status: 200, headers });
+    return new Response(new Uint8Array(body), { status: 200, headers });
   }
 
   switch (shipment.data.sourceDocument) {
@@ -252,45 +241,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         throw new Error("Failed to load customer");
       }
 
-      let thumbnails: Record<string, string | null> = {};
-
-      if (companySettings.data?.includeThumbnailsOnSalesPdfs ?? true) {
-        const thumbnailPaths = shipmentLines.data?.reduce<
-          Record<string, string | null>
-        >((acc, line) => {
-          if (line.thumbnailPath) {
-            acc[line.id!] = line.thumbnailPath;
-          }
-          return acc;
-        }, {});
-
-        thumbnails =
-          (thumbnailPaths
-            ? await Promise.all(
-                Object.entries(thumbnailPaths).map(([id, path]) => {
-                  if (!path) {
-                    return null;
-                  }
-                  return getBase64ImageFromSupabase(serviceRole, path).then(
-                    (data) => ({
-                      id,
-                      data
-                    })
-                  );
-                })
-              )
-            : []
-          )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
-            if (thumbnail) {
-              acc[thumbnail.id] = thumbnail.data;
-            }
-            return acc;
-          }, {}) ?? {};
-      }
-
-      const customerReferenceByLineId = await getCustomerReferenceByLineId(
-        serviceRole,
-        shipmentLines.data ?? []
+      const thumbnails = await loadThumbnails(
+        showThumbnails,
+        shipmentLines.data ?? [],
+        (path) => getBase64ImageFromSupabase(serviceRole, path)
       );
 
       const stream = await renderToStream(
@@ -308,7 +262,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           sourceDocumentId={salesOrder.data?.salesOrderId ?? undefined}
           shipment={shipment.data}
           shipmentLines={shipmentLines.data ?? []}
-          customerReferenceByLineId={customerReferenceByLineId}
           // @ts-expect-error
           shippingAddress={customerLocation.data?.address ?? null}
           terms={(terms?.data?.salesTerms ?? {}) as JSONContent}
@@ -317,6 +270,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           trackedEntities={shipmentTracking.data ?? []}
           title="Packing Slip"
           thumbnails={thumbnails}
+          template={templateConfig}
+          sections={templateSections}
         />
       );
 
@@ -377,45 +332,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         throw new Error("Failed to load customer");
       }
 
-      let thumbnails: Record<string, string | null> = {};
-
-      if (companySettings.data?.includeThumbnailsOnSalesPdfs ?? true) {
-        const thumbnailPaths = shipmentLines.data?.reduce<
-          Record<string, string | null>
-        >((acc, line) => {
-          if (line.thumbnailPath) {
-            acc[line.id!] = line.thumbnailPath;
-          }
-          return acc;
-        }, {});
-
-        thumbnails =
-          (thumbnailPaths
-            ? await Promise.all(
-                Object.entries(thumbnailPaths).map(([id, path]) => {
-                  if (!path) {
-                    return null;
-                  }
-                  return getBase64ImageFromSupabase(serviceRole, path).then(
-                    (data) => ({
-                      id,
-                      data
-                    })
-                  );
-                })
-              )
-            : []
-          )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
-            if (thumbnail) {
-              acc[thumbnail.id] = thumbnail.data;
-            }
-            return acc;
-          }, {}) ?? {};
-      }
-
-      const customerReferenceByLineId = await getCustomerReferenceByLineId(
-        serviceRole,
-        shipmentLines.data ?? []
+      const thumbnails = await loadThumbnails(
+        showThumbnails,
+        shipmentLines.data ?? [],
+        (path) => getBase64ImageFromSupabase(serviceRole, path)
       );
 
       const stream = await renderToStream(
@@ -433,7 +353,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           sourceDocumentId={salesInvoice.data?.invoiceId ?? undefined}
           shipment={shipment.data}
           shipmentLines={shipmentLines.data ?? []}
-          customerReferenceByLineId={customerReferenceByLineId}
           // @ts-expect-error
           shippingAddress={customerLocation.data?.address ?? null}
           terms={(terms?.data?.salesTerms ?? {}) as JSONContent}
@@ -442,6 +361,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           trackedEntities={shipmentTracking.data ?? []}
           title="Packing Slip"
           thumbnails={thumbnails}
+          template={templateConfig}
+          sections={templateSections}
         />
       );
 
@@ -497,41 +418,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         throw new Error("Failed to load supplier");
       }
 
-      let poThumbnails: Record<string, string | null> = {};
-
-      if (companySettings.data?.includeThumbnailsOnPurchasingPdfs ?? true) {
-        const poThumbnailPaths = shipmentLines.data?.reduce<
-          Record<string, string | null>
-        >((acc, line) => {
-          if (line.thumbnailPath) {
-            acc[line.id!] = line.thumbnailPath;
-          }
-          return acc;
-        }, {});
-
-        poThumbnails =
-          (poThumbnailPaths
-            ? await Promise.all(
-                Object.entries(poThumbnailPaths).map(([id, path]) => {
-                  if (!path) {
-                    return null;
-                  }
-                  return getBase64ImageFromSupabase(client, path).then(
-                    (data) => ({
-                      id,
-                      data
-                    })
-                  );
-                })
-              )
-            : []
-          )?.reduce<Record<string, string | null>>((acc, thumbnail) => {
-            if (thumbnail) {
-              acc[thumbnail.id] = thumbnail.data;
-            }
-            return acc;
-          }, {}) ?? {};
-      }
+      const poThumbnails = await loadThumbnails(
+        showThumbnails,
+        shipmentLines.data ?? [],
+        (path) => getBase64ImageFromSupabase(client, path)
+      );
 
       const poStream = await renderToStream(
         <PackingSlipPDF
@@ -556,6 +447,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           trackedEntities={poShipmentTracking.data ?? []}
           title="Packing Slip"
           thumbnails={poThumbnails}
+          template={templateConfig}
+          sections={templateSections}
         />
       );
 
