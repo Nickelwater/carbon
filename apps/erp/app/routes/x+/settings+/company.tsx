@@ -106,7 +106,7 @@ export default function Company() {
                 aria-label={t`Copy`}
                 size="sm"
                 className="p-1"
-                onClick={() => copyToClipboard(company.id)}
+                onClick={() => copyToClipboard(company.id ?? "")}
               >
                 <LuKeySquare className="w-3 h-3" />
               </Button>
