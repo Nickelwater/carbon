@@ -60,6 +60,14 @@ export const path = {
         ),
       groupsByType: (type?: string) =>
         generatePath(`${api}/users/groups?type=${type}`),
+      groupsByTypeWithUsers: (type?: string) =>
+        generatePath(`${api}/users/groups?type=${type}&include=users`),
+      groupMembers: (groupId: string) =>
+        generatePath(`${api}/users/groups/${groupId}/members`),
+      usersSearch: (q: string) =>
+        generatePath(`${api}/users/search?q=${encodeURIComponent(q)}`),
+      usersBatch: (ids: string[]) =>
+        generatePath(`${api}/users/batch?ids=${ids.join(",")}`),
       item: (type: string) => generatePath(`${api}/item/${type}`),
       itemCostRecalculate: (itemId: string) =>
         generatePath(`${api}/items/${itemId}/recalculate-cost`),
