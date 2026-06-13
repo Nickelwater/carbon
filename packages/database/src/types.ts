@@ -15898,10 +15898,12 @@ export type Database = {
           operationUnitCost: number
           order: number
           overheadRate: number
+          partsPerCycle: number
           priority: number
           procedureId: string | null
           processId: string
           quantityComplete: number | null
+          timeBasis: Database["public"]["Enums"]["operationTimeBasis"]
           quantityReworked: number | null
           quantityScrapped: number | null
           reworkId: string | null
@@ -15945,6 +15947,7 @@ export type Database = {
           operationUnitCost?: number
           order?: number
           overheadRate?: number
+          partsPerCycle?: number
           priority?: number
           procedureId?: string | null
           processId: string
@@ -15956,6 +15959,7 @@ export type Database = {
           setupUnit?: Database["public"]["Enums"]["factor"]
           startDate?: string | null
           status?: Database["public"]["Enums"]["jobOperationStatus"]
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           tags?: string[] | null
           targetQuantity?: number | null
           updatedAt?: string | null
@@ -15992,6 +15996,7 @@ export type Database = {
           operationUnitCost?: number
           order?: number
           overheadRate?: number
+          partsPerCycle?: number
           priority?: number
           procedureId?: string | null
           processId?: string
@@ -16997,35 +17002,47 @@ export type Database = {
       }
       jobOperationTool: {
         Row: {
+          autoIssued: boolean
           companyId: string
           createdAt: string
           createdBy: string
           id: string
+          issuedAt: string | null
+          issuedBy: string | null
           operationId: string
           quantity: number
           toolId: string
+          trackedEntityId: string | null
           updatedAt: string
           updatedBy: string | null
         }
         Insert: {
+          autoIssued?: boolean
           companyId: string
           createdAt?: string
           createdBy: string
           id?: string
+          issuedAt?: string | null
+          issuedBy?: string | null
           operationId: string
           quantity?: number
           toolId: string
+          trackedEntityId?: string | null
           updatedAt?: string
           updatedBy?: string | null
         }
         Update: {
+          autoIssued?: boolean
           companyId?: string
           createdAt?: string
           createdBy?: string
           id?: string
+          issuedAt?: string | null
+          issuedBy?: string | null
           operationId?: string
           quantity?: number
           toolId?: string
+          trackedEntityId?: string | null
           updatedAt?: string
           updatedBy?: string | null
         }
@@ -21202,11 +21219,13 @@ export type Database = {
           operationType: Database["public"]["Enums"]["operationType"]
           operationUnitCost: number | null
           order: number
+          partsPerCycle: number
           procedureId: string | null
           processId: string
           setupTime: number
           setupUnit: Database["public"]["Enums"]["factor"]
           tags: string[] | null
+          timeBasis: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt: string | null
           updatedBy: string | null
           workCenterId: string | null
@@ -21231,11 +21250,13 @@ export type Database = {
           operationType?: Database["public"]["Enums"]["operationType"]
           operationUnitCost?: number | null
           order?: number
+          partsPerCycle?: number
           procedureId?: string | null
           processId: string
           setupTime?: number
           setupUnit?: Database["public"]["Enums"]["factor"]
           tags?: string[] | null
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt?: string | null
           updatedBy?: string | null
           workCenterId?: string | null
@@ -21260,11 +21281,13 @@ export type Database = {
           operationType?: Database["public"]["Enums"]["operationType"]
           operationUnitCost?: number | null
           order?: number
+          partsPerCycle?: number
           procedureId?: string | null
           processId?: string
           setupTime?: number
           setupUnit?: Database["public"]["Enums"]["factor"]
           tags?: string[] | null
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt?: string | null
           updatedBy?: string | null
           workCenterId?: string | null
@@ -33739,6 +33762,7 @@ export type Database = {
           operationUnitCost: number
           order: number
           overheadRate: number
+          partsPerCycle: number
           procedureId: string | null
           processId: string
           quoteId: string
@@ -33747,6 +33771,7 @@ export type Database = {
           setupTime: number
           setupUnit: Database["public"]["Enums"]["factor"]
           tags: string[] | null
+          timeBasis: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt: string | null
           updatedBy: string | null
           workCenterId: string | null
@@ -33773,11 +33798,13 @@ export type Database = {
           operationUnitCost?: number
           order?: number
           overheadRate?: number
+          partsPerCycle?: number
           procedureId?: string | null
           processId: string
           quoteId: string
           quoteLineId: string
           quoteMakeMethodId?: string | null
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           setupTime?: number
           setupUnit?: Database["public"]["Enums"]["factor"]
           tags?: string[] | null
@@ -33807,6 +33834,7 @@ export type Database = {
           operationUnitCost?: number
           order?: number
           overheadRate?: number
+          partsPerCycle?: number
           procedureId?: string | null
           processId?: string
           quoteId?: string
@@ -33815,6 +33843,7 @@ export type Database = {
           setupTime?: number
           setupUnit?: Database["public"]["Enums"]["factor"]
           tags?: string[] | null
+          timeBasis?: Database["public"]["Enums"]["operationTimeBasis"]
           updatedAt?: string | null
           updatedBy?: string | null
           workCenterId?: string | null
@@ -45535,6 +45564,77 @@ export type Database = {
           },
         ]
       }
+      toolLifeLedger: {
+        Row: {
+          balanceAfter: number
+          companyId: string
+          createdAt: string
+          createdBy: string | null
+          delta: number
+          id: string
+          reason: string | null
+          sourceId: string | null
+          sourceType: Database["public"]["Enums"]["toolLifeLedgerSourceType"]
+          toolId: string
+          trackedEntityId: string | null
+        }
+        Insert: {
+          balanceAfter: number
+          companyId: string
+          createdAt?: string
+          createdBy?: string | null
+          delta: number
+          id?: string
+          reason?: string | null
+          sourceId?: string | null
+          sourceType: Database["public"]["Enums"]["toolLifeLedgerSourceType"]
+          toolId: string
+          trackedEntityId?: string | null
+        }
+        Update: {
+          balanceAfter?: number
+          companyId?: string
+          createdAt?: string
+          createdBy?: string | null
+          delta?: number
+          id?: string
+          reason?: string | null
+          sourceId?: string | null
+          sourceType?: Database["public"]["Enums"]["toolLifeLedgerSourceType"]
+          toolId?: string
+          trackedEntityId?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "toolLifeLedger_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "toolLifeLedger_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "toolLifeLedger_toolId_fkey"
+            columns: ["toolId", "companyId"]
+            isOneToOne: false
+            referencedRelation: "tool"
+            referencedColumns: ["id", "companyId"]
+          },
+          {
+            foreignKeyName: "toolLifeLedger_trackedEntityId_fkey"
+            columns: ["trackedEntityId"]
+            isOneToOne: false
+            referencedRelation: "trackedEntity"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tool: {
         Row: {
           approved: boolean
@@ -45543,7 +45643,12 @@ export type Database = {
           createdAt: string
           createdBy: string
           customFields: Json | null
+          dedicatedPartReadableId: string | null
           id: string
+          isPermanent: boolean
+          lifeBasis: Database["public"]["Enums"]["toolLifeBasis"] | null
+          lifeLimit: number | null
+          lifeRemaining: number | null
           tags: string[] | null
           updatedAt: string | null
           updatedBy: string | null
@@ -45555,7 +45660,12 @@ export type Database = {
           createdAt?: string
           createdBy: string
           customFields?: Json | null
+          dedicatedPartReadableId?: string | null
           id: string
+          isPermanent?: boolean
+          lifeBasis?: Database["public"]["Enums"]["toolLifeBasis"] | null
+          lifeLimit?: number | null
+          lifeRemaining?: number | null
           tags?: string[] | null
           updatedAt?: string | null
           updatedBy?: string | null
@@ -45567,7 +45677,12 @@ export type Database = {
           createdAt?: string
           createdBy?: string
           customFields?: Json | null
+          dedicatedPartReadableId?: string | null
           id?: string
+          isPermanent?: boolean
+          lifeBasis?: Database["public"]["Enums"]["toolLifeBasis"] | null
+          lifeLimit?: number | null
+          lifeRemaining?: number | null
           tags?: string[] | null
           updatedAt?: string | null
           updatedBy?: string | null
@@ -46027,6 +46142,7 @@ export type Database = {
           expirationDate: string | null
           id: string
           itemId: string | null
+          lifeRemaining: number | null
           quantity: number
           readableId: string | null
           sourceDocument: string
@@ -46042,6 +46158,7 @@ export type Database = {
           expirationDate?: string | null
           id?: string
           itemId?: string | null
+          lifeRemaining?: number | null
           quantity: number
           readableId?: string | null
           sourceDocument: string
@@ -46057,6 +46174,7 @@ export type Database = {
           expirationDate?: string | null
           id?: string
           itemId?: string | null
+          lifeRemaining?: number | null
           quantity?: number
           readableId?: string | null
           sourceDocument?: string
@@ -66332,6 +66450,15 @@ export type Database = {
         | "Declined"
         | "Cancelled"
       supplierStatusType: "Active" | "Inactive" | "Pending" | "Rejected"
+      toolLifeBasis: "Cycles" | "RunTime"
+      toolLifeLedgerSourceType:
+        | "Manual"
+        | "Reset"
+        | "AutoIssue"
+        | "ProductionCycles"
+        | "ProductionRunTime"
+        | "ScrapCycles"
+        | "ScrapRunTime"
       supplySourceType: "Purchase Order" | "Production Order"
       tableViewType: "Public" | "Private"
       taxDepreciationMethod: "Straight Line" | "Declining Balance" | "MACRS"
@@ -67208,9 +67335,19 @@ export const Constants = {
         "Pieces/Hour",
         "Pieces/Minute",
         "Seconds/Piece",
+        "Hours/Cycle",
+        "Hours/100 Cycles",
+        "Hours/1000 Cycles",
+        "Minutes/Cycle",
+        "Minutes/100 Cycles",
+        "Minutes/1000 Cycles",
+        "Cycles/Hour",
+        "Cycles/Minute",
+        "Seconds/Cycle",
         "Total Hours",
         "Total Minutes",
       ],
+      operationTimeBasis: ["Piece", "Cycle"],
       fixedAssetStatus: ["Draft", "Active", "Fully Depreciated", "Disposed"],
       fulfillmentType: ["Inventory", "Job"],
       gaugeCalibrationStatus: [
@@ -67653,6 +67790,16 @@ export const Constants = {
         "Cancelled",
       ],
       supplierStatusType: ["Active", "Inactive", "Pending", "Rejected"],
+      toolLifeBasis: ["Cycles", "RunTime"],
+      toolLifeLedgerSourceType: [
+        "Manual",
+        "Reset",
+        "AutoIssue",
+        "ProductionCycles",
+        "ProductionRunTime",
+        "ScrapCycles",
+        "ScrapRunTime",
+      ],
       supplySourceType: ["Purchase Order", "Production Order"],
       tableViewType: ["Public", "Private"],
       taxDepreciationMethod: ["Straight Line", "Declining Balance", "MACRS"],

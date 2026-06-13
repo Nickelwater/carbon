@@ -484,6 +484,7 @@ export const workCenterValidator = z.object({
     errorMap: () => ({ message: "Standard factor is required" })
   }),
   departmentId: zfd.text(z.string().optional()),
+  setupRate: zfd.numeric(z.number().min(0)),
   laborRate: zfd.numeric(z.number().min(0)),
   locationId: z.string().min(1, { message: "Location is required" }),
   machineRate: zfd.numeric(z.number().min(0)),

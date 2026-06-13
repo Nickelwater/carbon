@@ -14,13 +14,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { ComponentProps, ReactNode } from "react";
 import { useCallback, useMemo, useState } from "react";
 import { FaPause, FaPlay } from "react-icons/fa6";
-import {
-  LuEllipsisVertical,
-  LuHammer,
-  LuHardHat,
-  LuTimer,
-  LuX
-} from "react-icons/lu";
+import { LuEllipsisVertical, LuHammer, LuTimer, LuX } from "react-icons/lu";
 import { useFetcher } from "react-router";
 import type { productionEventType } from "~/services/models";
 import { productionEventValidator } from "~/services/models";
@@ -134,18 +128,11 @@ export function WorkTypeToggle({
     if (operation.setupDuration > 0) {
       count++;
     }
-    if (operation.laborDuration > 0) {
-      count++;
-    }
     if (operation.machineDuration > 0) {
       count++;
     }
     return count;
-  }, [
-    operation.laborDuration,
-    operation.machineDuration,
-    operation.setupDuration
-  ]);
+  }, [operation.machineDuration, operation.setupDuration]);
 
   return (
     <ToggleGroup
@@ -177,32 +164,16 @@ export function WorkTypeToggle({
           )}
         </ToggleGroupItem>
       )}
-      {operation.laborDuration > 0 && (
-        <ToggleGroupItem
-          className="flex flex-col items-center relative justify-center text-center h-14 w-full"
-          value="Labor"
-          size="lg"
-          aria-label="Toggle labor"
-        >
-          <LuHardHat className="size-6 pt-1" />
-          <span className="text-xxs">
-            <Trans>Labor</Trans>
-          </span>
-          {active.labor && (
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full" />
-          )}
-        </ToggleGroupItem>
-      )}
       {operation.machineDuration > 0 && (
         <ToggleGroupItem
           className="flex flex-col items-center relative justify-center text-center h-14 w-full"
           value="Machine"
           size="lg"
-          aria-label="Toggle machine"
+          aria-label="Toggle run"
         >
           <LuHammer className="size-6 pt-1" />
           <span className="text-xxs">
-            <Trans>Machine</Trans>
+            <Trans>Run</Trans>
           </span>
           {active.machine && (
             <span className="absolute -top-1 -right-1 h-3 w-3 bg-emerald-500 rounded-full" />

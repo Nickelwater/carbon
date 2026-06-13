@@ -25,6 +25,30 @@ msgstr "„${storageUnitName}\" hat ${childCount} direkt verschachtelte Speicher
 msgid "\"{storageUnitName}\" has 1 direct nested storage unit. Deleting it will also delete that unit and anything underneath it. This cannot be undone."
 msgstr "„${storageUnitName}\" hat 1 direkt verschachtelte Speichereinheit. Das Löschen wird auch diese Einheit und alles darunter löschen. Dies kann nicht rückgängig gemacht werden."
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr ""
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr ""
+
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr ""
+
 #. placeholder {0}: rule.escalationDays
 msgid "{0} days"
 msgstr "{0} Tage"
@@ -37,6 +61,11 @@ msgstr "{0} erfolgreich gelöscht"
 #. placeholder {0}: history.length
 msgid "{0} orders"
 msgstr "{0} Bestellungen"
+
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr ""
 
 #. placeholder {0}: selectedProcesses.length
 msgid "{0} Processes"
@@ -83,6 +112,9 @@ msgstr "<0>update</0> ermöglicht es dir, Zeilen zu aktualisieren. <1>update</1>
 
 msgid "<0>update</0> will also return the replaced values for UPDATE."
 msgstr "<0>update</0> gibt auch die ersetzten Werte für UPDATE zurück."
+
+msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
+msgstr ""
 
 msgid "1 day"
 msgstr "1 Tag"
@@ -410,6 +442,12 @@ msgstr "Adresszeile 1"
 
 msgid "Address Line 2"
 msgstr "Adresszeile 2"
+
+msgid "Adjust"
+msgstr ""
+
+msgid "Adjust Tool Life"
+msgstr ""
 
 msgid "Adjustment Type"
 msgstr "Anpassungstyp"
@@ -1025,6 +1063,9 @@ msgstr "Auftrag automatisch starten"
 msgid "Auto-generated QR Code"
 msgstr "Automatisch generierter QR-Code"
 
+msgid "Auto-issued on job operations for the dedicated part"
+msgstr ""
+
 msgid "Automatic Cost Updates"
 msgstr "Automatische Kostenaktualisierungen"
 
@@ -1054,6 +1095,9 @@ msgstr "Zurück zur Rückverfolgbarkeit"
 
 msgid "Backflush"
 msgstr "Rücklauf"
+
+msgid "Balance"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "Bilanz"
@@ -2126,6 +2170,18 @@ msgstr "Kunden"
 msgid "Customize the layout of your PDF documents — reorder sections, hide what you don't need, and add your own blocks."
 msgstr ""
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
+msgid "Cycles/Hour"
+msgstr ""
+
+msgid "Cycles/Minute"
+msgstr ""
+
 msgid "Daily Usage"
 msgstr "Tägliche Nutzung"
 
@@ -2222,6 +2278,9 @@ msgstr "Deadline-Typ"
 
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "Entscheiden Sie, was ein Bediener sieht, wenn er versucht, einen Batch oder eine Seriennummer auszugeben, die bereits abgelaufen ist."
+
+msgid "Dedicated Part"
+msgstr ""
 
 msgid "Default Accounts"
 msgstr "Standardkonten"
@@ -2498,6 +2557,9 @@ msgstr "Lieferdatum"
 
 msgid "Delivery Location"
 msgstr "Lieferort"
+
+msgid "Delta"
+msgstr ""
 
 msgid "Demand"
 msgstr "Nachfrage"
@@ -3856,14 +3918,26 @@ msgstr "Feiertage"
 msgid "Home Phone"
 msgstr "Telefon zu Hause"
 
+msgid "hours"
+msgstr ""
+
 msgid "Hours per Week"
 msgstr "Stunden pro Woche"
+
+msgid "Hours/100 Cycles"
+msgstr ""
 
 msgid "Hours/100 Pieces"
 msgstr "Stunden/100 Stück"
 
+msgid "Hours/1000 Cycles"
+msgstr ""
+
 msgid "Hours/1000 Pieces"
 msgstr "Stunden/1000 Stück"
+
+msgid "Hours/Cycle"
+msgstr ""
 
 msgid "Hours/Piece"
 msgstr "Stunden/Stück"
@@ -4378,6 +4452,15 @@ msgstr "Lassen Sie uns Ihr Konto einrichten"
 msgid "Letter"
 msgstr "Buchstabe"
 
+msgid "Life Basis"
+msgstr ""
+
+msgid "Life History"
+msgstr ""
+
+msgid "Life Limit"
+msgstr ""
+
 msgid "Light"
 msgstr "Hell"
 
@@ -4498,8 +4581,11 @@ msgstr "Losgröße"
 msgid "Lot Size:"
 msgstr "Losgröße:"
 
-msgid "Machine"
-msgstr "Maschine"
+msgid "Low"
+msgstr ""
+
+msgid "Low life"
+msgstr ""
 
 msgid "Machine Rate"
 msgstr "Maschinenrate"
@@ -4509,9 +4595,6 @@ msgstr "Maschinenrate (stündlich)"
 
 msgid "Machine Time"
 msgstr "Maschinenzeit"
-
-msgid "Machine Unit"
-msgstr "Maschineneinheit"
 
 msgid "Maintenance"
 msgstr "Wartung"
@@ -4791,11 +4874,20 @@ msgstr "Mindestbestellmenge"
 msgid "Minimum Order:"
 msgstr "Mindestbestellung:"
 
+msgid "Minutes/100 Cycles"
+msgstr ""
+
 msgid "Minutes/100 Pieces"
 msgstr "Minuten/100 Stück"
 
+msgid "Minutes/1000 Cycles"
+msgstr ""
+
 msgid "Minutes/1000 Pieces"
 msgstr "Minuten/1000 Stück"
+
+msgid "Minutes/Cycle"
+msgstr ""
 
 msgid "Minutes/Piece"
 msgstr "Minuten/Stück"
@@ -5062,6 +5154,9 @@ msgstr "Neue Quittung"
 
 msgid "New record created"
 msgstr "Neuer Datensatz erstellt"
+
+msgid "New Remaining"
+msgstr ""
 
 msgid "New Revision"
 msgstr "Neue Revision"
@@ -5410,6 +5505,9 @@ msgstr "Nicht festgelegt"
 msgid "Not started training for"
 msgstr "Noch nicht mit dem Training begonnen für"
 
+msgid "Not tracked"
+msgstr ""
+
 msgid "Not you?"
 msgstr "Nicht du?"
 
@@ -5541,6 +5639,9 @@ msgstr "Betriebstyp"
 
 msgid "Operator"
 msgstr "Operator"
+
+msgid "Operator attention"
+msgstr ""
 
 msgid "Operator gets a warning. Stock still goes through."
 msgstr "Operator erhält eine Warnung. Bestand wird trotzdem verarbeitet."
@@ -5719,6 +5820,9 @@ msgstr "Partner"
 msgid "Parts"
 msgstr "Teile"
 
+msgid "Parts per Cycle"
+msgstr ""
+
 msgid "Pass"
 msgstr "Bestanden"
 
@@ -5761,8 +5865,17 @@ msgstr "Ausstehend"
 msgid "People"
 msgstr "Personen"
 
-msgid "Per Unit"
-msgstr "Pro Einheit"
+msgid "Per cycle"
+msgstr ""
+
+msgid "Per Cycle"
+msgstr ""
+
+msgid "Per piece"
+msgstr ""
+
+msgid "Per Piece"
+msgstr ""
 
 msgid "Percentage of Lot"
 msgstr "Prozentsatz des Loses"
@@ -5772,6 +5885,9 @@ msgstr "Perfekt für kostengünstige Evaluierung"
 
 msgid "Period"
 msgstr "Zeitraum"
+
+msgid "Permanent Tool"
+msgstr ""
 
 msgid "Permanently Delete"
 msgstr "Dauerhaft löschen"
@@ -5886,6 +6002,9 @@ msgstr "Richtlinie"
 
 msgid "Policy & Procedure"
 msgstr "Richtlinie & Verfahren"
+
+msgid "Policy History"
+msgstr ""
 
 msgid "Portal Link"
 msgstr "Portal-Link"
@@ -6423,8 +6542,14 @@ msgstr "Auftrag freigeben"
 msgid "Released"
 msgstr "Freigegeben"
 
+msgid "Remaining"
+msgstr ""
+
 msgid "Remaining after split stays on the original row."
 msgstr "Verbleibende Menge bleibt in der ursprünglichen Zeile."
+
+msgid "Remaining:"
+msgstr ""
 
 msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
 msgstr "Merken Sie sich diese PIN. Sie benötigen sie, um den Konsolenmodus auf MES-Terminals zu beenden."
@@ -6561,6 +6686,9 @@ msgstr "Erforderliche Maßnahmen"
 
 msgid "Required Date"
 msgstr "Erforderliches Datum"
+
+msgid "Required for permanent tools"
+msgstr ""
 
 msgid "Requires Action"
 msgstr "Erfordert Maßnahmen"
@@ -6715,8 +6843,20 @@ msgstr "Regeltyp"
 msgid "Rules"
 msgstr "Regeln"
 
+msgid "Run"
+msgstr ""
+
 msgid "Run Test"
 msgstr "Test ausführen"
+
+msgid "Run time"
+msgstr ""
+
+msgid "Run Time"
+msgstr ""
+
+msgid "Run unit"
+msgstr ""
 
 msgid "Running Total"
 msgstr "Laufender Gesamtbetrag"
@@ -6799,11 +6939,17 @@ msgstr "Speichern"
 msgid "Save & Close"
 msgstr "Speichern & Schließen"
 
+msgid "Save Adjustment"
+msgstr ""
+
 msgid "Save and Overwrite"
 msgstr "Speichern und Überschreiben"
 
 msgid "Save Method"
 msgstr "Methode speichern"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save View"
 msgstr "Ansicht speichern"
@@ -6923,6 +7069,9 @@ msgstr "Lieferanten durchsuchen..."
 
 msgid "Search..."
 msgstr "Suchen..."
+
+msgid "Seconds/Cycle"
+msgstr ""
 
 msgid "Seconds/Piece"
 msgstr "Sekunden/Stück"
@@ -7151,6 +7300,12 @@ msgstr "Einrichtung"
 
 msgid "Setup instructions"
 msgstr "Setupanleitung"
+
+msgid "Setup Rate"
+msgstr ""
+
+msgid "Setup Rate (Hourly)"
+msgstr ""
 
 msgid "Setup Time"
 msgstr "Rüstzeit"
@@ -8036,6 +8191,9 @@ msgstr "Explorer umschalten"
 msgid "Toggle level"
 msgstr "Ebene umschalten"
 
+msgid "Toggle per cycle timing"
+msgstr ""
+
 msgid "Toggle Properties"
 msgstr "Eigenschaften umschalten"
 
@@ -8059,6 +8217,12 @@ msgstr "Werkzeugdetails"
 
 msgid "Tool ID"
 msgstr "Werkzeug-ID"
+
+msgid "Tool Life"
+msgstr ""
+
+msgid "Tool Life Policy History"
+msgstr ""
 
 msgid "Tools"
 msgstr "Werkzeuge"

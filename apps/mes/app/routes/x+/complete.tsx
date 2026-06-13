@@ -5,6 +5,7 @@ import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import { trigger } from "@carbon/jobs";
 import { getCachedPrinterConfig } from "@carbon/printing/printing.server";
+import { cyclesToParts, normalizePartsPerCycle } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
 import { data, redirect } from "react-router";
 import { nonScrapQuantityValidator } from "~/services/models";
@@ -12,6 +13,7 @@ import {
   finishJobOperation,
   insertProductionQuantity
 } from "~/services/operations.service";
+import { accrueToolLifeForOperation } from "~/services/tool-life.service";
 import { path } from "~/utils/path";
 
 /**
@@ -108,11 +110,19 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
+  const quantityUnit = formData.get("quantityUnit");
+  const partsPerCycle = normalizePartsPerCycle(jobOperation.data.partsPerCycle);
+  const timeBasis = jobOperation.data.timeBasis ?? "Piece";
+  const completionQuantity =
+    quantityUnit === "cycles" || timeBasis === "Cycle"
+      ? cyclesToParts(validation.data.quantity, partsPerCycle)
+      : validation.data.quantity;
+
   const totalAccountedQuantity =
     (jobOperation.data.quantityComplete ?? 0) +
     (jobOperation.data.quantityReworked ?? 0) +
     (jobOperation.data.quantityScrapped ?? 0) +
-    validation.data.quantity;
+    completionQuantity;
 
   const willBeFinished =
     totalAccountedQuantity >=
@@ -125,6 +135,7 @@ export async function action({ request }: ActionFunctionArgs) {
       body: {
         type: "jobOperationSerialComplete",
         ...validation.data,
+        quantity: completionQuantity,
         companyId,
         userId
       }
@@ -156,6 +167,14 @@ export async function action({ request }: ActionFunctionArgs) {
         })
       );
     }
+
+    await accrueToolLifeForOperation(
+      serviceRole,
+      validation.data.jobOperationId,
+      completionQuantity,
+      "complete",
+      userId
+    );
 
     if (willBeFinished) {
       const finishOperation = await finishJobOperation(serviceRole, {
@@ -197,6 +216,7 @@ export async function action({ request }: ActionFunctionArgs) {
       body: {
         type: "jobOperationBatchComplete",
         ...validation.data,
+        quantity: completionQuantity,
         companyId,
         userId
       }
@@ -222,6 +242,14 @@ export async function action({ request }: ActionFunctionArgs) {
         userId
       });
     }
+
+    await accrueToolLifeForOperation(
+      serviceRole,
+      validation.data.jobOperationId,
+      completionQuantity,
+      "complete",
+      userId
+    );
 
     if (willBeFinished) {
       const finishOperation = await finishJobOperation(serviceRole, {
@@ -255,6 +283,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const { trackedEntityId, trackingType, ...d } = validation.data;
     const insertProduction = await insertProductionQuantity(client, {
       ...d,
+      quantity: completionQuantity,
       companyId,
       createdBy: userId
     });
@@ -276,7 +305,7 @@ export async function action({ request }: ActionFunctionArgs) {
       body: {
         id: validation.data.jobOperationId,
         type: "jobOperation",
-        quantity: validation.data.quantity,
+        quantity: completionQuantity,
         companyId,
         userId
       }
@@ -291,6 +320,14 @@ export async function action({ request }: ActionFunctionArgs) {
         })
       );
     }
+
+    await accrueToolLifeForOperation(
+      serviceRole,
+      validation.data.jobOperationId,
+      completionQuantity,
+      "complete",
+      userId
+    );
 
     if (willBeFinished) {
       const finishOperation = await finishJobOperation(serviceRole, {

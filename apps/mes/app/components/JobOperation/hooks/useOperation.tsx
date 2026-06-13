@@ -80,10 +80,7 @@ export function useOperation({
     if (operation.setupDuration > 0) {
       return "Setup";
     }
-    if (operation.machineDuration > 0) {
-      return "Machine";
-    }
-    return "Labor";
+    return "Machine";
   });
 
   const [operationState, setOperationState] = useState(operation);

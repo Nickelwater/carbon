@@ -1,4 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
+import { computeInsideOperationCostEffects } from "./operation-costing.ts";
+import { costingQuantityMultiplier, normalizeTimeToHours } from "./operation-time.ts";
 import { Database } from "./types.ts";
 
 export type JobMethod = NonNullable<
@@ -178,9 +180,15 @@ export const getRatesFromWorkCenters =
   (
     processId: string,
     workCenterId: string | null
-  ): { overheadRate: number; laborRate: number; machineRate: number } => {
+  ): {
+    setupRate: number;
+    overheadRate: number;
+    laborRate: number;
+    machineRate: number;
+  } => {
     if (!workCenters) {
       return {
+        setupRate: 0,
         laborRate: 0,
         machineRate: 0,
         overheadRate: 0,
@@ -194,6 +202,7 @@ export const getRatesFromWorkCenters =
 
       if (workCenter) {
         return {
+          setupRate: workCenter.setupRate ?? 0,
           laborRate: workCenter.laborRate ?? 0,
           machineRate: workCenter.machineRate ?? 0,
           overheadRate: workCenter.overheadRate ?? 0,
@@ -207,6 +216,11 @@ export const getRatesFromWorkCenters =
     });
 
     if (relatedWorkCenters.length > 0) {
+      const setupRate =
+        relatedWorkCenters.reduce((acc, workCenter) => {
+          return (acc += workCenter.setupRate ?? 0);
+        }, 0) / relatedWorkCenters.length;
+
       const laborRate =
         relatedWorkCenters.reduce((acc, workCenter) => {
           return (acc += workCenter.laborRate ?? 0);
@@ -223,6 +237,7 @@ export const getRatesFromWorkCenters =
         }, 0) / relatedWorkCenters.length;
 
       return {
+        setupRate,
         laborRate,
         machineRate,
         overheadRate,
@@ -230,6 +245,7 @@ export const getRatesFromWorkCenters =
     }
 
     return {
+      setupRate: 0,
       laborRate: 0,
       machineRate: 0,
       overheadRate: 0,
@@ -402,50 +418,6 @@ function lookupBuyPriceFromMap(
     requestedQty,
     entry.fallbackUnitPrice ?? fallbackCost
   );
-}
-
-function normalizeTimeToHours(
-  time: number,
-  unit: string
-): { fixedHours: number; hoursPerUnit: number } {
-  let fixedHours = 0;
-  let hoursPerUnit = 0;
-  switch (unit) {
-    case "Total Hours":
-      fixedHours = time;
-      break;
-    case "Total Minutes":
-      fixedHours = time / 60;
-      break;
-    case "Hours/Piece":
-      hoursPerUnit = time;
-      break;
-    case "Hours/100 Pieces":
-      hoursPerUnit = time / 100;
-      break;
-    case "Hours/1000 Pieces":
-      hoursPerUnit = time / 1000;
-      break;
-    case "Minutes/Piece":
-      hoursPerUnit = time / 60;
-      break;
-    case "Minutes/100 Pieces":
-      hoursPerUnit = time / 100 / 60;
-      break;
-    case "Minutes/1000 Pieces":
-      hoursPerUnit = time / 1000 / 60;
-      break;
-    case "Pieces/Hour":
-      hoursPerUnit = 1 / time;
-      break;
-    case "Pieces/Minute":
-      hoursPerUnit = 1 / (time / 60);
-      break;
-    case "Seconds/Piece":
-      hoursPerUnit = time / 3600;
-      break;
-  }
-  return { fixedHours, hoursPerUnit };
 }
 
 export async function calculateQuoteLinePrices(
@@ -636,86 +608,29 @@ export async function calculateQuoteLinePrices(
 
     for (const operation of node.operations) {
       if (operation.operationType === "Inside") {
-        if (operation.setupTime) {
-          const { fixedHours, hoursPerUnit } = normalizeTimeToHours(
-            operation.setupTime,
-            operation.setupUnit
-          );
-          effects.laborCost.push((quantity) => {
-            return (
-              hoursPerUnit * quantity * node.quantity * (operation.laborRate ?? 0) +
-              fixedHours * (operation.laborRate ?? 0)
-            );
-          });
-          effects.overheadCost.push((quantity) => {
-            return (
-              hoursPerUnit *
-                quantity *
-                node.quantity *
-                (operation.overheadRate ?? 0) +
-              fixedHours * (operation.overheadRate ?? 0)
-            );
-          });
-        }
-
-        let laborFixedHours = 0;
-        let laborHoursPerUnit = 0;
-        let machineFixedHours = 0;
-        let machineHoursPerUnit = 0;
-
-        if (operation.laborTime) {
-          const normalized = normalizeTimeToHours(
-            operation.laborTime,
-            operation.laborUnit
-          );
-          laborFixedHours = normalized.fixedHours;
-          laborHoursPerUnit = normalized.hoursPerUnit;
-
-          effects.laborCost.push((quantity) => {
-            return (
-              laborHoursPerUnit *
-                quantity *
-                node.quantity *
-                (operation.laborRate ?? 0) +
-              laborFixedHours * (operation.laborRate ?? 0)
-            );
-          });
-        }
-
-        if (operation.machineTime) {
-          const normalized = normalizeTimeToHours(
-            operation.machineTime,
-            operation.machineUnit
-          );
-          machineFixedHours = normalized.fixedHours;
-          machineHoursPerUnit = normalized.hoursPerUnit;
-
-          effects.machineCost.push((quantity) => {
-            return (
-              machineHoursPerUnit *
-                quantity *
-                node.quantity *
-                (operation.machineRate ?? 0) +
-              machineFixedHours * (operation.machineRate ?? 0)
-            );
-          });
-        }
-
-        const hoursPerUnit = Math.max(laborHoursPerUnit, machineHoursPerUnit);
-        const fixedHours = Math.max(laborFixedHours, machineFixedHours);
-
-        effects.overheadCost.push((quantity) => {
-          if (hoursPerUnit * quantity * node.quantity > fixedHours) {
-            return (
-              hoursPerUnit *
-              quantity *
-              node.quantity *
-              (operation.overheadRate ?? 0)
-            );
-          } else {
-            return fixedHours * (operation.overheadRate ?? 0);
-          }
+        const opEffects = computeInsideOperationCostEffects({
+          op: {
+            setupTime: operation.setupTime,
+            setupUnit: operation.setupUnit,
+            machineTime: operation.machineTime,
+            machineUnit: operation.machineUnit,
+            operatorAttention: operation.operatorAttention,
+            setupRate: operation.setupRate,
+            laborRate: operation.laborRate,
+            machineRate: operation.machineRate,
+            overheadRate: operation.overheadRate,
+            partsPerCycle: operation.partsPerCycle,
+            timeBasis: operation.timeBasis
+          },
+          nodeQuantity: node.quantity
         });
+
+        effects.laborCost.push((quantity) => opEffects.setupCost(quantity));
+        effects.laborCost.push((quantity) => opEffects.laborCost(quantity));
+        effects.machineCost.push((quantity) => opEffects.machineCost(quantity));
+        effects.overheadCost.push((quantity) =>
+          opEffects.overheadCost(quantity)
+        );
       } else if (operation.operationType === "Outside") {
         effects.outsideCost.push((quantity) => {
           const unitCost =

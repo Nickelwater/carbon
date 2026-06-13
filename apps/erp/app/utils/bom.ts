@@ -1,3 +1,7 @@
+import {
+  computeInsideOperationCost,
+  resolveDurationQuantity
+} from "@carbon/utils";
 import type { FlatTreeItem } from "~/components/TreeView";
 import type { Method } from "~/modules/items";
 import type { JobMethod } from "~/modules/production/types";
@@ -6,6 +10,7 @@ import type { QuoteMethod } from "~/modules/sales/types";
 export interface WorkCenterRate {
   id: string;
   active: boolean;
+  setupRate: number | null;
   laborRate: number | null;
   machineRate: number | null;
   overheadRate: number | null;
@@ -15,16 +20,23 @@ export interface WorkCenterRate {
 export function resolveOperationRates(
   workCenterId: string | null,
   processId: string,
+  setupRate: number | null,
   laborRate: number | null,
   machineRate: number | null,
   overheadRate: number | null,
   workCenters: WorkCenterRate[]
-): { laborRate: number; machineRate: number; overheadRate: number } {
+): {
+  setupRate: number;
+  laborRate: number;
+  machineRate: number;
+  overheadRate: number;
+} {
   // If a work center is explicitly set and has rates, use them
   if (workCenterId) {
     const wc = workCenters.find((w) => w.id === workCenterId && w.active);
     if (wc) {
       return {
+        setupRate: wc.setupRate ?? 0,
         laborRate: wc.laborRate ?? 0,
         machineRate: wc.machineRate ?? 0,
         overheadRate: wc.overheadRate ?? 0
@@ -32,6 +44,7 @@ export function resolveOperationRates(
     }
     // Fall back to the joined rates from the operation
     return {
+      setupRate: setupRate ?? 0,
       laborRate: laborRate ?? 0,
       machineRate: machineRate ?? 0,
       overheadRate: overheadRate ?? 0
@@ -45,6 +58,9 @@ export function resolveOperationRates(
 
   if (related.length > 0) {
     return {
+      setupRate:
+        related.reduce((sum, wc) => sum + (wc.setupRate ?? 0), 0) /
+        related.length,
       laborRate:
         related.reduce((sum, wc) => sum + (wc.laborRate ?? 0), 0) /
         related.length,
@@ -57,66 +73,24 @@ export function resolveOperationRates(
     };
   }
 
-  return { laborRate: 0, machineRate: 0, overheadRate: 0 };
+  return { setupRate: 0, laborRate: 0, machineRate: 0, overheadRate: 0 };
 }
 
 export interface BomOperation {
   operationType: string;
   setupTime: number | null;
   setupUnit: string;
-  laborTime: number | null;
-  laborUnit: string;
   machineTime: number | null;
   machineUnit: string;
+  operatorAttention?: number | null;
   operationUnitCost: number;
   operationMinimumCost: number;
+  setupRate: number;
   laborRate: number;
   machineRate: number | null;
   overheadRate: number;
-}
-
-export function normalizeTime(
-  time: number,
-  unit: string
-): { fixedHours: number; hoursPerUnit: number } {
-  let fixedHours = 0;
-  let hoursPerUnit = 0;
-  switch (unit) {
-    case "Total Hours":
-      fixedHours = time;
-      break;
-    case "Total Minutes":
-      fixedHours = time / 60;
-      break;
-    case "Hours/Piece":
-      hoursPerUnit = time;
-      break;
-    case "Hours/100 Pieces":
-      hoursPerUnit = time / 100;
-      break;
-    case "Hours/1000 Pieces":
-      hoursPerUnit = time / 1000;
-      break;
-    case "Minutes/Piece":
-      hoursPerUnit = time / 60;
-      break;
-    case "Minutes/100 Pieces":
-      hoursPerUnit = time / 100 / 60;
-      break;
-    case "Minutes/1000 Pieces":
-      hoursPerUnit = time / 1000 / 60;
-      break;
-    case "Pieces/Hour":
-      hoursPerUnit = 1 / time;
-      break;
-    case "Pieces/Minute":
-      hoursPerUnit = 1 / (time / 60);
-      break;
-    case "Seconds/Piece":
-      hoursPerUnit = time / 3600;
-      break;
-  }
-  return { fixedHours, hoursPerUnit };
+  partsPerCycle?: number | null;
+  timeBasis?: string | null;
 }
 
 function calculateOperationUnitCost(
@@ -128,43 +102,32 @@ function calculateOperationUnitCost(
   }
 
   const batch = batchSize > 1 ? batchSize : 1;
-  let cost = 0;
+  const quantityMultiplier = resolveDurationQuantity({
+    partQuantity: batch,
+    partsPerCycle: op.partsPerCycle,
+    timeBasis: op.timeBasis
+  });
 
-  if (op.setupTime) {
-    const { fixedHours, hoursPerUnit } = normalizeTime(
-      op.setupTime,
-      op.setupUnit
-    );
-    const hoursPerPart = fixedHours / batch + hoursPerUnit;
-    cost += hoursPerPart * (op.laborRate ?? 0);
-    cost += hoursPerPart * (op.overheadRate ?? 0);
-  }
-
-  let laborHoursPerPart = 0;
-  let machineHoursPerPart = 0;
-
-  if (op.laborTime) {
-    const { fixedHours, hoursPerUnit } = normalizeTime(
-      op.laborTime,
-      op.laborUnit
-    );
-    laborHoursPerPart = fixedHours / batch + hoursPerUnit;
-    cost += laborHoursPerPart * (op.laborRate ?? 0);
-  }
-
-  if (op.machineTime) {
-    const { fixedHours, hoursPerUnit } = normalizeTime(
-      op.machineTime,
-      op.machineUnit
-    );
-    machineHoursPerPart = fixedHours / batch + hoursPerUnit;
-    cost += machineHoursPerPart * (op.machineRate ?? 0);
-  }
-
-  cost +=
-    Math.max(laborHoursPerPart, machineHoursPerPart) * (op.overheadRate ?? 0);
-
-  return cost;
+  return (
+    computeInsideOperationCost({
+      op: {
+        setupTime: op.setupTime,
+        setupUnit: op.setupUnit,
+        machineTime: op.machineTime,
+        machineUnit: op.machineUnit,
+        operatorAttention: op.operatorAttention,
+        partsPerCycle: op.partsPerCycle,
+        timeBasis: op.timeBasis
+      },
+      rates: {
+        setupRate: op.setupRate,
+        laborRate: op.laborRate,
+        machineRate: op.machineRate,
+        overheadRate: op.overheadRate
+      },
+      quantityMultiplier
+    }).totalCost / batch
+  );
 }
 
 export function calculateMadePartCosts<

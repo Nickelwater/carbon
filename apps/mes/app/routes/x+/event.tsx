@@ -11,6 +11,7 @@ import {
   endProductionEvent,
   startProductionEvent
 } from "~/services/operations.service";
+import { autoIssuePermanentTools } from "~/services/tool-life.service";
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
@@ -34,6 +35,40 @@ export async function action({ request }: ActionFunctionArgs) {
   } = validation.data;
 
   if (productionAction === "Start") {
+    const serviceRole = await getCarbonServiceRole();
+    const autoIssue = await autoIssuePermanentTools(
+      serviceRole,
+      d.jobOperationId,
+      userId
+    );
+
+    if (autoIssue.error) {
+      return data(
+        {},
+        await flash(
+          request,
+          error(autoIssue.error, "Failed to auto-issue permanent tools")
+        )
+      );
+    }
+
+    const issueErrors = autoIssue.data.errors ?? [];
+    if (issueErrors.length > 0) {
+      return data(
+        {},
+        await flash(
+          request,
+          error(
+            issueErrors[0]?.message ?? "Permanent tool issue failed",
+            "Cannot start operation"
+          )
+        )
+      );
+    }
+
+    const toolSelectionWarnings = autoIssue.data.requiresSelection ?? [];
+    const toolSelectionMessage = toolSelectionWarnings[0]?.message;
+
     const startEvent = await startProductionEvent(
       client,
       {
@@ -55,7 +90,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
     return data(
       startEvent.data,
-      await flash(request, success(`Started ${d.type.toLowerCase()} operation`))
+      await flash(
+        request,
+        success(
+          toolSelectionMessage
+            ? `Started ${d.type.toLowerCase()} operation. ${toolSelectionMessage}`
+            : `Started ${d.type.toLowerCase()} operation`
+        )
+      )
     );
   } else {
     if (!id) {

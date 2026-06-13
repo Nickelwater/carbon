@@ -58,13 +58,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
       client
         .from("methodOperation")
         .select(
-          "*, ...process(processName:name), ...workCenter(workCenterName:name, laborRate, machineRate, overheadRate)"
+          "*, ...process(processName:name), ...workCenter(workCenterName:name, setupRate, laborRate, machineRate, overheadRate)"
         )
         .in("makeMethodId", makeMethodIds)
         .eq("companyId", companyId),
       client
         .from("workCenters")
-        .select("id, active, laborRate, machineRate, overheadRate, processes")
+        .select(
+          "id, active, setupRate, laborRate, machineRate, overheadRate, processes"
+        )
         .eq("companyId", companyId),
       client
         .from("itemReplenishment")
@@ -80,6 +82,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     (wc) => ({
       id: wc.id!,
       active: wc.active ?? false,
+      setupRate: wc.setupRate,
       laborRate: wc.laborRate,
       machineRate: wc.machineRate,
       overheadRate: wc.overheadRate,
@@ -121,6 +124,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       const rates = resolveOperationRates(
         op.workCenterId,
         op.processId,
+        op.setupRate,
         op.laborRate,
         op.machineRate,
         op.overheadRate,
@@ -130,12 +134,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
         operationType: op.operationType,
         setupTime: op.setupTime,
         setupUnit: op.setupUnit,
-        laborTime: op.laborTime,
-        laborUnit: op.laborUnit,
         machineTime: op.machineTime,
         machineUnit: op.machineUnit,
+        operatorAttention: op.operatorAttention,
         operationUnitCost: op.operationUnitCost,
         operationMinimumCost: op.operationMinimumCost,
+        partsPerCycle: op.partsPerCycle,
+        timeBasis: op.timeBasis,
         ...rates
       };
     });

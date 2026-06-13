@@ -532,10 +532,13 @@ export const quoteOperationValidator = z
       })
       .optional(),
     machineTime: zfd.numeric(z.number().min(0).optional()),
+    operatorAttention: zfd.numeric(z.number().min(0).optional()),
+    setupRate: zfd.numeric(z.number().min(0).optional()),
     machineRate: zfd.numeric(z.number().min(0).optional()),
     overheadRate: zfd.numeric(z.number().min(0).optional()),
     laborRate: zfd.numeric(z.number().min(0).optional()),
-    cavityMultiplier: zfd.numeric(z.number().min(1).optional()),
+    partsPerCycle: zfd.numeric(z.number().min(1).optional()),
+    timeBasis: z.enum(["Piece", "Cycle"]).optional(),
     operationSupplierProcessId: zfd.text(z.string().optional()),
     operationMinimumCost: zfd.numeric(z.number().min(0).optional()),
     operationUnitCost: zfd.numeric(z.number().min(0).optional()),
@@ -628,24 +631,12 @@ export const quoteOperationValidator = z
   .refine(
     (data) => {
       if (data.operationType === "Inside") {
-        return Number.isFinite(data.laborTime);
-      }
-      return true;
-    },
-    {
-      message: "Labor time is required",
-      path: ["laborTime"]
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.operationType === "Inside") {
         return Number.isFinite(data.machineTime);
       }
       return true;
     },
     {
-      message: "Machine time is required",
+      message: "Run time is required",
       path: ["machineTime"]
     }
   )

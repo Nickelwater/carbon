@@ -239,6 +239,12 @@ export default function PartDetailsRoute() {
 
   return (
     <VStack spacing={2} className="p-2">
+      <ItemNotes
+        id={partData.partSummary?.id ?? null}
+        title={partData.partSummary?.name ?? ""}
+        subTitle={partData.partSummary?.readableIdWithRevision ?? ""}
+        notes={partData.partSummary?.notes as JSONContent}
+      />
       {permissions.is("employee") && methodData && (
         <>
           {["Make", "Buy and Make"].includes(
@@ -275,12 +281,6 @@ export default function PartDetailsRoute() {
               )}
             </>
           )}
-          <ItemNotes
-            id={partData.partSummary?.id ?? null}
-            title={partData.partSummary?.name ?? ""}
-            subTitle={partData.partSummary?.readableIdWithRevision ?? ""}
-            notes={partData.partSummary?.notes as JSONContent}
-          />
           {["Make", "Buy and Make"].includes(
             partData.partSummary?.replenishmentSystem ?? ""
           ) && (

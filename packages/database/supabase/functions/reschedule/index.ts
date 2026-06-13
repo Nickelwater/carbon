@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import type { Transaction } from "kysely";
 import { getConnectionPool, getDatabaseClient } from "../lib/database.ts";
 import { corsHeaders } from "../lib/headers.ts";
+import { calculateDurationDays } from "../lib/scheduling/duration-calculator.ts";
 import type { DB } from "../lib/types.ts";
 
 const pool = getConnectionPool(1);
@@ -23,6 +24,8 @@ type JobOperation = {
   laborUnit: string | null;
   machineUnit: string | null;
   operationQuantity: number | null;
+  partsPerCycle?: number | null;
+  timeBasis?: "Piece" | "Cycle" | null;
 };
 
 type Job = {
@@ -161,42 +164,7 @@ function topologicalSort(
 
 // Helper: Calculate operation duration in days
 function calculateOperationDuration(op: JobOperation): number {
-  const quantity = op.operationQuantity || 1;
-
-  // Calculate total hours
-  let setupHours = 0;
-  let laborHours = 0;
-  let machineHours = 0;
-
-  if (op.setupTime) {
-    setupHours =
-      op.setupUnit === "Hours/Piece"
-        ? (op.setupTime * quantity)
-        : op.setupTime;
-  }
-
-  if (op.laborTime) {
-    laborHours =
-      op.laborUnit === "Hours/Piece"
-        ? (op.laborTime * quantity)
-        : op.laborTime;
-  }
-
-  if (op.machineTime) {
-    machineHours =
-      op.machineUnit === "Hours/Piece"
-        ? (op.machineTime * quantity)
-        : op.machineTime;
-  }
-
-  // Total hours (setup + max of labor/machine since they can overlap)
-  const totalHours = setupHours + Math.max(laborHours, machineHours);
-
-  // Convert to days (assuming 8-hour workday)
-  const days = totalHours / 8;
-
-  // Round up to at least 1 day
-  return Math.max(Math.ceil(days), 1);
+  return calculateDurationDays(op);
 }
 
 // Helper: Backward schedule operations

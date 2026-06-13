@@ -3469,6 +3469,33 @@ export async function upsertMethodOperationTool(
         updatedAt: string;
       })
 ) {
+  const operation = await client
+    .from("methodOperation")
+    .select("makeMethodId, makeMethod!inner(itemId)")
+    .eq("id", methodOperationTool.operationId)
+    .maybeSingle();
+
+  if (operation.error) return { data: null, error: operation.error };
+
+  const makeMethodItemId = (
+    operation.data?.makeMethod as { itemId: string } | null
+  )?.itemId;
+
+  if (makeMethodItemId) {
+    const { validatePermanentToolForMethod } = await import(
+      "./tool-life.service"
+    );
+    const validation = await validatePermanentToolForMethod(
+      client,
+      methodOperationTool.toolId,
+      makeMethodItemId,
+      methodOperationTool.companyId
+    );
+    if (validation.error) {
+      return { data: null, error: validation.error };
+    }
+  }
+
   if ("createdBy" in methodOperationTool) {
     return client
       .from("methodOperationTool")
@@ -4100,7 +4127,13 @@ export async function upsertTool(
         id: tool.id,
         companyId: tool.companyId,
         createdBy: tool.createdBy,
-        customFields: tool.customFields
+        customFields: tool.customFields,
+        lifeBasis: tool.lifeBasis ?? null,
+        lifeLimit: tool.lifeLimit ?? null,
+        lifeRemaining:
+          tool.lifeBasis && tool.lifeLimit != null ? tool.lifeLimit : null,
+        isPermanent: tool.isPermanent ?? false,
+        dedicatedPartReadableId: tool.dedicatedPartReadableId ?? null
       }),
       client
         .from("itemCost")

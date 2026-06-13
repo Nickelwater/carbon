@@ -12,19 +12,41 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr ""
+
 #. placeholder {0}: attribute.name
 #. placeholder {1}: activeStep + 1
 msgid "{0} - Set {1}"
 msgstr "{0} - セット {1}"
 
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr ""
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr ""
+
 #. placeholder {0}: employeeIds.length
 msgid "{0} Active"
 msgstr "{0} アクティブ"
 
-#. placeholder {0}: operation.quantityComplete
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr ""
+
 #. placeholder {0}: serialIndex + 1
 #. placeholder {1}: operation.operationQuantity
-#. placeholder {1}: operation.targetQuantity
 msgid "{0} of {1}"
 msgstr "{0} / {1}"
 
@@ -38,9 +60,29 @@ msgstr "{0} / {1} 完了"
 msgid "{0} of {1} completed"
 msgstr "{0} / {1} 完了済み"
 
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr ""
+
 #. placeholder {0}: item.quantityScrapped
 msgid "{0} Scrapped"
 msgstr "{0} スクラップ"
+
+msgid "{completedCycleCount} of {targetCycleCount} cycles"
+msgstr ""
+
+msgid "{completedParts} of {targetParts}"
+msgstr ""
+
+msgid "{completedParts} of {targetParts} parts ({partsPerCycle} per cycle)"
+msgstr ""
+
+msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
+msgstr ""
+
+msgid "3D Model"
+msgstr ""
 
 msgid "About"
 msgstr "バージョン情報"
@@ -68,6 +110,9 @@ msgstr "在庫追加"
 
 msgid "Add Spare Part"
 msgstr "スペアパーツを追加"
+
+msgid "Add tools on the part method Bill of Process → Tools tab, then refresh the job method if needed."
+msgstr ""
 
 msgid "All"
 msgstr "すべて"
@@ -101,6 +146,9 @@ msgstr "ファイルを添付"
 
 msgid "Authentication Error"
 msgstr "認証エラー"
+
+msgid "Auto-issued"
+msgstr ""
 
 msgid "Batch"
 msgstr "バッチ"
@@ -220,6 +268,12 @@ msgstr "リワーク作成"
 msgid "Customer"
 msgstr "顧客"
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
 msgid "Dark Mode"
 msgstr "ダークモード"
 
@@ -277,8 +331,8 @@ msgid "Dragging {0} cancelled."
 msgstr "{0} のドラッグがキャンセルされました。"
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 msgid "Due {0}"
 msgstr "期限 {0}"
 
@@ -369,6 +423,9 @@ msgstr "操作に戻る"
 msgid "Have a technical issue? Contact <0>Carbon Support.</0>"
 msgstr "技術的な問題がありますか？<0>Carbonサポート</0>にお問い合わせください。"
 
+msgid "hours"
+msgstr ""
+
 msgid "I understand and want to complete without issuing"
 msgstr "理解した上で払出なしで完了します"
 
@@ -411,8 +468,18 @@ msgstr "払出"
 msgid "Issue Material"
 msgstr "材料払出"
 
+msgid "Issue Tool"
+msgstr ""
+
+#. placeholder {0}: tool.toolReadableId
+msgid "Issue Tool {0}"
+msgstr ""
+
 msgid "Issue Type"
 msgstr "問題タイプ"
+
+msgid "Issued"
+msgstr ""
 
 msgid "Item"
 msgstr "品目"
@@ -443,6 +510,12 @@ msgstr "このページを離れる"
 
 msgid "Let's build something"
 msgstr "さあ、何かを作りましょう"
+
+msgid "Life limit"
+msgstr ""
+
+msgid "Life remaining"
+msgstr ""
 
 msgid "Loading item details..."
 msgstr "品目詳細を読み込み中..."
@@ -476,6 +549,9 @@ msgstr "{0} のスクラップを記録"
 
 msgid "Login"
 msgstr "ログイン"
+
+msgid "Low"
+msgstr ""
 
 msgid "Machine"
 msgstr "機械"
@@ -540,6 +616,9 @@ msgstr "新規レコード"
 
 msgid "Next"
 msgstr "次へ"
+
+msgid "No 3D model uploaded for this tool"
+msgstr ""
 
 msgid "No active maintenance dispatches"
 msgstr "アクティブなメンテナンスディスパッチはありません"
@@ -613,11 +692,17 @@ msgstr "スペアパーツはまだ追加されていません"
 msgid "No time entries for this week"
 msgstr "今週のタイムエントリーはありません"
 
+msgid "No tools on this operation"
+msgstr ""
+
 msgid "No work centers are blocked"
 msgstr "ブロックされているワークセンターはありません"
 
 msgid "No work centers exist"
 msgstr "ワークセンターがありません"
+
+msgid "Not issued"
+msgstr ""
 
 msgid "Notes"
 msgstr "備考"
@@ -640,6 +725,9 @@ msgstr "未対応"
 
 msgid "Open Jobs"
 msgstr "オープンジョブ"
+
+msgid "Operation"
+msgstr ""
 
 msgid "Operations"
 msgstr "工程"
@@ -756,6 +844,9 @@ msgstr "リワーク"
 msgid "Rework created successfully"
 msgstr "リワーク作成に成功しました"
 
+msgid "Run"
+msgstr ""
+
 msgid "Sales Order"
 msgstr "受注"
 
@@ -810,6 +901,9 @@ msgstr "スクラップ数量と理由を選択"
 msgid "Select a serial number to continue with this operation"
 msgstr "この工程を続行するシリアル番号を選択してください"
 
+msgid "Select a tool"
+msgstr ""
+
 msgid "Select an item and specify the quantity to issue"
 msgstr "品目を選択し、払出数量を指定してください"
 
@@ -820,8 +914,17 @@ msgstr "品目を選択..."
 msgid "Select Batch {0}"
 msgstr "バッチ {0} を選択"
 
+msgid "Select how many cycles to log as complete"
+msgstr ""
+
+msgid "Select how many cycles to log as scrap"
+msgstr ""
+
 msgid "Select Printer"
 msgstr "プリンターを選択"
+
+msgid "Select serial"
+msgstr ""
 
 #. placeholder {0}: index + 1
 msgid "Select Serial {0}"
@@ -936,9 +1039,11 @@ msgstr "オペレーターを切替"
 msgid "Tag"
 msgstr "タグ"
 
-#. placeholder {0}: operation.operationQuantity
-msgid "The completed quantity for this operation is less than the required quantity of {0}."
-msgstr "この工程の完了数量が必要数量 {0} を下回っています。"
+msgid "The completed cycles for this operation are less than the required {targetCycleCount} cycles."
+msgstr ""
+
+msgid "The completed quantity for this operation is less than the required quantity of {requiredParts}."
+msgstr ""
 
 msgid "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
 msgstr "部品表にシリアルまたはバッチ追跡対象の材料が完全に払い出されていません。払出なしで完了すると、トレーサビリティ記録が不正確になる可能性があります。"
@@ -958,6 +1063,12 @@ msgstr "今日"
 
 msgid "Tools"
 msgstr "工具"
+
+msgid "Total Cycles"
+msgstr ""
+
+msgid "Total Parts"
+msgstr ""
 
 msgid "Total Quantity"
 msgstr "合計数量"

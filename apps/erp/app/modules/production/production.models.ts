@@ -278,13 +278,17 @@ export const baseJobOperationValidator = z.object({
     })
     .optional(),
   machineTime: zfd.numeric(z.number().min(0).optional()),
+  operatorAttention: zfd.numeric(z.number().min(0).optional()),
+  setupRate: zfd.numeric(z.number().min(0).optional()),
   machineRate: zfd.numeric(z.number().min(0).optional()),
   overheadRate: zfd.numeric(z.number().min(0).optional()),
   laborRate: zfd.numeric(z.number().min(0).optional()),
   operationSupplierProcessId: zfd.text(z.string().optional()),
   operationMinimumCost: zfd.numeric(z.number().min(0).optional()),
   operationUnitCost: zfd.numeric(z.number().min(0).optional()),
-  operationLeadTime: zfd.numeric(z.number().min(0).optional())
+  operationLeadTime: zfd.numeric(z.number().min(0).optional()),
+  partsPerCycle: zfd.numeric(z.number().min(1).optional()),
+  timeBasis: z.enum(["Piece", "Cycle"]).optional()
 });
 
 export const jobOperationValidator = baseJobOperationValidator
@@ -380,24 +384,12 @@ export const jobOperationValidator = baseJobOperationValidator
   .refine(
     (data) => {
       if (data.operationType === "Inside") {
-        return Number.isFinite(data.laborTime);
-      }
-      return true;
-    },
-    {
-      message: "Labor time is required",
-      path: ["laborTime"]
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.operationType === "Inside") {
         return Number.isFinite(data.machineTime);
       }
       return true;
     },
     {
-      message: "Machine time is required",
+      message: "Run time is required",
       path: ["machineTime"]
     }
   )
@@ -555,24 +547,12 @@ export const jobOperationValidatorForReleasedJob = baseJobOperationValidator
   .refine(
     (data) => {
       if (data.operationType === "Inside") {
-        return Number.isFinite(data.laborTime);
-      }
-      return true;
-    },
-    {
-      message: "Labor time is required",
-      path: ["laborTime"]
-    }
-  )
-  .refine(
-    (data) => {
-      if (data.operationType === "Inside") {
         return Number.isFinite(data.machineTime);
       }
       return true;
     },
     {
-      message: "Machine time is required",
+      message: "Run time is required",
       path: ["machineTime"]
     }
   )

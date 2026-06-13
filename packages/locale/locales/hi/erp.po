@@ -25,6 +25,30 @@ msgstr "\"{storageUnitName}\" के {childCount} सीधे नेस्ट�
 msgid "\"{storageUnitName}\" has 1 direct nested storage unit. Deleting it will also delete that unit and anything underneath it. This cannot be undone."
 msgstr "\"{storageUnitName}\" के पास 1 सीधी नेस्टेड स्टोरेज यूनिट है। इसे हटाने से वह यूनिट और इसके अंदर की कोई भी चीज़ भी हटा दी जाएगी। यह पूर्ववत नहीं किया जा सकता।"
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr ""
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr ""
+
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr ""
+
 #. placeholder {0}: rule.escalationDays
 msgid "{0} days"
 msgstr "{0} दिन"
@@ -37,6 +61,11 @@ msgstr "{0} सफलतापूर्वक हटाया गया"
 #. placeholder {0}: history.length
 msgid "{0} orders"
 msgstr "{0} ऑर्डर"
+
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr ""
 
 #. placeholder {0}: selectedProcesses.length
 msgid "{0} Processes"
@@ -83,6 +112,9 @@ msgstr "<0>update</0> आपको पंक्तियों को अपड�
 
 msgid "<0>update</0> will also return the replaced values for UPDATE."
 msgstr "<0>update</0> UPDATE के लिए प्रतिस्थापित मानों को भी वापस करेगा।"
+
+msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
+msgstr ""
 
 msgid "1 day"
 msgstr "1 दिन"
@@ -410,6 +442,12 @@ msgstr "पता पंक्ति 1"
 
 msgid "Address Line 2"
 msgstr "पता लाइन 2"
+
+msgid "Adjust"
+msgstr ""
+
+msgid "Adjust Tool Life"
+msgstr ""
 
 msgid "Adjustment Type"
 msgstr "समायोजन प्रकार"
@@ -1025,6 +1063,9 @@ msgstr "ऑटो स्टार्ट जॉब"
 msgid "Auto-generated QR Code"
 msgstr "स्वचालित रूप से उत्पन्न QR कोड"
 
+msgid "Auto-issued on job operations for the dedicated part"
+msgstr ""
+
 msgid "Automatic Cost Updates"
 msgstr "स्वचालित लागत अपडेट"
 
@@ -1054,6 +1095,9 @@ msgstr "ट्रेसेबिलिटी पर वापस जाएं"
 
 msgid "Backflush"
 msgstr "बैकफ्लश"
+
+msgid "Balance"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "बैलेंस शीट"
@@ -2126,6 +2170,18 @@ msgstr "ग्राहक"
 msgid "Customize the layout of your PDF documents — reorder sections, hide what you don't need, and add your own blocks."
 msgstr ""
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
+msgid "Cycles/Hour"
+msgstr ""
+
+msgid "Cycles/Minute"
+msgstr ""
+
 msgid "Daily Usage"
 msgstr "दैनिक उपयोग"
 
@@ -2222,6 +2278,9 @@ msgstr "समय सीमा प्रकार"
 
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "तय करें कि यदि कोई ऑपरेटर एक बैच या सीरियल जारी करने का प्रयास करता है जो पहले से ही समाप्त हो गया है तो वह क्या देखता है।"
+
+msgid "Dedicated Part"
+msgstr ""
 
 msgid "Default Accounts"
 msgstr "डिफ़ॉल्ट खाते"
@@ -2498,6 +2557,9 @@ msgstr "डिलीवरी तारीख"
 
 msgid "Delivery Location"
 msgstr "डिलीवरी स्थान"
+
+msgid "Delta"
+msgstr ""
 
 msgid "Demand"
 msgstr "मांग"
@@ -3856,14 +3918,26 @@ msgstr "छुट्टियाँ"
 msgid "Home Phone"
 msgstr "होम फोन"
 
+msgid "hours"
+msgstr ""
+
 msgid "Hours per Week"
 msgstr "सप्ताह में घंटे"
+
+msgid "Hours/100 Cycles"
+msgstr ""
 
 msgid "Hours/100 Pieces"
 msgstr "घंटे/100 पीस"
 
+msgid "Hours/1000 Cycles"
+msgstr ""
+
 msgid "Hours/1000 Pieces"
 msgstr "घंटे/1000 पीस"
+
+msgid "Hours/Cycle"
+msgstr ""
 
 msgid "Hours/Piece"
 msgstr "घंटे/टुकड़ा"
@@ -4378,6 +4452,15 @@ msgstr "आइए अपना खाता सेट अप करें"
 msgid "Letter"
 msgstr "अक्षर"
 
+msgid "Life Basis"
+msgstr ""
+
+msgid "Life History"
+msgstr ""
+
+msgid "Life Limit"
+msgstr ""
+
 msgid "Light"
 msgstr "हल्का"
 
@@ -4498,8 +4581,11 @@ msgstr "लॉट आकार"
 msgid "Lot Size:"
 msgstr "लॉट साइज:"
 
-msgid "Machine"
-msgstr "मशीन"
+msgid "Low"
+msgstr ""
+
+msgid "Low life"
+msgstr ""
 
 msgid "Machine Rate"
 msgstr "मशीन दर"
@@ -4509,9 +4595,6 @@ msgstr "मशीन दर (प्रति घंटा)"
 
 msgid "Machine Time"
 msgstr "मशीन समय"
-
-msgid "Machine Unit"
-msgstr "मशीन यूनिट"
 
 msgid "Maintenance"
 msgstr "रखरखाव"
@@ -4791,11 +4874,20 @@ msgstr "न्यूनतम ऑर्डर मात्रा"
 msgid "Minimum Order:"
 msgstr "न्यूनतम ऑर्डर:"
 
+msgid "Minutes/100 Cycles"
+msgstr ""
+
 msgid "Minutes/100 Pieces"
 msgstr "मिनट/100 पीस"
 
+msgid "Minutes/1000 Cycles"
+msgstr ""
+
 msgid "Minutes/1000 Pieces"
 msgstr "मिनट/1000 पीस"
+
+msgid "Minutes/Cycle"
+msgstr ""
 
 msgid "Minutes/Piece"
 msgstr "मिनट/टुकड़ा"
@@ -5062,6 +5154,9 @@ msgstr "नई रसीद"
 
 msgid "New record created"
 msgstr "नया रिकॉर्ड बनाया गया"
+
+msgid "New Remaining"
+msgstr ""
 
 msgid "New Revision"
 msgstr "नया संस्करण"
@@ -5410,6 +5505,9 @@ msgstr "सेट नहीं है"
 msgid "Not started training for"
 msgstr "प्रशिक्षण शुरू नहीं किया गया"
 
+msgid "Not tracked"
+msgstr ""
+
 msgid "Not you?"
 msgstr "क्या आप नहीं हैं?"
 
@@ -5541,6 +5639,9 @@ msgstr "संचालन प्रकार"
 
 msgid "Operator"
 msgstr "ऑपरेटर"
+
+msgid "Operator attention"
+msgstr ""
 
 msgid "Operator gets a warning. Stock still goes through."
 msgstr "ऑपरेटर को एक चेतावनी मिलती है। स्टॉक अभी भी आगे बढ़ता है।"
@@ -5719,6 +5820,9 @@ msgstr "भागीदार"
 msgid "Parts"
 msgstr "पार्ट्स"
 
+msgid "Parts per Cycle"
+msgstr ""
+
 msgid "Pass"
 msgstr "पास"
 
@@ -5761,8 +5865,17 @@ msgstr "लंबित"
 msgid "People"
 msgstr "लोग"
 
-msgid "Per Unit"
-msgstr "प्रति यूनिट"
+msgid "Per cycle"
+msgstr ""
+
+msgid "Per Cycle"
+msgstr ""
+
+msgid "Per piece"
+msgstr ""
+
+msgid "Per Piece"
+msgstr ""
 
 msgid "Percentage of Lot"
 msgstr "लॉट का प्रतिशत"
@@ -5772,6 +5885,9 @@ msgstr "कम लागत मूल्यांकन के लिए बि�
 
 msgid "Period"
 msgstr "अवधि"
+
+msgid "Permanent Tool"
+msgstr ""
 
 msgid "Permanently Delete"
 msgstr "स्थायी रूप से हटाएं"
@@ -5886,6 +6002,9 @@ msgstr "नीति"
 
 msgid "Policy & Procedure"
 msgstr "नीति और प्रक्रिया"
+
+msgid "Policy History"
+msgstr ""
 
 msgid "Portal Link"
 msgstr "पोर्टल लिंक"
@@ -6423,8 +6542,14 @@ msgstr "जॉब रिलीज़ करें"
 msgid "Released"
 msgstr "जारी किया गया"
 
+msgid "Remaining"
+msgstr ""
+
 msgid "Remaining after split stays on the original row."
 msgstr "विभाजन के बाद शेष मूल पंक्ति पर रहता है।"
+
+msgid "Remaining:"
+msgstr ""
 
 msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
 msgstr "इस PIN को याद रखें। MES टर्मिनल पर कंसोल मोड से बाहर निकलने के लिए आपको इसकी आवश्यकता होगी।"
@@ -6561,6 +6686,9 @@ msgstr "आवश्यक कार्य"
 
 msgid "Required Date"
 msgstr "आवश्यक तारीख"
+
+msgid "Required for permanent tools"
+msgstr ""
 
 msgid "Requires Action"
 msgstr "कार्रवाई आवश्यक है"
@@ -6715,8 +6843,20 @@ msgstr "नियम प्रकार"
 msgid "Rules"
 msgstr "नियम"
 
+msgid "Run"
+msgstr ""
+
 msgid "Run Test"
 msgstr "टेस्ट चलाएं"
+
+msgid "Run time"
+msgstr ""
+
+msgid "Run Time"
+msgstr ""
+
+msgid "Run unit"
+msgstr ""
 
 msgid "Running Total"
 msgstr "कुल चल रहा है"
@@ -6799,11 +6939,17 @@ msgstr "सहेजें"
 msgid "Save & Close"
 msgstr "सहेजें और बंद करें"
 
+msgid "Save Adjustment"
+msgstr ""
+
 msgid "Save and Overwrite"
 msgstr "सहेजें और अधिलेखित करें"
 
 msgid "Save Method"
 msgstr "विधि सहेजें"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save View"
 msgstr "दृश्य सहेजें"
@@ -6923,6 +7069,9 @@ msgstr "आपूर्तिकर्ताओं को खोजें..."
 
 msgid "Search..."
 msgstr "खोजें..."
+
+msgid "Seconds/Cycle"
+msgstr ""
 
 msgid "Seconds/Piece"
 msgstr "सेकंड/पीस"
@@ -7151,6 +7300,12 @@ msgstr "सेटअप"
 
 msgid "Setup instructions"
 msgstr "सेटअप निर्देश"
+
+msgid "Setup Rate"
+msgstr ""
+
+msgid "Setup Rate (Hourly)"
+msgstr ""
 
 msgid "Setup Time"
 msgstr "सेटअप समय"
@@ -8036,6 +8191,9 @@ msgstr "एक्सप्लोरर टॉगल करें"
 msgid "Toggle level"
 msgstr "स्तर टॉगल करें"
 
+msgid "Toggle per cycle timing"
+msgstr ""
+
 msgid "Toggle Properties"
 msgstr "गुण टॉगल करें"
 
@@ -8059,6 +8217,12 @@ msgstr "उपकरण विवरण"
 
 msgid "Tool ID"
 msgstr "टूल आईडी"
+
+msgid "Tool Life"
+msgstr ""
+
+msgid "Tool Life Policy History"
+msgstr ""
 
 msgid "Tools"
 msgstr "उपकरण"

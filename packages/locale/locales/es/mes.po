@@ -12,19 +12,41 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+#. placeholder {0}: qty.targetParts
+msgid "{0}"
+msgstr ""
+
 #. placeholder {0}: attribute.name
 #. placeholder {1}: activeStep + 1
 msgid "{0} - Set {1}"
 msgstr "{0} - Conjunto {1}"
 
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+msgid "{0} / {1}"
+msgstr ""
+
+#. placeholder {0}: qty.completedCycleCount
+#. placeholder {1}: qty.targetCycleCount
+msgid "{0} / {1} cycles"
+msgstr ""
+
+#. placeholder {0}: qty.completedParts
+#. placeholder {1}: qty.targetParts
+#. placeholder {2}: qty.partsPerCycle
+msgid "{0} / {1} parts ({2} per cycle)"
+msgstr ""
+
 #. placeholder {0}: employeeIds.length
 msgid "{0} Active"
 msgstr "{0} Activos"
 
-#. placeholder {0}: operation.quantityComplete
+#. placeholder {0}: qty.targetCycleCount
+msgid "{0} cycles"
+msgstr ""
+
 #. placeholder {0}: serialIndex + 1
 #. placeholder {1}: operation.operationQuantity
-#. placeholder {1}: operation.targetQuantity
 msgid "{0} of {1}"
 msgstr "{0} de {1}"
 
@@ -38,9 +60,29 @@ msgstr "{0} de {1} completados"
 msgid "{0} of {1} completed"
 msgstr "{0} de {1} completados"
 
+#. placeholder {0}: qty.targetParts
+#. placeholder {1}: qty.partsPerCycle
+msgid "{0} parts ({1} per cycle)"
+msgstr ""
+
 #. placeholder {0}: item.quantityScrapped
 msgid "{0} Scrapped"
 msgstr "{0} Descartados"
+
+msgid "{completedCycleCount} of {targetCycleCount} cycles"
+msgstr ""
+
+msgid "{completedParts} of {targetParts}"
+msgstr ""
+
+msgid "{completedParts} of {targetParts} parts ({partsPerCycle} per cycle)"
+msgstr ""
+
+msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
+msgstr ""
+
+msgid "3D Model"
+msgstr ""
 
 msgid "About"
 msgstr "Acerca de"
@@ -68,6 +110,9 @@ msgstr "Agregar inventario"
 
 msgid "Add Spare Part"
 msgstr "Agregar repuesto"
+
+msgid "Add tools on the part method Bill of Process → Tools tab, then refresh the job method if needed."
+msgstr ""
 
 msgid "All"
 msgstr "Todos"
@@ -101,6 +146,9 @@ msgstr "Adjuntar archivo"
 
 msgid "Authentication Error"
 msgstr "Error de autenticación"
+
+msgid "Auto-issued"
+msgstr ""
 
 msgid "Batch"
 msgstr "Lote"
@@ -220,6 +268,12 @@ msgstr "Crear Reelaboración"
 msgid "Customer"
 msgstr "Cliente"
 
+msgid "cycles"
+msgstr ""
+
+msgid "Cycles"
+msgstr ""
+
 msgid "Dark Mode"
 msgstr "Modo oscuro"
 
@@ -277,8 +331,8 @@ msgid "Dragging {0} cancelled."
 msgstr "Se canceló el arrastre de {0}."
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 msgid "Due {0}"
 msgstr "Vence {0}"
 
@@ -369,6 +423,9 @@ msgstr "Volver a la operación"
 msgid "Have a technical issue? Contact <0>Carbon Support.</0>"
 msgstr "¿Tiene un problema técnico? Contacte al <0>Soporte de Carbon.</0>"
 
+msgid "hours"
+msgstr ""
+
 msgid "I understand and want to complete without issuing"
 msgstr "Entiendo y deseo completar sin emitir"
 
@@ -411,8 +468,18 @@ msgstr "Emitir"
 msgid "Issue Material"
 msgstr "Emitir material"
 
+msgid "Issue Tool"
+msgstr ""
+
+#. placeholder {0}: tool.toolReadableId
+msgid "Issue Tool {0}"
+msgstr ""
+
 msgid "Issue Type"
 msgstr "Tipo de Problema"
+
+msgid "Issued"
+msgstr ""
 
 msgid "Item"
 msgstr "Artículo"
@@ -443,6 +510,12 @@ msgstr "Salir de esta página"
 
 msgid "Let's build something"
 msgstr "Construyamos algo"
+
+msgid "Life limit"
+msgstr ""
+
+msgid "Life remaining"
+msgstr ""
 
 msgid "Loading item details..."
 msgstr "Cargando detalles del artículo..."
@@ -476,6 +549,9 @@ msgstr "Registrar desperdicio para {0}"
 
 msgid "Login"
 msgstr "Iniciar sesión"
+
+msgid "Low"
+msgstr ""
 
 msgid "Machine"
 msgstr "Máquina"
@@ -540,6 +616,9 @@ msgstr "Nuevo registro"
 
 msgid "Next"
 msgstr "Siguiente"
+
+msgid "No 3D model uploaded for this tool"
+msgstr ""
 
 msgid "No active maintenance dispatches"
 msgstr "No hay despachos de mantenimiento activos"
@@ -613,11 +692,17 @@ msgstr "Aún no se han agregado repuestos"
 msgid "No time entries for this week"
 msgstr "No hay registros de tiempo para esta semana"
 
+msgid "No tools on this operation"
+msgstr ""
+
 msgid "No work centers are blocked"
 msgstr "No hay centros de trabajo bloqueados"
 
 msgid "No work centers exist"
 msgstr "No existen centros de trabajo"
+
+msgid "Not issued"
+msgstr ""
 
 msgid "Notes"
 msgstr "Notas"
@@ -640,6 +725,9 @@ msgstr "Abierto"
 
 msgid "Open Jobs"
 msgstr "Trabajos Abiertos"
+
+msgid "Operation"
+msgstr ""
 
 msgid "Operations"
 msgstr "Operaciones"
@@ -756,6 +844,9 @@ msgstr "Reelaboración"
 msgid "Rework created successfully"
 msgstr "Rework creado exitosamente"
 
+msgid "Run"
+msgstr ""
+
 msgid "Sales Order"
 msgstr "Orden de venta"
 
@@ -810,6 +901,9 @@ msgstr "Seleccione una cantidad de desperdicio y un motivo"
 msgid "Select a serial number to continue with this operation"
 msgstr "Seleccione un número de serie para continuar con esta operación"
 
+msgid "Select a tool"
+msgstr ""
+
 msgid "Select an item and specify the quantity to issue"
 msgstr "Seleccione un artículo y especifique la cantidad a emitir"
 
@@ -820,8 +914,17 @@ msgstr "Seleccione un artículo..."
 msgid "Select Batch {0}"
 msgstr "Seleccionar lote {0}"
 
+msgid "Select how many cycles to log as complete"
+msgstr ""
+
+msgid "Select how many cycles to log as scrap"
+msgstr ""
+
 msgid "Select Printer"
 msgstr "Seleccionar Impresora"
+
+msgid "Select serial"
+msgstr ""
 
 #. placeholder {0}: index + 1
 msgid "Select Serial {0}"
@@ -936,9 +1039,11 @@ msgstr "Cambiar operador"
 msgid "Tag"
 msgstr "Etiqueta"
 
-#. placeholder {0}: operation.operationQuantity
-msgid "The completed quantity for this operation is less than the required quantity of {0}."
-msgstr "La cantidad completada para esta operación es menor que la cantidad requerida de {0}."
+msgid "The completed cycles for this operation are less than the required {targetCycleCount} cycles."
+msgstr ""
+
+msgid "The completed quantity for this operation is less than the required quantity of {requiredParts}."
+msgstr ""
 
 msgid "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
 msgstr "Hay materiales con seguimiento de serie o lote en la lista de materiales que no se han emitido completamente. Completar sin emitir puede generar registros de trazabilidad incorrectos."
@@ -958,6 +1063,12 @@ msgstr "Hoy"
 
 msgid "Tools"
 msgstr "Herramientas"
+
+msgid "Total Cycles"
+msgstr ""
+
+msgid "Total Parts"
+msgstr ""
 
 msgid "Total Quantity"
 msgstr "Cantidad total"

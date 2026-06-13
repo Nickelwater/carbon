@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-13T21:38:00.396Z",
+  "generated": "2026-06-13T21:42:48.794Z",
   "totalTools": 1191,
   "modules": 15,
   "tools": [
@@ -8300,7 +8300,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -8336,7 +8336,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -8625,7 +8625,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -9524,7 +9524,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -9553,7 +9553,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -9582,7 +9582,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -9611,7 +9611,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -10579,7 +10579,7 @@
             ]
           },
           "customFields": {},
-          "shelfLife: {\r\n      mode": {
+          "shelfLife: {\n      mode": {
             "type": "string"
           }
         },
@@ -13125,7 +13125,7 @@
       "paramCount": 1,
       "serviceParams": [
         "client",
-        "{\r\n    orderId,\r\n    companyId,\r\n    userId\r\n  }"
+        "{\n    orderId,\n    companyId,\n    userId\n  }"
       ],
       "injectAuth": [
         "companyId",
@@ -13162,7 +13162,7 @@
           "jobId": {
             "type": "string"
           },
-          "// Optional - if updating an existing job\r\n    dueDate": {
+          "// Optional - if updating an existing job\n    dueDate": {
             "type": [
               "string",
               "null"
@@ -13176,7 +13176,7 @@
           }
         },
         "required": [
-          "// Optional - if updating an existing job\r\n    dueDate",
+          "// Optional - if updating an existing job\n    dueDate",
           "deadlineType",
           "locationId"
         ]
@@ -15697,13 +15697,13 @@
           "id": {
             "type": "string"
           },
-          "// job id\r\n    companyId": {
+          "// job id\n    companyId": {
             "type": "string"
           }
         },
         "required": [
           "id",
-          "// job id\r\n    companyId"
+          "// job id\n    companyId"
         ]
       }
     },
@@ -15727,13 +15727,13 @@
           "id": {
             "type": "string"
           },
-          "// job make method id\r\n    companyId": {
+          "// job make method id\n    companyId": {
             "type": "string"
           }
         },
         "required": [
           "id",
-          "// job make method id\r\n    companyId"
+          "// job make method id\n    companyId"
         ]
       }
     },
@@ -29649,7 +29649,7 @@
           "name": {
             "type": "string"
           },
-          "address: {\r\n      addressLine1": {},
+          "address: {\n      addressLine1": {},
           "customFields": {}
         },
         "required": [
@@ -30134,7 +30134,7 @@
           "name": {
             "type": "string"
           },
-          "address: {\r\n      addressLine1": {},
+          "address: {\n      addressLine1": {},
           "customFields": {}
         },
         "required": [

@@ -254,6 +254,8 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
           customerId: op.jobCustomerId,
           operationQuantity: op.operationQuantity,
           targetQuantity: op.targetQuantity ?? op.operationQuantity,
+          partsPerCycle: op.partsPerCycle,
+          timeBasis: op.timeBasis,
           jobReadableId: op.jobReadableId,
           itemReadableId: op.itemReadableId,
           itemDescription: op.itemDescription,

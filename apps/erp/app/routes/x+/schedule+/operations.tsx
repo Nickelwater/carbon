@@ -266,6 +266,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
         deadlineType: op.jobDeadlineType,
         customerId: op.jobCustomerId,
         targetQuantity: op.targetQuantity,
+        partsPerCycle: op.partsPerCycle,
+        timeBasis: op.timeBasis,
         quantity: op.operationQuantity,
         quantityCompleted: op.quantityComplete,
         quantityReworked: op.quantityReworked,

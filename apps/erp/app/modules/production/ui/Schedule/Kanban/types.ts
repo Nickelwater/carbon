@@ -64,6 +64,8 @@ const baseItemValidator = z.object({
   progress: z.number().optional(), // miliseconds
   reworkId: z.string().nullable().optional(),
   targetQuantity: z.number().optional(),
+  partsPerCycle: z.number().optional(),
+  timeBasis: z.enum(["Piece", "Cycle"]).optional(),
   quantity: z.number().optional(),
   quantityCompleted: z.number().optional(),
   quantityReworked: z.number().optional(),

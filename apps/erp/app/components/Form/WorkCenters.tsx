@@ -45,6 +45,7 @@ const WorkCenters = (props: WorkCenterSelectProps) => {
             name: created,
             description: "",
             overheadRate: 0,
+            setupRate: 0,
             laborRate: 0,
             locationId: defaults?.locationId ?? "",
             machineRate: 0,

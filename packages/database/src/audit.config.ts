@@ -219,6 +219,21 @@ export const auditConfig = {
       }
     },
 
+    tool: {
+      label: "Tool",
+      tables: {
+        tool: {
+          role: "root",
+          createFields: [
+            "lifeBasis",
+            "lifeLimit",
+            "isPermanent",
+            "dedicatedPartReadableId"
+          ]
+        }
+      }
+    },
+
     salesOrder: {
       label: "Sales Order",
       tables: {
@@ -423,6 +438,7 @@ export const auditConfig = {
     supplierPart: "Supplier Part",
     item: "Item",
     itemShelfLife: "Shelf Life",
+    tool: "Tool Life Policy",
     itemCost: "Cost",
     itemPlanning: "Planning",
     itemReplenishment: "Replenishment",
