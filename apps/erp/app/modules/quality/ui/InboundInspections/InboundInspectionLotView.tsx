@@ -51,11 +51,16 @@ import type {
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";
 import { getReadableIdWithRevision } from "~/utils/string";
+import {
+  batchSamplesRemaining,
+  isBatchInspectionLot
+} from "../../inspectionLot.utils";
 import ScanInspectionSample from "./ScanInspectionSample";
 
 export type InboundInspectionLotViewProps = {
   inspection: InboundInspectionRow;
   receiptReadableId: string | null;
+  jobReadableId: string | null;
   receiverId: string | null;
   itemName: string;
   supplierName: string | null;
@@ -70,6 +75,7 @@ export type InboundInspectionLotViewProps = {
 export default function InboundInspectionLotView({
   inspection,
   receiptReadableId,
+  jobReadableId,
   receiverId,
   itemName,
   supplierName,
@@ -116,14 +122,29 @@ export default function InboundInspectionLotView({
   const fails = samples.filter((s) => s.status === "Failed").length;
   const inspected = passes + fails;
 
+  const batchLot = isBatchInspectionLot(lotEntities);
+  const samplesRemaining = batchSamplesRemaining(
+    inspection.sampleSize,
+    inspected
+  );
+
   const sampledIds = useMemo(
     () => new Set(samples.map((s) => s.trackedEntityId)),
     [samples]
   );
-  const remaining = lotEntities.filter((e) => !sampledIds.has(e.id));
+  const remaining = batchLot
+    ? samplesRemaining > 0
+      ? lotEntities
+      : []
+    : lotEntities.filter((e) => !sampledIds.has(e.id));
+
+  const isJobSource = (inspection as any).sourceType === "Job";
 
   const showFourEyesWarning =
-    enforceFourEyes && !!receiverId && receiverId === currentUserId;
+    !isJobSource &&
+    enforceFourEyes &&
+    !!receiverId &&
+    receiverId === currentUserId;
 
   // The lot is "closed" only after the inspector has pressed Accept or Reject
   // (setting dispositionedAt + a terminal status). Partial is explicitly not
@@ -173,9 +194,13 @@ export default function InboundInspectionLotView({
                   sub={displayItemName}
                 />
                 <Kv
-                  label={t`Receipt`}
-                  value={receiptReadableId ?? ""}
-                  sub={supplierName ?? undefined}
+                  label={isJobSource ? t`Job` : t`Receipt`}
+                  value={
+                    isJobSource
+                      ? (jobReadableId ?? "")
+                      : (receiptReadableId ?? "")
+                  }
+                  sub={isJobSource ? undefined : (supplierName ?? undefined)}
                 />
                 <Kv
                   label={t`Plan`}
@@ -231,8 +256,15 @@ export default function InboundInspectionLotView({
                   leftIcon={<LuScan />}
                   onClick={scannerDisclosure.onOpen}
                   className="self-start"
+                  isDisabled={
+                    batchLot ? samplesRemaining <= 0 : remaining.length === 0
+                  }
                 >
-                  <Trans>Inspect Next Item</Trans>
+                  {batchLot ? (
+                    <Trans>Inspect Next Sample</Trans>
+                  ) : (
+                    <Trans>Inspect Next Item</Trans>
+                  )}
                 </Button>
               )}
 
@@ -244,6 +276,11 @@ export default function InboundInspectionLotView({
                       <th className="text-left px-3 py-2 font-medium">
                         <Trans>Entity</Trans>
                       </th>
+                      {batchLot && (
+                        <th className="text-left px-3 py-2 font-medium">
+                          <Trans>#</Trans>
+                        </th>
+                      )}
                       <th className="text-left px-3 py-2 font-medium">
                         <Trans>Result</Trans>
                       </th>
@@ -259,15 +296,18 @@ export default function InboundInspectionLotView({
                     {samples.length === 0 && (
                       <tr>
                         <td
-                          colSpan={4}
+                          colSpan={batchLot ? 5 : 4}
                           className="px-3 py-6 text-center text-muted-foreground"
                         >
                           <Trans>No samples inspected yet.</Trans>
                         </td>
                       </tr>
                     )}
-                    {samples.map((s) => {
+                    {samples.map((s, index) => {
                       const readable = s.trackedEntity?.readableId ?? null;
+                      const sampleNum =
+                        (s as { sampleIndex?: number }).sampleIndex ??
+                        index + 1;
                       return (
                         <tr key={s.id} className="border-t">
                           <td className="px-3 py-2">
@@ -282,6 +322,11 @@ export default function InboundInspectionLotView({
                               )}
                             </div>
                           </td>
+                          {batchLot && (
+                            <td className="px-3 py-2 text-muted-foreground">
+                              {sampleNum}
+                            </td>
+                          )}
                           <td className="px-3 py-2">
                             {s.status === "Passed" ? (
                               <Badge variant="green">
@@ -356,6 +401,9 @@ export default function InboundInspectionLotView({
         <ScanInspectionSample
           inspectionId={inspection.id}
           remaining={remaining}
+          batchLot={batchLot}
+          samplesRemaining={samplesRemaining}
+          sampleSize={inspection.sampleSize}
           onClose={scannerDisclosure.onClose}
         />
       )}
@@ -364,7 +412,11 @@ export default function InboundInspectionLotView({
         <Confirm
           action={acceptUrl}
           title={t`Accept lot?`}
-          text={t`${lotEntities.length - inspected} un-sampled entities will be released to Available. Sampled passes stay Available and sampled failures stay Rejected.`}
+          text={
+            batchLot
+              ? t`The batch will be released to Available. ${inspected} sample(s) were recorded against the required ${inspection.sampleSize}.`
+              : t`${lotEntities.length - inspected} un-sampled entities will be released to Available. Sampled passes stay Available and sampled failures stay Rejected.`
+          }
           confirmText={t`Accept Lot`}
           onCancel={acceptConfirmDisclosure.onClose}
           onSubmit={acceptConfirmDisclosure.onClose}

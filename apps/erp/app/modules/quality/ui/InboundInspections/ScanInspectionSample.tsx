@@ -38,12 +38,18 @@ import { path } from "~/utils/path";
 type Props = {
   inspectionId: string;
   remaining: InspectionTrackedEntity[];
+  batchLot?: boolean;
+  samplesRemaining?: number;
+  sampleSize?: number;
   onClose: () => void;
 };
 
 export default function ScanInspectionSample({
   inspectionId,
   remaining,
+  batchLot = false,
+  samplesRemaining,
+  sampleSize,
   onClose
 }: Props) {
   const { t } = useLingui();
@@ -97,10 +103,18 @@ export default function ScanInspectionSample({
             <Trans>Inspect Item</Trans>
           </ModalTitle>
           <ModalDescription>
-            <Trans>
-              Scan or select a tracked entity from this lot and record the
-              inspection result.
-            </Trans>
+            {batchLot ? (
+              <Trans>
+                Scan or select the batch and record each sample result.{" "}
+                {samplesRemaining ?? 0} of {sampleSize ?? 0} required samples
+                remaining.
+              </Trans>
+            ) : (
+              <Trans>
+                Scan or select a tracked entity from this lot and record the
+                inspection result.
+              </Trans>
+            )}
           </ModalDescription>
         </ModalHeader>
         <ValidatedForm
@@ -156,6 +170,11 @@ export default function ScanInspectionSample({
                         <div className="font-mono text-sm">
                           {selected.readableId ?? selected.id}
                         </div>
+                        {batchLot && selected.quantity != null && (
+                          <div className="text-xs text-muted-foreground mt-1">
+                            <Trans>Batch quantity: {selected.quantity}</Trans>
+                          </div>
+                        )}
                         {selected.readableId && (
                           <div className="text-xs text-muted-foreground mt-1">
                             {selected.id}
@@ -170,7 +189,13 @@ export default function ScanInspectionSample({
                     <VStack spacing={2} className="w-full pr-3">
                       {remaining.length === 0 ? (
                         <p className="text-center text-muted-foreground w-full py-6">
-                          <Trans>No remaining entities to inspect.</Trans>
+                          {batchLot ? (
+                            <Trans>
+                              All required samples have been recorded.
+                            </Trans>
+                          ) : (
+                            <Trans>No remaining entities to inspect.</Trans>
+                          )}
                         </p>
                       ) : (
                         remaining.map((e) => {

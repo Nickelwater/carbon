@@ -191,7 +191,12 @@ export type InboundInspectionSampleRow =
 
 export type InspectionTrackedEntity = Pick<
   Database["public"]["Tables"]["trackedEntity"]["Row"],
-  "id" | "readableId" | "attributes" | "status" | "sourceDocumentReadableId"
+  | "id"
+  | "readableId"
+  | "attributes"
+  | "status"
+  | "sourceDocumentReadableId"
+  | "quantity"
 >;
 
 export type InboundInspectionSample = InboundInspectionSampleRow & {

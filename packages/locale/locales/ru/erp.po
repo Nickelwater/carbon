@@ -62,6 +62,9 @@ msgstr "{scopeCount} разрешений"
 msgid "/month/user"
 msgstr "/месяц/пользователь"
 
+msgid "#"
+msgstr ""
+
 #. placeholder {0}: allItems.length - 3
 msgid "+{0} more"
 msgstr "+{0} ещё"
@@ -443,6 +446,9 @@ msgstr "Все работы завершены"
 
 msgid "All members of selected groups and selected individuals will be able to approve requests"
 msgstr "Все члены выбранных групп и выбранные лица смогут одобрять запросы"
+
+msgid "All required samples have been recorded."
+msgstr ""
 
 msgid "All Suppliers"
 msgstr "Все поставщики"
@@ -1078,6 +1084,10 @@ msgstr "Номер партии"
 
 msgid "Batch Properties"
 msgstr "Свойства партии"
+
+#. placeholder {0}: selected.quantity
+msgid "Batch quantity: {0}"
+msgstr ""
 
 msgid "Batch Size"
 msgstr "Размер партии"
@@ -3984,6 +3994,9 @@ msgstr "Проверить товар"
 msgid "Inspect Next Item"
 msgstr "Проверить следующий элемент"
 
+msgid "Inspect Next Sample"
+msgstr ""
+
 msgid "Inspection"
 msgstr "Проверка"
 
@@ -6813,6 +6826,11 @@ msgstr "Сканировать или искать..."
 msgid "Scan or select a tracked entity from this lot and record the inspection result."
 msgstr "Отсканируйте или выберите отслеживаемый объект из этой партии и запишите результат проверки."
 
+#. placeholder {0}: samplesRemaining ?? 0
+#. placeholder {1}: sampleSize ?? 0
+msgid "Scan or select the batch and record each sample result. {0} of {1} required samples remaining."
+msgstr ""
+
 msgid "Scan the tracking ID for this line"
 msgstr "Отсканируйте идентификатор отслеживания для этой строки"
 
@@ -7799,7 +7817,11 @@ msgid "The amount of days after the calculation method that the cash discount is
 msgstr "Количество дней после метода расчета, в течение которых доступна скидка за наличный расчет"
 
 msgid "The amount of days after the calculation method that the payment is due"
-msgstr "Количество дней после метода расчета, в течение которых платеж должен быть произведен"
+msgstr "ÃƒÂÃ…Â¡ÃƒÂÃ‚Â¾ÃƒÂÃ‚Â»ÃƒÂÃ‚Â¸Ãƒâ€˜Ã¢â‚¬Â¡ÃƒÂÃ‚ÂµÃƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚Â²ÃƒÂÃ‚Â¾ ÃƒÂÃ‚Â´ÃƒÂÃ‚Â½ÃƒÂÃ‚ÂµÃƒÂÃ‚Â¹ ÃƒÂÃ‚Â¿ÃƒÂÃ‚Â¾Ãƒâ€˜Ã‚ÂÃƒÂÃ‚Â»ÃƒÂÃ‚Âµ ÃƒÂÃ‚Â¼ÃƒÂÃ‚ÂµÃƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚Â¾ÃƒÂÃ‚Â´ÃƒÂÃ‚Â° Ãƒâ€˜Ã¢â€šÂ¬ÃƒÂÃ‚Â°Ãƒâ€˜Ã‚ÂÃƒâ€˜Ã¢â‚¬Â¡ÃƒÂÃ‚ÂµÃƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚Â°, ÃƒÂÃ‚Â² Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚ÂµÃƒâ€˜Ã¢â‚¬Â¡ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½ÃƒÂÃ‚Â¸ÃƒÂÃ‚Âµ ÃƒÂÃ‚ÂºÃƒÂÃ‚Â¾Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚Â¾Ãƒâ€˜Ã¢â€šÂ¬Ãƒâ€˜Ã¢â‚¬Â¹Ãƒâ€˜Ã¢â‚¬Â¦ ÃƒÂÃ‚Â¿ÃƒÂÃ‚Â»ÃƒÂÃ‚Â°Ãƒâ€˜Ã¢â‚¬Å¡ÃƒÂÃ‚ÂµÃƒÂÃ‚Â¶ ÃƒÂÃ‚Â´ÃƒÂÃ‚Â¾ÃƒÂÃ‚Â»ÃƒÂÃ‚Â¶ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½ ÃƒÂÃ‚Â±Ãƒâ€˜Ã¢â‚¬Â¹Ãƒâ€˜Ã¢â‚¬Å¡Ãƒâ€˜Ã…â€™ ÃƒÂÃ‚Â¿Ãƒâ€˜Ã¢â€šÂ¬ÃƒÂÃ‚Â¾ÃƒÂÃ‚Â¸ÃƒÂÃ‚Â·ÃƒÂÃ‚Â²ÃƒÂÃ‚ÂµÃƒÂÃ‚Â´ÃƒÂÃ‚ÂµÃƒÂÃ‚Â½"
+
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr ""
 
 msgid "The date the customer expects to receive the goods"
 msgstr "Дата, когда клиент ожидает получить товары"
@@ -8559,6 +8581,9 @@ msgstr "Просмотр предложения"
 
 msgid "View Suppliers"
 msgstr "Просмотр поставщиков"
+
+msgid "View traceability"
+msgstr ""
 
 msgid "View Traceability Graph"
 msgstr "Просмотр графика отслеживания"

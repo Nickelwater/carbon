@@ -4,6 +4,7 @@ import { sql } from "kysely";
 import type { z } from "zod";
 
 import { getDatabaseClient } from "~/services/database.server";
+import { isBatchInspectionLot } from "./inspectionLot.utils";
 import type {
   inboundInspectionDispositionValidator,
   inboundInspectionSampleValidator
@@ -31,8 +32,8 @@ function computeLotStatus(
 // 1. upsertInboundInspectionSample
 // -------------------------------------------------------------
 // Writes that must stay consistent:
-//   - inboundInspectionSample (insert or update)
-//   - trackedEntity.status (flip to Available or Rejected)
+//   - inboundInspectionSample (insert or update; batch lots allow multiple rows)
+//   - trackedEntity.status (serial: flip per sample; batch: only on disposition)
 //   - trackedActivity + trackedActivityInput + trackedActivityOutput
 //   - inboundInspection.status (recompute if non-terminal)
 
@@ -49,17 +50,21 @@ export async function upsertInboundInspectionSample(
     const result = await db.transaction().execute(async (trx) => {
       const inspection = await trx
         .selectFrom("inboundInspection")
-        .select(["id", "status", "receiptId"])
+        .select(["id", "status", "receiptId", "sampleSize"])
         .where("id", "=", sample.inspectionId)
         .where("companyId", "=", sample.companyId)
         .executeTakeFirst();
       if (!inspection) throw new Error("Inspection not found");
 
-      const existing = await trx
-        .selectFrom("inboundInspectionSample")
-        .select(["id"])
-        .where("trackedEntityId", "=", sample.trackedEntityId)
+      const trackedEntity = await trx
+        .selectFrom("trackedEntity")
+        .select(["id", "quantity"])
+        .where("id", "=", sample.trackedEntityId)
+        .where("companyId", "=", sample.companyId)
         .executeTakeFirst();
+      if (!trackedEntity) throw new Error("Tracked entity not found");
+
+      const isBatchEntity = Number(trackedEntity.quantity ?? 1) > 1;
 
       const samplePayload = {
         inboundInspectionId: sample.inspectionId,
@@ -72,35 +77,82 @@ export async function upsertInboundInspectionSample(
       };
 
       let sampleId: string;
-      if (existing) {
-        const updated = await trx
-          .updateTable("inboundInspectionSample")
-          .set({
-            ...samplePayload,
-            updatedBy: sample.inspectedBy,
-            updatedAt: nowIso
-          })
-          .where("id", "=", existing.id)
-          .returning(["id"])
-          .executeTakeFirstOrThrow();
-        sampleId = updated.id;
-      } else {
+
+      if (isBatchEntity) {
+        const [totalRow, entityRow] = await Promise.all([
+          trx
+            .selectFrom("inboundInspectionSample")
+            .select(({ fn }) => fn.count<number>("id").as("count"))
+            .where("inboundInspectionId", "=", sample.inspectionId)
+            .executeTakeFirst(),
+          trx
+            .selectFrom("inboundInspectionSample")
+            .select(({ fn }) => fn.count<number>("id").as("count"))
+            .where("inboundInspectionId", "=", sample.inspectionId)
+            .where("trackedEntityId", "=", sample.trackedEntityId)
+            .executeTakeFirst()
+        ]);
+
+        if (Number(totalRow?.count ?? 0) >= inspection.sampleSize) {
+          throw new Error(
+            "The required number of samples has already been recorded for this lot"
+          );
+        }
+
+        const sampleIndex = Number(entityRow?.count ?? 0) + 1;
+
         const inserted = await trx
           .insertInto("inboundInspectionSample")
-          .values({ ...samplePayload, createdBy: sample.inspectedBy })
+          .values({
+            ...samplePayload,
+            sampleIndex,
+            createdBy: sample.inspectedBy
+          } as any)
           .returning(["id"])
           .executeTakeFirstOrThrow();
         sampleId = inserted.id;
-      }
+      } else {
+        const existing = await trx
+          .selectFrom("inboundInspectionSample")
+          .select(["id"])
+          .where("inboundInspectionId", "=", sample.inspectionId)
+          .where("trackedEntityId", "=", sample.trackedEntityId)
+          .executeTakeFirst();
 
-      const trackedEntityStatus =
-        sample.status === "Passed" ? "Available" : "Rejected";
-      await trx
-        .updateTable("trackedEntity")
-        .set({ status: trackedEntityStatus })
-        .where("id", "=", sample.trackedEntityId)
-        .where("companyId", "=", sample.companyId)
-        .execute();
+        if (existing) {
+          const updated = await trx
+            .updateTable("inboundInspectionSample")
+            .set({
+              ...samplePayload,
+              updatedBy: sample.inspectedBy,
+              updatedAt: nowIso
+            })
+            .where("id", "=", existing.id)
+            .returning(["id"])
+            .executeTakeFirstOrThrow();
+          sampleId = updated.id;
+        } else {
+          const inserted = await trx
+            .insertInto("inboundInspectionSample")
+            .values({
+              ...samplePayload,
+              sampleIndex: 1,
+              createdBy: sample.inspectedBy
+            } as any)
+            .returning(["id"])
+            .executeTakeFirstOrThrow();
+          sampleId = inserted.id;
+        }
+
+        const trackedEntityStatus =
+          sample.status === "Passed" ? "Available" : "Rejected";
+        await trx
+          .updateTable("trackedEntity")
+          .set({ status: trackedEntityStatus })
+          .where("id", "=", sample.trackedEntityId)
+          .where("companyId", "=", sample.companyId)
+          .execute();
+      }
 
       const activity = await trx
         .insertInto("trackedActivity")
@@ -112,6 +164,7 @@ export async function upsertInboundInspectionSample(
             Result: sample.status,
             Receipt: inspection.receiptId,
             Inspector: sample.inspectedBy,
+            ...(isBatchEntity ? { "Sample Unit": 1 } : {}),
             ...(sample.notes ? { Notes: sample.notes } : {})
           },
           companyId: sample.companyId,
@@ -125,7 +178,7 @@ export async function upsertInboundInspectionSample(
         .values({
           trackedActivityId: activity.id,
           trackedEntityId: sample.trackedEntityId,
-          quantity: 0,
+          quantity: isBatchEntity ? 1 : 0,
           companyId: sample.companyId,
           createdBy: sample.inspectedBy
         })
@@ -135,7 +188,7 @@ export async function upsertInboundInspectionSample(
         .values({
           trackedActivityId: activity.id,
           trackedEntityId: sample.trackedEntityId,
-          quantity: 0,
+          quantity: isBatchEntity ? 1 : 0,
           companyId: sample.companyId,
           createdBy: sample.inspectedBy
         })
@@ -215,16 +268,27 @@ export async function dispositionInboundInspection(
         .executeTakeFirst();
       if (!inspection) throw new Error("Inspection not found");
 
-      const lotEntities = await trx
+      let lotEntities = await trx
         .selectFrom("trackedEntity")
-        .select(["id"])
-        .where(
-          sql<string>`attributes ->> 'Receipt Line'`,
-          "=",
-          inspection.receiptLineId
-        )
+        .select(["id", "quantity"])
+        .where(sql<string>`attributes ->> 'Inspection Lot'`, "=", args.id)
         .where("companyId", "=", args.companyId)
         .execute();
+
+      if (lotEntities.length === 0 && inspection.receiptLineId) {
+        lotEntities = await trx
+          .selectFrom("trackedEntity")
+          .select(["id", "quantity"])
+          .where(
+            sql<string>`attributes ->> 'Receipt Line'`,
+            "=",
+            inspection.receiptLineId
+          )
+          .where("companyId", "=", args.companyId)
+          .execute();
+      }
+
+      const batchLot = isBatchInspectionLot(lotEntities);
 
       const existingSamples = await trx
         .selectFrom("inboundInspectionSample")
@@ -242,13 +306,15 @@ export async function dispositionInboundInspection(
       // Reject = entire lot non-conforming (ISO 9001:2015 §8.7). Accept only
       // releases un-sampled entities (sampled outcomes already flipped
       // per-sample). Partial leaves un-sampled entities On Hold.
+      // Batch lots keep the entity On Hold until disposition — Accept releases
+      // the full batch quantity once sampling requirements are met.
       let lotStatus: "Passed" | "Failed" | "Partial";
       let idsToFlip: string[] = [];
       let flipStatus: "Available" | "Rejected" | null = null;
       switch (args.decision) {
         case "Accept":
           lotStatus = "Passed";
-          idsToFlip = unsampledIds;
+          idsToFlip = batchLot ? allLotIds : unsampledIds;
           flipStatus = "Available";
           break;
         case "Reject":

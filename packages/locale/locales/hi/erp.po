@@ -62,6 +62,9 @@ msgstr "{scopeCount} अनुमतियाँ"
 msgid "/month/user"
 msgstr "/माह/उपयोगकर्ता"
 
+msgid "#"
+msgstr ""
+
 #. placeholder {0}: allItems.length - 3
 msgid "+{0} more"
 msgstr "+{0} और"
@@ -443,6 +446,9 @@ msgstr "सभी नौकरियां पूरी हुईं"
 
 msgid "All members of selected groups and selected individuals will be able to approve requests"
 msgstr "चयनित समूहों के सभी सदस्य और चयनित व्यक्ति अनुरोधों को मंजूरी दे सकेंगे"
+
+msgid "All required samples have been recorded."
+msgstr ""
 
 msgid "All Suppliers"
 msgstr "सभी आपूर्तिकर्ता"
@@ -1078,6 +1084,10 @@ msgstr "बैच नंबर"
 
 msgid "Batch Properties"
 msgstr "बैच प्रॉपर्टीज़"
+
+#. placeholder {0}: selected.quantity
+msgid "Batch quantity: {0}"
+msgstr ""
 
 msgid "Batch Size"
 msgstr "बैच आकार"
@@ -3984,6 +3994,9 @@ msgstr "आइटम का निरीक्षण करें"
 msgid "Inspect Next Item"
 msgstr "अगली वस्तु का निरीक्षण करें"
 
+msgid "Inspect Next Sample"
+msgstr ""
+
 msgid "Inspection"
 msgstr "निरीक्षण"
 
@@ -6813,6 +6826,11 @@ msgstr "स्कैन या खोजें..."
 msgid "Scan or select a tracked entity from this lot and record the inspection result."
 msgstr "इस लॉट से एक ट्रैक किए गए इकाई को स्कैन या चुनें और निरीक्षण परिणाम रिकॉर्ड करें।"
 
+#. placeholder {0}: samplesRemaining ?? 0
+#. placeholder {1}: sampleSize ?? 0
+msgid "Scan or select the batch and record each sample result. {0} of {1} required samples remaining."
+msgstr ""
+
 msgid "Scan the tracking ID for this line"
 msgstr "इस लाइन के लिए ट्रैकिंग आईडी स्कैन करें"
 
@@ -7799,7 +7817,11 @@ msgid "The amount of days after the calculation method that the cash discount is
 msgstr "गणना विधि के बाद के दिनों की संख्या जिसके लिए नकद छूट उपलब्ध है"
 
 msgid "The amount of days after the calculation method that the payment is due"
-msgstr "गणना विधि के बाद दिनों की संख्या जिसके बाद भुगतान देय है"
+msgstr "ÃƒÂ Ã‚Â¤Ã¢â‚¬â€ÃƒÂ Ã‚Â¤Ã‚Â£ÃƒÂ Ã‚Â¤Ã‚Â¨ÃƒÂ Ã‚Â¤Ã‚Â¾ ÃƒÂ Ã‚Â¤Ã‚ÂµÃƒÂ Ã‚Â¤Ã‚Â¿ÃƒÂ Ã‚Â¤Ã‚Â§ÃƒÂ Ã‚Â¤Ã‚Â¿ ÃƒÂ Ã‚Â¤Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¥Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¤Ã‚Â¬ÃƒÂ Ã‚Â¤Ã‚Â¾ÃƒÂ Ã‚Â¤Ã‚Â¦ ÃƒÂ Ã‚Â¤Ã‚Â¦ÃƒÂ Ã‚Â¤Ã‚Â¿ÃƒÂ Ã‚Â¤Ã‚Â¨ÃƒÂ Ã‚Â¥Ã¢â‚¬Â¹ÃƒÂ Ã‚Â¤Ã¢â‚¬Å¡ ÃƒÂ Ã‚Â¤Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¥Ã¢â€šÂ¬ ÃƒÂ Ã‚Â¤Ã‚Â¸ÃƒÂ Ã‚Â¤Ã¢â‚¬Å¡ÃƒÂ Ã‚Â¤Ã¢â‚¬â€œÃƒÂ Ã‚Â¥Ã‚ÂÃƒÂ Ã‚Â¤Ã‚Â¯ÃƒÂ Ã‚Â¤Ã‚Â¾ ÃƒÂ Ã‚Â¤Ã…â€œÃƒÂ Ã‚Â¤Ã‚Â¿ÃƒÂ Ã‚Â¤Ã‚Â¸ÃƒÂ Ã‚Â¤Ã¢â‚¬Â¢ÃƒÂ Ã‚Â¥Ã¢â‚¬Â¡ ÃƒÂ Ã‚Â¤Ã‚Â¬ÃƒÂ Ã‚Â¤Ã‚Â¾ÃƒÂ Ã‚Â¤Ã‚Â¦ ÃƒÂ Ã‚Â¤Ã‚Â­ÃƒÂ Ã‚Â¥Ã‚ÂÃƒÂ Ã‚Â¤Ã¢â‚¬â€ÃƒÂ Ã‚Â¤Ã‚Â¤ÃƒÂ Ã‚Â¤Ã‚Â¾ÃƒÂ Ã‚Â¤Ã‚Â¨ ÃƒÂ Ã‚Â¤Ã‚Â¦ÃƒÂ Ã‚Â¥Ã¢â‚¬Â¡ÃƒÂ Ã‚Â¤Ã‚Â¯ ÃƒÂ Ã‚Â¤Ã‚Â¹ÃƒÂ Ã‚Â¥Ã‹â€ "
+
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr ""
 
 msgid "The date the customer expects to receive the goods"
 msgstr "वह तारीख जिस दिन ग्राहक को सामान प्राप्त होने की उम्मीद है"
@@ -8559,6 +8581,9 @@ msgstr "सुझाव देखें"
 
 msgid "View Suppliers"
 msgstr "आपूर्तिकर्ताओं को देखें"
+
+msgid "View traceability"
+msgstr ""
 
 msgid "View Traceability Graph"
 msgstr "ट्रेसेबिलिटी ग्राफ देखें"

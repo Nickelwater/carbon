@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.175.0/http/server.ts";
 import { getLocalTimeZone, parseDate, today } from "npm:@internationalized/date";
-import { Transaction } from "kysely";
+import { Transaction, sql } from "kysely";
 import { z } from "npm:zod@^3.24.1";
 
 import { DB, getConnectionPool, getDatabaseClient } from "../lib/database.ts";
@@ -21,6 +21,27 @@ import { getDefaultPostingGroup } from "../shared/get-posting-group.ts";
 import { calculateCOGS } from "../shared/calculate-cogs.ts";
 
 type ExpiredEntityPolicy = "Warn" | "Block" | "BlockWithOverride";
+
+async function getProductionOutputStatus(
+  trx: Transaction<DB>,
+  jobOperationId: string
+): Promise<"Available" | "On Hold"> {
+  const row = await trx
+    .selectFrom("jobOperation")
+    .innerJoin("job", "job.id", "jobOperation.jobId")
+    .innerJoin("item", "item.id", "job.itemId")
+    .select([
+      "item.requiresInspection",
+      sql<boolean>`is_last_job_operation(${jobOperationId})`.as("isLast"),
+    ])
+    .where("jobOperation.id", "=", jobOperationId)
+    .executeTakeFirst();
+
+  if (row?.requiresInspection && row?.isLast) {
+    return "On Hold";
+  }
+  return "Available";
+}
 
 type InventoryShelfLifeSettings = {
   expiredEntityPolicy?: ExpiredEntityPolicy;
@@ -1039,11 +1060,15 @@ serve(async (req: Request) => {
                 return acc + quantity;
               }, 0) ?? 0;
 
-            // Update the current trackedEntity to Complete
+            const outputStatus = await getProductionOutputStatus(
+              trx,
+              row.jobOperationId
+            );
+
             await trx
               .updateTable("trackedEntity")
               .set({
-                status: "Available",
+                status: outputStatus,
                 quantity: previousProductionQuantities + row.quantity,
               })
               .where("id", "=", trackedEntityId)
@@ -1186,10 +1211,14 @@ serve(async (req: Request) => {
                 createdBy: userId,
               })
               .execute();
+            const outputStatus = await getProductionOutputStatus(
+              trx,
+              row.jobOperationId
+            );
             await trx
               .updateTable("trackedEntity")
               .set({
-                status: "Available",
+                status: outputStatus,
                 quantity: 1,
                 attributes: {
                   ...(trackedEntity.attributes as TrackedEntityAttributes),

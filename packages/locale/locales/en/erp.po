@@ -62,6 +62,9 @@ msgstr "{scopeCount} permissions"
 msgid "/month/user"
 msgstr "/month/user"
 
+msgid "#"
+msgstr "#"
+
 #. placeholder {0}: allItems.length - 3
 msgid "+{0} more"
 msgstr "+{0} more"
@@ -443,6 +446,9 @@ msgstr "All jobs completed"
 
 msgid "All members of selected groups and selected individuals will be able to approve requests"
 msgstr "All members of selected groups and selected individuals will be able to approve requests"
+
+msgid "All required samples have been recorded."
+msgstr "All required samples have been recorded."
 
 msgid "All Suppliers"
 msgstr "All Suppliers"
@@ -1078,6 +1084,10 @@ msgstr "Batch Number"
 
 msgid "Batch Properties"
 msgstr "Batch Properties"
+
+#. placeholder {0}: selected.quantity
+msgid "Batch quantity: {0}"
+msgstr "Batch quantity: {0}"
 
 msgid "Batch Size"
 msgstr "Batch Size"
@@ -3984,6 +3994,9 @@ msgstr "Inspect Item"
 msgid "Inspect Next Item"
 msgstr "Inspect Next Item"
 
+msgid "Inspect Next Sample"
+msgstr "Inspect Next Sample"
+
 msgid "Inspection"
 msgstr "Inspection"
 
@@ -6813,6 +6826,11 @@ msgstr "Scan or search..."
 msgid "Scan or select a tracked entity from this lot and record the inspection result."
 msgstr "Scan or select a tracked entity from this lot and record the inspection result."
 
+#. placeholder {0}: samplesRemaining ?? 0
+#. placeholder {1}: sampleSize ?? 0
+msgid "Scan or select the batch and record each sample result. {0} of {1} required samples remaining."
+msgstr "Scan or select the batch and record each sample result. {0} of {1} required samples remaining."
+
 msgid "Scan the tracking ID for this line"
 msgstr "Scan the tracking ID for this line"
 
@@ -7801,6 +7819,10 @@ msgstr "The amount of days after the calculation method that the cash discount i
 msgid "The amount of days after the calculation method that the payment is due"
 msgstr "The amount of days after the calculation method that the payment is due"
 
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+
 msgid "The date the customer expects to receive the goods"
 msgstr "The date the customer expects to receive the goods"
 
@@ -8559,6 +8581,9 @@ msgstr "View Suggestion"
 
 msgid "View Suppliers"
 msgstr "View Suppliers"
+
+msgid "View traceability"
+msgstr "View traceability"
 
 msgid "View Traceability Graph"
 msgstr "View Traceability Graph"

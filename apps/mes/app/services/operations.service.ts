@@ -161,6 +161,35 @@ export async function finishJobOperation(
     .eq("id", args.jobOperationId);
 
   if (!result.error) {
+    const jobOperation = await client
+      .from("jobOperation")
+      .select("jobId")
+      .eq("id", args.jobOperationId)
+      .single();
+
+    if (jobOperation.data?.jobId) {
+      const job = await client
+        .from("job")
+        .select("status")
+        .eq("id", jobOperation.data.jobId)
+        .single();
+
+      if (job.data?.status === "Completed") {
+        client.functions
+          .invoke("create-inspection-lot", {
+            body: {
+              type: "job",
+              jobId: jobOperation.data.jobId,
+              companyId: args.companyId,
+              userId: args.userId
+            }
+          })
+          .catch((err) => {
+            console.error("create-inspection-lot failed:", err);
+          });
+      }
+    }
+
     client
       .from("productionEvent")
       .select("id")

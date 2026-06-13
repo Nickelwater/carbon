@@ -62,6 +62,9 @@ msgstr "{scopeCount} 个权限"
 msgid "/month/user"
 msgstr "/月/用户"
 
+msgid "#"
+msgstr ""
+
 #. placeholder {0}: allItems.length - 3
 msgid "+{0} more"
 msgstr "+{0} 更多"
@@ -443,6 +446,9 @@ msgstr "所有工作已完成"
 
 msgid "All members of selected groups and selected individuals will be able to approve requests"
 msgstr "所选组的所有成员和所选个人将能够批准请求"
+
+msgid "All required samples have been recorded."
+msgstr ""
 
 msgid "All Suppliers"
 msgstr "所有供应商"
@@ -1078,6 +1084,10 @@ msgstr "批号"
 
 msgid "Batch Properties"
 msgstr "批量属性"
+
+#. placeholder {0}: selected.quantity
+msgid "Batch quantity: {0}"
+msgstr ""
 
 msgid "Batch Size"
 msgstr "批量大小"
@@ -3984,6 +3994,9 @@ msgstr "检查项目"
 msgid "Inspect Next Item"
 msgstr "检查下一项"
 
+msgid "Inspect Next Sample"
+msgstr ""
+
 msgid "Inspection"
 msgstr "检验"
 
@@ -6813,6 +6826,11 @@ msgstr "扫描或搜索..."
 msgid "Scan or select a tracked entity from this lot and record the inspection result."
 msgstr "扫描或从此批次中选择一个追踪实体并记录检验结果。"
 
+#. placeholder {0}: samplesRemaining ?? 0
+#. placeholder {1}: sampleSize ?? 0
+msgid "Scan or select the batch and record each sample result. {0} of {1} required samples remaining."
+msgstr ""
+
 msgid "Scan the tracking ID for this line"
 msgstr "扫描此行的跟踪ID"
 
@@ -7799,7 +7817,11 @@ msgid "The amount of days after the calculation method that the cash discount is
 msgstr "计算方法后可用现金折扣的天数"
 
 msgid "The amount of days after the calculation method that the payment is due"
-msgstr "计算方法后的天数，在该天数后付款到期"
+msgstr "ÃƒÂ¨Ã‚Â®Ã‚Â¡ÃƒÂ§Ã‚Â®Ã¢â‚¬â€ÃƒÂ¦Ã¢â‚¬â€œÃ‚Â¹ÃƒÂ¦Ã‚Â³Ã¢â‚¬Â¢ÃƒÂ¥Ã‚ÂÃ…Â½ÃƒÂ§Ã…Â¡Ã¢â‚¬Å¾ÃƒÂ¥Ã‚Â¤Ã‚Â©ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â°ÃƒÂ¯Ã‚Â¼Ã…â€™ÃƒÂ¥Ã…â€œÃ‚Â¨ÃƒÂ¨Ã‚Â¯Ã‚Â¥ÃƒÂ¥Ã‚Â¤Ã‚Â©ÃƒÂ¦Ã¢â‚¬Â¢Ã‚Â°ÃƒÂ¥Ã‚ÂÃ…Â½ÃƒÂ¤Ã‚Â»Ã‹Å“ÃƒÂ¦Ã‚Â¬Ã‚Â¾ÃƒÂ¥Ã‹â€ Ã‚Â°ÃƒÂ¦Ã…â€œÃ…Â¸"
+
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr ""
 
 msgid "The date the customer expects to receive the goods"
 msgstr "客户期望收到货物的日期"
@@ -8559,6 +8581,9 @@ msgstr "查看建议"
 
 msgid "View Suppliers"
 msgstr "查看供应商"
+
+msgid "View traceability"
+msgstr ""
 
 msgid "View Traceability Graph"
 msgstr "查看可追溯性图表"

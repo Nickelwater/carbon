@@ -2806,7 +2806,7 @@ export async function getInboundInspections(
   let query = (client as any)
     .from("inboundInspection")
     .select(
-      "*, item(readableId, name), receipt(receiptId, supplierId), supplier(name), inboundInspectionSample(status)",
+      "*, item(readableId, name), receipt(receiptId, supplierId), job(jobId), supplier(name), inboundInspectionSample(status)",
       { count: "exact" }
     )
     .eq("companyId", companyId);
@@ -2838,7 +2838,7 @@ export async function getInboundInspection(
   return (client as any)
     .from("inboundInspection")
     .select(
-      "*, item(readableId, name, type), receipt(receiptId, supplierId, createdBy), supplier(name), inboundInspectionSample(*, trackedEntity(id, readableId, attributes, status, sourceDocumentReadableId))"
+      "*, item(readableId, name, type), receipt(receiptId, supplierId, createdBy), job(jobId, updatedBy), supplier(name), inboundInspectionSample(*, trackedEntity(id, readableId, attributes, status, sourceDocumentReadableId))"
     )
     .eq("id", id)
     .single();
@@ -2846,9 +2846,20 @@ export async function getInboundInspection(
 
 export async function getInboundInspectionLotTrackedEntities(
   client: SupabaseClient<Database>,
-  receiptLineId: string,
-  companyId: string
+  inspectionId: string,
+  companyId: string,
+  receiptLineId?: string | null
 ) {
+  const byLot = await client
+    .from("trackedEntity")
+    .select("*")
+    .eq("attributes ->> Inspection Lot", inspectionId)
+    .eq("companyId", companyId);
+
+  if ((byLot.data?.length ?? 0) > 0 || !receiptLineId) {
+    return byLot;
+  }
+
   return client
     .from("trackedEntity")
     .select("*")

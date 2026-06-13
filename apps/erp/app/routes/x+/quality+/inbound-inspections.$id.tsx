@@ -47,6 +47,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       supplierId: string | null;
       createdBy: string;
     } | null;
+    job: { jobId: string; updatedBy: string | null } | null;
     supplier: { name: string } | null;
     inboundInspectionSample: InboundInspectionSample[];
   };
@@ -57,14 +58,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const lotEntities = await getInboundInspectionLotTrackedEntities(
     client,
-    insp.receiptLineId,
-    companyId
+    insp.id,
+    companyId,
+    insp.receiptLineId
   );
+
+  const isJobSource = (insp as any).sourceType === "Job";
 
   return data({
     inspection: insp,
     receiptReadableId: insp.receipt?.receiptId ?? null,
-    receiverId: insp.receipt?.createdBy ?? null,
+    jobReadableId: insp.job?.jobId ?? null,
+    receiverId: isJobSource
+      ? (insp.job?.updatedBy ?? null)
+      : (insp.receipt?.createdBy ?? null),
     itemName: insp.item?.name ?? "",
     supplierName: insp.supplier?.name ?? null,
     samples: insp.inboundInspectionSample ?? [],
@@ -80,6 +87,7 @@ export default function InboundInspectionRoute() {
   const {
     inspection,
     receiptReadableId,
+    jobReadableId,
     receiverId,
     itemName,
     supplierName,
@@ -94,6 +102,7 @@ export default function InboundInspectionRoute() {
     <InboundInspectionLotView
       inspection={inspection as InboundInspectionRow}
       receiptReadableId={receiptReadableId}
+      jobReadableId={jobReadableId}
       receiverId={receiverId}
       itemName={itemName}
       supplierName={supplierName}

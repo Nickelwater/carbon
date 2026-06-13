@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.175.0/http/server.ts";
 import { format } from "https://deno.land/std@0.205.0/datetime/mod.ts";
 import { nanoid } from "https://deno.land/x/nanoid@v3.0.0/mod.ts";
 import { z } from "https://deno.land/x/zod@v3.21.4/mod.ts";
+import { sql } from "kysely";
 import { DB, getConnectionPool, getDatabaseClient } from "../lib/database.ts";
 import { corsHeaders } from "../lib/headers.ts";
 import { requirePermissions } from "../lib/supabase.ts";
@@ -660,6 +661,7 @@ serve(async (req: Request) => {
           );
 
           inboundInspectionInserts.push({
+            sourceType: "Receipt",
             receiptLineId: receiptLine.id,
             receiptId,
             itemId: receiptLine.itemId,
@@ -1552,11 +1554,36 @@ serve(async (req: Request) => {
                 "inboundInspection",
                 companyId
               );
+              const inserted = await trx
+                .insertInto("inboundInspection")
+                .values(row)
+                .returning(["id", "receiptLineId"])
+                .executeTakeFirstOrThrow();
+
+              const lotEntities = await trx
+                .selectFrom("trackedEntity")
+                .select(["id", "attributes"])
+                .where(
+                  sql<string>`attributes ->> 'Receipt Line'`,
+                  "=",
+                  inserted.receiptLineId!
+                )
+                .where("companyId", "=", companyId)
+                .execute();
+
+              for (const entity of lotEntities) {
+                await trx
+                  .updateTable("trackedEntity")
+                  .set({
+                    attributes: {
+                      ...((entity.attributes ?? {}) as Record<string, unknown>),
+                      "Inspection Lot": inserted.id,
+                    },
+                  })
+                  .where("id", "=", entity.id)
+                  .execute();
+              }
             }
-            await trx
-              .insertInto("inboundInspection")
-              .values(inboundInspectionInserts)
-              .execute();
           }
         });
         break;

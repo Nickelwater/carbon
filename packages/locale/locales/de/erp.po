@@ -62,6 +62,9 @@ msgstr "{scopeCount} Berechtigungen"
 msgid "/month/user"
 msgstr "/Monat/Benutzer"
 
+msgid "#"
+msgstr ""
+
 #. placeholder {0}: allItems.length - 3
 msgid "+{0} more"
 msgstr "+{0} weitere"
@@ -443,6 +446,9 @@ msgstr "Alle Aufträge abgeschlossen"
 
 msgid "All members of selected groups and selected individuals will be able to approve requests"
 msgstr "Alle Mitglieder der ausgewählten Gruppen und ausgewählten Personen können Anfragen genehmigen"
+
+msgid "All required samples have been recorded."
+msgstr ""
 
 msgid "All Suppliers"
 msgstr "Alle Lieferanten"
@@ -1078,6 +1084,10 @@ msgstr "Chargennummer"
 
 msgid "Batch Properties"
 msgstr "Batch-Eigenschaften"
+
+#. placeholder {0}: selected.quantity
+msgid "Batch quantity: {0}"
+msgstr ""
 
 msgid "Batch Size"
 msgstr "Chargengröße"
@@ -3984,6 +3994,9 @@ msgstr "Artikel überprüfen"
 msgid "Inspect Next Item"
 msgstr "Nächstes Element prüfen"
 
+msgid "Inspect Next Sample"
+msgstr ""
+
 msgid "Inspection"
 msgstr "Inspektion"
 
@@ -6813,6 +6826,11 @@ msgstr "Scannen oder suchen..."
 msgid "Scan or select a tracked entity from this lot and record the inspection result."
 msgstr "Scannen oder wählen Sie eine nachverfölgte Entität aus diesem Los aus und erfassen Sie das Inspektionsergebnis."
 
+#. placeholder {0}: samplesRemaining ?? 0
+#. placeholder {1}: sampleSize ?? 0
+msgid "Scan or select the batch and record each sample result. {0} of {1} required samples remaining."
+msgstr ""
+
 msgid "Scan the tracking ID for this line"
 msgstr "Scannen Sie die Tracking-ID für diese Zeile"
 
@@ -7799,7 +7817,11 @@ msgid "The amount of days after the calculation method that the cash discount is
 msgstr "Die Anzahl der Tage nach der Berechnungsmethode, für die der Skonto verfügbar ist"
 
 msgid "The amount of days after the calculation method that the payment is due"
-msgstr "Die Anzahl der Tage nach der Berechnungsmethode, bis die Zahlung fällig ist"
+msgstr "Die Anzahl der Tage nach der Berechnungsmethode, bis die Zahlung fÃƒÆ’Ã‚Â¤llig ist"
+
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr ""
 
 msgid "The date the customer expects to receive the goods"
 msgstr "Das Datum, an dem der Kunde die Waren erhalten soll"
@@ -8559,6 +8581,9 @@ msgstr "Vorschlag anzeigen"
 
 msgid "View Suppliers"
 msgstr "Lieferanten anzeigen"
+
+msgid "View traceability"
+msgstr ""
 
 msgid "View Traceability Graph"
 msgstr "Rückverfolgbarkeitsgraph anzeigen"
