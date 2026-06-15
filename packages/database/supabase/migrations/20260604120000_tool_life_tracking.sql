@@ -1,17 +1,25 @@
 -- Tool life tracking: policy on tool, per-serial life on trackedEntity, ledger history,
 -- job operation tool issuance, and accrual functions.
 
-CREATE TYPE "toolLifeBasis" AS ENUM ('Cycles', 'RunTime');
+DO $$ BEGIN
+  CREATE TYPE "toolLifeBasis" AS ENUM ('Cycles', 'RunTime');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
-CREATE TYPE "toolLifeLedgerSourceType" AS ENUM (
-  'Manual',
-  'Reset',
-  'AutoIssue',
-  'ProductionCycles',
-  'ProductionRunTime',
-  'ScrapCycles',
-  'ScrapRunTime'
-);
+DO $$ BEGIN
+  CREATE TYPE "toolLifeLedgerSourceType" AS ENUM (
+    'Manual',
+    'Reset',
+    'AutoIssue',
+    'ProductionCycles',
+    'ProductionRunTime',
+    'ScrapCycles',
+    'ScrapRunTime'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TABLE "tool"
   ADD COLUMN IF NOT EXISTS "lifeBasis" "toolLifeBasis",
@@ -29,18 +37,26 @@ ALTER TABLE "jobOperationTool"
   ADD COLUMN IF NOT EXISTS "autoIssued" BOOLEAN NOT NULL DEFAULT FALSE,
   ADD COLUMN IF NOT EXISTS "trackedEntityId" TEXT;
 
-ALTER TABLE "jobOperationTool"
-  ADD CONSTRAINT "jobOperationTool_issuedBy_fkey"
-    FOREIGN KEY ("issuedBy") REFERENCES "user"("id") ON DELETE RESTRICT;
+DO $$ BEGIN
+  ALTER TABLE "jobOperationTool"
+    ADD CONSTRAINT "jobOperationTool_issuedBy_fkey"
+      FOREIGN KEY ("issuedBy") REFERENCES "user"("id") ON DELETE RESTRICT;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE "jobOperationTool"
-  ADD CONSTRAINT "jobOperationTool_trackedEntityId_fkey"
-    FOREIGN KEY ("trackedEntityId") REFERENCES "trackedEntity"("id") ON DELETE SET NULL;
+DO $$ BEGIN
+  ALTER TABLE "jobOperationTool"
+    ADD CONSTRAINT "jobOperationTool_trackedEntityId_fkey"
+      FOREIGN KEY ("trackedEntityId") REFERENCES "trackedEntity"("id") ON DELETE SET NULL;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS "jobOperationTool_trackedEntityId_idx"
   ON "jobOperationTool" ("trackedEntityId");
 
-CREATE TABLE "toolLifeLedger" (
+CREATE TABLE IF NOT EXISTS "toolLifeLedger" (
   "id" TEXT NOT NULL DEFAULT xid(),
   "toolId" TEXT NOT NULL,
   "trackedEntityId" TEXT,
@@ -64,14 +80,15 @@ CREATE TABLE "toolLifeLedger" (
     FOREIGN KEY ("createdBy") REFERENCES "user"("id") ON DELETE RESTRICT
 );
 
-CREATE INDEX "toolLifeLedger_toolId_createdAt_idx"
+CREATE INDEX IF NOT EXISTS "toolLifeLedger_toolId_createdAt_idx"
   ON "toolLifeLedger" ("toolId", "createdAt" DESC);
 
-CREATE INDEX "toolLifeLedger_trackedEntityId_idx"
+CREATE INDEX IF NOT EXISTS "toolLifeLedger_trackedEntityId_idx"
   ON "toolLifeLedger" ("trackedEntityId");
 
 ALTER TABLE "toolLifeLedger" ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Employees with parts_view can view tool life ledger" ON "toolLifeLedger";
 CREATE POLICY "Employees with parts_view can view tool life ledger" ON "toolLifeLedger"
   FOR SELECT
   USING (
@@ -79,6 +96,7 @@ CREATE POLICY "Employees with parts_view can view tool life ledger" ON "toolLife
     has_company_permission('parts_view', "companyId")
   );
 
+DROP POLICY IF EXISTS "Employees with parts_update can insert tool life ledger" ON "toolLifeLedger";
 CREATE POLICY "Employees with parts_update can insert tool life ledger" ON "toolLifeLedger"
   FOR INSERT
   WITH CHECK (
@@ -171,6 +189,7 @@ END;
 $$;
 
 -- Accrue tool life for all issued tools on a job operation
+DROP FUNCTION IF EXISTS accrue_tool_life_for_operation(TEXT, NUMERIC, TEXT, TEXT);
 CREATE OR REPLACE FUNCTION accrue_tool_life_for_operation(
   p_job_operation_id TEXT,
   p_quantity_parts NUMERIC,

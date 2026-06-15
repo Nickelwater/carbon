@@ -1,6 +1,10 @@
 -- Per-piece vs per-cycle operation timing
 
-CREATE TYPE "operationTimeBasis" AS ENUM ('Piece', 'Cycle');
+DO $$ BEGIN
+  CREATE TYPE "operationTimeBasis" AS ENUM ('Piece', 'Cycle');
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TABLE "quoteOperation"
   ADD COLUMN IF NOT EXISTS "timeBasis" "operationTimeBasis" NOT NULL DEFAULT 'Piece';
