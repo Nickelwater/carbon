@@ -679,9 +679,9 @@ msgstr "Tem a certeza de que deseja eliminar {0} desta operação? Isto não pod
 msgid "Are you sure you want to delete {0}?"
 msgstr "Tem a certeza de que deseja eliminar {0}?"
 
+#. placeholder {0}: document?.name
 #. placeholder {0}: routeData?.consumableSummary?.readableIdWithRevision
 #. placeholder {0}: routeData?.customer?.name!
-#. placeholder {0}: routeData?.document?.name
 msgid "Are you sure you want to delete {0}? This cannot be undone."
 msgstr "Tem a certeza de que deseja eliminar {0}? Esta ação não pode ser desfeita."
 
@@ -1370,6 +1370,12 @@ msgstr "Alterar isto irá sobrescrever o método existente"
 
 msgid "Changing this will update the part ID"
 msgstr "Alterar isto atualizará o ID da peça"
+
+msgid "Characteristic"
+msgstr ""
+
+msgid "Characteristics from this document will be used when inspecting lots of this part."
+msgstr ""
 
 msgid "Chart of Accounts"
 msgstr "Plano de Contas"
@@ -3141,6 +3147,9 @@ msgstr "Contacto de Engenharia"
 msgid "Enter a batch number before setting the expiration date"
 msgstr "Insira um número de lote antes de definir a data de expiração"
 
+msgid "Enter measurements with numeric tolerances to compute a result, or override manually."
+msgstr ""
+
 msgid "Enter or scan serial number"
 msgstr "Insira ou digitalize o número de série"
 
@@ -3981,6 +3990,9 @@ msgstr "Suporte de Implementação"
 msgid "Import {label} CSV"
 msgstr "Importar {label} CSV"
 
+msgid "In"
+msgstr ""
+
 msgid "In order to convert this RFQ to a quote, all lines must have an internal part number."
 msgstr "Para converter este RFQ em uma cotação, todas as linhas devem ter um número de peça interno."
 
@@ -4077,8 +4089,14 @@ msgstr "Inspeção"
 msgid "Inspection Document"
 msgstr "Documento de Inspeção"
 
+msgid "Inspection document:"
+msgstr ""
+
 msgid "Inspection Documents"
 msgstr "Documentos de Inspeção"
+
+msgid "Inspection drawing"
+msgstr ""
 
 msgid "Inspection Level"
 msgstr "Nível de Inspeção"
@@ -4811,8 +4829,14 @@ msgstr "Tempo Médio Entre Falhas"
 msgid "Mean Time To Repair"
 msgstr "Tempo Médio de Reparo"
 
+msgid "Measured"
+msgstr ""
+
 msgid "Measurement Standard"
 msgstr "Padrão de Medição"
+
+msgid "Measurements"
+msgstr ""
 
 msgid "Media Size"
 msgstr "Tamanho da Mídia"
@@ -5367,6 +5391,12 @@ msgstr "Nenhum grupo atribuído"
 msgid "No image"
 msgstr "Sem imagem"
 
+msgid "No inspection document linked — record Pass/Fail only for each sample."
+msgstr ""
+
+msgid "No inspection documents exist for this part. <0>Create one</0> in Quality → Inspection Documents."
+msgstr ""
+
 msgid "No issue types configured"
 msgstr "Nenhum tipo de problema configurado"
 
@@ -5474,6 +5504,9 @@ msgstr "Nenhum centro de trabalho existe"
 
 msgid "Nom"
 msgstr "Nom"
+
+msgid "Nominal"
+msgstr ""
 
 msgid "Nominal Cost"
 msgstr "Custo Nominal"
@@ -5709,6 +5742,9 @@ msgstr "Origem"
 msgid "Other Type"
 msgstr "Outro Tipo"
 
+msgid "Out"
+msgstr ""
+
 msgid "Outgoing"
 msgstr "Saída"
 
@@ -5727,6 +5763,9 @@ msgstr "Taxa de Sobrecarga"
 msgid "Overhead Rate (Hourly)"
 msgstr "Taxa de Sobrecarga (Por Hora)"
 
+msgid "overridden"
+msgstr ""
+
 msgid "Override needs the inventory:update permission and a reason."
 msgstr "A substituição requer a permissão inventory:update e um motivo."
 
@@ -5738,6 +5777,9 @@ msgstr "Substituir preço para um único cliente"
 
 msgid "Override price for all customers of a type"
 msgstr "Substituir preço para todos os clientes de um tipo"
+
+msgid "Override suggested result"
+msgstr ""
 
 msgid "Override the expiration on {label}."
 msgstr "Substituir a expiração em {label}."
@@ -5759,6 +5801,9 @@ msgstr "Sobrescrever o método de fabricação de destino com o método de cota�
 
 msgid "Packing Slip"
 msgstr "Guia de Remessa"
+
+msgid "Page {pdfViewPage} / {numPages}"
+msgstr ""
 
 msgid "Page {pdfViewPage} of {documentPageCount}"
 msgstr "Página {pdfViewPage} de {documentPageCount}"
@@ -6669,6 +6714,9 @@ msgstr "Data Solicitada"
 msgid "Require approval before suppliers can be set to Active"
 msgstr "Exigir aprovação antes que fornecedores possam ser definidos como Ativos"
 
+msgid "Require approval for inspection documents before they can go active"
+msgstr ""
+
 msgid "Require approval for purchase orders based on amount thresholds"
 msgstr "Exigir aprovação para pedidos de compra com base em limites de valor"
 
@@ -6948,6 +6996,9 @@ msgstr "Guardar e Sobrescrever"
 msgid "Save Method"
 msgstr "Salvar Método"
 
+msgid "Save Sample"
+msgstr ""
+
 msgid "Save Tool Life Policy"
 msgstr ""
 
@@ -7021,6 +7072,9 @@ msgstr "Motivo da Sucata"
 
 msgid "Scrap Reasons"
 msgstr "Motivos de Sucata"
+
+msgid "Scroll or drag to pan. Use the mouse wheel to zoom."
+msgstr ""
 
 msgid "Search"
 msgstr "Pesquisar"
@@ -7745,6 +7799,9 @@ msgstr "Revisão criada com sucesso"
 msgid "Suffix"
 msgstr "Sufixo"
 
+msgid "Suggested result:"
+msgstr ""
+
 msgid "Suggestion"
 msgstr "Sugestão"
 
@@ -7998,6 +8055,9 @@ msgstr "A data mais tardia para fazer este PO para que chegue até a data de nec
 
 msgid "The lot will still be rejected, but an NCR cannot be auto-created until at least one Issue Type is configured."
 msgstr "O lote ainda será rejeitado, mas um NCR não pode ser criado automaticamente até que pelo menos um Tipo de Problema seja configurado."
+
+msgid "The new version number of the document"
+msgstr ""
 
 msgid "The new version number of the method"
 msgstr "O novo número de versão do método"

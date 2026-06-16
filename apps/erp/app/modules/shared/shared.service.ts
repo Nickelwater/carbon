@@ -113,6 +113,52 @@ export async function approveRequest(
         if (!qdUpdate) {
           throw new Error("Failed to update quality document status");
         }
+      } else if (documentType === "inspectionDocument") {
+        const doc = await trx
+          .selectFrom("inspectionDocument")
+          .select(["id", "documentFamilyId", "companyId"])
+          .where("id", "=", documentId)
+          .executeTakeFirst();
+
+        if (!doc) {
+          throw new Error("Failed to find inspection document");
+        }
+
+        const idUpdate = await trx
+          .updateTable("inspectionDocument")
+          .set({
+            status: "Active",
+            updatedBy: userId,
+            updatedAt: now
+          })
+          .where("id", "=", documentId)
+          .returning(["id"])
+          .executeTakeFirst();
+
+        if (!idUpdate) {
+          throw new Error("Failed to update inspection document status");
+        }
+
+        const siblingIds = await trx
+          .selectFrom("inspectionDocument")
+          .select("id")
+          .where("documentFamilyId", "=", doc.documentFamilyId)
+          .where("companyId", "=", doc.companyId)
+          .where("id", "!=", documentId)
+          .execute();
+
+        if (siblingIds.length > 0) {
+          await trx
+            .updateTable("itemSamplingPlan")
+            .set({ inspectionDocumentId: documentId })
+            .where("companyId", "=", doc.companyId)
+            .where(
+              "inspectionDocumentId",
+              "in",
+              siblingIds.map((row) => row.id)
+            )
+            .execute();
+        }
       } else if (documentType === "supplier") {
         const supplierUpdate = await trx
           .updateTable("supplier")

@@ -11616,6 +11616,7 @@ export type Database = {
           dispositionedBy: string | null
           id: string
           inboundInspectionId: string
+          inspectionDocumentId: string | null
           inspectionLevel: Database["public"]["Enums"]["inspectionLevel"] | null
           itemId: string
           itemReadableId: string | null
@@ -11644,6 +11645,7 @@ export type Database = {
           dispositionedBy?: string | null
           id?: string
           inboundInspectionId: string
+          inspectionDocumentId?: string | null
           inspectionLevel?:
             | Database["public"]["Enums"]["inspectionLevel"]
             | null
@@ -11674,6 +11676,7 @@ export type Database = {
           dispositionedBy?: string | null
           id?: string
           inboundInspectionId?: string
+          inspectionDocumentId?: string | null
           inspectionLevel?:
             | Database["public"]["Enums"]["inspectionLevel"]
             | null
@@ -11943,6 +11946,7 @@ export type Database = {
           defectsFound: number
           id: string
           inboundInspectionId: string
+          inspectionDocumentId: string | null
           inspectionLevel: Database["public"]["Enums"]["inspectionLevel"] | null
           itemId: string
           lotSize: number
@@ -11960,6 +11964,7 @@ export type Database = {
           defectsFound: number
           id?: string
           inboundInspectionId: string
+          inspectionDocumentId?: string | null
           inspectionLevel?:
             | Database["public"]["Enums"]["inspectionLevel"]
             | null
@@ -12151,6 +12156,7 @@ export type Database = {
           inspectedBy: string | null
           notes: string | null
           status: Database["public"]["Enums"]["inboundInspectionSampleStatus"]
+          statusOverridden: boolean
           trackedEntityId: string
           updatedAt: string | null
           updatedBy: string | null
@@ -12165,6 +12171,7 @@ export type Database = {
           inspectedBy?: string | null
           notes?: string | null
           status?: Database["public"]["Enums"]["inboundInspectionSampleStatus"]
+          statusOverridden?: boolean
           trackedEntityId: string
           updatedAt?: string | null
           updatedBy?: string | null
@@ -12179,6 +12186,7 @@ export type Database = {
           inspectedBy?: string | null
           notes?: string | null
           status?: Database["public"]["Enums"]["inboundInspectionSampleStatus"]
+          statusOverridden?: boolean
           trackedEntityId?: string
           updatedAt?: string | null
           updatedBy?: string | null
@@ -12333,6 +12341,45 @@ export type Database = {
           },
         ]
       }
+      inboundInspectionSampleMeasurement: {
+        Row: {
+          companyId: string
+          createdAt: string
+          createdBy: string
+          id: string
+          inboundInspectionSampleId: string
+          inspectionFeatureId: string
+          inTolerance: boolean | null
+          measuredValue: string | null
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          companyId: string
+          createdAt?: string
+          createdBy: string
+          id?: string
+          inboundInspectionSampleId: string
+          inspectionFeatureId: string
+          inTolerance?: boolean | null
+          measuredValue?: string | null
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          companyId?: string
+          createdAt?: string
+          createdBy?: string
+          id?: string
+          inboundInspectionSampleId?: string
+          inspectionFeatureId?: string
+          inTolerance?: boolean | null
+          measuredValue?: string | null
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: []
+      }
       inspectionDocument: {
         Row: {
           companyId: string
@@ -12340,11 +12387,13 @@ export type Database = {
           createdBy: string
           defaultPageHeight: number | null
           defaultPageWidth: number | null
+          documentFamilyId: string
           drawingNumber: string | null
           fileName: string | null
           id: string
           pageCount: number | null
           partId: string
+          status: Database["public"]["Enums"]["inspectionDocumentStatus"]
           storagePath: string | null
           updatedAt: string | null
           updatedBy: string | null
@@ -12357,11 +12406,13 @@ export type Database = {
           createdBy: string
           defaultPageHeight?: number | null
           defaultPageWidth?: number | null
+          documentFamilyId: string
           drawingNumber?: string | null
           fileName?: string | null
           id?: string
           pageCount?: number | null
           partId: string
+          status?: Database["public"]["Enums"]["inspectionDocumentStatus"]
           storagePath?: string | null
           updatedAt?: string | null
           updatedBy?: string | null
@@ -12374,11 +12425,13 @@ export type Database = {
           createdBy?: string
           defaultPageHeight?: number | null
           defaultPageWidth?: number | null
+          documentFamilyId?: string
           drawingNumber?: string | null
           fileName?: string | null
           id?: string
           pageCount?: number | null
           partId?: string
+          status?: Database["public"]["Enums"]["inspectionDocumentStatus"]
           storagePath?: string | null
           updatedAt?: string | null
           updatedBy?: string | null
@@ -14249,6 +14302,7 @@ export type Database = {
           createdAt: string
           createdBy: string
           inspectionLevel: Database["public"]["Enums"]["inspectionLevel"]
+          inspectionDocumentId: string | null
           itemId: string
           percentage: number | null
           sampleSize: number | null
@@ -14263,6 +14317,7 @@ export type Database = {
           createdAt?: string
           createdBy: string
           inspectionLevel?: Database["public"]["Enums"]["inspectionLevel"]
+          inspectionDocumentId?: string | null
           itemId: string
           percentage?: number | null
           sampleSize?: number | null
@@ -14277,6 +14332,7 @@ export type Database = {
           createdAt?: string
           createdBy?: string
           inspectionLevel?: Database["public"]["Enums"]["inspectionLevel"]
+          inspectionDocumentId?: string | null
           itemId?: string
           percentage?: number | null
           sampleSize?: number | null
@@ -51531,17 +51587,20 @@ export type Database = {
           createdBy: string | null
           defaultPageHeight: number | null
           defaultPageWidth: number | null
+          documentFamilyId: string | null
           drawingNumber: string | null
           fileName: string | null
           id: string | null
           pageCount: number | null
           partId: string | null
           partReadableId: string | null
+          status: Database["public"]["Enums"]["inspectionDocumentStatus"] | null
           storagePath: string | null
           updatedAt: string | null
           updatedBy: string | null
           uploadedBy: string | null
           version: number | null
+          versions: Json | null
         }
         Relationships: [
           {
@@ -65927,7 +65986,12 @@ export type Database = {
         | "Other Expense"
         | "Tax"
         | "Investments"
-      approvalDocumentType: "purchaseOrder" | "qualityDocument" | "supplier"
+      approvalDocumentType:
+        | "purchaseOrder"
+        | "qualityDocument"
+        | "supplier"
+        | "inspectionDocument"
+      inspectionDocumentStatus: "Draft" | "Active" | "Archived"
       approvalStatus: "Pending" | "Approved" | "Rejected" | "Cancelled"
       configurationParameterDataType:
         | "text"
@@ -67207,7 +67271,13 @@ export const Constants = {
         "Tax",
         "Investments",
       ],
-      approvalDocumentType: ["purchaseOrder", "qualityDocument", "supplier"],
+      approvalDocumentType: [
+        "purchaseOrder",
+        "qualityDocument",
+        "supplier",
+        "inspectionDocument",
+      ],
+      inspectionDocumentStatus: ["Draft", "Active", "Archived"],
       approvalStatus: ["Pending", "Approved", "Rejected", "Cancelled"],
       configurationParameterDataType: [
         "text",

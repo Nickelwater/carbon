@@ -38,13 +38,16 @@ import {
   LuShieldAlert,
   LuTriangleAlert
 } from "react-icons/lu";
-import { useFetcher, useNavigate } from "react-router";
+import { Link, useFetcher, useNavigate } from "react-router";
 import { EmployeeAvatar } from "~/components";
 import { Confirm } from "~/components/Modals";
 import { usePermissions } from "~/hooks";
 import type {
   InboundInspectionRow,
   InboundInspectionSample,
+  InboundInspectionSampleMeasurementRow,
+  InspectionDocument,
+  InspectionPlanRow,
   InspectionTrackedEntity,
   IssueTypeListItem
 } from "~/modules/quality/types";
@@ -59,6 +62,10 @@ import ScanInspectionSample from "./ScanInspectionSample";
 
 export type InboundInspectionLotViewProps = {
   inspection: InboundInspectionRow;
+  inspectionDocumentId?: string | null;
+  inspectionPlan?: InspectionPlanRow[];
+  linkedDocument?: InspectionDocument | null;
+  sampleMeasurements?: Record<string, InboundInspectionSampleMeasurementRow[]>;
   receiptReadableId: string | null;
   jobReadableId: string | null;
   receiverId: string | null;
@@ -74,6 +81,10 @@ export type InboundInspectionLotViewProps = {
 
 export default function InboundInspectionLotView({
   inspection,
+  inspectionDocumentId,
+  inspectionPlan = [],
+  linkedDocument,
+  sampleMeasurements = {},
   receiptReadableId,
   jobReadableId,
   receiverId,
@@ -222,6 +233,25 @@ export default function InboundInspectionLotView({
                 />
               </div>
 
+              {inspectionDocumentId && linkedDocument ? (
+                <p className="text-sm text-muted-foreground w-full">
+                  <Trans>Inspection document:</Trans>{" "}
+                  <Link
+                    to={path.to.inspectionDocument(inspectionDocumentId)}
+                    className="underline text-foreground"
+                  >
+                    {linkedDocument.name}
+                  </Link>
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground w-full">
+                  <Trans>
+                    No inspection document linked — record Pass/Fail only for
+                    each sample.
+                  </Trans>
+                </p>
+              )}
+
               {showFourEyesWarning && (
                 <Alert variant="warning">
                   <LuTriangleAlert className="size-4" />
@@ -284,6 +314,11 @@ export default function InboundInspectionLotView({
                       <th className="text-left px-3 py-2 font-medium">
                         <Trans>Result</Trans>
                       </th>
+                      {inspectionDocumentId && (
+                        <th className="text-left px-3 py-2 font-medium">
+                          <Trans>Measurements</Trans>
+                        </th>
+                      )}
                       <th className="text-left px-3 py-2 font-medium">
                         <Trans>Inspector</Trans>
                       </th>
@@ -296,7 +331,9 @@ export default function InboundInspectionLotView({
                     {samples.length === 0 && (
                       <tr>
                         <td
-                          colSpan={batchLot ? 5 : 4}
+                          colSpan={
+                            (batchLot ? 5 : 4) + (inspectionDocumentId ? 1 : 0)
+                          }
                           className="px-3 py-6 text-center text-muted-foreground"
                         >
                           <Trans>No samples inspected yet.</Trans>
@@ -308,6 +345,11 @@ export default function InboundInspectionLotView({
                       const sampleNum =
                         (s as { sampleIndex?: number }).sampleIndex ??
                         index + 1;
+                      const measurements = sampleMeasurements[s.id] ?? [];
+                      const measurementSummary = summarizeMeasurements(
+                        measurements,
+                        inspectionPlan.length
+                      );
                       return (
                         <tr key={s.id} className="border-t">
                           <td className="px-3 py-2">
@@ -339,7 +381,18 @@ export default function InboundInspectionLotView({
                             ) : (
                               <Badge variant="secondary">{s.status}</Badge>
                             )}
+                            {(s as { statusOverridden?: boolean })
+                              .statusOverridden && (
+                              <span className="ml-2 text-xs text-muted-foreground">
+                                <Trans>overridden</Trans>
+                              </span>
+                            )}
                           </td>
+                          {inspectionDocumentId && (
+                            <td className="px-3 py-2 text-xs text-muted-foreground">
+                              {measurementSummary ?? "—"}
+                            </td>
+                          )}
                           <td className="px-3 py-2">
                             {s.inspectedBy ? (
                               <EmployeeAvatar employeeId={s.inspectedBy} />
@@ -404,6 +457,8 @@ export default function InboundInspectionLotView({
           batchLot={batchLot}
           samplesRemaining={samplesRemaining}
           sampleSize={inspection.sampleSize}
+          inspectionPlan={inspectionPlan}
+          inspectionDocumentPdfUrl={linkedDocument?.content?.pdfUrl ?? null}
           onClose={scannerDisclosure.onClose}
         />
       )}
@@ -556,6 +611,24 @@ function RejectLotModal({
       </ModalContent>
     </Modal>
   );
+}
+
+function summarizeMeasurements(
+  measurements: InboundInspectionSampleMeasurementRow[],
+  planLength: number
+): string | null {
+  if (measurements.length === 0) return null;
+  const evaluable = measurements.filter((m) => m.inTolerance != null);
+  if (evaluable.length === 0) return null;
+  const inTolerance = evaluable.filter((m) => m.inTolerance).length;
+  const label = `${inTolerance}/${evaluable.length} in tolerance`;
+  if (evaluable.some((m) => m.inTolerance === false)) {
+    return `${label} · failed`;
+  }
+  if (planLength > 0 && evaluable.length < planLength) {
+    return `${label} · incomplete`;
+  }
+  return label;
 }
 
 function Kv({

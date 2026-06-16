@@ -12,6 +12,7 @@ import {
 } from "@carbon/react";
 import { Trans } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
+import { Link } from "react-router";
 import {
   Hidden,
   Number as NumberInput,
@@ -28,11 +29,20 @@ import {
   type SamplingStandard,
   standardAqlValues
 } from "~/modules/quality/samplingStandards";
+import { path } from "~/utils/path";
+
+type InspectionDocumentOption = {
+  id: string;
+  drawingNumber: string | null;
+  fileName: string | null;
+  version?: number;
+};
 
 type SamplingPlanFormProps = {
   action: string;
   itemId: string;
   standard: SamplingStandard;
+  documentsForPart?: InspectionDocumentOption[];
   initial?: {
     type: SamplingPlanType;
     sampleSize?: number | null;
@@ -40,6 +50,7 @@ type SamplingPlanFormProps = {
     aql?: number | string | null;
     inspectionLevel?: InspectionLevel;
     severity?: InspectionSeverity;
+    inspectionDocumentId?: string | null;
   } | null;
 };
 
@@ -90,10 +101,24 @@ const aqlOptions = standardAqlValues.map((v) => ({
 
 const SAMPLE_LOT_SIZES = [10, 50, 100, 500, 1000];
 
+/** Radix Select forbids empty-string option values; use this for "no document". */
+export const NO_INSPECTION_DOCUMENT = "__none__";
+
+function toInspectionDocumentSelectValue(
+  id: string | null | undefined
+): string {
+  return id?.trim() ? id : NO_INSPECTION_DOCUMENT;
+}
+
+function hasInspectionDocumentSelected(id: string): boolean {
+  return id !== "" && id !== NO_INSPECTION_DOCUMENT;
+}
+
 export default function SamplingPlanForm({
   action,
   itemId,
   standard,
+  documentsForPart = [],
   initial
 }: SamplingPlanFormProps) {
   const permissions = usePermissions();
@@ -106,6 +131,9 @@ export default function SamplingPlanForm({
   const initialAqlNumber = toNumberOrUndefined(initial?.aql) ?? 1.0;
   const initialLevel: InspectionLevel = initial?.inspectionLevel ?? "II";
   const initialSeverity: InspectionSeverity = initial?.severity ?? "Normal";
+  const initialInspectionDocumentId = toInspectionDocumentSelectValue(
+    initial?.inspectionDocumentId
+  );
 
   const [type, setType] = useState<SamplingPlanType>(initialType);
   const [sampleSize, setSampleSize] = useState<number>(initialSampleSize ?? 1);
@@ -114,6 +142,24 @@ export default function SamplingPlanForm({
   const [inspectionLevel, setInspectionLevel] =
     useState<InspectionLevel>(initialLevel);
   const [severity, setSeverity] = useState<InspectionSeverity>(initialSeverity);
+  const [inspectionDocumentId, setInspectionDocumentId] = useState(
+    initialInspectionDocumentId
+  );
+
+  const documentOptions = [
+    { value: NO_INSPECTION_DOCUMENT, label: "None" },
+    ...documentsForPart.map((doc) => ({
+      value: doc.id,
+      label:
+        [
+          doc.drawingNumber,
+          doc.fileName,
+          doc.version != null ? `v${doc.version}` : null
+        ]
+          .filter(Boolean)
+          .join(" — ") || doc.id
+    }))
+  ];
 
   // Re-seed local state when the loader returns a new plan (e.g. after save).
   useEffect(() => {
@@ -123,6 +169,7 @@ export default function SamplingPlanForm({
     setAql(initialAqlNumber);
     setInspectionLevel(initialLevel);
     setSeverity(initialSeverity);
+    setInspectionDocumentId(initialInspectionDocumentId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     initialType,
@@ -130,7 +177,8 @@ export default function SamplingPlanForm({
     initialPercentage,
     initialAqlNumber,
     initialLevel,
-    initialSeverity
+    initialSeverity,
+    initialInspectionDocumentId
   ]);
 
   const planForPreview = {
@@ -150,7 +198,8 @@ export default function SamplingPlanForm({
     initialPercentage ?? "",
     initialAqlString ?? "",
     initialLevel,
-    initialSeverity
+    initialSeverity,
+    initialInspectionDocumentId
   ].join("|");
 
   return (
@@ -167,7 +216,8 @@ export default function SamplingPlanForm({
           percentage: initialPercentage ?? undefined,
           aql: (initialAqlString ?? "1") as any,
           inspectionLevel: initialLevel,
-          severity: initialSeverity
+          severity: initialSeverity,
+          inspectionDocumentId: initialInspectionDocumentId
         }}
       >
         <Hidden name="itemId" />
@@ -260,6 +310,42 @@ export default function SamplingPlanForm({
                 </div>
               </div>
             )}
+
+            <div className="flex flex-col gap-2 w-full border rounded-md p-4">
+              <Label>
+                <Trans>Inspection Document</Trans>
+              </Label>
+              {documentsForPart.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  <Trans>
+                    No inspection documents exist for this part.{" "}
+                    <Link
+                      to={path.to.inspectionDocuments}
+                      className="underline"
+                    >
+                      Create one
+                    </Link>{" "}
+                    in Quality → Inspection Documents.
+                  </Trans>
+                </p>
+              ) : (
+                <Select
+                  name="inspectionDocumentId"
+                  options={documentOptions}
+                  onChange={(v) =>
+                    setInspectionDocumentId(v?.value ?? NO_INSPECTION_DOCUMENT)
+                  }
+                />
+              )}
+              {hasInspectionDocumentSelected(inspectionDocumentId) && (
+                <p className="text-xs text-muted-foreground">
+                  <Trans>
+                    Characteristics from this document will be used when
+                    inspecting lots of this part.
+                  </Trans>
+                </p>
+              )}
+            </div>
 
             <div className="flex flex-col gap-2 w-full border rounded-md p-4">
               <HStack className="justify-between">

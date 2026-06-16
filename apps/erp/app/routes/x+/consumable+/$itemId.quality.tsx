@@ -6,6 +6,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { data, redirect, useLoaderData, useParams } from "react-router";
 import invariant from "tiny-invariant";
 import {
+  getInspectionDocumentsForPart,
   getItemSamplingPlan,
   itemSamplingPlanValidator,
   upsertItemSamplingPlan
@@ -21,13 +22,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { itemId } = params;
   invariant(itemId, "itemId is required");
 
-  const [plan, settings] = await Promise.all([
+  const [plan, settings, documents] = await Promise.all([
     getItemSamplingPlan(client, itemId, companyId),
-    getCompanySettings(client, companyId)
+    getCompanySettings(client, companyId),
+    getInspectionDocumentsForPart(client, companyId, itemId)
   ]);
 
   return data({
     plan: plan.data,
+    documentsForPart: documents.data ?? [],
     samplingStandard:
       ((settings.data as any)?.samplingStandard as
         | "ANSI_Z1_4"
@@ -68,7 +71,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function ConsumableQualityRoute() {
-  const { plan, samplingStandard } = useLoaderData<typeof loader>();
+  const { plan, samplingStandard, documentsForPart } =
+    useLoaderData<typeof loader>();
   const { itemId } = useParams();
   if (!itemId) throw new Error("itemId is required");
   return (
@@ -77,6 +81,7 @@ export default function ConsumableQualityRoute() {
         action={path.to.consumableQuality(itemId)}
         itemId={itemId}
         standard={samplingStandard}
+        documentsForPart={documentsForPart}
         initial={plan ?? undefined}
       />
     </div>

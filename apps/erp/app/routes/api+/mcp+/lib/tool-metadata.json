@@ -1,6 +1,6 @@
 {
-  "generated": "2026-06-13T21:42:48.794Z",
-  "totalTools": 1191,
+  "generated": "2026-06-16T19:54:39.532Z",
+  "totalTools": 1194,
   "modules": 15,
   "tools": [
     {
@@ -23129,6 +23129,32 @@
       }
     },
     {
+      "name": "quality_getInspectionDocumentVersions",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get inspection document versions",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "documentFamilyId",
+        "companyId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "documentFamilyId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "documentFamilyId"
+        ]
+      }
+    },
+    {
       "name": "quality_getInspectionDocuments",
       "module": "quality",
       "classification": "READ",
@@ -23194,7 +23220,7 @@
       "module": "quality",
       "classification": "WRITE",
       "description": "upsert inspection document",
-      "paramCount": 7,
+      "paramCount": 9,
       "serviceParams": [
         "client",
         "diagram"
@@ -23217,6 +23243,12 @@
             "type": "string"
           },
           "drawingNumber": {
+            "type": "string"
+          },
+          "version": {
+            "type": "number"
+          },
+          "copyFromId": {
             "type": "string"
           },
           "pdfUrl": {
@@ -23375,6 +23407,60 @@
           "inspectionDocumentId",
           "features",
           "balloons"
+        ]
+      }
+    },
+    {
+      "name": "quality_getInspectionDocumentsForPart",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get inspection documents for part",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "companyId",
+        "itemId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId"
+        ]
+      }
+    },
+    {
+      "name": "quality_getInboundInspectionMeasurements",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get inbound inspection measurements",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "sampleIds"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sampleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sampleIds"
         ]
       }
     },

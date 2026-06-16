@@ -1,4 +1,13 @@
-import { MenuIcon, MenuItem, useDisclosure, VStack } from "@carbon/react";
+import {
+  Badge,
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+  MenuIcon,
+  MenuItem,
+  useDisclosure,
+  VStack
+} from "@carbon/react";
 import { formatDate } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -6,7 +15,9 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   LuBookMarked,
+  LuEllipsisVertical,
   LuFileText,
+  LuGitPullRequest,
   LuPencil,
   LuTarget,
   LuTrash,
@@ -19,6 +30,7 @@ import { usePermissions, useUrlParams } from "~/hooks";
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";
 import type { InspectionDocument } from "../../types";
+import InspectionDocumentStatus from "./InspectionDocumentStatus";
 
 type InspectionDocumentTableProps = {
   data: InspectionDocument[];
@@ -87,6 +99,65 @@ const InspectionDocumentTable = memo(
           meta: { icon: <LuTarget /> }
         },
         {
+          accessorKey: "version",
+          header: t`Version`,
+          cell: ({ row }) => (
+            <Badge variant="outline">V{row.original.version}</Badge>
+          ),
+          meta: { icon: <LuGitPullRequest /> }
+        },
+        {
+          accessorKey: "status",
+          header: t`Status`,
+          cell: ({ row }) => (
+            <InspectionDocumentStatus status={row.original.status} />
+          )
+        },
+        {
+          id: "versions",
+          header: t`Versions`,
+          cell: ({ row }) => {
+            const versions = row.original?.versions as Array<{
+              id: string;
+              version: number;
+              status: "Draft" | "Active" | "Archived";
+            }>;
+
+            return (
+              <HoverCard>
+                <HoverCardTrigger>
+                  <Badge variant="secondary" className="cursor-pointer">
+                    {versions?.length ?? 0} Version
+                    {versions?.length === 1 ? "" : "s"}
+                    <LuEllipsisVertical className="w-3 h-3 ml-2" />
+                  </Badge>
+                </HoverCardTrigger>
+                <HoverCardContent>
+                  <div className="flex flex-col w-full gap-4 text-sm">
+                    {(versions ?? [])
+                      .sort((a, b) => a.version - b.version)
+                      .map((version) => (
+                        <div
+                          key={version.id}
+                          className="flex items-center justify-between gap-2"
+                        >
+                          <Hyperlink
+                            to={path.to.inspectionDocument(version.id)}
+                            className="flex items-center justify-start gap-1"
+                          >
+                            Version {version.version}
+                          </Hyperlink>
+                          <InspectionDocumentStatus status={version.status} />
+                        </div>
+                      ))}
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
+            );
+          },
+          meta: { icon: <LuGitPullRequest /> }
+        },
+        {
           id: "createdBy",
           header: t`Created By`,
           cell: ({ row }) => (
@@ -134,7 +205,9 @@ const InspectionDocumentTable = memo(
           </MenuItem>
           <MenuItem
             destructive
-            disabled={!permissions.can("delete", "quality")}
+            disabled={
+              !permissions.can("delete", "quality") || row.status !== "Draft"
+            }
             onClick={() => {
               flushSync(() => {
                 setSelectedDiagram(row);

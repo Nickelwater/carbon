@@ -107,6 +107,7 @@ type InspectionDocumentEditorProps = {
   features: Array<Record<string, unknown>>;
   balloons: Array<Record<string, unknown>>;
   unitOfMeasures: Array<{ code: string; name: string }>;
+  readOnly?: boolean;
 };
 
 type PdfMetrics = {
@@ -563,7 +564,8 @@ export default function InspectionDocumentEditor({
   content,
   features: initialFeatures,
   balloons,
-  unitOfMeasures
+  unitOfMeasures,
+  readOnly = false
 }: InspectionDocumentEditorProps) {
   const { t } = useLingui();
   const fetcher = useFetcher<{
@@ -899,6 +901,21 @@ export default function InspectionDocumentEditor({
   const finalizeDragAt = useCallback(
     (x: number, y: number) => {
       if (!drag || !dragKind) return;
+
+      if (readOnly) {
+        if (dragKind === "balloonMove") {
+          balloonDragRef.current = null;
+        }
+        if (dragKind === "annotationResize") {
+          annotationResizeRef.current = null;
+        }
+        if (dragKind === "anchorResize") {
+          anchorResizeRef.current = null;
+        }
+        setDragKind(null);
+        setDrag(null);
+        return;
+      }
 
       const rx = Math.min(drag.startX, x);
       const ry = Math.min(drag.startY, y);
@@ -1280,6 +1297,7 @@ export default function InspectionDocumentEditor({
       annotations,
       persistAnnotationResize,
       placingFeatureId,
+      readOnly,
       t
     ]
   );
@@ -1462,9 +1480,44 @@ export default function InspectionDocumentEditor({
       const evt = ke.evt;
       if (!evt) return;
 
+      const { x, y } = getRelativePosFromStage();
+
+      if (readOnly) {
+        const annotationId = getAnnotationIdAt(x, y);
+        if (annotationId) {
+          setSelectedAnnotationId(annotationId);
+          setSelectedBalloonId(null);
+          setSelectedSelectorId(null);
+          return;
+        }
+        const balloonId = getBalloonIdAt(x, y);
+        if (balloonId) {
+          const linkedSelectorId =
+            featureRows.find((row) => row.balloonId === balloonId)
+              ?.balloonAnchorId ?? null;
+          setSelectedBalloonId(balloonId);
+          setSelectedAnnotationId(null);
+          setSelectedSelectorId(linkedSelectorId);
+          return;
+        }
+        const balloonAnchorId = getSelectorIdAt(x, y);
+        if (balloonAnchorId) {
+          const linkedBalloonId =
+            featureRows.find((row) => row.balloonAnchorId === balloonAnchorId)
+              ?.balloonId ?? null;
+          setSelectedSelectorId(balloonAnchorId);
+          setSelectedAnnotationId(null);
+          setSelectedBalloonId(linkedBalloonId);
+          return;
+        }
+        setSelectedAnnotationId(null);
+        setSelectedBalloonId(null);
+        setSelectedSelectorId(null);
+        return;
+      }
+
       if (placing) {
         evt.preventDefault();
-        const { x, y } = getRelativePosFromStage();
         setDragKind("anchor");
         setDrag({ startX: x, startY: y, currentX: x, currentY: y });
         return;
@@ -1472,7 +1525,6 @@ export default function InspectionDocumentEditor({
 
       if (placingAnnotation) {
         evt.preventDefault();
-        const { x, y } = getRelativePosFromStage();
         setDragKind("annotation");
         setDrag({ startX: x, startY: y, currentX: x, currentY: y });
         return;
@@ -1480,13 +1532,11 @@ export default function InspectionDocumentEditor({
 
       if (zoomBoxMode) {
         evt.preventDefault();
-        const { x, y } = getRelativePosFromStage();
         setDragKind("zoom");
         setDrag({ startX: x, startY: y, currentX: x, currentY: y });
         return;
       }
 
-      const { x, y } = getRelativePosFromStage();
       const annotationId = getAnnotationIdAt(x, y);
       const annotationResize = getAnnotationResizeHandleAt(x, y);
       if (annotationResize) {
@@ -1600,11 +1650,13 @@ export default function InspectionDocumentEditor({
       getSelectorIdAt,
       annotations,
       featureRows,
-      anchorRects
+      anchorRects,
+      readOnly
     ]
   );
 
   const handleCreateAnnotation = useCallback(async () => {
+    if (readOnly) return;
     if (!annotationDraft || annotationDraft.text.trim().length === 0) {
       toast.error(t`Annotation text is required`);
       return;
@@ -1623,9 +1675,10 @@ export default function InspectionDocumentEditor({
     setAnnotationDraft(null);
     setAnnotationFontSizeInput("12");
     toast.success(t`Annotation added`);
-  }, [annotationDraft, t]);
+  }, [annotationDraft, readOnly, t]);
 
   const handleUpdateAnnotation = useCallback(async () => {
+    if (readOnly) return;
     if (!annotationEditDraft || annotationEditDraft.text.trim().length === 0) {
       toast.error(t`Annotation text is required`);
       return;
@@ -1640,9 +1693,10 @@ export default function InspectionDocumentEditor({
     setSelectedAnnotationId(null);
     setAnnotationEditDraft(null);
     toast.success(t`Annotation updated`);
-  }, [annotationEditDraft, t]);
+  }, [annotationEditDraft, readOnly, t]);
 
   const handleDeleteAnnotation = useCallback(async () => {
+    if (readOnly) return;
     if (!annotationEditDraft) return;
     setAnnotations((prev) =>
       prev.filter((item) => item.id !== annotationEditDraft.id)
@@ -1650,7 +1704,7 @@ export default function InspectionDocumentEditor({
     setSelectedAnnotationId(null);
     setAnnotationEditDraft(null);
     toast.success(t`Annotation deleted`);
-  }, [annotationEditDraft, t]);
+  }, [annotationEditDraft, readOnly, t]);
 
   const getHoverCursorAt = useCallback(
     (
@@ -1734,6 +1788,14 @@ export default function InspectionDocumentEditor({
       if (!evt) return;
 
       const { x, y } = getRelativePosFromStage();
+
+      if (readOnly) {
+        const stageContent = konvaContentFromStageRef(stageRef);
+        if (stageContent) {
+          stageContent.style.cursor = "default";
+        }
+        return;
+      }
 
       const stageContent = konvaContentFromStageRef(stageRef);
       if (placing || placingAnnotation || zoomBoxMode || drag) {
@@ -1949,7 +2011,8 @@ export default function InspectionDocumentEditor({
       zoomBoxMode,
       overlayHeight,
       containerWidth,
-      zoomScale
+      zoomScale,
+      readOnly
     ]
   );
 
@@ -1967,6 +2030,7 @@ export default function InspectionDocumentEditor({
   );
 
   const handleSave = useCallback(() => {
+    if (readOnly) return;
     manualSaveToastRef.current = true;
     const formData = new FormData();
     formData.set("name", name);
@@ -2097,7 +2161,16 @@ export default function InspectionDocumentEditor({
       method: "post",
       action: path.to.saveInspectionDocument(diagramId)
     });
-  }, [diagramId, name, pdfUrl, anchorRects, featureRows, pdfMetrics, fetcher]);
+  }, [
+    diagramId,
+    name,
+    pdfUrl,
+    anchorRects,
+    featureRows,
+    pdfMetrics,
+    fetcher,
+    readOnly
+  ]);
 
   const uploadPdfAndSave = useCallback(
     async (file: File, options: { clearBalloons: boolean }) => {
@@ -2161,6 +2234,7 @@ export default function InspectionDocumentEditor({
 
   const handlePdfUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
+      if (readOnly) return;
       const file = e.target.files?.[0];
       e.target.value = "";
       if (!file || !carbon) return;
@@ -2177,7 +2251,7 @@ export default function InspectionDocumentEditor({
 
       await uploadPdfAndSave(file, { clearBalloons: false });
     },
-    [anchorRects, carbon, featureRows, pdfUrl, uploadPdfAndSave]
+    [anchorRects, carbon, featureRows, pdfUrl, readOnly, uploadPdfAndSave]
   );
 
   const handleConfirmReplacePdf = useCallback(async () => {
@@ -2197,26 +2271,31 @@ export default function InspectionDocumentEditor({
   const isPdfReady = hasPdf && (numPages > 0 || pdfMetrics !== null);
   const isOverlayReady = isPdfReady && containerWidth > 0 && overlayHeight > 0;
 
-  const handleDeleteFeature = useCallback((featureId: string) => {
-    setFeatureRows((prev) => {
-      const row = prev.find((r) => r.featureId === featureId);
-      if (row && !isTempFeatureId(row.featureId)) {
-        pendingFeatureDeleteIdsRef.current.add(row.featureId);
-      }
-      const nextRows = prev.filter((r) => r.featureId !== featureId);
-      const keptAnchorIds = new Set(
-        nextRows
-          .map((r) => r.balloonAnchorId)
-          .filter((id): id is string => id.length > 0)
-      );
-      setSelectorRects((sels) =>
-        sels.filter((sel) => keptAnchorIds.has(sel.id))
-      );
-      return nextRows;
-    });
-  }, []);
+  const handleDeleteFeature = useCallback(
+    (featureId: string) => {
+      if (readOnly) return;
+      setFeatureRows((prev) => {
+        const row = prev.find((r) => r.featureId === featureId);
+        if (row && !isTempFeatureId(row.featureId)) {
+          pendingFeatureDeleteIdsRef.current.add(row.featureId);
+        }
+        const nextRows = prev.filter((r) => r.featureId !== featureId);
+        const keptAnchorIds = new Set(
+          nextRows
+            .map((r) => r.balloonAnchorId)
+            .filter((id): id is string => id.length > 0)
+        );
+        setSelectorRects((sels) =>
+          sels.filter((sel) => keptAnchorIds.has(sel.id))
+        );
+        return nextRows;
+      });
+    },
+    [readOnly]
+  );
 
   const handleAddFeature = useCallback(() => {
+    if (readOnly) return;
     setFeatureRows((prev) => {
       const label = nextBalloonLabel(prev);
       return [
@@ -2240,41 +2319,49 @@ export default function InspectionDocumentEditor({
         }
       ];
     });
-  }, [pdfViewPage]);
+  }, [pdfViewPage, readOnly]);
 
-  const handlePlaceFeatureOnDrawing = useCallback((featureId: string) => {
-    setPlacingFeatureId(featureId);
-    setPlacing(true);
-    setPlacingAnnotation(false);
-    setZoomBoxMode(false);
-  }, []);
+  const handlePlaceFeatureOnDrawing = useCallback(
+    (featureId: string) => {
+      if (readOnly) return;
+      setPlacingFeatureId(featureId);
+      setPlacing(true);
+      setPlacingAnnotation(false);
+      setZoomBoxMode(false);
+    },
+    [readOnly]
+  );
 
-  const handleUnballoon = useCallback((featureId: string) => {
-    setFeatureRows((prev) => {
-      const row = prev.find((r) => r.featureId === featureId);
-      if (!row?.balloonId) return prev;
-      if (!isTempBalloonId(row.balloonId)) {
-        pendingBalloonDeleteIdsRef.current.add(row.balloonId);
-      }
-      if (row.balloonAnchorId) {
-        setSelectorRects((sels) =>
-          sels.filter((s) => s.id !== row.balloonAnchorId)
+  const handleUnballoon = useCallback(
+    (featureId: string) => {
+      if (readOnly) return;
+      setFeatureRows((prev) => {
+        const row = prev.find((r) => r.featureId === featureId);
+        if (!row?.balloonId) return prev;
+        if (!isTempBalloonId(row.balloonId)) {
+          pendingBalloonDeleteIdsRef.current.add(row.balloonId);
+        }
+        if (row.balloonAnchorId) {
+          setSelectorRects((sels) =>
+            sels.filter((s) => s.id !== row.balloonAnchorId)
+          );
+        }
+        return prev.map((r) =>
+          r.featureId !== featureId
+            ? r
+            : {
+                ...r,
+                balloonId: null,
+                balloonAnchorId: "",
+                x: 0,
+                y: 0,
+                geometryDirty: false
+              }
         );
-      }
-      return prev.map((r) =>
-        r.featureId !== featureId
-          ? r
-          : {
-              ...r,
-              balloonId: null,
-              balloonAnchorId: "",
-              x: 0,
-              y: 0,
-              geometryDirty: false
-            }
-      );
-    });
-  }, []);
+      });
+    },
+    [readOnly]
+  );
 
   const updateFeatureField = useCallback(
     (
@@ -2289,6 +2376,7 @@ export default function InspectionDocumentEditor({
         | "type",
       value: string
     ) => {
+      if (readOnly) return;
       setFeatureRows((prev) =>
         prev.map((r) =>
           r.featureId !== featureId
@@ -2303,7 +2391,7 @@ export default function InspectionDocumentEditor({
         )
       );
     },
-    []
+    [readOnly]
   );
 
   const featureMutation = useCallback(
@@ -2354,8 +2442,8 @@ export default function InspectionDocumentEditor({
     [featureMutation, unitOfMeasureOptions]
   );
 
-  const featureColumns = useMemo<ColumnDef<FeatureRow>[]>(
-    () => [
+  const featureColumns = useMemo<ColumnDef<FeatureRow>[]>(() => {
+    const base: ColumnDef<FeatureRow>[] = [
       { accessorKey: "label", header: t`Feature`, size: 80 },
       {
         accessorKey: "type",
@@ -2408,8 +2496,11 @@ export default function InspectionDocumentEditor({
           row.original.type === "Measurement"
             ? (uomCodeToName.get(row.original.units) ?? row.original.units)
             : null
-      },
-      {
+      }
+    ];
+
+    if (!readOnly) {
+      base.push({
         id: "actions",
         header: t`Actions`,
         size: 148,
@@ -2459,17 +2550,19 @@ export default function InspectionDocumentEditor({
             )}
           </HStack>
         )
-      }
-    ],
-    [
-      handleDeleteFeature,
-      handlePlaceFeatureOnDrawing,
-      handleUnballoon,
-      isOverlayReady,
-      uomCodeToName,
-      t
-    ]
-  );
+      });
+    }
+
+    return base;
+  }, [
+    readOnly,
+    handleDeleteFeature,
+    handlePlaceFeatureOnDrawing,
+    handleUnballoon,
+    isOverlayReady,
+    uomCodeToName,
+    t
+  ]);
 
   const handleDownloadPdfWithBalloons = useCallback(async () => {
     if (!hasPdf) {
@@ -2582,7 +2675,7 @@ export default function InspectionDocumentEditor({
         accept="application/pdf"
         className="hidden"
         onChange={handlePdfUpload}
-        disabled={uploading}
+        disabled={uploading || readOnly}
       />
 
       {/* Header bar — min-height only so controls are not clipped when the row wraps */}
@@ -2593,56 +2686,69 @@ export default function InspectionDocumentEditor({
             value={title}
             placeholder={t`Untitled Diagram`}
             className="font-semibold text-base truncate"
+            isReadOnly={readOnly}
             onChange={(e) => {
+              if (readOnly) return;
               setTitle(e.target.value);
               debouncedSaveName(e.target.value);
             }}
           />
         </div>
         <HStack spacing={2} className="flex-shrink-0 flex-wrap justify-end">
-          <Button
-            variant={placing ? "primary" : "secondary"}
-            leftIcon={<LuRectangleHorizontal />}
-            onClick={() => {
-              setPlacing((v) => {
-                const next = !v;
-                if (next) {
-                  setPlacingAnnotation(false);
-                  setZoomBoxMode(false);
-                  setPlacingFeatureId(null);
-                }
-                return next;
-              });
-            }}
-            isDisabled={!isOverlayReady}
-          >
-            {placing ? t`Drag to place on drawing` : t`Add Selector`}
-          </Button>
-          <Button
-            variant={zoomBoxMode ? "primary" : "secondary"}
-            onClick={() => {
-              setZoomBoxMode((v) => {
-                const next = !v;
-                if (next) {
-                  setPlacing(false);
-                  setPlacingAnnotation(false);
-                }
-                return next;
-              });
-            }}
-            isDisabled={!isOverlayReady}
-          >
-            {zoomBoxMode ? t`Drag to zoom` : t`Zoom Box`}
-          </Button>
-          {hasPdf && (
-            <Button
-              variant="secondary"
-              leftIcon={<LuUpload />}
-              onClick={() => fileInputRef.current?.click()}
-              isDisabled={uploading}
-            >
-              {uploading ? t`Uploading…` : t`Replace PDF`}
-            </Button>
+          {!readOnly && (
+            <>
+              <Button
+                variant={placing ? "primary" : "secondary"}
+                leftIcon={<LuRectangleHorizontal />}
+                onClick={() => {
+                  setPlacing((v) => {
+                    const next = !v;
+                    if (next) {
+                      setPlacingAnnotation(false);
+                      setZoomBoxMode(false);
+                      setPlacingFeatureId(null);
+                    }
+                    return next;
+                  });
+                }}
+                isDisabled={!isOverlayReady}
+              >
+                {placing ? t`Drag to place on drawing` : t`Add Selector`}
+              </Button>
+              <Button
+                variant={zoomBoxMode ? "primary" : "secondary"}
+                onClick={() => {
+                  setZoomBoxMode((v) => {
+                    const next = !v;
+                    if (next) {
+                      setPlacing(false);
+                      setPlacingAnnotation(false);
+                    }
+                    return next;
+                  });
+                }}
+                isDisabled={!isOverlayReady}
+              >
+                {zoomBoxMode ? t`Drag to zoom` : t`Zoom Box`}
+              </Button>
+              {hasPdf && (
+                <Button
+                  variant="secondary"
+                  leftIcon={<LuUpload />}
+                  onClick={() => fileInputRef.current?.click()}
+                  isDisabled={uploading}
+                >
+                  {uploading ? t`Uploading…` : t`Replace PDF`}
+                </Button>
+              )}
+              <Button
+                leftIcon={<LuSave />}
+                onClick={handleSave}
+                isDisabled={fetcher.state !== "idle"}
+              >
+                {t`Save`}
+              </Button>
+            </>
           )}
           {hasPdf && (
             <Button
@@ -2656,13 +2762,6 @@ export default function InspectionDocumentEditor({
               {t`Download PDF`}
             </Button>
           )}
-          <Button
-            leftIcon={<LuSave />}
-            onClick={handleSave}
-            isDisabled={fetcher.state !== "idle"}
-          >
-            {t`Save`}
-          </Button>
           <HStack className="ml-1 rounded-md border bg-background px-1 py-1">
             <IconButton
               type="button"
@@ -3127,7 +3226,8 @@ export default function InspectionDocumentEditor({
                   </VStack>
                 </button>
               )}
-              {annotationDraft &&
+              {!readOnly &&
+                annotationDraft &&
                 annotationDraft.pageNumber === pdfViewPage &&
                 renderedWidth > 0 &&
                 overlayHeight > 0 && (
@@ -3214,7 +3314,8 @@ export default function InspectionDocumentEditor({
                     </VStack>
                   </div>
                 )}
-              {!annotationDraft &&
+              {!readOnly &&
+                !annotationDraft &&
                 annotationEditDraft &&
                 annotationEditDraft.pageNumber === pdfViewPage &&
                 renderedWidth > 0 &&
@@ -3349,15 +3450,17 @@ export default function InspectionDocumentEditor({
                 {t`Features`} ({featureRows.length})
               </span>
               <HStack spacing={1} className="flex-shrink-0 items-center">
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  leftIcon={<LuPlus className="h-4 w-4" />}
-                  onClick={handleAddFeature}
-                >
-                  {t`Add Feature`}
-                </Button>
+                {!readOnly && (
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={<LuPlus className="h-4 w-4" />}
+                    onClick={handleAddFeature}
+                  >
+                    {t`Add Feature`}
+                  </Button>
+                )}
                 <IconButton
                   type="button"
                   variant="ghost"
@@ -3390,6 +3493,7 @@ export default function InspectionDocumentEditor({
                 data={featureRows}
                 columns={featureColumns}
                 editableComponents={featureEditableComponents}
+                canEdit={!readOnly}
                 contained={false}
               />
             </div>

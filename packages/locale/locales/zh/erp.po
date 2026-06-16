@@ -679,9 +679,9 @@ msgstr "你确定要从此操作中删除 {0} 吗？此操作无法撤销。"
 msgid "Are you sure you want to delete {0}?"
 msgstr "你确定要删除 {0} 吗？"
 
+#. placeholder {0}: document?.name
 #. placeholder {0}: routeData?.consumableSummary?.readableIdWithRevision
 #. placeholder {0}: routeData?.customer?.name!
-#. placeholder {0}: routeData?.document?.name
 msgid "Are you sure you want to delete {0}? This cannot be undone."
 msgstr "您确定要删除 {0} 吗？此操作无法撤销。"
 
@@ -1370,6 +1370,12 @@ msgstr "更改此项将覆盖现有方法"
 
 msgid "Changing this will update the part ID"
 msgstr "更改此项将更新零件ID"
+
+msgid "Characteristic"
+msgstr ""
+
+msgid "Characteristics from this document will be used when inspecting lots of this part."
+msgstr ""
 
 msgid "Chart of Accounts"
 msgstr "会计科目表"
@@ -3141,6 +3147,9 @@ msgstr "工程联系人"
 msgid "Enter a batch number before setting the expiration date"
 msgstr "在设置过期日期前请输入批号"
 
+msgid "Enter measurements with numeric tolerances to compute a result, or override manually."
+msgstr ""
+
 msgid "Enter or scan serial number"
 msgstr "输入或扫描序列号"
 
@@ -3981,6 +3990,9 @@ msgstr "实施支持"
 msgid "Import {label} CSV"
 msgstr "导入 {label} CSV"
 
+msgid "In"
+msgstr ""
+
 msgid "In order to convert this RFQ to a quote, all lines must have an internal part number."
 msgstr "为了将此RFQ转换为报价，所有行必须具有内部零件编号。"
 
@@ -4077,8 +4089,14 @@ msgstr "检验"
 msgid "Inspection Document"
 msgstr "检验文件"
 
+msgid "Inspection document:"
+msgstr ""
+
 msgid "Inspection Documents"
 msgstr "检验文件"
+
+msgid "Inspection drawing"
+msgstr ""
 
 msgid "Inspection Level"
 msgstr "检验水平"
@@ -4811,8 +4829,14 @@ msgstr "平均故障间隔时间"
 msgid "Mean Time To Repair"
 msgstr "平均修复时间"
 
+msgid "Measured"
+msgstr ""
+
 msgid "Measurement Standard"
 msgstr "测量标准"
+
+msgid "Measurements"
+msgstr ""
 
 msgid "Media Size"
 msgstr "媒体尺寸"
@@ -5367,6 +5391,12 @@ msgstr "未分配任何组"
 msgid "No image"
 msgstr "没有图像"
 
+msgid "No inspection document linked — record Pass/Fail only for each sample."
+msgstr ""
+
+msgid "No inspection documents exist for this part. <0>Create one</0> in Quality → Inspection Documents."
+msgstr ""
+
 msgid "No issue types configured"
 msgstr "未配置问题类型"
 
@@ -5474,6 +5504,9 @@ msgstr "没有工作中心存在"
 
 msgid "Nom"
 msgstr "标称值"
+
+msgid "Nominal"
+msgstr ""
 
 msgid "Nominal Cost"
 msgstr "名义成本"
@@ -5709,6 +5742,9 @@ msgstr "来源"
 msgid "Other Type"
 msgstr "其他类型"
 
+msgid "Out"
+msgstr ""
+
 msgid "Outgoing"
 msgstr "出库"
 
@@ -5727,6 +5763,9 @@ msgstr "间接费率"
 msgid "Overhead Rate (Hourly)"
 msgstr "间接费率（每小时）"
 
+msgid "overridden"
+msgstr ""
+
 msgid "Override needs the inventory:update permission and a reason."
 msgstr "覆盖需要 inventory:update 权限和原因。"
 
@@ -5738,6 +5777,9 @@ msgstr "为单个客户覆盖价格"
 
 msgid "Override price for all customers of a type"
 msgstr "为所有该类型的客户覆盖价格"
+
+msgid "Override suggested result"
+msgstr ""
 
 msgid "Override the expiration on {label}."
 msgstr "覆盖 {label} 上的过期日期。"
@@ -5759,6 +5801,9 @@ msgstr "用报价方法覆盖目标制造方法"
 
 msgid "Packing Slip"
 msgstr "装箱单"
+
+msgid "Page {pdfViewPage} / {numPages}"
+msgstr ""
 
 msgid "Page {pdfViewPage} of {documentPageCount}"
 msgstr "第 {pdfViewPage} 页，共 {documentPageCount} 页"
@@ -6669,6 +6714,9 @@ msgstr "请求日期"
 msgid "Require approval before suppliers can be set to Active"
 msgstr "在供应商可以设置为活跃之前需要批准"
 
+msgid "Require approval for inspection documents before they can go active"
+msgstr ""
+
 msgid "Require approval for purchase orders based on amount thresholds"
 msgstr "根据金额阈值要求采购订单获得批准"
 
@@ -6948,6 +6996,9 @@ msgstr "保存并覆盖"
 msgid "Save Method"
 msgstr "保存方法"
 
+msgid "Save Sample"
+msgstr ""
+
 msgid "Save Tool Life Policy"
 msgstr ""
 
@@ -7021,6 +7072,9 @@ msgstr "报废原因"
 
 msgid "Scrap Reasons"
 msgstr "报废原因"
+
+msgid "Scroll or drag to pan. Use the mouse wheel to zoom."
+msgstr ""
 
 msgid "Search"
 msgstr "搜索"
@@ -7745,6 +7799,9 @@ msgstr "成功创建新版本"
 msgid "Suffix"
 msgstr "后缀"
 
+msgid "Suggested result:"
+msgstr ""
+
 msgid "Suggestion"
 msgstr "建议"
 
@@ -7998,6 +8055,9 @@ msgstr "最迟下达此采购订单的日期，以便在考虑供应商交货期
 
 msgid "The lot will still be rejected, but an NCR cannot be auto-created until at least one Issue Type is configured."
 msgstr "该批次仍将被拒收，但在至少配置一个问题类型之前，无法自动创建NCR。"
+
+msgid "The new version number of the document"
+msgstr ""
 
 msgid "The new version number of the method"
 msgstr "该方法的新版本号"
