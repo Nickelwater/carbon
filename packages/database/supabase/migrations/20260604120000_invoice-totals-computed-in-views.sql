@@ -146,10 +146,14 @@ CREATE OR REPLACE VIEW "purchaseInvoices" WITH(SECURITY_INVOKER=true) AS
     pi."currencyCode",
     pi."exchangeRate",
     pi."exchangeRateUpdatedAt",
-    COALESCE(pl."subtotal", 0) AS "subtotal",
+    -- Cast back to numeric(10,2): the stored purchaseInvoice columns are
+    -- NUMERIC(10,2), so the existing view columns carry that typmod. CREATE OR
+    -- REPLACE VIEW requires the replacement to keep the same typmod, and these
+    -- SUM/arithmetic expressions are otherwise unconstrained numeric (typmod -1).
+    COALESCE(pl."subtotal", 0)::numeric(10,2) AS "subtotal",
     pi."totalDiscount",
-    COALESCE(pl."orderTotal", 0) + COALESCE(pid."supplierShippingCost", 0) * CASE WHEN pi."exchangeRate" = 0 THEN 1 ELSE pi."exchangeRate" END AS "totalAmount",
-    COALESCE(pl."totalTax", 0) AS "totalTax",
+    (COALESCE(pl."orderTotal", 0) + COALESCE(pid."supplierShippingCost", 0) * CASE WHEN pi."exchangeRate" = 0 THEN 1 ELSE pi."exchangeRate" END)::numeric(10,2) AS "totalAmount",
+    COALESCE(pl."totalTax", 0)::numeric(10,2) AS "totalTax",
     pi."balance",
     pi."assignee",
     pi."createdBy",
