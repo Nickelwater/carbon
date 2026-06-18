@@ -11,6 +11,9 @@ import ItemPlanningForm from "./ItemPlanningForm";
 import ItemPurchasingForm from "./ItemPurchasingForm";
 import ItemRiskRegister from "./ItemRiskRegister";
 import ItemSalePriceForm from "./ItemSalePriceForm";
+import ItemSupersessionForm, {
+  getItemLifecycleStatus
+} from "./ItemSupersessionForm";
 import MakeMethodTools from "./MakeMethodTools";
 import PickMethodForm from "./PickMethodForm";
 import { SelectedItemProperties } from "./SelectedItemProperties";
@@ -31,6 +34,8 @@ export {
   ItemPlanningForm,
   ItemPurchasingForm,
   ItemRiskRegister,
+  ItemSupersessionForm,
+  getItemLifecycleStatus,
   ItemSalePriceForm,
   MakeMethodTools,
   PickMethodForm,

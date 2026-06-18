@@ -14,6 +14,7 @@ import {
   useMount,
   VStack
 } from "@carbon/react";
+import { getLocalTimeZone, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useNumberFormatter } from "@react-aria/i18n";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -38,6 +39,7 @@ import {
 import { useFetcher, useParams } from "react-router";
 import {
   Hyperlink,
+  ItemLifecycleBadge,
   ItemThumbnail,
   MethodIcon,
   Table,
@@ -61,6 +63,62 @@ type JobMaterialsTableProps = {
   count: number;
   nearExpiryWarningDays?: number | null;
 };
+
+// A job shortage must not suggest *ordering* a superseded part. Mirrors the
+// purchasing/production planning suppression so the buyer is routed through MRP
+// (which redirects demand to the successor) rather than ordering the old part
+// here — which would double up with the planning suggestion. Transfers (consuming
+// existing on-hand) stay allowed for the phase-out modes, but NOT for fully
+// obsolete (No Stock) parts — see isObsolete below.
+//   - No Stock (obsolete) and Stock Only (spares, reserve-governed): never order.
+//   - Consume First / Prefer New: stop ordering only once past the discontinuation
+//     date (before it the part is still active, exactly like planning); a null date
+//     means not-yet-discontinued, so ordering is allowed.
+// The supersession is read straight from the job-material row (get_job_quantity_on_hand
+// returns it), so suppression never depends on the items store being hydrated.
+function isOrderSuppressedBySupersession(
+  mode: string | null | undefined,
+  discontinuationDate: string | null | undefined,
+  todayStr: string
+): boolean {
+  switch (mode) {
+    case "No Stock":
+    case "Stock Only":
+      return true;
+    case "Consume First":
+    case "Prefer New":
+      return discontinuationDate != null && discontinuationDate <= todayStr;
+    default:
+      return false;
+  }
+}
+
+// A No Stock part is fully obsolete: suppress EVERY action item (transfer too,
+// not just order). There's nothing to do automatically — the planner must resolve
+// it manually (substitute / re-engineer). Phase-out modes (Consume First / Prefer
+// New) still allow transfers so existing stock can be consumed.
+function isObsolete(mode: string | null | undefined): boolean {
+  return mode === "No Stock";
+}
+
+// Pull the supersession fields off a job-material row (RPC columns not yet in the
+// generated type until db:build).
+function rowSupersession(row: JobMaterial) {
+  const r = row as {
+    supersessionMode?:
+      | "Consume First"
+      | "Prefer New"
+      | "Stock Only"
+      | "No Stock"
+      | null;
+    discontinuationDate?: string | null;
+  };
+  return {
+    mode: r.supersessionMode,
+    discontinuationDate: r.discontinuationDate
+  };
+}
+
 const JobMaterialsTable = memo(
   ({ data, count, nearExpiryWarningDays }: JobMaterialsTableProps) => {
     const { jobId } = useParams();
@@ -76,6 +134,7 @@ const JobMaterialsTable = memo(
     const formatter = useNumberFormatter();
 
     const [items] = useItems();
+    const todayStr = today(getLocalTimeZone()).toString();
     const [, setSearchParams] = useUrlParams();
 
     const sessionItemsCount = useStockTransferSessionItemsCount();
@@ -118,7 +177,9 @@ const JobMaterialsTable = memo(
           quantityOnHandInStorageUnit + quantityInTransitToStorageUnit <
           quantityRequiredByStorageUnit;
 
-        if (hasStorageUnitQuantityFlag) {
+        const sup = rowSupersession(material);
+
+        if (hasStorageUnitQuantityFlag && !isObsolete(sup.mode)) {
           itemsToAdd.push({
             id: material.id, // Job material ID
             itemId: material.jobMaterialItemId, // Actual item ID
@@ -148,7 +209,13 @@ const JobMaterialsTable = memo(
 
         const hasTotalQuantityFlag = quantityOnHand + incoming - required < 0;
 
-        if (hasTotalQuantityFlag) {
+        const orderSuppressed = isOrderSuppressedBySupersession(
+          sup.mode,
+          sup.discontinuationDate,
+          todayStr
+        );
+
+        if (hasTotalQuantityFlag && !orderSuppressed) {
           itemsToAdd.push({
             id: material.id, // Job material ID
             itemId: material.jobMaterialItemId, // Actual item ID
@@ -176,43 +243,62 @@ const JobMaterialsTable = memo(
         {
           accessorKey: "readableIdWithRevision",
           header: t`Item`,
-          cell: ({ row }) => (
-            <HStack className="py-1">
-              <ItemThumbnail
-                size="md"
-                // @ts-ignore
-                type={row.original.itemType}
-              />
+          cell: ({ row }) => {
+            const substitutedFromId = (
+              row.original as { substitutedFromItemId?: string | null }
+            ).substitutedFromItemId;
+            const substitutedFrom = substitutedFromId
+              ? (items.find((i) => i.id === substitutedFromId)
+                  ?.readableIdWithRevision ?? substitutedFromId)
+              : null;
+            return (
+              <HStack className="py-1">
+                <ItemThumbnail
+                  size="md"
+                  // @ts-ignore
+                  type={row.original.itemType}
+                />
 
-              <VStack spacing={0}>
-                <HStack spacing={2}>
-                  <Hyperlink
-                    to={path.to.jobMakeMethod(
-                      jobId,
-                      row.original.jobMakeMethodId
-                    )}
-                    onClick={() => {
-                      setSearchParams({ materialId: row.original.id ?? null });
-                    }}
-                    className="max-w-[260px] truncate"
-                  >
-                    {row.original.itemReadableId}
-                  </Hyperlink>
-                  {nearExpiryWarningDays !== null &&
-                    nearExpiryWarningDays !== undefined &&
-                    row.original.hasExpiredBatch && (
-                      <Badge variant="red" className="gap-1 text-xs shrink-0">
-                        <LuCalendarX className="size-3" />
-                        <Trans>Expired batch</Trans>
-                      </Badge>
-                    )}
-                </HStack>
-                <div className="w-full truncate text-muted-foreground text-xs">
-                  {row.original.description}
-                </div>
-              </VStack>
-            </HStack>
-          ),
+                <VStack spacing={0}>
+                  <HStack spacing={2}>
+                    <Hyperlink
+                      to={path.to.jobMakeMethod(
+                        jobId,
+                        row.original.jobMakeMethodId
+                      )}
+                      onClick={() => {
+                        setSearchParams({
+                          materialId: row.original.id ?? null
+                        });
+                      }}
+                      className="max-w-[260px] truncate"
+                    >
+                      {row.original.itemReadableId}
+                    </Hyperlink>
+                    <ItemLifecycleBadge
+                      mode={rowSupersession(row.original).mode}
+                    />
+                    {nearExpiryWarningDays !== null &&
+                      nearExpiryWarningDays !== undefined &&
+                      row.original.hasExpiredBatch && (
+                        <Badge variant="red" className="gap-1 text-xs shrink-0">
+                          <LuCalendarX className="size-3" />
+                          <Trans>Expired batch</Trans>
+                        </Badge>
+                      )}
+                  </HStack>
+                  <div className="w-full truncate text-muted-foreground text-xs">
+                    {row.original.description}
+                  </div>
+                  {substitutedFrom && (
+                    <div className="w-full truncate text-xs text-blue-700 dark:text-blue-300">
+                      ↩ <Trans>substituted from</Trans> {substitutedFrom}
+                    </div>
+                  )}
+                </VStack>
+              </HStack>
+            );
+          },
           meta: {
             icon: <LuBookMarked />,
             filter: {
@@ -479,63 +565,74 @@ const JobMaterialsTable = memo(
         const isInSessionForOrder = session.items.some(
           (item) => item.id === row.id && item.action === "order"
         );
+        const sup = rowSupersession(row);
+        const orderSuppressed = isOrderSuppressedBySupersession(
+          sup.mode,
+          sup.discontinuationDate,
+          todayStr
+        );
+        const transferSuppressed = isObsolete(sup.mode);
 
         return (
           <>
-            <MenuItem
-              destructive={isInSessionForTransfer}
-              onClick={() => {
-                if (isInSessionForTransfer) {
-                  removeFromStockTransferSession(row.id!, "transfer");
-                } else {
-                  addToStockTransferSession({
-                    id: row.id!, // Job material ID
-                    itemId: row.jobMaterialItemId, // Actual item ID
-                    itemReadableId: row.itemReadableId,
-                    description: row.description,
-                    action: "transfer",
-                    quantity:
-                      quantityRequiredByStorageUnit -
-                      quantityOnHandInStorageUnit,
-                    requiresSerialTracking: row.itemTrackingType === "Serial",
-                    requiresBatchTracking: row.itemTrackingType === "Batch",
-                    storageUnitId: row.storageUnitId
-                  });
-                }
-              }}
-            >
-              <MenuIcon icon={<LuTruck />} />
-              {isInSessionForTransfer ? t`Remove Transfer` : t`Transfer`}
-            </MenuItem>
-            <MenuItem
-              destructive={isInSessionForOrder}
-              onClick={() => {
-                if (isInSessionForOrder) {
-                  removeFromStockTransferSession(row.id!, "order");
-                } else {
-                  addToStockTransferSession({
-                    id: row.id!, // Job material ID
-                    itemId: row.jobMaterialItemId, // Actual item ID
-                    itemReadableId: row.itemReadableId,
-                    description: row.description,
-                    action: "order",
-                    quantity:
-                      (row.estimatedQuantity ?? 0) -
-                      (quantityOnHand + incoming - required),
-                    requiresSerialTracking: row.itemTrackingType === "Serial",
-                    requiresBatchTracking: row.itemTrackingType === "Batch",
-                    storageUnitId: row.storageUnitId
-                  });
-                }
-              }}
-            >
-              <MenuIcon icon={<LuShoppingCart />} />
-              {isInSessionForOrder ? t`Remove Order` : t`Order`}
-            </MenuItem>
+            {(!transferSuppressed || isInSessionForTransfer) && (
+              <MenuItem
+                destructive={isInSessionForTransfer}
+                onClick={() => {
+                  if (isInSessionForTransfer) {
+                    removeFromStockTransferSession(row.id!, "transfer");
+                  } else {
+                    addToStockTransferSession({
+                      id: row.id!, // Job material ID
+                      itemId: row.jobMaterialItemId, // Actual item ID
+                      itemReadableId: row.itemReadableId,
+                      description: row.description,
+                      action: "transfer",
+                      quantity:
+                        quantityRequiredByStorageUnit -
+                        quantityOnHandInStorageUnit,
+                      requiresSerialTracking: row.itemTrackingType === "Serial",
+                      requiresBatchTracking: row.itemTrackingType === "Batch",
+                      storageUnitId: row.storageUnitId
+                    });
+                  }
+                }}
+              >
+                <MenuIcon icon={<LuTruck />} />
+                {isInSessionForTransfer ? t`Remove Transfer` : t`Transfer`}
+              </MenuItem>
+            )}
+            {(!orderSuppressed || isInSessionForOrder) && (
+              <MenuItem
+                destructive={isInSessionForOrder}
+                onClick={() => {
+                  if (isInSessionForOrder) {
+                    removeFromStockTransferSession(row.id!, "order");
+                  } else {
+                    addToStockTransferSession({
+                      id: row.id!, // Job material ID
+                      itemId: row.jobMaterialItemId, // Actual item ID
+                      itemReadableId: row.itemReadableId,
+                      description: row.description,
+                      action: "order",
+                      quantity:
+                        (row.estimatedQuantity ?? 0) -
+                        (quantityOnHand + incoming - required),
+                      requiresSerialTracking: row.itemTrackingType === "Serial",
+                      requiresBatchTracking: row.itemTrackingType === "Batch",
+                      storageUnitId: row.storageUnitId
+                    });
+                  }
+                }}
+              >
+                <MenuIcon icon={<LuShoppingCart />} />
+                {isInSessionForOrder ? t`Remove Order` : t`Order`}
+              </MenuItem>
+            )}
           </>
         );
       };
-    }, [isRequired, session.items, t]);
+    }, [isRequired, session.items, t, items, todayStr]);
 
     const permissions = usePermissions();
 

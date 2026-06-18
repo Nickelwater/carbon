@@ -45,6 +45,7 @@ import { Link, useFetcher, useNavigate } from "react-router";
 import {
   EmployeeAvatar,
   Hyperlink,
+  ItemLifecycleBadge,
   ItemThumbnail,
   MethodIcon,
   New,
@@ -131,6 +132,20 @@ const PartsTable = memo(({ data, tags, count }: PartsTableProps) => {
                 </div>
               </VStack>
             </Hyperlink>
+            <ItemLifecycleBadge
+              mode={
+                (
+                  row.original as {
+                    supersessionMode?:
+                      | "Consume First"
+                      | "Prefer New"
+                      | "Stock Only"
+                      | "No Stock"
+                      | null;
+                  }
+                ).supersessionMode
+              }
+            />
           </HStack>
         ),
         meta: {
