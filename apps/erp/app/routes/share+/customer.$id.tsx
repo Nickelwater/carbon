@@ -15,6 +15,7 @@ import {
   Table
 } from "~/components";
 import { getJobOperationAttachments } from "~/modules/production";
+import { salesOrderStatusType } from "~/modules/sales/sales.models";
 import { getExternalSalesOrderLines } from "~/modules/sales/sales.service";
 import {
   JobOperationProgress,
@@ -23,6 +24,7 @@ import {
   PortalSort,
   type SortableColumn
 } from "~/modules/sales/ui/CustomerPortal";
+import { SalesStatus } from "~/modules/sales/ui/SalesOrder";
 import { getCompany } from "~/modules/settings/settings.service";
 import {
   getBase64ImageFromSupabase,
@@ -36,7 +38,7 @@ export const meta = () => {
 };
 
 const defaultColumnPinning = {
-  left: ["customerReference"]
+  left: ["customerReference", "salesOrderStatus"]
 };
 
 export async function loader({ params, request }: LoaderFunctionArgs) {
@@ -186,8 +188,9 @@ export default function CustomerPortal() {
         }
       },
       {
-        id: "status",
+        accessorKey: "salesOrderStatus",
         header: "Status",
+        enableSorting: false,
         cell: ({ row }) => {
           const jobOperations = jobOperationValidator.safeParse(
             row.original.jobOperations
@@ -201,6 +204,16 @@ export default function CustomerPortal() {
               salesOrderStatus={row.original.salesOrderStatus}
             />
           );
+        },
+        meta: {
+          filter: {
+            type: "static",
+            options: salesOrderStatusType.map((status) => ({
+              value: status,
+              label: <SalesStatus status={status} disableTooltip />
+            }))
+          },
+          pluralHeader: "Statuses"
         }
       },
       {
@@ -320,7 +333,8 @@ export default function CustomerPortal() {
       columns.flatMap((c) =>
         "accessorKey" in c &&
         typeof c.accessorKey === "string" &&
-        typeof c.header === "string"
+        typeof c.header === "string" &&
+        c.enableSorting !== false
           ? [{ value: c.accessorKey, label: c.header }]
           : []
       ),
