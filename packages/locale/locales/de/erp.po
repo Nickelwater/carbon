@@ -1135,9 +1135,6 @@ msgstr "Blockiert Speichern bis behoben"
 msgid "BoM"
 msgstr "BoM"
 
-msgid "BOM"
-msgstr ""
-
 msgid "BoM + BoP"
 msgstr "BoM + BoP"
 
@@ -5785,9 +5782,6 @@ msgstr "Partner"
 
 msgid "Parts"
 msgstr "Teile"
-
-msgid "Parts with Methods"
-msgstr ""
 
 msgid "Pass"
 msgstr "Bestanden"

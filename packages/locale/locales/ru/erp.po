@@ -1135,9 +1135,6 @@ msgstr "Блокирует сохранение до разрешения"
 msgid "BoM"
 msgstr "BoM"
 
-msgid "BOM"
-msgstr ""
-
 msgid "BoM + BoP"
 msgstr "BoM + BoP"
 
@@ -5785,9 +5782,6 @@ msgstr "Партнеры"
 
 msgid "Parts"
 msgstr "Детали"
-
-msgid "Parts with Methods"
-msgstr ""
 
 msgid "Pass"
 msgstr "Пройти"

@@ -1135,9 +1135,6 @@ msgstr "सहेजने को तब तक ब्लॉक करता ह
 msgid "BoM"
 msgstr "BoM"
 
-msgid "BOM"
-msgstr ""
-
 msgid "BoM + BoP"
 msgstr "BoM + BoP"
 
@@ -5785,9 +5782,6 @@ msgstr "भागीदार"
 
 msgid "Parts"
 msgstr "पार्ट्स"
-
-msgid "Parts with Methods"
-msgstr ""
 
 msgid "Pass"
 msgstr "पास"

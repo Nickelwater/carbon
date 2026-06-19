@@ -1135,9 +1135,6 @@ msgstr "Blocks save until resolved"
 msgid "BoM"
 msgstr "BoM"
 
-msgid "BOM"
-msgstr "BOM"
-
 msgid "BoM + BoP"
 msgstr "BoM + BoP"
 
@@ -5785,9 +5782,6 @@ msgstr "Partners"
 
 msgid "Parts"
 msgstr "Parts"
-
-msgid "Parts with Methods"
-msgstr "Parts with Methods"
 
 msgid "Pass"
 msgstr "Pass"

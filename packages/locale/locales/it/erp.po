@@ -1135,9 +1135,6 @@ msgstr "Blocca il salvataggio fino alla risoluzione"
 msgid "BoM"
 msgstr "BoM"
 
-msgid "BOM"
-msgstr ""
-
 msgid "BoM + BoP"
 msgstr "BoM + BoP"
 
@@ -5785,9 +5782,6 @@ msgstr "Partner"
 
 msgid "Parts"
 msgstr "Parti"
-
-msgid "Parts with Methods"
-msgstr ""
 
 msgid "Pass"
 msgstr "Passa"

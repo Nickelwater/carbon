@@ -1135,9 +1135,6 @@ msgstr "Bloquea guardar hasta que se resuelva"
 msgid "BoM"
 msgstr "BoM"
 
-msgid "BOM"
-msgstr ""
-
 msgid "BoM + BoP"
 msgstr "BoM + BoP"
 
@@ -5785,9 +5782,6 @@ msgstr "Socios"
 
 msgid "Parts"
 msgstr "Piezas"
-
-msgid "Parts with Methods"
-msgstr ""
 
 msgid "Pass"
 msgstr "Aprobar"
