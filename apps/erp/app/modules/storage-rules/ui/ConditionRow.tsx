@@ -75,7 +75,7 @@ function ConditionRowImpl({
 
   // A field selected before the surfaces changed may no longer be populated on
   // the rule's current surfaces. Flag it so the author re-picks — mirrors the
-  // save-time validator gate (storageRules.models.ts) client-side.
+  // save-time validator gate (storage-rules.models.ts) client-side.
   const fieldUnavailable = useMemo(
     () =>
       !!fieldDef &&

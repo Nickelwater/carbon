@@ -9,5 +9,5 @@ export {
   getStorageRulesList,
   unassignStorageRule
 } from "@carbon/ee/storage-rules";
-export * from "./storageRules.models";
-export * from "./storageRules.service";
+export * from "./storage-rules.models";
+export * from "./storage-rules.service";

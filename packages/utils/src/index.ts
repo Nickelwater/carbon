@@ -21,7 +21,7 @@ export * from "./object";
 export * from "./ssr";
 export * from "./status";
 export * from "./status-colors";
-export * from "./storageRules";
+export * from "./storage-rules";
 export * from "./string";
 export * from "./supabase";
 export * from "./themes";

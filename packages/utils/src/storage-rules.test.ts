@@ -18,7 +18,7 @@ import {
   type StorageRuleRow,
   SURFACE_CONTEXT_AVAILABILITY,
   TRANSACTION_SURFACES
-} from "./storageRules";
+} from "./storage-rules";
 
 const ruleOf = (
   conditions: Array<{ field: string; op: string; value?: unknown }>,

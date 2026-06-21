@@ -30,7 +30,7 @@ import {
 } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { path } from "~/utils/path";
-import { storageRuleValidator } from "../storageRules.models";
+import { storageRuleValidator } from "../storage-rules.models";
 import ItemFilterSelector from "./ItemFilterSelector";
 import MessageWithTokens from "./MessageWithTokens";
 import RuleBuilder from "./RuleBuilder";

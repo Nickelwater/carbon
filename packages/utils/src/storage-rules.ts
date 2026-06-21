@@ -560,7 +560,7 @@ export const toItemRuleFilter = (row: {
 // Note `"storage"` is the `FieldContext` value; it maps to the `storageUnit`
 // RuleContext root key.
 //
-// Locked by the anti-drift test in `packages/ee/src/storageRules/server.test.ts`,
+// Locked by the anti-drift test in `packages/ee/src/storage-rules/context.test.ts`,
 // which asserts the ctx `evaluateLinesForSurface` builds for each surface
 // populates exactly these contexts.
 export const SURFACE_CONTEXT_AVAILABILITY: Record<

@@ -102,7 +102,7 @@ const ORDERED_CTX: FieldDef["context"][] = ["storage", "transaction"];
 // reallocate the icon element (rendering-hoist-jsx).
 const BRACES_ICON = <LuBraces />;
 
-// Mirror of the runtime `TOKEN_RE` in packages/utils/src/storageRules.ts so the
+// Mirror of the runtime `TOKEN_RE` in packages/utils/src/storage-rules.ts so the
 // editor highlights exactly what `interpolateMessage` will substitute — no
 // false greens, no missed reds. Inlined rather than re-exported to avoid a
 // UI → runtime import cycle.
