@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { PageFeedback } from "@/components/api/page-feedback";
+import { EditOnGitHub } from "@/components/edit-on-github";
 import { NavScrollChevron } from "@/components/nav-scroll-chevron";
 import { ReadingProgress } from "@/components/reading-progress";
 import { chaptersInFlow, useGuide } from "./guide-context";
@@ -161,9 +162,12 @@ export function HowToLayout({ bodies }: { bodies: ReactNode[] }) {
             {/* MDX body for the active chapter */}
             {bodies[active.chapter]}
 
-            {/* Footer — feedback + within-flow prev/next, matching the docs pages. */}
+            {/* Footer — feedback + edit link, then within-flow prev/next, matching the docs pages. */}
             <footer className="mt-[64px] border-t border-[rgba(38,35,35,0.12)] pt-[26px]">
-              <PageFeedback key={active.chapter} variant="editorial" />
+              <div className="flex flex-wrap items-center justify-between gap-x-[24px] gap-y-[12px]">
+                <PageFeedback key={active.chapter} variant="editorial" />
+                <EditOnGitHub path={currentChapter.editPath} variant="editorial" />
+              </div>
               {(prevInFlow || nextInFlow) && (
                 <nav className="mt-[22px] grid grid-cols-1 gap-[12px] sm:grid-cols-2">
                   <div>

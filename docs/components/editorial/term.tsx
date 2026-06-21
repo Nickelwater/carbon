@@ -14,7 +14,6 @@
  */
 import * as Popover from "@radix-ui/react-popover";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { glossary } from "@/lib/glossary";
 
@@ -27,16 +26,10 @@ function slugify(text: string) {
 }
 
 export function Term({ id, children }: { id?: string; children: ReactNode }) {
-  const pathname = usePathname();
   const key = id ?? (typeof children === "string" ? slugify(children) : "");
   const entry = glossary[key];
 
   if (!entry) return <>{children}</>;
-
-  // Hide "Learn more" when it points at the page you're already on — a link back to
-  // here is noise. Compare path only (ignore hash + trailing slash).
-  const hrefPath = entry.href?.split("#")[0].replace(/\/$/, "");
-  const showLearnMore = !!hrefPath && hrefPath !== (pathname ?? "").replace(/\/$/, "");
 
   return (
     <Popover.Root>
@@ -60,15 +53,17 @@ export function Term({ id, children }: { id?: string; children: ReactNode }) {
           <div className="mt-[5px] text-[13px] leading-[1.55] text-[rgba(38,35,35,0.72)]">
             {entry.definition}
           </div>
-          {showLearnMore && (
+          {entry.href && (
             <div className="mt-[11px] border-t border-[#EFEFEB] pt-[10px]">
-              <Link
-                href={entry.href}
-                className="inline-flex items-center gap-[4px] text-[13px] font-[500] text-[#1E84B0] no-underline hover:text-[#0C6E96]"
-              >
-                Learn more
-                <span aria-hidden>→</span>
-              </Link>
+              <Popover.Close asChild>
+                <Link
+                  href={entry.href}
+                  className="inline-flex items-center gap-[4px] text-[13px] font-[500] text-[#1E84B0] no-underline hover:text-[#0C6E96]"
+                >
+                  Learn more
+                  <span aria-hidden>→</span>
+                </Link>
+              </Popover.Close>
             </div>
           )}
           <Popover.Arrow width={12} height={6} className="fill-white" />

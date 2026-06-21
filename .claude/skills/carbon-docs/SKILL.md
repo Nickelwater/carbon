@@ -136,7 +136,22 @@ Each `##` heading becomes a sidebar rail entry — so structure chapters as 3–
     (`info/note`→NOTE/blue, `warn/warning/error`→HEADS UP/amber, `success/tip`→GOOD TO KNOW/green). Note this
     is a **different Callout API** than the Guides one (type vs tone+badge).
   - `<Cards><Card title href icon?>…</Card></Cards>` — link-card grid (cross-surface navigation).
-  - `<EnvVars><EnvVar name type? default? required?>…</EnvVar></EnvVars>` — field/parameter rows.
+  - `<EnvVars><EnvVar name type? default? required?>…</EnvVar></EnvVars>` — field/parameter rows. The env-var
+    page uses these; for an entity's **field reference** prefer `<FieldTable>` (below).
+  - `<FieldTable><Field name type? required?>desc</Field></FieldTable>`
+    (`components/editorial/field-table.tsx`) — the accordion field/parameter reference, the warm-paper take on
+    Fumadocs' TypeTable. Use it for a `| Field | Type | Description |`-shaped table (item/job/line fields,
+    routing, work-center, reorder/shelf-life policy fields, integration settings). `type` = the type token
+    (omit when the table has no type column); `required` only when the source marks it so; the child is the
+    description as **MDX** (so inline `` `code` ``, *italics*, `<Term>` render — that's why it's children, not a
+    `type={{}}` prop). Registered in **both** `mdx.tsx` and `editorial/mdx.tsx`.
+  - `<StatusFlow><Status name accent? branch? terminal?>meaning</Status></StatusFlow>`
+    (`components/editorial/status-flow.tsx`) — an **interactive** lifecycle widget (selectable pills → a detail
+    `Callout` showing the meaning) that replaces a linear `| Status | Meaning |` table. Children in source
+    (lifecycle) order; meanings are MDX. Flags: `accent` = the single pivotal milestone (≤1, optional);
+    `branch` = a temporary returnable hold (Paused, On Hold, Needs Approval); `terminal` = an off-path exit
+    (Cancelled, Voided, Lost, Expired). Use it ONLY for a **linear** lifecycle — a 2-axis comparison matrix
+    (e.g. invoices sales-vs-purchase) or a small enum list stays a markdown table.
   - `<PlanBadge plan="Business" />` — flags a paid-tier feature. Whole-page gate → set `plan: Business` in
     frontmatter (renders inline with the page title); section gate → drop `<PlanBadge>` in-body. Gated
     features = `packages/ee/src/plan.ts` (Business/Partner). **Don't** badge free ones (email, exchange-rates).

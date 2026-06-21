@@ -1,6 +1,7 @@
 import { findNeighbour } from "fumadocs-core/page-tree";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { EditOnGitHub } from "@/components/edit-on-github";
 import { source } from "@/lib/source";
 import { PageFeedback } from "./page-feedback";
 
@@ -53,11 +54,22 @@ function Card({ dir, link }: { dir: "prev" | "next"; link: NavLink }) {
   );
 }
 
-/** Page footer: feedback prompt, then optional prev / next cards. */
-export function ContentFooter({ prev, next }: { prev?: NavLink; next?: NavLink }) {
+/** Page footer: feedback prompt + edit link, then optional prev / next cards. */
+export function ContentFooter({
+  prev,
+  next,
+  editPath,
+}: {
+  prev?: NavLink;
+  next?: NavLink;
+  editPath?: string;
+}) {
   return (
     <footer className="mt-[56px] border-t border-[#E7E7E3] pt-[24px]">
-      <PageFeedback />
+      <div className="flex flex-wrap items-center justify-between gap-x-[24px] gap-y-[12px]">
+        <PageFeedback />
+        {editPath && <EditOnGitHub path={editPath} />}
+      </div>
       {(prev || next) && (
         <nav className="mt-[22px] grid grid-cols-1 gap-[12px] sm:grid-cols-2">
           <div>{prev && <Card dir="prev" link={prev} />}</div>
@@ -69,12 +81,13 @@ export function ContentFooter({ prev, next }: { prev?: NavLink; next?: NavLink }
 }
 
 /** ContentFooter with prev/next derived from the Fumadocs page tree (Reference pages). */
-export function DocsFooter({ url }: { url: string }) {
+export function DocsFooter({ url, editPath }: { url: string; editPath?: string }) {
   const { previous, next } = findNeighbour(source.getPageTree(), url);
   return (
     <ContentFooter
       prev={previous ? { label: text(previous.name), url: previous.url } : undefined}
       next={next ? { label: text(next.name), url: next.url } : undefined}
+      editPath={editPath}
     />
   );
 }
