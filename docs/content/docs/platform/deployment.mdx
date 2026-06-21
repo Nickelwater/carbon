@@ -1,9 +1,9 @@
 ---
 title: Deployment
-description: Self-host Carbon on AWS with SST, and run it locally with the crbn CLI.
+description: Deploy Carbon on AWS with SST, or run it locally with the crbn CLI.
 ---
 
-Carbon deploys to **AWS** with **SST**. The two apps — ERP and MES — run as containers on **ECS Fargate** behind load balancers, defined in `sst.config.ts` (app `carbon`, home `aws`).
+Carbon deploys to **AWS** with **SST**. The two apps — ERP and MES — run as containers on **ECS Fargate** behind load balancers, defined in `sst.config.ts` (app `carbon`, home `aws`). To run Carbon on your own hardware instead, see [Self-hosting](/docs/platform/self-hosting).
 
 ## What gets provisioned
 
@@ -29,4 +29,4 @@ Container images are pulled from **ECR** (`carbon/erp` and `carbon/mes`), built 
 The WAF web ACL must be **manually associated** with the application load balancer after the first deploy — SST creates it but does not attach it.
 </Callout>
 
-See [Environment variables](/docs/platform/environment-variables) for the full configuration surface, or [Local development](/docs/platform/local-development) to run Carbon locally with the `crbn` CLI.
+See [Environment variables](/docs/platform/self-hosting/environment-variables) for the full configuration surface, or [Local development](/docs/platform/local-development) to run Carbon locally with the `crbn` CLI.
