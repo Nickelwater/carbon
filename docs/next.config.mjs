@@ -18,6 +18,7 @@ const config = {
   // internals (RSC navigation, HMR) unless the tunnel origin is whitelisted,
   // which otherwise breaks client-side navigation while SSR still renders.
   allowedDevOrigins: [
+    'protozoan-user-outline.ngrok-free.dev',
     "*.ngrok-free.app",
     "*.ngrok.app",
     "*.ngrok.io",
@@ -29,6 +30,17 @@ const config = {
     return {
       beforeFiles: [{ source: "/", destination: "/guides/order" }],
     };
+  },
+  // Deployment moved under Self-hosting as the "AWS with SST" recipe; keep the old
+  // URL alive by sending it to the Self-hosting overview.
+  async redirects() {
+    return [
+      {
+        source: "/docs/platform/deployment",
+        destination: "/docs/platform/self-hosting",
+        permanent: true,
+      },
+    ];
   },
 };
 

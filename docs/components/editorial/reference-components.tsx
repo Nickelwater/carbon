@@ -64,7 +64,7 @@ export function PlanBadge({ plan = "Business", className = "" }: { plan?: string
         <rect x="2.6" y="6.3" width="8.8" height="5.6" rx="1.4" stroke="currentColor" strokeWidth="1.3" />
         <path d="M4.5 6.3V4.7a2.5 2.5 0 0 1 5 0v1.6" stroke="currentColor" strokeWidth="1.3" />
       </svg>
-      {plan} plan
+      Paid
     </span>
   );
 }

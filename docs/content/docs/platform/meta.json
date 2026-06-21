@@ -1,5 +1,5 @@
 {
   "title": "Platform",
   "defaultOpen": true,
-  "pages": ["architecture", "deployment", "self-hosting", "local-development"]
+  "pages": ["architecture", "self-hosting", "licensing"]
 }

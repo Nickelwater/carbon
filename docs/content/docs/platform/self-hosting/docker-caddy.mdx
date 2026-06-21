@@ -7,6 +7,10 @@ Run all of Carbon on **one Linux VPS**: a single-node [Docker Swarm](https://doc
 
 Everything for this recipe lives in [`contrib/deploying/simple-docker-caddy`](https://github.com/crbnos/carbon/tree/main/contrib/deploying/simple-docker-caddy). The `deploy.sh` script wraps the whole lifecycle.
 
+<Callout type="tip" title="Don't want to run any of this?">
+[Carbon Cloud](https://app.carbon.ms) is the hosted edition — we run the whole stack for you, with scaling, backups, upgrades, and uptime handled. Sign up and you're in: no servers to provision, no Supabase to run, no infrastructure to babysit. Self-host only if you specifically need Carbon on your own hardware.
+</Callout>
+
 ## What runs
 
 | Service | Role |
@@ -142,4 +146,4 @@ A local backup on the same VPS is not a backup. Schedule `backup.sh` and ship it
 - Backups scheduled and shipped offsite.
 - Studio not publicly exposed (or behind basic-auth).
 
-See [Environment variables](/docs/platform/self-hosting/environment-variables) for the full configuration surface, or the managed [AWS deployment](/docs/platform/deployment) for the cloud path.
+See [Environment variables](/docs/platform/self-hosting/environment-variables) for the full configuration surface, or [AWS with SST](/docs/platform/self-hosting/aws-sst) for an AWS setup.
