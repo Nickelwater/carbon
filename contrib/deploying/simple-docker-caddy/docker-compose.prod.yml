@@ -65,6 +65,7 @@ services:
       NODE_ENV: production
       PORT: "3000"
       CARBON_EDITION: ${CARBON_EDITION:-community}
+      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-email,google,azure}
       DOMAIN: ${DOMAIN}
       ERP_URL: ${ERP_URL}
       MES_URL: ${MES_URL}
@@ -106,6 +107,7 @@ services:
       NODE_ENV: production
       PORT: "3000"
       CARBON_EDITION: ${CARBON_EDITION:-community}
+      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-email,google,azure}
       DOMAIN: ${DOMAIN}
       ERP_URL: ${ERP_URL}
       MES_URL: ${MES_URL}
