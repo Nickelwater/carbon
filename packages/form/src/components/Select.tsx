@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import {
   buttonVariants,
   Select as CarbonSelect,
@@ -23,7 +25,8 @@ import { useFormStateContext } from "../internal/formStateContext";
 
 export type SelectProps = Omit<SelectBaseProps, "onChange"> & {
   name: string;
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   helperText?: string;
   isConfigured?: boolean;
   isOptional?: boolean;
@@ -42,6 +45,7 @@ export type SelectProps = Omit<SelectBaseProps, "onChange"> & {
 const Select = ({
   name,
   label,
+  termId,
   helperText,
   isConfigured = false,
   isOptional,
@@ -80,7 +84,7 @@ const Select = ({
           isConfigured={isConfigured}
           onConfigure={onConfigure}
         >
-          {label}
+          <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
         </FormLabel>
       )}
 

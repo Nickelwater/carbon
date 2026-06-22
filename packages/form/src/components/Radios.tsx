@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import {
   FormControl,
   FormErrorMessage,
@@ -11,7 +13,8 @@ import { useFormStateContext } from "../internal/formStateContext";
 
 type RadiosProps = {
   name: string;
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   options: { label: string; value: string }[];
   orientation?: "horizontal" | "vertical";
 };
@@ -19,6 +22,7 @@ type RadiosProps = {
 const Radios = ({
   name,
   label,
+  termId,
   options,
   orientation = "vertical"
 }: RadiosProps) => {
@@ -31,7 +35,7 @@ const Radios = ({
     <FormControl isInvalid={!!error}>
       {label && (
         <FormLabel htmlFor={name} isOptional={fieldIsOptional ?? false}>
-          {label}
+          <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
         </FormLabel>
       )}
       <RadioGroup

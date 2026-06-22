@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import { cn, RadioGroup, RadioGroupItem } from "@carbon/react";
 import type { ReactNode } from "react";
 
@@ -20,7 +22,9 @@ export type ChoiceCardOption<V extends string = string> = {
 
 type ChoiceCardGroupProps<V extends string = string> = {
   /** Optional small label rendered above the stack of cards. */
-  label?: React.ReactNode;
+  label?: string;
+  /** Glossary term id; renders a help-icon tooltip next to the label. */
+  termId?: TermId;
   /** Currently selected value. */
   value: V;
   /** Called with the new value when the user picks a different card. */
@@ -51,6 +55,7 @@ type ChoiceCardGroupProps<V extends string = string> = {
  */
 export function ChoiceCardGroup<V extends string = string>({
   label,
+  termId,
   value,
   onChange,
   options,
@@ -60,7 +65,7 @@ export function ChoiceCardGroup<V extends string = string>({
     <div className={cn("space-y-2 w-full", className)}>
       {label && (
         <span className="text-xs font-medium text-muted-foreground">
-          {label}
+          <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
         </span>
       )}
       <RadioGroup

@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import type { TextareaProps } from "@carbon/react";
 import {
   FormControl,
@@ -12,7 +14,8 @@ import { useFormStateContext } from "../internal/formStateContext";
 
 type FormTextArea = TextareaProps & {
   name: string;
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   size?: "sm" | "md" | "lg";
   characterLimit?: number;
   isRequired?: boolean;
@@ -24,6 +27,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, FormTextArea>(
     {
       name,
       label,
+      termId,
       size,
       characterLimit,
       isRequired,
@@ -54,7 +58,7 @@ const TextArea = forwardRef<HTMLTextAreaElement, FormTextArea>(
       <FormControl isInvalid={!!error} isRequired={isRequired}>
         {label && (
           <FormLabel htmlFor={name} isOptional={resolvedIsOptional}>
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         )}
         <TextAreaBase

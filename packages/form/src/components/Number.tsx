@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import type { NumberFieldProps } from "@carbon/react";
 import {
   FormControl,
@@ -20,7 +22,8 @@ import { useFormStateContext } from "../internal/formStateContext";
 type FormNumberProps = NumberFieldProps & {
   name: string;
   size?: "sm" | "md" | "lg";
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   isConfigured?: boolean;
   isOptional?: boolean;
   isRequired?: boolean;
@@ -34,6 +37,7 @@ const Number = forwardRef<HTMLInputElement, FormNumberProps>(
       name,
       size = "md",
       label,
+      termId,
       isConfigured = false,
       isOptional,
       isRequired,
@@ -76,7 +80,7 @@ const Number = forwardRef<HTMLInputElement, FormNumberProps>(
             isConfigured={isConfigured}
             onConfigure={onConfigure}
           >
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         )}
         <NumberField

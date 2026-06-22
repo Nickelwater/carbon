@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import type { TextareaProps } from "@carbon/react";
 import {
   FormControl,
@@ -13,7 +15,8 @@ import { useFormStateContext } from "../internal/formStateContext";
 
 type FormTextAreaControlledProps = Omit<TextareaProps, "value" | "onChange"> & {
   name: string;
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   characterLimit?: number;
   isOptional?: boolean;
   isRequired?: boolean;
@@ -31,6 +34,7 @@ const TextAreaControlled = forwardRef<
     {
       name,
       label,
+      termId,
       characterLimit,
       isOptional,
       isRequired,
@@ -77,7 +81,7 @@ const TextAreaControlled = forwardRef<
       >
         {label && (
           <FormLabel htmlFor={name} isOptional={resolvedIsOptional}>
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         )}
         <TextAreaBase

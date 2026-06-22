@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import type { InputProps } from "@carbon/react";
 import {
   FormControl,
@@ -18,6 +20,7 @@ import type { ValidationBehaviorOptions } from "../internal/getInputProps";
 type FormInputProps = InputProps & {
   name: string;
   label?: ReactNode;
+  termId?: TermId;
   isConfigured?: boolean;
   isOptional?: boolean;
   isRequired?: boolean;
@@ -34,6 +37,7 @@ const Input = forwardRef<HTMLInputElement, FormInputProps>(
     {
       name,
       label,
+      termId,
       isConfigured,
       isOptional,
       isRequired,
@@ -81,7 +85,7 @@ const Input = forwardRef<HTMLInputElement, FormInputProps>(
             isConfigured={isConfigured}
             onConfigure={onConfigure}
           >
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         ) : (
           <label htmlFor={name} className="sr-only">

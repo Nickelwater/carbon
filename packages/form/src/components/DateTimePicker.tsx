@@ -1,4 +1,6 @@
+import { LabelWithHelp } from "@carbon/field-help";
 import { useFormContext } from "@carbon/form";
+import type { TermId } from "@carbon/glossary";
 import {
   DateTimePicker as DateTimePickerBase,
   FormControl,
@@ -21,7 +23,8 @@ import { useFormStateContext } from "../internal/formStateContext";
 
 type DateTimePickerProps = {
   name: string;
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   size?: "sm" | "md" | "lg";
   isDisabled?: boolean;
   minValue?: CalendarDateTime;
@@ -34,6 +37,7 @@ type DateTimePickerProps = {
 const DateTimePicker = ({
   name,
   label,
+  termId,
   size,
   isDisabled: isDisabledProp = false,
   minValue,
@@ -91,7 +95,7 @@ const DateTimePicker = ({
     <FormControl isInvalid={!!error}>
       {label && (
         <FormLabel htmlFor={name} isOptional={fieldIsOptional ?? false}>
-          {label}
+          <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
         </FormLabel>
       )}
       <input type="hidden" name={name} value={utcValue} />

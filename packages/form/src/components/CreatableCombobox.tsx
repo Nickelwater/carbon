@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import type { CreatableComboboxProps as CreatableComboboxBaseProps } from "@carbon/react";
 import {
   CreatableCombobox as CreatableComboboxBase,
@@ -19,7 +21,8 @@ export type CreatableComboboxProps = Omit<
   autoSelectSingleOption?: boolean;
   isClearable?: boolean;
   name: string;
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   helperText?: string;
   isConfigured?: boolean;
   isOptional?: boolean;
@@ -41,6 +44,7 @@ const CreatableCombobox = forwardRef<HTMLButtonElement, CreatableComboboxProps>(
       isClearable,
       name,
       label,
+      termId,
       helperText,
       isConfigured = false,
       isOptional,
@@ -94,7 +98,7 @@ const CreatableCombobox = forwardRef<HTMLButtonElement, CreatableComboboxProps>(
             onConfigure={onConfigure}
             isOptional={resolvedIsOptional}
           >
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         )}
         <input

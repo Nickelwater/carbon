@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import type { MultiSelectProps as MultiSelectBaseProps } from "@carbon/react";
 import {
   Badge,
@@ -17,7 +19,8 @@ export type MultiSelectProps = Omit<
   "onChange" | "value" | "inline"
 > & {
   name: string;
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   helperText?: string;
   value?: string[];
   onChange?: (newValue: { value: string; label: string }[]) => void;
@@ -62,6 +65,7 @@ const MultiSelectPreview = (
 const MultiSelect = ({
   name,
   label,
+  termId,
   helperText,
   maxPreview,
   ...props
@@ -85,7 +89,7 @@ const MultiSelect = ({
     <FormControl isInvalid={!!error}>
       {label && (
         <FormLabel htmlFor={name} isOptional={fieldIsOptional ?? false}>
-          {label}
+          <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
         </FormLabel>
       )}
       {(value ?? []).filter(Boolean).map((selection, index) => (

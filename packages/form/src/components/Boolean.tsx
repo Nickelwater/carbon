@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import {
   cn,
   FormControl,
@@ -16,7 +18,8 @@ import { useFormStateContext } from "../internal/formStateContext";
 type FormBooleanProps = {
   name: string;
   variant?: "large" | "small";
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   value?: boolean;
   helperText?: string;
   isDisabled?: boolean;
@@ -31,6 +34,7 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
     {
       name,
       label,
+      termId,
       description,
       helperText,
       onChange,
@@ -68,7 +72,7 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
                   htmlFor={name}
                   className="text-sm text-foreground cursor-pointer"
                 >
-                  {label}
+                  <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
                 </Label>
               )}
               {description && (
@@ -85,11 +89,7 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
                 setValue(checked);
                 onChange?.(checked);
               }}
-              // `aria-label` requires a plain string; when `label` is JSX
-              // (e.g. wrapped in a `<LabelWithHelp>`), there's no sensible
-              // single-string accessible name to derive — fall back to the
-              // associated `<FormLabel>` for accessibility.
-              aria-label={typeof label === "string" ? label : undefined}
+              aria-label={label}
               {...props}
             />
           </HStack>
@@ -106,7 +106,7 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
       <FormControl isInvalid={!!error} className={cn("pt-2", className)}>
         {label && (
           <FormLabel htmlFor={name} isOptional={fieldIsOptional ?? false}>
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         )}
         <HStack>
@@ -119,7 +119,7 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
               setValue(checked);
               onChange?.(checked);
             }}
-            aria-label={typeof label === "string" ? label : undefined}
+            aria-label={label}
             {...props}
           />
           {description && (

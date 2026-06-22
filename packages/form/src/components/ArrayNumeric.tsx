@@ -1,3 +1,5 @@
+import { LabelWithHelp } from "@carbon/field-help";
+import type { TermId } from "@carbon/glossary";
 import type { InputProps } from "@carbon/react";
 import {
   Button,
@@ -24,7 +26,8 @@ import { useFieldArray } from "../internal/state/fieldArray";
 
 type FormArrayNumericProps = InputProps & {
   name: string;
-  label?: React.ReactNode;
+  label?: string;
+  termId?: TermId;
   isRequired?: boolean;
   defaults?: number[];
 };
@@ -34,6 +37,7 @@ const ArrayNumeric = forwardRef<HTMLInputElement, FormArrayNumericProps>(
     {
       name,
       label,
+      termId,
       isDisabled: isDisabledProp,
       isReadOnly: isReadOnlyProp,
       isRequired,
@@ -65,7 +69,7 @@ const ArrayNumeric = forwardRef<HTMLInputElement, FormArrayNumericProps>(
       <FormControl isInvalid={!!error} isRequired={isRequired}>
         {label && (
           <FormLabel htmlFor={`${name}`} isOptional={resolvedIsOptional}>
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         )}
         <VStack className="mb-4" ref={listRef}>
