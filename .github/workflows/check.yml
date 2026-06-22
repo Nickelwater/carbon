@@ -32,9 +32,7 @@ jobs:
             packages/*/node_modules
           key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
-        # Always run install (not just on cache miss) so the root postinstall
-        # runs in every job — it generates packages/documents/src/pdf/fonts.data.ts
-        # (gitignored), which typecheck/build need. node_modules cache keeps it fast.
+      # Always install so the postinstall generates the gitignored font data.
       - run: pnpm install --frozen-lockfile
 
   lint:
@@ -59,9 +57,7 @@ jobs:
             packages/*/node_modules
           key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
-        # Always run install (not just on cache miss) so the root postinstall
-        # runs in every job — it generates packages/documents/src/pdf/fonts.data.ts
-        # (gitignored), which typecheck/build need. node_modules cache keeps it fast.
+      # Always install so the postinstall generates the gitignored font data.
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm exec biome check
@@ -88,9 +84,7 @@ jobs:
             packages/*/node_modules
           key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
-        # Always run install (not just on cache miss) so the root postinstall
-        # runs in every job — it generates packages/documents/src/pdf/fonts.data.ts
-        # (gitignored), which typecheck/build need. node_modules cache keeps it fast.
+      # Always install so the postinstall generates the gitignored font data.
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm run typegen
@@ -118,9 +112,7 @@ jobs:
             packages/*/node_modules
           key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
-        # Always run install (not just on cache miss) so the root postinstall
-        # runs in every job — it generates packages/documents/src/pdf/fonts.data.ts
-        # (gitignored), which typecheck/build need. node_modules cache keeps it fast.
+      # Always install so the postinstall generates the gitignored font data.
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm run lingui:check
@@ -147,9 +139,7 @@ jobs:
             packages/*/node_modules
           key: node-modules-${{ hashFiles('pnpm-lock.yaml') }}
 
-        # Always run install (not just on cache miss) so the root postinstall
-        # runs in every job — it generates packages/documents/src/pdf/fonts.data.ts
-        # (gitignored), which typecheck/build need. node_modules cache keeps it fast.
+      # Always install so the postinstall generates the gitignored font data.
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm test

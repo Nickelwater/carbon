@@ -186,9 +186,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     : undefined;
   const showFooter = resolved.footerSectionId !== null;
 
-  // Fonts are registered up-front by ensureFont (above). getSafeFontFamily falls
-  // back to Helvetica for any unregistered family so react-pdf never throws
-  // "Font family not registered".
   const styles = StyleSheet.create({
     body: {
       fontFamily: getSafeFontFamily(resolved.settings.fontFamily),

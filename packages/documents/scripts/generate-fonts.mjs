@@ -1,19 +1,10 @@
-// Generates src/pdf/fonts.data.ts: the document fonts offered in the template
-// editor, embedded as base64 woff data URIs so react-pdf registers them
-// in-process with NO network at render time (the old runtime fetch to Google
-// Fonts was the source of "Font family not registered" crashes on Vercel).
+// Generates src/pdf/fonts.data.ts — the editor's body fonts as base64 woff data
+// URIs from @fontsource/* (OFL/Apache), registered in-process with no network at
+// render. Runs on the root postinstall + turbo build task; gitignored output.
 //
-// Bytes come from the @fontsource/* packages (OFL/Apache, redistributable).
-//
-// FORMAT = woff (NOT woff2): react-pdf preloads every registered font, and this
-// fontkit's woff2/brotli decoder corrupts shared state when many woff2 fonts are
-// decoded in one process → "Offset is outside the bounds of the DataView" at
-// embed. woff (zlib/tiny-inflate) is stateless and decodes all families fine.
-// (Verified: all 8 families render with woff; woff2 crashes once all are registered.)
-//
-// Runs automatically on the root `postinstall` and the turbo `build` task
-// (output is gitignored). Run manually to refresh:
-//   pnpm --filter @carbon/documents build
+// woff, NOT woff2: react-pdf preloads every registered font, and its fontkit's
+// woff2/brotli decoder corrupts shared state across many decodes → DataView range
+// errors at embed. woff (zlib) is stateless.
 import { createRequire } from "node:module";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
@@ -23,9 +14,8 @@ const require = createRequire(import.meta.url);
 const here = dirname(fileURLToPath(import.meta.url));
 const OUT = join(here, "..", "src", "pdf", "fonts.data.ts");
 
-// The "latin" subset covers basic + Western European text and keeps the bundle
-// small. Family list mirrors DOCUMENT_FONTS in template/schema.ts (Google fonts
-// only — Helvetica/Times/Courier are PDF built-ins, Inter is the default body).
+// "latin" subset = Western European, keeps the bundle small. Mirrors the bundled
+// fonts in DOCUMENT_FONTS (template/schema.ts).
 const SUBSET = "latin";
 const FAMILIES = [
   { family: "Inter", pkg: "@fontsource/inter", weights: [300, 400, 500, 700, 900] },
@@ -39,12 +29,11 @@ const FAMILIES = [
 ];
 
 function filesDir(pkg) {
-  // Locate the package's files/ dir on disk. fs ignores the package's "exports"
-  // map (which can block require.resolve of ./package.json or ./files/*), so we
-  // probe the likely install locations directly, then fall back to require.
+  // Probe install dirs via fs (which ignores the package's "exports" map, unlike
+  // require.resolve), then fall back to require.
   const candidates = [
-    join(here, "..", "node_modules", pkg, "files"), // pnpm: documents' own node_modules
-    join(here, "..", "..", "..", "node_modules", pkg, "files"), // hoisted root
+    join(here, "..", "node_modules", pkg, "files"),
+    join(here, "..", "..", "..", "node_modules", pkg, "files"),
   ];
   for (const c of candidates) {
     if (existsSync(c)) return c;
@@ -53,11 +42,6 @@ function filesDir(pkg) {
   return join(dirname(pkgJson), "files");
 }
 
-/**
- * Locate the woff for one (id, subset, weight); fall back to a dir scan.
- * woff (NOT woff2) — react-pdf only supports TTF/WOFF, and its woff2 decoder
- * corrupts state across many fonts (see header note).
- */
 function findWoff(dir, id, weight) {
   const exact = join(dir, `${id}-${SUBSET}-${weight}-normal.woff`);
   if (existsSync(exact)) return exact;

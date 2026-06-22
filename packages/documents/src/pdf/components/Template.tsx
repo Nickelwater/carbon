@@ -49,9 +49,6 @@ const Template = ({
     typeof headerContent === "object" &&
     Array.isArray(headerContent.content) &&
     headerContent.content.length > 0;
-  // All document fonts are bundled and registered in-process; getSafeFontFamily
-  // falls back to Helvetica if an unregistered family is requested so react-pdf
-  // never throws "Font family not registered".
   const safeFontFamily = getSafeFontFamily(fontFamily);
 
   const styles = StyleSheet.create({
