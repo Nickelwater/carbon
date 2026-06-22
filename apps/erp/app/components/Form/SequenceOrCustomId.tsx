@@ -1,4 +1,6 @@
+import { LabelWithHelp } from "@carbon/field-help";
 import { useField } from "@carbon/form";
+import type { TermId } from "@carbon/glossary";
 import type { InputProps } from "@carbon/react";
 import {
   Button,
@@ -17,6 +19,7 @@ import { LuToggleLeft, LuToggleRight } from "react-icons/lu";
 type SequenceOrCustomIdProps = InputProps & {
   name: string;
   label: string;
+  termId?: TermId;
   table: string;
   placeholder?: string;
   isOptional?: boolean;
@@ -31,6 +34,7 @@ const SequenceOrCustomId = forwardRef<
     {
       name,
       label,
+      termId,
       table,
       isOptional,
       helperText,
@@ -53,7 +57,7 @@ const SequenceOrCustomId = forwardRef<
       <FormControl isInvalid={!!error}>
         {label && (
           <FormLabel htmlFor={name} isOptional={resolvedIsOptional}>
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         )}
         <div className="flex flex-grow items-start min-w-0 relative">
