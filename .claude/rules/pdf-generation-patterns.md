@@ -108,12 +108,16 @@ Times-Roman / Courier are PDF built-ins (no registration).
   Also avoid OpenType **variable** fonts — react-pdf can't subset them (PDF 2.0).
 - `pdf/fonts.data.ts` — **generated, gitignored** `BUNDLED_FONTS` (base64 woff,
   ~720 KiB). Produced by `scripts/generate-fonts.mjs` from the `@fontsource/*`
-  devDeps (static, numeric-weight instances — NOT the variable packages). Built
-  automatically by the **root `postinstall`** (`pnpm --filter @carbon/documents
-  generate:fonts`), so it exists after any `pnpm install` — before dev/build/typecheck
-  (which is why install, not a Turbo task, is the hook: `typecheck` has no `^build`
-  dep). Same pattern as the gitignored Lingui `.mjs`. Run `generate:fonts` manually to
-  refresh after changing the family list.
+  devDeps (static, numeric-weight instances — NOT the variable packages). The
+  `@carbon/documents` **`build`** script is the single entry point; it runs:
+  - on the **root `postinstall`** (`pnpm --filter @carbon/documents build`) — so the
+    file exists after any `pnpm install`, including for `typecheck` (which has no
+    `^build` dep, so install is the hook there);
+  - as the turbo **`@carbon/documents#build`** task (outputs the file, cache-restored
+    on hits) — so app builds get it via `^build`.
+
+  Same pattern as the gitignored Lingui `.mjs`. Run `pnpm --filter @carbon/documents
+  build` manually to refresh after changing the family list.
 - `registerDocumentFonts()` — idempotent, synchronous; registers every bundled
   family from local woff. If Inter isn't bundled yet (pre-generation), it falls back
   to remote Inter TTF URLs so the default still renders.

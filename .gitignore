@@ -24,7 +24,7 @@ opencode.json
 # Lingui compiled catalogs
 packages/locale/locales/**/*.mjs
 
-# Generated PDF font data (woff base64) — built on postinstall via generate:fonts
+# Generated PDF font data (woff base64) — built on postinstall + turbo build
 packages/documents/src/pdf/fonts.data.ts
 
 scripts/migrations/data
