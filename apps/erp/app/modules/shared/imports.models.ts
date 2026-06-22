@@ -197,12 +197,12 @@ const methodOpNoField = {
 // from the component item, never read from the import (PRD / commit #903).
 const methodBomFields = {
   componentId: {
-    label: "Component ID",
+    label: "Material ID",
     required: false,
     type: "string"
   },
   componentRevision: {
-    label: "Component Revision",
+    label: "Material Revision",
     required: false,
     type: "string",
     default: "0"
@@ -1335,7 +1335,8 @@ export const fieldMappings = {
     quantity: { ...methodBomFields.quantity, required: true }
   },
   // Focused Operations file — operations plus their steps/tools/parameters against
-  // parts that already exist. Carries every method row type except BOM and PART.
+  // parts that already exist. Carries every method row type except BOM and PART,
+  // so Row Type is required to discriminate BOP / STEP / TOOL / PARAM rows.
   operations: {
     ...methodParentKeyFields,
     rowType: { ...methodParentKeyFields.rowType, required: true },
@@ -2048,7 +2049,7 @@ export const importSchemas: Record<
     ...methodBomSchema,
     componentId: z
       .string()
-      .min(1, { message: "Component ID is required" })
+      .min(1, { message: "Material ID is required" })
       .describe("The readable id of the component consumed by this BOM line"),
     quantity: z
       .string()

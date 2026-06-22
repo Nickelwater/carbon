@@ -92,6 +92,9 @@ function normalizeRowType(
   table: string
 ): RowType | null {
   const v = (raw ?? "").trim().toUpperCase();
+  // The BOM file is homogeneous — every row is a BOM line — so a blank Row Type
+  // defaults to BOM. The operations and combined files are multi-type (BOP/STEP/
+  // TOOL/PARAM, +PART), so Row Type is a required discriminator there.
   if (!v) return table === "bom" ? "BOM" : null;
   return (ROW_TYPES as readonly string[]).includes(v) ? (v as RowType) : null;
 }
@@ -438,14 +441,14 @@ function validateGroup(
     for (const e of bucket.bom) {
       const componentId = text(e.record.componentId);
       if (!componentId) {
-        errors.push({ row: lineNo(e.index), reason: "BOM row is missing Component ID" });
+        errors.push({ row: lineNo(e.index), reason: "BOM row is missing Material ID" });
         continue;
       }
       const compKey = key(componentId, text(e.record.componentRevision));
       if (!lk.itemMap.has(compKey) && !lk.fileCreatedParts.has(compKey)) {
         errors.push({
           row: lineNo(e.index),
-          reason: `Component ${componentId} rev ${text(e.record.componentRevision) || "0"} not found`,
+          reason: `Material ${componentId} rev ${text(e.record.componentRevision) || "0"} not found`,
         });
       }
       if (num(e.record.quantity) === undefined) {
