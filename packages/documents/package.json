@@ -46,6 +46,7 @@
   },
   "private": true,
   "scripts": {
+    "build": "node ./scripts/generate-fonts.mjs",
     "clean": "rimraf .turbo node_modules dist",
     "generate:fonts": "node ./scripts/generate-fonts.mjs",
     "lint": "biome lint --write ",
