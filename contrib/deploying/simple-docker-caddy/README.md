@@ -28,7 +28,7 @@ $EDITOR .env                # hosts, URLs, ACME email, SMTP
 | `bin/secrets-entrypoint.sh` | Injects Swarm secrets into env (`__SECRET__` placeholders) for each service. |
 | `postgres/01-roles.sh` | Supabase role bootstrap. |
 | `postgres/02-performance.sh` | Postgres tuning + `pg_stat_statements`. |
-| `scripts/gen-supabase-keys.mjs` | Generates the Supabase JWT key trio. |
+| `scripts/gen-supabase-keys.sh` | Generates the Supabase JWT key trio (openssl only). |
 | `scripts/harden.sh` | Host hardening (UFW, fail2ban, swap, unattended-upgrades). |
 | `scripts/backup.sh` | Postgres dump + storage volume archive. |
 | `.env.example` | Non-secret configuration template. |

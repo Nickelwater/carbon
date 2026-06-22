@@ -40,8 +40,8 @@ This **replaced** the old `docker-compose.prod.yml` + `deploy/prod/` compose sta
   shared_buffers, work_mem, effective_cache_size…) from `CARBON_PG_*` env +
   `pg_stat_statements`. `shared_preload_libraries=pg_stat_statements` is a server
   flag in the postgres `command:` (can't be set by ALTER SYSTEM at runtime).
-- `scripts/gen-supabase-keys.mjs` — Supabase JWT trio (jwt_secret + anon/service_role
-  signed with it). Consumed by `deploy.sh init`.
+- `scripts/gen-supabase-keys.sh` — Supabase JWT trio (jwt_secret + anon/service_role
+  signed with it), HS256 via `openssl` only (no Node). Consumed by `deploy.sh init`.
 - `scripts/harden.sh` — UFW (SSH+80+443 only), fail2ban, swap, unattended-upgrades.
 - `scripts/backup.sh` — `pg_dump` (password from the in-container secret) + storage
   volume tarball.

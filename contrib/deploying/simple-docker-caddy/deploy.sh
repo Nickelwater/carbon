@@ -53,7 +53,7 @@ create_secret() { printf '%s' "$2" | docker secret create "$1" - >/dev/null && l
 
 # ── init ──────────────────────────────────────────────────────────────────────
 cmd_init() {
-	require_cmds docker node openssl
+	require_cmds docker openssl
 	local force=0; [ "${1:-}" = "--force" ] && force=1
 
 	swarm_active || { log "Initializing Docker Swarm"; docker swarm init >/dev/null; }
@@ -86,7 +86,7 @@ cmd_init() {
 	else
 		log "Generating Supabase key trio"
 		local trio jwt anon svc
-		trio=$(node "$HERE/scripts/gen-supabase-keys.mjs")
+		trio=$(bash "$HERE/scripts/gen-supabase-keys.sh")
 		jwt=$(printf '%s\n' "$trio"  | sed -n 's/^SUPABASE_JWT_SECRET=//p')
 		anon=$(printf '%s\n' "$trio" | sed -n 's/^SUPABASE_ANON_KEY=//p')
 		svc=$(printf '%s\n' "$trio"  | sed -n 's/^SUPABASE_SERVICE_ROLE_KEY=//p')

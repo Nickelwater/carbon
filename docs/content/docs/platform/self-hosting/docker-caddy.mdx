@@ -30,6 +30,7 @@ Everything for this recipe lives in [`contrib/deploying/simple-docker-caddy`](ht
 | --- | --- |
 | VPS | Ubuntu 22.04+, **≥ 4 GB RAM** to run the stack. Building images on the host needs **~8 GB** — add swap or build elsewhere. |
 | Docker | Docker Engine with the Compose plugin. |
+| OpenSSL | `deploy.sh` uses `openssl` to generate secrets and the Supabase JWT keys (usually already present). |
 | DNS | `A`/`AAAA` records for your ERP, MES, and Supabase hosts pointing at the VPS (needed for Let's Encrypt). |
 | Repo | The Carbon repo checked out on the VPS (default `/opt/carbon`). |
 
