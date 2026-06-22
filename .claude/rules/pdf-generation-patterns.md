@@ -32,8 +32,8 @@ All PDF components are barrel-exported from `pdf/index.ts`.
 ## Shared chrome & components (`pdf/components/`)
 
 - **`Template.tsx`** — the page shell every full-page doc wraps. Renders
-  `<Document><Page size="A4">` with body padding, registers **Inter** statically,
-  picks a safe `fontFamily` (falls back to Helvetica if unregistered), and mounts
+  `<Document><Page size="A4">` with body padding, resolves the body font via
+  `getSafeFontFamily` (falls back to Helvetica if unregistered), and mounts
   the fixed `<Footer>` + repeating `headerContent`. Props include `title`, `meta`,
   `theme`, `showFooter`, `showPageNumbers`, `pageNumberFormat`, `fontFamily`. It
   wraps children in `DocStyleProvider` so blocks read the themed `tw`.
@@ -119,8 +119,9 @@ Times-Roman / Courier are PDF built-ins (no registration).
   Same pattern as the gitignored Lingui `.mjs`. Run `pnpm --filter @carbon/documents
   build` manually to refresh after changing the family list.
 - `registerDocumentFonts()` — idempotent, synchronous; registers every bundled
-  family from local woff. If Inter isn't bundled yet (pre-generation), it falls back
-  to remote Inter TTF URLs so the default still renders.
+  family (including the default, Inter) from local woff. No network. If the data is
+  empty (generator never ran), every family degrades to Helvetica via
+  `getSafeFontFamily` — no crash.
 - `ensureFont(family)` — back-compat async wrapper (routes still `await` it); just
   calls `registerDocumentFonts()`. The `family` arg is ignored (all registered up front).
 - `getSafeFontFamily(family)` — returns the family if built-in/registered, else

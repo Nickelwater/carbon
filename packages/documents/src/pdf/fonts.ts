@@ -9,32 +9,6 @@ import { BUNDLED_FONTS } from "./fonts.data";
 
 export const BUILT_IN_FONTS = ["Helvetica", "Times-Roman", "Courier"];
 
-// Used only before fonts.data.ts is generated, so the default still renders.
-const INTER_URL_FALLBACK = {
-  family: "Inter",
-  fonts: [
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfMZhrib2Bg-4.ttf"
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuOKfMZhrib2Bg-4.ttf",
-      fontWeight: 300
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuI6fMZhrib2Bg-4.ttf",
-      fontWeight: 500
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuFuYMZhrib2Bg-4.ttf",
-      fontWeight: 700
-    },
-    {
-      src: "https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuBWYMZhrib2Bg-4.ttf",
-      fontWeight: 900
-    }
-  ]
-};
-
 let registered = false;
 
 export function registerDocumentFonts(): void {
@@ -43,9 +17,6 @@ export function registerDocumentFonts(): void {
 
   for (const { family, fonts } of BUNDLED_FONTS) {
     Font.register({ family, fonts });
-  }
-  if (!BUNDLED_FONTS.some((f) => f.family === "Inter")) {
-    Font.register(INTER_URL_FALLBACK);
   }
 }
 
