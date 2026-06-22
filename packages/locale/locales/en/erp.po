@@ -4538,6 +4538,9 @@ msgstr "Load Templates"
 msgid "Loading associated jobs..."
 msgstr "Loading associated jobs..."
 
+msgid "Loading files for this part…"
+msgstr "Loading files for this part…"
+
 msgid "Loading item details..."
 msgstr "Loading item details..."
 
@@ -5445,6 +5448,9 @@ msgstr "No part ID"
 msgid "No parts added yet"
 msgstr "No parts added yet"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+
 msgid "No planning data"
 msgstr "No planning data"
 
@@ -5843,6 +5849,9 @@ msgstr "Part"
 
 msgid "Part Details"
 msgstr "Part Details"
+
+msgid "Part file"
+msgstr "Part file"
 
 msgid "Part ID"
 msgstr "Part ID"
@@ -8079,6 +8088,9 @@ msgstr "The quote will be copied with a revision suffix"
 
 msgid "The revision number of the part"
 msgstr "The revision number of the part"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr "The selected PDF from the part's Files section will be attached to this inspection document."
 
 msgid "The size of the part"
 msgstr "The size of the part"

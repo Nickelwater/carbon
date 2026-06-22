@@ -4538,6 +4538,9 @@ msgstr "Vorlagen laden"
 msgid "Loading associated jobs..."
 msgstr "Zugehörige Aufträge werden geladen..."
 
+msgid "Loading files for this part…"
+msgstr ""
+
 msgid "Loading item details..."
 msgstr "Artikeldetails werden geladen..."
 
@@ -5445,6 +5448,9 @@ msgstr "Keine Teile-ID"
 msgid "No parts added yet"
 msgstr "Noch keine Teile hinzugefügt"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr ""
+
 msgid "No planning data"
 msgstr "Keine Planungsdaten"
 
@@ -5843,6 +5849,9 @@ msgstr "Teil"
 
 msgid "Part Details"
 msgstr "Teildetails"
+
+msgid "Part file"
+msgstr ""
 
 msgid "Part ID"
 msgstr "Teile-ID"
@@ -8079,6 +8088,9 @@ msgstr "Das Angebot wird mit einem Revisionssuffix kopiert"
 
 msgid "The revision number of the part"
 msgstr "Die Revisionsnummer des Teils"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "Die Größe des Teils"

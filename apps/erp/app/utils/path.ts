@@ -944,6 +944,8 @@ export const path = {
     failureModes: `${x}/resources/failure-modes`,
     fiscalYears: `${x}/accounting/years`,
     inspectionDocument: (id: string) => generatePath(`${x}/inspection/${id}`),
+    inspectionPartFiles: (partId: string) =>
+      `${x}/inspection/part-files?partId=${encodeURIComponent(partId)}`,
     inspectionDocuments: `${x}/quality/inspection`,
     deleteInspectionDocument: (id: string) =>
       generatePath(`${x}/inspection/${id}/delete`),

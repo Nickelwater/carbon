@@ -4538,6 +4538,9 @@ msgstr "加载模板"
 msgid "Loading associated jobs..."
 msgstr "正在加载关联的工作..."
 
+msgid "Loading files for this part…"
+msgstr ""
+
 msgid "Loading item details..."
 msgstr "正在加载项目详情..."
 
@@ -5445,6 +5448,9 @@ msgstr "无零件ID"
 msgid "No parts added yet"
 msgstr "还未添加零件"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr ""
+
 msgid "No planning data"
 msgstr "没有规划数据"
 
@@ -5843,6 +5849,9 @@ msgstr "零件"
 
 msgid "Part Details"
 msgstr "零件详情"
+
+msgid "Part file"
+msgstr ""
 
 msgid "Part ID"
 msgstr "零件ID"
@@ -8079,6 +8088,9 @@ msgstr "该报价将被复制并带有修订后缀"
 
 msgid "The revision number of the part"
 msgstr "零件的修订号"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "零件的尺寸"

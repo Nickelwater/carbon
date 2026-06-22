@@ -1,5 +1,5 @@
 {
-  "generated": "2026-06-16T19:54:39.532Z",
+  "generated": "2026-06-22T16:26:36.330Z",
   "totalTools": 1194,
   "modules": 15,
   "tools": [
@@ -23220,7 +23220,7 @@
       "module": "quality",
       "classification": "WRITE",
       "description": "upsert inspection document",
-      "paramCount": 9,
+      "paramCount": 6,
       "serviceParams": [
         "client",
         "diagram"
@@ -23249,15 +23249,6 @@
             "type": "number"
           },
           "copyFromId": {
-            "type": "string"
-          },
-          "pdfUrl": {
-            "type": "string"
-          },
-          "annotations": {
-            "type": "string"
-          },
-          "features": {
             "type": "string"
           }
         },

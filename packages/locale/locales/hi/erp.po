@@ -4538,6 +4538,9 @@ msgstr "टेम्पलेट लोड करें"
 msgid "Loading associated jobs..."
 msgstr "संबंधित कार्य लोड हो रहे हैं..."
 
+msgid "Loading files for this part…"
+msgstr ""
+
 msgid "Loading item details..."
 msgstr "आइटम विवरण लोड हो रहे हैं..."
 
@@ -5445,6 +5448,9 @@ msgstr "कोई भाग ID नहीं"
 msgid "No parts added yet"
 msgstr "अभी तक कोई पार्ट जोड़ा नहीं गया"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr ""
+
 msgid "No planning data"
 msgstr "कोई योजना डेटा नहीं"
 
@@ -5843,6 +5849,9 @@ msgstr "पार्ट"
 
 msgid "Part Details"
 msgstr "भाग विवरण"
+
+msgid "Part file"
+msgstr ""
 
 msgid "Part ID"
 msgstr "पार्ट आईडी"
@@ -8079,6 +8088,9 @@ msgstr "उद्धरण को एक संशोधन प्रत्य�
 
 msgid "The revision number of the part"
 msgstr "भाग की संशोधन संख्या"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "भाग का आकार"

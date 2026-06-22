@@ -115,7 +115,12 @@ export const inspectionDocumentValidator = z.object({
   partId: z.string().min(1, { message: "Part is required" }),
   drawingNumber: zfd.text(z.string().optional()),
   version: zfd.numeric(z.number().min(0)).optional(),
-  copyFromId: zfd.text(z.string().optional()),
+  copyFromId: zfd
+    .text(z.string().optional())
+    .transform((value) => (value && value !== "__none__" ? value : undefined)),
+  partFileName: zfd
+    .text(z.string().optional())
+    .transform((value) => (value && value !== "__none__" ? value : undefined)),
   pdfUrl: zfd.text(z.string().optional()),
   annotations: zfd.text(z.string().optional()),
   features: zfd.text(z.string().optional())

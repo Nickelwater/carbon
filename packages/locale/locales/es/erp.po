@@ -4538,6 +4538,9 @@ msgstr "Cargar Plantillas"
 msgid "Loading associated jobs..."
 msgstr "Cargando trabajos asociados..."
 
+msgid "Loading files for this part…"
+msgstr ""
+
 msgid "Loading item details..."
 msgstr "Cargando detalles del artículo..."
 
@@ -5445,6 +5448,9 @@ msgstr "Sin ID de pieza"
 msgid "No parts added yet"
 msgstr "No hay piezas añadidas aún"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr ""
+
 msgid "No planning data"
 msgstr "Sin datos de planificación"
 
@@ -5843,6 +5849,9 @@ msgstr "Parte"
 
 msgid "Part Details"
 msgstr "Detalles de la Pieza"
+
+msgid "Part file"
+msgstr ""
 
 msgid "Part ID"
 msgstr "ID de Pieza"
@@ -8079,6 +8088,9 @@ msgstr "La cotización se copiará con un sufijo de revisión"
 
 msgid "The revision number of the part"
 msgstr "El número de revisión de la pieza"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "El tamaño de la pieza"

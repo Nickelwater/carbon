@@ -4538,6 +4538,9 @@ msgstr "Carica Modelli"
 msgid "Loading associated jobs..."
 msgstr "Caricamento dei lavori associati..."
 
+msgid "Loading files for this part…"
+msgstr ""
+
 msgid "Loading item details..."
 msgstr "Caricamento dettagli articolo..."
 
@@ -5445,6 +5448,9 @@ msgstr "Nessun ID parte"
 msgid "No parts added yet"
 msgstr "Nessuna parte aggiunta ancora"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr ""
+
 msgid "No planning data"
 msgstr "Nessun dato di pianificazione"
 
@@ -5843,6 +5849,9 @@ msgstr "Parte"
 
 msgid "Part Details"
 msgstr "Dettagli Parte"
+
+msgid "Part file"
+msgstr ""
 
 msgid "Part ID"
 msgstr "ID Parte"
@@ -8079,6 +8088,9 @@ msgstr "Il preventivo verrà copiato con un suffisso di revisione"
 
 msgid "The revision number of the part"
 msgstr "Il numero di revisione della parte"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "La dimensione della parte"

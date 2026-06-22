@@ -4538,6 +4538,9 @@ msgstr "Załaduj szablony"
 msgid "Loading associated jobs..."
 msgstr "Ładowanie powiązanych zadań..."
 
+msgid "Loading files for this part…"
+msgstr ""
+
 msgid "Loading item details..."
 msgstr "Ładowanie szczegółów przedmiotu..."
 
@@ -5445,6 +5448,9 @@ msgstr "Brak identyfikatora części"
 msgid "No parts added yet"
 msgstr "Nie dodano jeszcze żadnych części"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr ""
+
 msgid "No planning data"
 msgstr "Brak danych planowania"
 
@@ -5843,6 +5849,9 @@ msgstr "Część"
 
 msgid "Part Details"
 msgstr "Szczegóły części"
+
+msgid "Part file"
+msgstr ""
 
 msgid "Part ID"
 msgstr "Identyfikator części"
@@ -8079,6 +8088,9 @@ msgstr "Oferta zostanie skopiowana z sufiksem wersji"
 
 msgid "The revision number of the part"
 msgstr "Numer wersji części"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "Rozmiar części"

@@ -5,6 +5,7 @@ import { parseDate } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 import type { z } from "zod";
+import { getItemFiles } from "~/modules/items/items.service";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
@@ -2270,6 +2271,22 @@ async function copyInspectionDocumentStorage(
   return newPath;
 }
 
+async function copyPartFileToInspectionDocumentStorage(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  partId: string,
+  partFileName: string,
+  newDocumentId: string
+): Promise<string | null> {
+  const sourcePath = `${companyId}/parts/${partId}/${partFileName}`;
+  return copyInspectionDocumentStorage(
+    client,
+    companyId,
+    sourcePath,
+    newDocumentId
+  );
+}
+
 export async function getInspectionDocumentVersions(
   client: SupabaseClient<Database>,
   documentFamilyId: string,
@@ -2398,6 +2415,7 @@ export async function upsertInspectionDocument(
     createdBy,
     updatedBy,
     copyFromId,
+    partFileName,
     version: requestedVersion
   } = diagram;
 
@@ -2541,6 +2559,36 @@ export async function upsertInspectionDocument(
     };
   }
 
+  if (partFileName && copyFromId) {
+    return {
+      data: null,
+      error: {
+        message: "Cannot attach a part file when copying from another document"
+      }
+    };
+  }
+
+  if (partFileName) {
+    if (!partId) {
+      return {
+        data: null,
+        error: { message: "Part is required when attaching a part file" }
+      };
+    }
+
+    const partFiles = await getItemFiles(client, partId, companyId);
+    const matchingFile = partFiles.find((file) => file.name === partFileName);
+    if (!matchingFile?.name?.toLowerCase().endsWith(".pdf")) {
+      return {
+        data: null,
+        error: {
+          message:
+            "The selected file was not found on this part or is not a PDF"
+        }
+      };
+    }
+  }
+
   let documentFamilyId: string | undefined;
   let version = requestedVersion ?? 1;
   let sourceDocument: Record<string, unknown> | null = null;
@@ -2565,6 +2613,14 @@ export async function upsertInspectionDocument(
         data: null,
         error: {
           message: "Source document does not belong to this company"
+        }
+      };
+    }
+    if (partId && String(sourceDocument.partId ?? "") !== String(partId)) {
+      return {
+        data: null,
+        error: {
+          message: "The selected document does not belong to the chosen part"
         }
       };
     }
@@ -2725,6 +2781,46 @@ export async function upsertInspectionDocument(
           return { data: null, error: balloonInsert.error };
         }
       }
+    }
+  }
+
+  if (partFileName && partId) {
+    const copiedStoragePath = await copyPartFileToInspectionDocumentStorage(
+      client,
+      companyId,
+      partId,
+      partFileName,
+      newId
+    );
+
+    if (!copiedStoragePath) {
+      await (client as any)
+        .from("inspectionDocument")
+        .delete()
+        .eq("id", newId)
+        .eq("companyId", companyId);
+      return {
+        data: null,
+        error: { message: "Failed to attach the selected part file" }
+      };
+    }
+
+    const partFileUpdate = await documentClient
+      .from("inspectionDocument")
+      .update({
+        storagePath: copiedStoragePath,
+        fileName: partFileName,
+        uploadedBy: createdBy,
+        updatedBy: createdBy,
+        updatedAt: new Date().toISOString()
+      })
+      .eq("id", newId)
+      .eq("companyId", companyId)
+      .select("id")
+      .single();
+
+    if (partFileUpdate.error) {
+      return { data: null, error: partFileUpdate.error };
     }
   }
 

@@ -4538,6 +4538,9 @@ msgstr "テンプレートを読み込む"
 msgid "Loading associated jobs..."
 msgstr "関連するジョブを読み込み中..."
 
+msgid "Loading files for this part…"
+msgstr ""
+
 msgid "Loading item details..."
 msgstr "アイテムの詳細を読み込み中..."
 
@@ -5445,6 +5448,9 @@ msgstr "パーツIDなし"
 msgid "No parts added yet"
 msgstr "まだパーツが追加されていません"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr ""
+
 msgid "No planning data"
 msgstr "計画データなし"
 
@@ -5843,6 +5849,9 @@ msgstr "部品"
 
 msgid "Part Details"
 msgstr "部品詳細"
+
+msgid "Part file"
+msgstr ""
 
 msgid "Part ID"
 msgstr "部品ID"
@@ -8079,6 +8088,9 @@ msgstr "見積書は改訂サフィックス付きでコピーされます"
 
 msgid "The revision number of the part"
 msgstr "部品のリビジョン番号"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "部品のサイズ"

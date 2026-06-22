@@ -4538,6 +4538,9 @@ msgstr "Загрузить шаблоны"
 msgid "Loading associated jobs..."
 msgstr "Загрузка связанных заданий..."
 
+msgid "Loading files for this part…"
+msgstr ""
+
 msgid "Loading item details..."
 msgstr "Загрузка деталей товара..."
 
@@ -5445,6 +5448,9 @@ msgstr "Нет ID детали"
 msgid "No parts added yet"
 msgstr "Части еще не добавлены"
 
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr ""
+
 msgid "No planning data"
 msgstr "Нет данных планирования"
 
@@ -5843,6 +5849,9 @@ msgstr "Деталь"
 
 msgid "Part Details"
 msgstr "Детали детали"
+
+msgid "Part file"
+msgstr ""
 
 msgid "Part ID"
 msgstr "ID детали"
@@ -8079,6 +8088,9 @@ msgstr "Предложение будет скопировано с суффик
 
 msgid "The revision number of the part"
 msgstr "Номер редакции детали"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "Размер детали"
