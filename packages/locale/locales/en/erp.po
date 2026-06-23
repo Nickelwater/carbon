@@ -73,23 +73,20 @@ msgstr "+{0} more"
 msgid "<0>Add a supplier part</0> for this item to set a preferred supplier."
 msgstr "<0>Add a supplier part</0> for this item to set a preferred supplier."
 
-msgid "<0>delete</0> lets you delete rows. <1>delete</1> will match all rows by default, so remember to specify your filters!"
-msgstr "<0>delete</0> lets you delete rows. <1>delete</1> will match all rows by default, so remember to specify your filters!"
-
-msgid "<0>insert</0> lets you insert into your tables. You can also insert in bulk and do UPSERT."
-msgstr "<0>insert</0> lets you insert into your tables. You can also insert in bulk and do UPSERT."
-
-msgid "<0>insert</0> will also return the replaced values for UPSERT."
-msgstr "<0>insert</0> will also return the replaced values for UPSERT."
-
-msgid "<0>update</0> lets you update rows. <1>update</1> will match all rows by default. You can update specific rows using horizontal filters, e.g. <2>eq</2>, <3>lt</3>, and <4>is</4>."
-msgstr "<0>update</0> lets you update rows. <1>update</1> will match all rows by default. You can update specific rows using horizontal filters, e.g. <2>eq</2>, <3>lt</3>, and <4>is</4>."
-
-msgid "<0>update</0> will also return the replaced values for UPDATE."
-msgstr "<0>update</0> will also return the replaced values for UPDATE."
+msgid "0-4 weeks"
+msgstr "0-4 weeks"
 
 msgid "1 day"
 msgstr "1 day"
+
+msgid "13+ weeks"
+msgstr "13+ weeks"
+
+msgid "1Y"
+msgstr "1Y"
+
+msgid "30D"
+msgstr "30D"
 
 msgid "3D Model"
 msgstr "3D Model"
@@ -97,8 +94,20 @@ msgstr "3D Model"
 msgid "5 User Minimum"
 msgstr "5 User Minimum"
 
+msgid "5-8 weeks"
+msgstr "5-8 weeks"
+
 msgid "5MB file limit"
 msgstr "5MB file limit"
+
+msgid "7D"
+msgstr "7D"
+
+msgid "9-12 weeks"
+msgstr "9-12 weeks"
+
+msgid "90D"
+msgstr "90D"
 
 msgid "A consumable is a physical item used to make a part that can be used across multiple jobs"
 msgstr "A consumable is a physical item used to make a part that can be used across multiple jobs"
@@ -1056,6 +1065,9 @@ msgstr "Avg Days to Close"
 msgid "Back"
 msgstr "Back"
 
+msgid "Back Home"
+msgstr "Back Home"
+
 msgid "Back to traceability"
 msgstr "Back to traceability"
 
@@ -1067,6 +1079,9 @@ msgstr "Balance Sheet"
 
 msgid "Balloon"
 msgstr "Balloon"
+
+msgid "Bars show each week's flow: <0>supply</0> pushes inventory up, <1>demand</1> pulls it down. The <2>line</2> is your projected on-hand inventory — when it dips below <3>safety stock</3> you're at risk, and below zero is a <4>stockout</4>."
+msgstr "Bars show each week's flow: <0>supply</0> pushes inventory up, <1>demand</1> pulls it down. The <2>line</2> is your projected on-hand inventory — when it dips below <3>safety stock</3> you're at risk, and below zero is a <4>stockout</4>."
 
 msgid "Base Currency"
 msgstr "Base Currency"
@@ -1097,6 +1112,9 @@ msgstr "Batch Size"
 
 msgid "Batch Tracking"
 msgstr "Batch Tracking"
+
+msgid "Below safety stock"
+msgstr "Below safety stock"
 
 msgid "Beta"
 msgstr "Beta"
@@ -1400,6 +1418,9 @@ msgstr "Close"
 msgid "Close Date"
 msgstr "Close Date"
 
+msgid "Closed"
+msgstr "Closed"
+
 msgid "Closed Date"
 msgstr "Closed Date"
 
@@ -1432,9 +1453,6 @@ msgstr "Collapse Setup"
 
 msgid "Collapse subtree"
 msgstr "Collapse subtree"
-
-msgid "Column"
-msgstr "Column"
 
 msgid "Column visibility and order"
 msgstr "Column visibility and order"
@@ -1583,6 +1601,12 @@ msgstr "Confirm Import"
 
 msgid "Confirm Password"
 msgstr "Confirm Password"
+
+msgid "Confirmed incoming stock — purchase & production orders (bars above zero)."
+msgstr "Confirmed incoming stock — purchase & production orders (bars above zero)."
+
+msgid "Confirmed outgoing stock — sales orders & job materials (bars below zero)."
+msgstr "Confirmed outgoing stock — sales orders & job materials (bars below zero)."
 
 msgid "Connect Carbon to your accounting, project management, and CAD tools and much more."
 msgstr "Connect Carbon to your accounting, project management, and CAD tools and much more."
@@ -1840,6 +1864,9 @@ msgstr "Could not prepare region image for analysis"
 msgid "Couldn't load documents"
 msgstr "Couldn't load documents"
 
+msgid "Count"
+msgstr "Count"
+
 msgid "Country"
 msgstr "Country"
 
@@ -2025,11 +2052,17 @@ msgstr "Created work center"
 msgid "Creating part..."
 msgstr "Creating part..."
 
+msgid "Critical"
+msgstr "Critical"
+
 msgid "CSV column"
 msgstr "CSV column"
 
 msgid "CSV file must have at least 2 rows."
 msgstr "CSV file must have at least 2 rows."
+
+msgid "Cumulative %"
+msgstr "Cumulative %"
 
 msgid "Currency"
 msgstr "Currency"
@@ -2135,6 +2168,9 @@ msgstr "Customer Types"
 
 msgid "Customers"
 msgstr "Customers"
+
+msgid "Customize"
+msgstr "Customize"
 
 msgid "Customize the layout of your PDF documents — reorder sections, hide what you don't need, and add your own blocks."
 msgstr "Customize the layout of your PDF documents — reorder sections, hide what you don't need, and add your own blocks."
@@ -2433,9 +2469,6 @@ msgstr "Delete RFQ"
 
 msgid "Delete Risk"
 msgstr "Delete Risk"
-
-msgid "Delete rows"
-msgstr "Delete rows"
 
 msgid "Delete Rule"
 msgstr "Delete Rule"
@@ -3191,6 +3224,9 @@ msgstr "Error removing model from sales order line"
 msgid "Error validating serial number"
 msgstr "Error validating serial number"
 
+msgid "Error!"
+msgstr "Error!"
+
 msgid "Escalation"
 msgstr "Escalation"
 
@@ -3703,9 +3739,6 @@ msgstr "Files attached here ride along on every purchase order email sent to thi
 msgid "Filter"
 msgstr "Filter"
 
-msgid "Filtering"
-msgstr "Filtering"
-
 msgid "Finalize"
 msgstr "Finalize"
 
@@ -3869,6 +3902,9 @@ msgstr "Help"
 msgid "Hide, pin and reorder columns"
 msgstr "Hide, pin and reorder columns"
 
+msgid "High"
+msgstr "High"
+
 msgid "Higher priority wins ties and applies first for markups"
 msgstr "Higher priority wins ties and applies first for markups"
 
@@ -3910,6 +3946,9 @@ msgstr "How the resolved price was calculated."
 
 msgid "How this price was calculated"
 msgstr "How this price was calculated"
+
+msgid "How to read this chart"
+msgstr "How to read this chart"
 
 msgid "Humidity"
 msgstr "Humidity"
@@ -4018,9 +4057,6 @@ msgstr "Inherit From Materials"
 
 msgid "Inherited from parent"
 msgstr "Inherited from parent"
-
-msgid "Insert rows"
-msgstr "Insert rows"
 
 msgid "Insert token"
 msgstr "Insert token"
@@ -4382,9 +4418,6 @@ msgstr "Lead Time (Days)"
 msgid "Lead Time:"
 msgstr "Lead Time:"
 
-msgid "Learn more"
-msgstr "Learn more"
-
 msgid "Leave any related receipts untouched"
 msgstr "Leave any related receipts untouched"
 
@@ -4534,6 +4567,9 @@ msgstr "Lot Size"
 
 msgid "Lot Size:"
 msgstr "Lot Size:"
+
+msgid "Low"
+msgstr "Low"
 
 msgid "Machine"
 msgstr "Machine"
@@ -4773,6 +4809,9 @@ msgstr "Measurement Standard"
 
 msgid "Media Size"
 msgstr "Media Size"
+
+msgid "Medium"
+msgstr "Medium"
 
 msgid "Members"
 msgstr "Members"
@@ -5417,6 +5456,9 @@ msgstr "No sorts applied to this view"
 msgid "No stock"
 msgstr "No stock"
 
+msgid "No stockout projected in the next 48 weeks"
+msgstr "No stockout projected in the next 48 weeks"
+
 msgid "No suppliers yet"
 msgstr "No suppliers yet"
 
@@ -5590,6 +5632,9 @@ msgstr "Open Scheduled"
 
 msgid "Open task details"
 msgstr "Open task details"
+
+msgid "Opened"
+msgstr "Opened"
 
 msgid "Operation"
 msgstr "Operation"
@@ -5912,6 +5957,9 @@ msgstr "Plan"
 msgid "Plan Type"
 msgstr "Plan Type"
 
+msgid "Planned"
+msgstr "Planned"
+
 msgid "Planned End"
 msgstr "Planned End"
 
@@ -6163,8 +6211,28 @@ msgstr "Progress"
 msgid "Project"
 msgstr "Project"
 
+msgid "Projected demand exploded from BOMs and forecasts."
+msgstr "Projected demand exploded from BOMs and forecasts."
+
+msgid "Projected inventory"
+msgstr "Projected inventory"
+
+msgid "Projected on hand"
+msgstr "Projected on hand"
+
 msgid "Projected stock"
 msgstr "Projected stock"
+
+#. placeholder {0}: formatWeek(stockoutDate)
+msgid "Projected stockout the week of {0}"
+msgstr "Projected stockout the week of {0}"
+
+#. placeholder {0}: formatWeek(belowSafetyDate)
+msgid "Projected to drop below safety stock the week of {0}"
+msgstr "Projected to drop below safety stock the week of {0}"
+
+msgid "Projected to stay above safety stock"
+msgstr "Projected to stay above safety stock"
 
 msgid "Projection"
 msgstr "Projection"
@@ -6390,9 +6458,6 @@ msgstr "Rate Limit"
 msgid "Reactivate"
 msgstr "Reactivate"
 
-msgid "Read rows"
-msgstr "Read rows"
-
 msgid "Ready for Quote"
 msgstr "Ready for Quote"
 
@@ -6486,6 +6551,9 @@ msgstr "Refresh"
 
 msgid "Refresh exchange rate"
 msgstr "Refresh exchange rate"
+
+msgid "Registered"
+msgstr "Registered"
 
 msgid "Reject"
 msgstr "Reject"
@@ -6809,6 +6877,9 @@ msgstr "Rules"
 msgid "Run Test"
 msgstr "Run Test"
 
+msgid "Running inventory after each week's supply and demand — the line."
+msgstr "Running inventory after each week's supply and demand — the line."
+
 msgid "Running Total"
 msgstr "Running Total"
 
@@ -6817,6 +6888,10 @@ msgstr "Safety stock"
 
 msgid "Safety Stock"
 msgstr "Safety Stock"
+
+#. placeholder {0}: numberFormatter.format(safetyStockValue)
+msgid "Safety stock ({0})"
+msgstr "Safety stock ({0})"
 
 msgid "Safety Stock:"
 msgstr "Safety Stock:"
@@ -7446,6 +7521,9 @@ msgstr "Skip scheduled maintenance on company holidays"
 msgid "Skipped"
 msgstr "Skipped"
 
+msgid "Something went wrong"
+msgstr "Something went wrong"
+
 msgid "Something went wrong. Please try again."
 msgstr "Something went wrong. Please try again."
 
@@ -7618,6 +7696,9 @@ msgstr "Stock Transfer Wizard"
 msgid "Stock Transfers"
 msgstr "Stock Transfers"
 
+msgid "Stockout"
+msgstr "Stockout"
+
 msgid "Storage client not available"
 msgstr "Storage client not available"
 
@@ -7669,9 +7750,6 @@ msgstr "Submit Inspection"
 msgid "Submitted By"
 msgstr "Submitted By"
 
-msgid "Subscribe to changes"
-msgstr "Subscribe to changes"
-
 msgid "Substance"
 msgstr "Substance"
 
@@ -7696,6 +7774,9 @@ msgstr "Successfully created a new revision"
 msgid "Suffix"
 msgstr "Suffix"
 
+msgid "Suggested orders you haven't placed yet."
+msgstr "Suggested orders you haven't placed yet."
+
 msgid "Suggestion"
 msgstr "Suggestion"
 
@@ -7707,12 +7788,6 @@ msgstr "Suggestions"
 
 msgid "Sunday"
 msgstr "Sunday"
-
-msgid "Supabase provides a wide range of filters."
-msgstr "Supabase provides a wide range of filters."
-
-msgid "Supabase provides realtime functionality and broadcasts database changes to authorized users depending on Row Level Security (RLS) policies."
-msgstr "Supabase provides realtime functionality and broadcasts database changes to authorized users depending on Row Level Security (RLS) policies."
 
 msgid "Supplier"
 msgstr "Supplier"
@@ -7925,6 +8000,9 @@ msgstr "The amount of days after the calculation method that the cash discount i
 msgid "The amount of days after the calculation method that the payment is due"
 msgstr "The amount of days after the calculation method that the payment is due"
 
+msgid "The dashed threshold you don't want inventory to fall below."
+msgstr "The dashed threshold you don't want inventory to fall below."
+
 msgid "The date the customer expects to receive the goods"
 msgstr "The date the customer expects to receive the goods"
 
@@ -8113,9 +8191,6 @@ msgstr "Title"
 
 msgid "To Location"
 msgstr "To Location"
-
-msgid "To read rows in <0>{resourceId}</0>, use the <1>select</1> method."
-msgstr "To read rows in <0>{resourceId}</0>, use the <1>select</1> method."
 
 msgid "To Receive"
 msgstr "To Receive"
@@ -8432,9 +8507,6 @@ msgstr "Update Permissions"
 
 msgid "Update Quantity"
 msgstr "Update Quantity"
-
-msgid "Update rows"
-msgstr "Update rows"
 
 msgid "Update Rule"
 msgstr "Update Rule"
@@ -8816,6 +8888,10 @@ msgstr "Website"
 
 msgid "Wednesday"
 msgstr "Wednesday"
+
+#. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
+msgid "Week of {0}"
+msgstr "Week of {0}"
 
 msgid "Weeks Open"
 msgstr "Weeks Open"
