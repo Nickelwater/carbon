@@ -65,6 +65,7 @@ services:
       NODE_ENV: production
       PORT: "3000"
       CARBON_EDITION: ${CARBON_EDITION:-community}
+      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-email,google,azure}
       DOMAIN: ${DOMAIN}
       ERP_URL: ${ERP_URL}
       MES_URL: ${MES_URL}
@@ -82,7 +83,7 @@ services:
     volumes:
       - *shim
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
       timeout: 6s
       retries: 5
@@ -106,6 +107,7 @@ services:
       NODE_ENV: production
       PORT: "3000"
       CARBON_EDITION: ${CARBON_EDITION:-community}
+      AUTH_PROVIDERS: ${AUTH_PROVIDERS:-email,google,azure}
       DOMAIN: ${DOMAIN}
       ERP_URL: ${ERP_URL}
       MES_URL: ${MES_URL}
@@ -121,7 +123,7 @@ services:
     volumes:
       - *shim
     healthcheck:
-      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
       interval: 15s
       timeout: 6s
       retries: 5
@@ -131,17 +133,23 @@ services:
   caddy:
     image: caddy:2-alpine
     networks: [internal]
+    # mode: host (NOT ingress): caddy binds :80/:443 directly on the host NIC. The
+    # Swarm ingress mesh (IPVS) needs seconds to converge after a (re)start, but
+    # caddy fires ACME immediately — so with ingress the Let's Encrypt validator hits
+    # :80 before it routes and gets "connection refused", failing every cert. host
+    # mode makes the port live the instant caddy starts. Single-node, single-replica,
+    # so there is no multi-node routing to lose.
     ports:
       - target: 80
         published: 80
-        mode: ingress
+        mode: host
       - target: 443
         published: 443
-        mode: ingress
+        mode: host
       - target: 443
         published: 443
         protocol: udp
-        mode: ingress
+        mode: host
     environment:
       ERP_HOST: ${ERP_HOST}
       MES_HOST: ${MES_HOST}
@@ -156,7 +164,10 @@ services:
       - caddy-data:/data
       - caddy-config:/config
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:2019/config/"]
+      # 127.0.0.1, NOT localhost: /etc/hosts resolves localhost to ::1 (IPv6) but
+      # caddy's admin API listens on 127.0.0.1 only, and busybox wget won't fall
+      # back — using localhost makes this check always fail and flaps caddy.
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:2019/config/"]
       interval: 20s
       timeout: 5s
       retries: 5
@@ -164,6 +175,11 @@ services:
     deploy:
       <<: *restart
       replicas: 1
+      # stop-first: with host-mode ports a new task can't bind :80/:443 while the old
+      # one still holds them, so the default start-first rollout would deadlock. Brief
+      # ingress blip on redeploy is acceptable for a single-node proxy.
+      update_config:
+        order: stop-first
       resources:
         limits:
           memory: 256M
@@ -172,15 +188,16 @@ services:
   postgres:
     image: supabase/postgres:15.14.1.112
     entrypoint: ["/usr/local/bin/carbon-secrets-entrypoint.sh"]
-    # Original entrypoint+cmd, plus production tuning. shared_preload_libraries
-    # must be a server flag (it cannot be set via ALTER SYSTEM at runtime).
+    # Image's own entrypoint+cmd. Do NOT override shared_preload_libraries here:
+    # the image's postgresql.conf already preloads the full set Carbon needs
+    # (pg_stat_statements, pg_net, pg_cron, pgsodium, supabase_vault, …). Passing
+    # -c shared_preload_libraries=… would REPLACE that list and break extensions
+    # (e.g. the webhooks migration's `CREATE EXTENSION pg_net`).
     command:
       - docker-entrypoint.sh
       - postgres
       - -c
       - config_file=/etc/postgresql/postgresql.conf
-      - -c
-      - shared_preload_libraries=pg_stat_statements
     networks:
       internal:
         aliases: [db]
@@ -216,7 +233,7 @@ services:
         target: /docker-entrypoint-initdb.d/zz-carbon-02-performance.sh
         read_only: true
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "localhost"]
+      test: ["CMD", "pg_isready", "-U", "postgres", "-h", "127.0.0.1"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -281,22 +298,21 @@ services:
 
   postgrest:
     image: postgrest/postgrest:v13.0.8
-    entrypoint: ["/usr/local/bin/carbon-secrets-entrypoint.sh"]
-    command: ["postgrest"]
+    # PostgREST's image is FROM scratch (no shell), so it can't run the
+    # secrets-entrypoint shim the other services use. Instead it reads each value
+    # straight from its secret file via PostgREST's native @file syntax.
     networks: [internal]
     secrets:
-      - postgres_password
+      - postgrest_db_uri
       - jwt_secret
     environment:
-      PGRST_DB_URI: postgres://authenticator:__POSTGRES_PASSWORD__@postgres:5432/postgres
+      PGRST_DB_URI: "@/run/secrets/postgrest_db_uri"
       PGRST_DB_SCHEMAS: public,storage,graphql_public
       PGRST_DB_ANON_ROLE: anon
-      PGRST_JWT_SECRET: __JWT_SECRET__
+      PGRST_JWT_SECRET: "@/run/secrets/jwt_secret"
       PGRST_DB_USE_LEGACY_GUCS: "false"
-      PGRST_APP_SETTINGS_JWT_SECRET: __JWT_SECRET__
+      PGRST_APP_SETTINGS_JWT_SECRET: "@/run/secrets/jwt_secret"
       PGRST_APP_SETTINGS_JWT_EXP: "3600"
-    volumes:
-      - *shim
     deploy:
       <<: *restart
       replicas: 1
@@ -373,7 +389,7 @@ services:
         - CMD
         - node
         - -e
-        - "fetch('http://localhost:5000/status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
+        - "fetch('http://127.0.0.1:5000/status').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
       interval: 5s
       timeout: 5s
       retries: 30
@@ -417,6 +433,10 @@ services:
       - anon_key
       - service_role_key
     environment:
+      # Next.js standalone binds to $HOSTNAME, which Docker sets to the container ID
+      # (→ the overlay IP only). Force 0.0.0.0 so it also listens on 127.0.0.1 for the
+      # healthcheck and on the service VIP for kong/caddy.
+      HOSTNAME: 0.0.0.0
       STUDIO_PG_META_URL: http://meta:8080
       POSTGRES_PASSWORD: __POSTGRES_PASSWORD__
       DEFAULT_ORGANIZATION_NAME: Carbon
@@ -427,6 +447,15 @@ services:
       SUPABASE_SERVICE_KEY: __SERVICE_ROLE_KEY__
     volumes:
       - *shim
+    # The image's built-in healthcheck demands HTTP 200 from /api/platform/profile
+    # with no start_period, which SIGKILLs a studio that is in fact serving. Override
+    # with a lenient check (server answers at all) on 127.0.0.1 + a boot grace period.
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/platform/profile').then(()=>process.exit(0)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
     # Internal admin UI. Not published. Reach it via the optional studio.* route
     # in the Caddyfile (behind basic_auth) or an SSH tunnel — never expose openly.
     deploy:
@@ -562,6 +591,8 @@ volumes:
 
 secrets:
   postgres_password:
+    external: true
+  postgrest_db_uri:
     external: true
   jwt_secret:
     external: true
