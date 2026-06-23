@@ -168,18 +168,13 @@ export function getCompletedJobOrderStatus(): ItemOrderStatus {
 export function getJobOrderStatusCategory(
   status: ItemOrderStatus | undefined
 ): JobOrderStatusCategory | null {
-  // A completed job and a need fully met from on-hand stock both render the same
-  // green "check" badge ("Completed" / "In stock"), so they share the
-  // "completed" filter category.
   if (status?.jobCompleted) return "completed";
 
   // A still-unmet, priority-adjusted shortfall outranks the supply indicators —
   // see JobOrderStatusBadge for why.
   if (status?.needsOrder) return "needsOrder";
 
-  // This job's need is already met from on-hand stock ("In stock" green check) —
-  // outranks any "on order" indicator from a PO that's only partially received
-  // for other jobs.
+  // On-hand coverage shares the "completed" category (same green check).
   if (status?.coveredByOnHand) return "completed";
 
   switch (status?.status) {
@@ -193,8 +188,6 @@ export function getJobOrderStatusCategory(
       const fraction =
         status.ordered > 0 ? status.received / status.ordered : 0;
       if (fraction < 1) {
-        // Some already received ("Received X of Y" badge) vs nothing yet
-        // ("On order").
         return status.received > 0 ? "received" : "onOrder";
       }
       break;

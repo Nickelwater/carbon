@@ -104,8 +104,6 @@ const JobMaterialsTable = memo(
     const [items] = useItems();
     const [, setSearchParams] = useUrlParams();
 
-    // Whether each item is bought, made, or both — drives where the row's
-    // dropdown sends the user for planning (purchasing vs production).
     const replenishmentByItemId = useMemo(() => {
       const map = new Map<string, Item["replenishmentSystem"]>();
       for (const item of items) {
@@ -209,9 +207,7 @@ const JobMaterialsTable = memo(
                 { value: "awaitingApproval", label: t`Awaiting approval` },
                 { value: "onOrder", label: t`On order` },
                 { value: "received", label: t`Pending` },
-                // `completed` category covers both a finished job ("Completed"
-                // badge) and a need met from on-hand stock ("In stock"). On an
-                // active job it's always the latter, so label it "In stock".
+                // `completed` is "In stock" on an active job, "Completed" once done.
                 { value: "completed", label: t`In stock` }
               ]
             }

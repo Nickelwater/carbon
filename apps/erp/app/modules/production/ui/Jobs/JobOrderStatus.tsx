@@ -10,10 +10,8 @@ import {
   type ItemOrderStatus
 } from "../../jobOrderStatus";
 
-// The badge is purely presentational: precedence lives entirely in
-// getJobOrderStatusCategory (the single source the status filter also reads), and
-// this maps the resolved category to an icon + label. The exhaustive switch means
-// adding a category without a badge is a compile error — the two can't drift.
+// Presentation only — precedence lives in getJobOrderStatusCategory (shared with
+// the status filter); this maps the resolved category to an icon + label.
 export function JobOrderStatusBadge({
   status
 }: {
@@ -31,8 +29,6 @@ export function JobOrderStatusBadge({
   const category = getJobOrderStatusCategory(status);
 
   switch (category) {
-    // A finished job and a need met from on-hand stock share the green check;
-    // the label distinguishes them.
     case "completed":
       return badge(
         <LuCircleCheck className="text-emerald-600" />,
@@ -75,12 +71,7 @@ export function JobOrderStatusBadge({
           <Trans>Job in progress</Trans>
         )
       );
-    case null:
+    default:
       return null;
-    default: {
-      // Exhaustiveness guard — a new category must add a case above.
-      const _exhaustive: never = category;
-      return _exhaustive;
-    }
   }
 }
