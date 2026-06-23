@@ -42,7 +42,12 @@ export type EntityKey =
   | "material"
   | "tool"
   | "service"
-  | "consumable";
+  | "consumable"
+  | "customerContact"
+  | "customerLocation"
+  | "supplierContact"
+  | "supplierLocation"
+  | "supplierProcess";
 
 const useEntityCopy = (entity: EntityKey): EntityCopy => {
   const { t } = useLingui();
@@ -280,6 +285,51 @@ const useEntityCopy = (entity: EntityKey): EntityCopy => {
         noun: t`consumable`,
         pluralNoun: t`consumables`,
         moduleLabel: t`parts`
+      };
+    case "customerContact":
+      return {
+        module: "sales",
+        action: "create",
+        route: path.to.customers,
+        noun: t`contact`,
+        pluralNoun: t`contacts`,
+        moduleLabel: t`sales`
+      };
+    case "customerLocation":
+      return {
+        module: "sales",
+        action: "create",
+        route: path.to.customers,
+        noun: t`location`,
+        pluralNoun: t`locations`,
+        moduleLabel: t`sales`
+      };
+    case "supplierContact":
+      return {
+        module: "purchasing",
+        action: "create",
+        route: path.to.suppliers,
+        noun: t`contact`,
+        pluralNoun: t`contacts`,
+        moduleLabel: t`purchasing`
+      };
+    case "supplierLocation":
+      return {
+        module: "purchasing",
+        action: "create",
+        route: path.to.suppliers,
+        noun: t`location`,
+        pluralNoun: t`locations`,
+        moduleLabel: t`purchasing`
+      };
+    case "supplierProcess":
+      return {
+        module: "purchasing",
+        action: "create",
+        route: path.to.suppliers,
+        noun: t`supplier process`,
+        pluralNoun: t`supplier processes`,
+        moduleLabel: t`purchasing`
       };
   }
 };

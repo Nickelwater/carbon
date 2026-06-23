@@ -1680,11 +1680,17 @@ msgstr "Consumables"
 msgid "Consumed"
 msgstr "Consumed"
 
+msgid "contact"
+msgstr "contact"
+
 msgid "Contact"
 msgstr "Contact"
 
 msgid "Contact (optional)"
 msgstr "Contact (optional)"
+
+msgid "contacts"
+msgstr "contacts"
 
 msgid "Contacts"
 msgstr "Contacts"
@@ -7999,6 +8005,12 @@ msgstr "Supplier Part Number"
 
 msgid "Supplier Parts"
 msgstr "Supplier Parts"
+
+msgid "supplier process"
+msgstr "supplier process"
+
+msgid "supplier processes"
+msgstr "supplier processes"
 
 msgid "Supplier Processes"
 msgstr "Supplier Processes"

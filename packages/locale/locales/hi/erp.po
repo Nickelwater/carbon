@@ -1680,11 +1680,17 @@ msgstr "उपभोग्य"
 msgid "Consumed"
 msgstr "उपभोग किया गया"
 
+msgid "contact"
+msgstr ""
+
 msgid "Contact"
 msgstr "संपर्क"
 
 msgid "Contact (optional)"
 msgstr "संपर्क (वैकल्पिक)"
+
+msgid "contacts"
+msgstr ""
 
 msgid "Contacts"
 msgstr "संपर्क"
@@ -7999,6 +8005,12 @@ msgstr "आपूर्तिकर्ता भाग संख्या"
 
 msgid "Supplier Parts"
 msgstr "आपूर्तिकर्ता पार्ट्स"
+
+msgid "supplier process"
+msgstr ""
+
+msgid "supplier processes"
+msgstr ""
 
 msgid "Supplier Processes"
 msgstr "आपूर्तिकर्ता प्रक्रियाएं"

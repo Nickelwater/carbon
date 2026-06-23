@@ -1680,11 +1680,17 @@ msgstr "Sarflar"
 msgid "Consumed"
 msgstr "Tüketildi"
 
+msgid "contact"
+msgstr ""
+
 msgid "Contact"
 msgstr "İletişim"
 
 msgid "Contact (optional)"
 msgstr "İletişim (isteğe bağlı)"
+
+msgid "contacts"
+msgstr ""
 
 msgid "Contacts"
 msgstr "Kişiler"
@@ -7999,6 +8005,12 @@ msgstr "Tedarikçi Parça Numarası"
 
 msgid "Supplier Parts"
 msgstr "Tedarikçi Parçaları"
+
+msgid "supplier process"
+msgstr ""
+
+msgid "supplier processes"
+msgstr ""
 
 msgid "Supplier Processes"
 msgstr "Tedarikçi Süreçleri"

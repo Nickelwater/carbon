@@ -1680,11 +1680,17 @@ msgstr "Materiały zużywalne"
 msgid "Consumed"
 msgstr "Zużyte"
 
+msgid "contact"
+msgstr ""
+
 msgid "Contact"
 msgstr "Kontakt"
 
 msgid "Contact (optional)"
 msgstr "Kontakt (opcjonalnie)"
+
+msgid "contacts"
+msgstr ""
 
 msgid "Contacts"
 msgstr "Kontakty"
@@ -7999,6 +8005,12 @@ msgstr "Numer części dostawcy"
 
 msgid "Supplier Parts"
 msgstr "Części dostawcy"
+
+msgid "supplier process"
+msgstr ""
+
+msgid "supplier processes"
+msgstr ""
 
 msgid "Supplier Processes"
 msgstr "Procesy dostawcy"

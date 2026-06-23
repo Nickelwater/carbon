@@ -1680,11 +1680,17 @@ msgstr "消耗品"
 msgid "Consumed"
 msgstr "已消耗"
 
+msgid "contact"
+msgstr ""
+
 msgid "Contact"
 msgstr "联系人"
 
 msgid "Contact (optional)"
 msgstr "联系人（可选）"
+
+msgid "contacts"
+msgstr ""
 
 msgid "Contacts"
 msgstr "联系人"
@@ -7999,6 +8005,12 @@ msgstr "供应商零件号"
 
 msgid "Supplier Parts"
 msgstr "供应商零件"
+
+msgid "supplier process"
+msgstr ""
+
+msgid "supplier processes"
+msgstr ""
 
 msgid "Supplier Processes"
 msgstr "供应商流程"
