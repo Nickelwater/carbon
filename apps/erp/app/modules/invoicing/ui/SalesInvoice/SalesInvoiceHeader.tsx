@@ -17,7 +17,7 @@ import {
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   LuCheckCheck,
@@ -98,33 +98,73 @@ const SalesInvoiceHeader = () => {
     shipments: { id: string; readableId: string; status: string }[];
   }>({ salesOrders: [], shipments: [] });
 
-  // Load related documents on mount
+  const linkedSalesOrderIds = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          (routeData?.salesInvoiceLines ?? [])
+            .map((line) => line.salesOrderId)
+            .filter((id): id is string => Boolean(id))
+        )
+      ),
+    [routeData?.salesInvoiceLines]
+  );
+
+  // Load related documents from invoice lines (preferred) or opportunity fallback
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   useEffect(() => {
     async function getRelatedDocuments() {
-      if (!carbon || !salesInvoice.opportunityId) return;
+      if (!carbon) return;
 
-      const [salesOrdersResult, shipmentsResult] = await Promise.all([
-        carbon
+      let salesOrders: { id: string; readableId: string }[] = [];
+
+      if (linkedSalesOrderIds.length > 0) {
+        const salesOrdersResult = await carbon
           .from("salesOrder")
           .select("id, salesOrderId")
-          .eq("opportunityId", salesInvoice.opportunityId),
-        carbon
-          .from("shipment")
-          .select("id, shipmentId, status")
-          .eq("opportunityId", salesInvoice.opportunityId)
-      ]);
+          .in("id", linkedSalesOrderIds);
 
-      if (salesOrdersResult.error)
-        throw new Error(salesOrdersResult.error.message);
-      if (shipmentsResult.error) throw new Error(shipmentsResult.error.message);
+        if (salesOrdersResult.error) {
+          throw new Error(salesOrdersResult.error.message);
+        }
+
+        salesOrders =
+          salesOrdersResult.data?.map((order) => ({
+            id: order.id,
+            readableId: order.salesOrderId
+          })) ?? [];
+      } else if (salesInvoice.opportunityId) {
+        const salesOrdersResult = await carbon
+          .from("salesOrder")
+          .select("id, salesOrderId")
+          .eq("opportunityId", salesInvoice.opportunityId);
+
+        if (salesOrdersResult.error) {
+          throw new Error(salesOrdersResult.error.message);
+        }
+
+        salesOrders =
+          salesOrdersResult.data?.map((order) => ({
+            id: order.id,
+            readableId: order.salesOrderId
+          })) ?? [];
+      }
+
+      salesOrders.sort((a, b) => a.readableId.localeCompare(b.readableId));
+
+      const shipmentsResult = salesInvoice.opportunityId
+        ? await carbon
+            .from("shipment")
+            .select("id, shipmentId, status")
+            .eq("opportunityId", salesInvoice.opportunityId)
+        : { data: [], error: null };
+
+      if (shipmentsResult.error) {
+        throw new Error(shipmentsResult.error.message);
+      }
 
       setRelatedDocs({
-        salesOrders:
-          salesOrdersResult.data?.map((po) => ({
-            id: po.id,
-            readableId: po.salesOrderId
-          })) ?? [],
+        salesOrders,
         shipments:
           shipmentsResult.data?.map((r) => ({
             id: r.id,
@@ -135,7 +175,12 @@ const SalesInvoiceHeader = () => {
     }
 
     getRelatedDocuments();
-  }, [carbon, salesInvoice.opportunityId, salesInvoice.status]);
+  }, [
+    carbon,
+    linkedSalesOrderIds,
+    salesInvoice.opportunityId,
+    salesInvoice.status
+  ]);
 
   const showPostModal = async () => {
     // check if there are any lines that are not associated with a PO
@@ -253,15 +298,19 @@ const SalesInvoiceHeader = () => {
             {relatedDocs.salesOrders.length > 1 && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="secondary" leftIcon={<RiProgress8Line />}>
-                    <Trans>Sales Orders</Trans>
+                  <Button
+                    variant="secondary"
+                    leftIcon={<RiProgress8Line />}
+                    rightIcon={<LuChevronDown />}
+                  >
+                    <Trans>Sales Order</Trans>
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent>
-                  {relatedDocs.salesOrders.map((po) => (
-                    <DropdownMenuItem key={po.id} asChild>
-                      <Link to={path.to.salesOrderDetails(po.id)}>
-                        {po.readableId}
+                  {relatedDocs.salesOrders.map((order) => (
+                    <DropdownMenuItem key={order.id} asChild>
+                      <Link to={path.to.salesOrderDetails(order.id)}>
+                        {order.readableId}
                       </Link>
                     </DropdownMenuItem>
                   ))}

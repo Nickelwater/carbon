@@ -189,6 +189,7 @@ export default function ShipmentDetailsRoute() {
     sourceDocumentReadableId:
       routeData.shipment.sourceDocumentReadableId ?? undefined,
     locationId: routeData.shipment.locationId ?? undefined,
+    customerId: routeData.shipment.customerId ?? undefined,
     ...getCustomFields(routeData.shipment.customFields)
   };
 

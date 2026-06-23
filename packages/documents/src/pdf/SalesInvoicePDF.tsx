@@ -17,6 +17,8 @@ interface SalesInvoicePDFProps extends PDF {
   salesInvoice: Database["public"]["Views"]["salesInvoices"]["Row"];
   salesInvoiceLines: Database["public"]["Views"]["salesInvoiceLines"]["Row"][];
   salesOrderIds?: string[];
+  customerReference?: string;
+  lineCustomerReferences?: Record<string, string>;
   salesInvoiceLocations: SalesInvoiceLocations;
   salesInvoiceShipment: Database["public"]["Tables"]["salesInvoiceShipment"]["Row"];
   accountsReceivableBillingAddress?: AccountsReceivableBillingAddress | null;
@@ -43,6 +45,8 @@ const SalesInvoicePDF = ({
   salesInvoiceLines,
   salesInvoiceLocations,
   salesOrderIds,
+  customerReference,
+  lineCustomerReferences,
   terms,
   paymentTerms,
   shippingMethods,
@@ -72,7 +76,8 @@ const SalesInvoicePDF = ({
     salesInvoice,
     salesInvoiceLocations,
     company,
-    currencyCode
+    currencyCode,
+    customerReference
   });
 
   // Header layout now lives on the global header section's config (not the
@@ -91,6 +96,8 @@ const SalesInvoicePDF = ({
     salesInvoiceLocations,
     salesInvoiceShipment,
     salesOrderIds,
+    customerReference,
+    lineCustomerReferences,
     accountsReceivableBillingAddress,
     paymentTerms,
     shippingMethods,

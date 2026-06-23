@@ -10,6 +10,7 @@ export function PartiesBlock({ data }: { data: SalesInvoiceData }) {
     salesInvoiceShipment,
     salesInvoiceLocations,
     salesOrderIds,
+    customerReference,
     paymentTerms,
     shippingMethods,
     locale
@@ -104,8 +105,11 @@ export function PartiesBlock({ data }: { data: SalesInvoiceData }) {
                   {formatDate(salesInvoice.dateDue, undefined, locale)}
                 </Text>
               )}
-              {salesInvoice?.customerReference && (
-                <Text>Customer Ref: {salesInvoice.customerReference}</Text>
+              {(customerReference ?? salesInvoice?.customerReference) && (
+                <Text>
+                  Customer Ref:{" "}
+                  {customerReference ?? salesInvoice?.customerReference}
+                </Text>
               )}
               {salesOrderIds && salesOrderIds.length > 0 && (
                 <Text>

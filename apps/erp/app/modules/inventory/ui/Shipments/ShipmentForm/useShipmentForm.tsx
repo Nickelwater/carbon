@@ -1,4 +1,4 @@
-﻿import { useCarbon } from "@carbon/auth";
+import { useCarbon } from "@carbon/auth";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
 import type { z } from "zod";
@@ -26,9 +26,6 @@ export default function useShipmentForm({
 
   const [locationId, setLocationId] = useState<string | null>(
     initialValues.locationId ?? user.defaults.locationId ?? null
-  );
-  const [customerId, setCustomerId] = useState<string | null>(
-    initialValues.customerId ?? null
   );
 
   const [sourceDocuments, setSourceDocuments] = useState<ListItem[]>(() => {
@@ -121,10 +118,8 @@ export default function useShipmentForm({
   return {
     error,
     locationId,
-    customerId,
     sourceDocuments,
     setLocationId,
-    setSourceDocument,
-    setCustomerId
+    setSourceDocument
   };
 }

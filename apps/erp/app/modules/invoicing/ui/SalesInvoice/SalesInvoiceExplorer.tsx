@@ -48,6 +48,7 @@ import { methodItemType } from "~/modules/shared";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import { isSalesInvoiceLocked } from "../../invoicing.models";
+import type { SalesInvoiceLineDisplayDetails } from "../../invoicing.service";
 import type { SalesInvoice, SalesInvoiceLine } from "../../types";
 import DeleteSalesInvoiceLine from "./DeleteSalesInvoiceLine";
 import SalesInvoiceLineForm from "./SalesInvoiceLineForm";
@@ -60,6 +61,7 @@ export default function SalesInvoiceExplorer() {
   const salesInvoiceData = useRouteData<{
     salesInvoice: SalesInvoice;
     salesInvoiceLines: SalesInvoiceLine[];
+    invoiceLineDisplayDetails: Record<string, SalesInvoiceLineDisplayDetails>;
     supplier: Supplier;
   }>(path.to.salesInvoice(invoiceId));
   const permissions = usePermissions();
@@ -107,6 +109,7 @@ export default function SalesInvoiceExplorer() {
   });
 
   const lines = salesInvoiceData?.salesInvoiceLines ?? [];
+  const lineDisplayDetails = salesInvoiceData?.invoiceLineDisplayDetails ?? {};
   const canReorder =
     !isDisabled && permissions.can("update", "invoicing") && lines.length > 1;
 
@@ -130,10 +133,18 @@ export default function SalesInvoiceExplorer() {
                 onDragStart={editMode.handleDragStart}
                 onDragEnd={editMode.handleDragEnd}
                 renderRow={(line, dragHandle) => (
-                  <SalesInvoiceLineBody line={line} dragHandle={dragHandle} />
+                  <SalesInvoiceLineBody
+                    line={line}
+                    details={lineDisplayDetails[line.id!]}
+                    dragHandle={dragHandle}
+                  />
                 )}
                 renderOverlay={(line) => (
-                  <SalesInvoiceLineBody line={line} isOverlay />
+                  <SalesInvoiceLineBody
+                    line={line}
+                    details={lineDisplayDetails[line.id!]}
+                    isOverlay
+                  />
                 )}
               />
             ) : (
@@ -142,6 +153,7 @@ export default function SalesInvoiceExplorer() {
                   key={line.id}
                   isDisabled={isDisabled}
                   line={line}
+                  details={lineDisplayDetails[line.id!]}
                   onDelete={onDeleteLine}
                 />
               ))
@@ -223,28 +235,63 @@ export default function SalesInvoiceExplorer() {
   );
 }
 
+function SalesInvoiceLineDetails({
+  line,
+  details
+}: {
+  line: SalesInvoiceLine;
+  details?: SalesInvoiceLineDisplayDetails;
+}) {
+  const [items] = useItems();
+  const isFixedAsset = line.invoiceLineType === "Fixed Asset";
+
+  const internalPartNumber = isFixedAsset
+    ? (line as { assetReadableId?: string | null }).assetReadableId ||
+      "Fixed Asset"
+    : (getItemReadableId(items, line.itemId) ?? "");
+
+  const description = isFixedAsset
+    ? (line as { assetName?: string | null }).assetName || line.description
+    : line.description;
+
+  return (
+    <VStack spacing={0} className="min-w-0">
+      <span className="font-semibold line-clamp-1">{internalPartNumber}</span>
+      {details?.customerPartNumber && (
+        <span className="text-muted-foreground text-xs truncate line-clamp-1">
+          {details.customerPartNumber}
+        </span>
+      )}
+      {description && (
+        <span className="text-muted-foreground text-xs truncate line-clamp-1">
+          {description}
+        </span>
+      )}
+      {details?.customerPo && (
+        <span className="text-muted-foreground text-xs truncate line-clamp-1">
+          PO: {details.customerPo}
+        </span>
+      )}
+    </VStack>
+  );
+}
+
 function SalesInvoiceLineBody({
   line,
+  details,
   dragHandle,
   isOverlay
 }: {
   line: SalesInvoiceLine;
+  details?: SalesInvoiceLineDisplayDetails;
   dragHandle?: DragHandleBindings;
   isOverlay?: boolean;
 }) {
-  const [items] = useItems();
   return (
     <ReorderableRow dragHandle={dragHandle} isOverlay={isOverlay}>
       <HStack spacing={2} className="flex-grow min-w-0 p-2 pr-10">
         <ItemThumbnail thumbnailPath={line.thumbnailPath} type="Part" />
-        <VStack spacing={0} className="min-w-0">
-          <span className="font-semibold line-clamp-1">
-            {getItemReadableId(items, line.itemId) ?? ""}
-          </span>
-          <span className="text-muted-foreground text-xs truncate line-clamp-1">
-            {line.description}
-          </span>
-        </VStack>
+        <SalesInvoiceLineDetails line={line} details={details} />
       </HStack>
     </ReorderableRow>
   );
@@ -252,17 +299,18 @@ function SalesInvoiceLineBody({
 
 type SalesInvoiceLineItemProps = {
   line: SalesInvoiceLine;
+  details?: SalesInvoiceLineDisplayDetails;
   isDisabled: boolean;
   onDelete: (line: SalesInvoiceLine) => void;
 };
 
 function SalesInvoiceLineItem({
   line,
+  details,
   isDisabled,
   onDelete
 }: SalesInvoiceLineItemProps) {
   const { t } = useLingui();
-  const [items] = useItems();
   const { invoiceId } = useParams();
   if (!invoiceId) throw new Error("Could not find invoiceId");
   const permissions = usePermissions();
@@ -287,18 +335,7 @@ function SalesInvoiceLineItem({
         >
           <HStack spacing={2} className="flex-grow min-w-0 pr-10">
             <ItemThumbnail thumbnailPath={line.thumbnailPath} type="Part" />
-            <VStack spacing={0} className="min-w-0">
-              <span className="font-semibold line-clamp-1">
-                {line.invoiceLineType === "Fixed Asset"
-                  ? (line as any).assetReadableId || "Fixed Asset"
-                  : (getItemReadableId(items, line.itemId) ?? "")}
-              </span>
-              <span className="text-muted-foreground text-xs truncate line-clamp-1">
-                {line.invoiceLineType === "Fixed Asset"
-                  ? (line as any).assetName || line.description
-                  : line.description}
-              </span>
-            </VStack>
+            <SalesInvoiceLineDetails line={line} details={details} />
           </HStack>
           <div className="absolute right-2">
             <DropdownMenu>

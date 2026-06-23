@@ -789,6 +789,37 @@ export async function getCustomersList(
   );
 }
 
+export async function getCustomerDocumentDefaults(
+  client: SupabaseClient<Database>,
+  customerId: string
+) {
+  const [customer, shipping] = await Promise.all([
+    client
+      .from("customer")
+      .select("currencyCode, salesContactId")
+      .eq("id", customerId)
+      .single(),
+    client
+      .from("customerShipping")
+      .select("shippingCustomerLocationId")
+      .eq("customerId", customerId)
+      .maybeSingle()
+  ]);
+
+  if (customer.error) {
+    return { data: null, error: customer.error };
+  }
+
+  return {
+    data: {
+      currencyCode: customer.data.currencyCode ?? undefined,
+      customerContactId: customer.data.salesContactId ?? undefined,
+      customerLocationId: shipping.data?.shippingCustomerLocationId ?? undefined
+    },
+    error: null
+  };
+}
+
 export async function getCustomerStatus(
   client: SupabaseClient<Database>,
   customerStatusId: string
@@ -1666,7 +1697,10 @@ export async function getSalesOrdersByIds(
   client: SupabaseClient<Database>,
   ids: string[]
 ) {
-  return client.from("salesOrder").select("id, salesOrderId").in("id", ids);
+  return client
+    .from("salesOrder")
+    .select("id, salesOrderId, customerReference")
+    .in("id", ids);
 }
 
 export async function getSalesOrderPayment(
@@ -5046,6 +5080,9 @@ export async function insertSalesOrder(
     orderDate?: string;
     customerContactId?: string;
     customerLocationId?: string;
+    customerEngineeringContactId?: string;
+    customerReference?: string;
+    salesPersonId?: string;
     quoteId?: string;
     opportunityId?: string;
     requestedDate?: string;
@@ -5146,6 +5183,9 @@ export async function insertSalesOrder(
       customerId: input.customerId,
       customerContactId: input.customerContactId,
       customerLocationId: input.customerLocationId,
+      customerEngineeringContactId: input.customerEngineeringContactId,
+      customerReference: input.customerReference,
+      salesPersonId: input.salesPersonId,
       opportunityId,
       status: input.status ?? "Draft",
       orderDate: input.orderDate ?? new Date().toISOString().split("T")[0],

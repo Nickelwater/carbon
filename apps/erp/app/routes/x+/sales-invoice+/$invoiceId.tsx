@@ -9,17 +9,15 @@ import { Outlet, redirect, useParams } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout";
 import {
   getSalesInvoice,
+  getSalesInvoiceDocuments,
+  getSalesInvoiceLineDisplayDetails,
   getSalesInvoiceLines,
   getSalesInvoiceShipment
 } from "~/modules/invoicing";
 import SalesInvoiceExplorer from "~/modules/invoicing/ui/SalesInvoice/SalesInvoiceExplorer";
 import SalesInvoiceHeader from "~/modules/invoicing/ui/SalesInvoice/SalesInvoiceHeader";
 import SalesInvoiceProperties from "~/modules/invoicing/ui/SalesInvoice/SalesInvoiceProperties";
-import {
-  getCustomer,
-  getOpportunity,
-  getOpportunityDocuments
-} from "~/modules/sales/sales.service";
+import { getCustomer, getOpportunity } from "~/modules/sales/sales.service";
 import { getCompanySettings } from "~/modules/settings";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
@@ -69,14 +67,31 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     ? customer.data.defaultCc
     : (companySettings.data?.defaultCustomerCc ?? []);
 
+  const invoiceLineDisplayDetails = await getSalesInvoiceLineDisplayDetails(
+    client,
+    companyId,
+    salesInvoice.data?.customerId,
+    salesInvoiceLines.data ?? []
+  );
+
+  const linkedSalesOrderIds = [
+    ...new Set(
+      (salesInvoiceLines.data ?? [])
+        .map((line) => line.salesOrderId)
+        .filter((id): id is string => Boolean(id))
+    )
+  ];
+
   return {
     salesInvoice: salesInvoice.data,
     salesInvoiceLines: salesInvoiceLines.data ?? [],
+    invoiceLineDisplayDetails,
     salesInvoiceShipment: salesInvoiceShipment.data,
-    files: getOpportunityDocuments(
+    files: getSalesInvoiceDocuments(
       client,
       companyId,
-      salesInvoice.data?.opportunityId!
+      salesInvoice.data?.opportunityId!,
+      linkedSalesOrderIds
     ),
     opportunity: opportunity?.data ?? null,
     customer: customer?.data ?? null,

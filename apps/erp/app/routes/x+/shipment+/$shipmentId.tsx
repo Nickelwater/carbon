@@ -55,11 +55,25 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
       : { invoices: [] };
 
+  let customerId = shipment.data?.customerId ?? null;
+  if (
+    !customerId &&
+    shipment.data?.sourceDocument === "Sales Order" &&
+    shipment.data.sourceDocumentId
+  ) {
+    const salesOrder = await client
+      .from("salesOrder")
+      .select("customerId")
+      .eq("id", shipment.data.sourceDocumentId)
+      .single();
+    customerId = salesOrder.data?.customerId ?? null;
+  }
+
   const availableShipmentLines =
-    shipment.data?.customerId && !shipment.data.postedAt
+    customerId && !shipment.data.postedAt
       ? await getAvailableSalesOrderLinesForCustomer(
           client,
-          shipment.data.customerId,
+          customerId,
           shipment.data.companyId,
           { excludeShipmentId: shipmentId }
         )
@@ -106,7 +120,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   return {
-    shipment: shipment.data,
+    shipment: {
+      ...shipment.data,
+      customerId: customerId ?? shipment.data.customerId
+    },
     shipmentLines: shipmentLines.data ?? [],
     fixedAssetLines,
     shipmentLineTracking: shipmentLineTracking.data ?? [],

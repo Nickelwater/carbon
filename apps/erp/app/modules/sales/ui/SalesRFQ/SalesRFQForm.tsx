@@ -29,6 +29,7 @@ import {
   Submit
 } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";
+import { getCustomerDocumentDefaults } from "~/modules/sales";
 import { path } from "~/utils/path";
 import { isSalesRfqLocked, salesRfqValidator } from "../../sales.models";
 import type { SalesRFQ } from "../../types";
@@ -83,21 +84,17 @@ const SalesRFQForm = ({ initialValues }: SalesRFQFormProps) => {
         });
       });
 
-      const { data, error } = await carbon
-        ?.from("customer")
-        .select(
-          "salesContactId, customerShipping!customerId(shippingCustomerLocationId)"
-        )
-        .eq("id", newValue.value)
-        .single();
-      if (error) {
+      const { data, error } = await getCustomerDocumentDefaults(
+        carbon,
+        newValue.value
+      );
+      if (error || !data) {
         toast.error(t`Error fetching customer data`);
       } else {
         setCustomer((prev) => ({
           ...prev,
-          customerContactId: data.salesContactId ?? undefined,
-          customerLocationId:
-            data.customerShipping?.shippingCustomerLocationId ?? undefined
+          customerContactId: data.customerContactId,
+          customerLocationId: data.customerLocationId
         }));
       }
     } else {

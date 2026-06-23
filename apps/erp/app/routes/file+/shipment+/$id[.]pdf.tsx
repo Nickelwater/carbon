@@ -1,5 +1,6 @@
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
+import type { Database } from "@carbon/database";
 import { ensureFont, PackingSlipPDF } from "@carbon/documents/pdf";
 import {
   collectSectionIds,
@@ -10,6 +11,7 @@ import {
 import type { JSONContent } from "@carbon/react";
 import { getPreferenceHeaders } from "@carbon/react";
 import { renderToStream } from "@react-pdf/renderer";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { LoaderFunctionArgs } from "react-router";
 import { getPaymentTerm } from "~/modules/accounting";
 import {
@@ -36,6 +38,62 @@ import {
   resolveSections
 } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
+
+type ShipmentLineRow = Database["public"]["Views"]["shipmentLines"]["Row"];
+
+async function resolveShipmentCustomerReferences(
+  client: SupabaseClient<Database>,
+  shipmentLines: ShipmentLineRow[]
+): Promise<{
+  headerCustomerReference?: string;
+  lineCustomerReferences: Record<string, string>;
+}> {
+  const salesOrderLineIds = [
+    ...new Set(
+      shipmentLines.map((line) => line.lineId).filter(Boolean) as string[]
+    )
+  ];
+
+  if (salesOrderLineIds.length === 0) {
+    return { lineCustomerReferences: {} };
+  }
+
+  const { data, error } = await client
+    .from("salesOrderLine")
+    .select("id, salesOrder:salesOrderId(customerReference)")
+    .in("id", salesOrderLineIds);
+
+  if (error || !data) {
+    return { lineCustomerReferences: {} };
+  }
+
+  const referenceBySalesOrderLineId = new Map(
+    data.map((row) => [row.id, row.salesOrder?.customerReference?.trim() ?? ""])
+  );
+
+  const lineCustomerReferences: Record<string, string> = {};
+  for (const line of shipmentLines) {
+    if (!line.id || !line.lineId) continue;
+    const reference = referenceBySalesOrderLineId.get(line.lineId);
+    if (reference) {
+      lineCustomerReferences[line.id] = reference;
+    }
+  }
+
+  const uniqueReferences = [
+    ...new Set(Object.values(lineCustomerReferences).filter(Boolean))
+  ];
+
+  return {
+    headerCustomerReference:
+      uniqueReferences.length > 1
+        ? "Multiple"
+        : uniqueReferences.length === 1
+          ? uniqueReferences[0]
+          : undefined,
+    lineCustomerReferences
+  };
+}
 
 async function loadThumbnails(
   showThumbnails: boolean,
@@ -164,6 +222,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       (path) => getBase64ImageFromSupabase(serviceRole, path)
     );
 
+    const customerReferences = await resolveShipmentCustomerReferences(
+      serviceRole,
+      shipmentLines.data ?? []
+    );
+
     const stream = await renderToStream(
       <PackingSlipPDF
         company={company.data as any}
@@ -174,6 +237,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           keywords: "packing slip",
           subject: "Packing Slip"
         }}
+        customerReference={customerReferences.headerCustomerReference}
+        lineCustomerReferences={customerReferences.lineCustomerReferences}
         shipment={shipment.data}
         shipmentLines={shipmentLines.data ?? []}
         // @ts-expect-error
@@ -247,6 +312,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         (path) => getBase64ImageFromSupabase(serviceRole, path)
       );
 
+      const customerReferences = await resolveShipmentCustomerReferences(
+        serviceRole,
+        shipmentLines.data ?? []
+      );
+
       const stream = await renderToStream(
         <PackingSlipPDF
           company={company.data as any}
@@ -257,7 +327,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             keywords: "packing slip",
             subject: "Packing Slip"
           }}
-          customerReference={salesOrder.data?.customerReference ?? undefined}
+          customerReference={
+            customerReferences.headerCustomerReference ??
+            salesOrder.data?.customerReference ??
+            undefined
+          }
+          lineCustomerReferences={customerReferences.lineCustomerReferences}
           sourceDocument="Sales Order"
           sourceDocumentId={salesOrder.data?.salesOrderId ?? undefined}
           shipment={shipment.data}

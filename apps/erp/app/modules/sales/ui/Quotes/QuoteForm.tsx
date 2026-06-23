@@ -33,6 +33,7 @@ import {
 } from "~/components/Form";
 import ExchangeRate from "~/components/Form/ExchangeRate";
 import { usePermissions, useRouteData, useUser } from "~/hooks";
+import { getCustomerDocumentDefaults } from "~/modules/sales";
 import { path } from "~/utils/path";
 import { isQuoteLocked, quoteValidator } from "../../sales.models";
 import type { Quotation } from "../../types";
@@ -92,22 +93,18 @@ const QuoteForm = ({ initialValues }: QuoteFormProps) => {
         });
       });
 
-      const { data, error } = await carbon
-        ?.from("customer")
-        .select(
-          "currencyCode, salesContactId, customerShipping!customerId(shippingCustomerLocationId)"
-        )
-        .eq("id", newValue.value)
-        .single();
-      if (error) {
+      const { data, error } = await getCustomerDocumentDefaults(
+        carbon,
+        newValue.value
+      );
+      if (error || !data) {
         toast.error(t`Error fetching customer data`);
       } else {
         setCustomer((prev) => ({
           ...prev,
-          currencyCode: data.currencyCode ?? undefined,
-          customerContactId: data.salesContactId ?? undefined,
-          customerLocationId:
-            data.customerShipping?.shippingCustomerLocationId ?? undefined
+          currencyCode: data.currencyCode,
+          customerContactId: data.customerContactId,
+          customerLocationId: data.customerLocationId
         }));
       }
     } else {

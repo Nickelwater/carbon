@@ -1,4 +1,4 @@
-import { cn } from "@carbon/react";
+import { cn, VStack } from "@carbon/react";
 import type { CustomerPartMapping } from "./contractCustomerPartLabelLogic";
 import { resolveContractCustomerPartLabel } from "./contractCustomerPartLabelLogic";
 
@@ -10,6 +10,7 @@ type ContractCustomerPartLabelProps = {
   className?: string;
   /** Applied to the parenthesized internal part only (dual mode). */
   internalClassName?: string;
+  variant?: "inline" | "stacked";
 };
 
 export function ContractCustomerPartLabel({
@@ -18,7 +19,8 @@ export function ContractCustomerPartLabel({
   customerParts,
   itemId,
   className,
-  internalClassName
+  internalClassName,
+  variant = "inline"
 }: ContractCustomerPartLabelProps) {
   const resolved = resolveContractCustomerPartLabel(internalReadableId, {
     contractCustomer,
@@ -27,7 +29,28 @@ export function ContractCustomerPartLabel({
   });
   if (!resolved) return null;
   if (resolved.kind === "plain") {
-    return <span className={className}>{resolved.text}</span>;
+    return (
+      <span className={cn("font-semibold line-clamp-1", className)}>
+        {resolved.text}
+      </span>
+    );
+  }
+  if (variant === "stacked") {
+    return (
+      <VStack spacing={0} className={cn("min-w-0", className)}>
+        <span className="font-semibold line-clamp-1">
+          {resolved.customerPn}
+        </span>
+        <span
+          className={cn(
+            "text-muted-foreground text-xs font-normal line-clamp-1 tabular-nums",
+            internalClassName
+          )}
+        >
+          {resolved.internalPn}
+        </span>
+      </VStack>
+    );
   }
   return (
     <span className={className}>

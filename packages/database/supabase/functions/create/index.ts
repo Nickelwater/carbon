@@ -141,6 +141,7 @@ serve(async (req: Request) => {
     shipmentFromWarehouseTransfer: { create: "inventory" },
     shipmentFromSalesOrder: { create: "inventory" },
     shipmentFromSalesOrderLine: { create: "inventory" },
+    shipmentAddLine: { create: "inventory" },
     shipmentLineSplit: { create: "inventory" },
     journalEntry: { create: "accounting" },
   };
@@ -2408,6 +2409,9 @@ serve(async (req: Request) => {
                 sourceDocument: "Sales Order",
                 sourceDocumentId: salesOrder.data.id,
                 sourceDocumentReadableId: salesOrder.data.salesOrderId,
+                customerId: salesOrder.data.customerId,
+                shippingMethodId: salesOrderShipment.data?.shippingMethodId,
+                opportunityId: salesOrder.data.opportunityId,
                 locationId: locationId,
                 updatedBy: userId,
               })
@@ -2609,12 +2613,6 @@ serve(async (req: Request) => {
       });
 
       try {
-        const client = await getSupabaseServiceRole(
-          req.headers.get("Authorization"),
-          req.headers.get("carbon-key") ?? "",
-          payload.companyId
-        );
-
         const [shipment, salesOrderLine, existingLine] = await Promise.all([
           client.from("shipment").select("*").eq("id", shipmentId).single(),
           client
@@ -2641,9 +2639,14 @@ serve(async (req: Request) => {
         const locationId = shipment.data.locationId ?? undefined;
         if (!locationId) throw new Error("Shipment has no location");
 
-        const [salesOrder, jobs, item] = await Promise.all([
+        const [salesOrder, salesOrderShipment, jobs, item] = await Promise.all([
           client
             .from("salesOrder")
+            .select("*")
+            .eq("id", salesOrderId)
+            .single(),
+          client
+            .from("salesOrderShipment")
             .select("*")
             .eq("id", salesOrderId)
             .single(),
@@ -2668,7 +2671,41 @@ serve(async (req: Request) => {
           salesOrderLine.data.quantitySent ?? 0;
 
         await db.transaction().execute(async (trx) => {
-          if (salesOrderLine.data!.methodType === "Make") {
+          const shipmentHeaderUpdate: {
+            sourceDocument?: "Sales Order";
+            sourceDocumentId?: string;
+            sourceDocumentReadableId?: string;
+            externalDocumentId?: string | null;
+            customerId: string;
+            opportunityId: string | null;
+            shippingMethodId: string | null;
+            updatedBy: string;
+          } = {
+            customerId: salesOrder.data!.customerId,
+            opportunityId: salesOrder.data!.opportunityId,
+            shippingMethodId: salesOrderShipment.data?.shippingMethodId ?? null,
+            updatedBy: payload.userId,
+          };
+
+          if (
+            !shipment.data.sourceDocumentId ||
+            shipment.data.sourceDocumentId === salesOrderId
+          ) {
+            shipmentHeaderUpdate.sourceDocument = "Sales Order";
+            shipmentHeaderUpdate.sourceDocumentId = salesOrder.data!.id;
+            shipmentHeaderUpdate.sourceDocumentReadableId =
+              salesOrder.data!.salesOrderId;
+            shipmentHeaderUpdate.externalDocumentId =
+              salesOrder.data!.customerReference ?? null;
+          }
+
+          await trx
+            .updateTable("shipment")
+            .set(shipmentHeaderUpdate)
+            .where("id", "=", shipmentId)
+            .execute();
+
+          if (salesOrderLine.data!.methodType === "Make to Order") {
             for await (const job of jobs.data ?? []) {
               if (!salesOrderLine.data!.itemId) return;
               const quantityToShip = Math.max(
@@ -2794,7 +2831,7 @@ serve(async (req: Request) => {
                 unitPrice: shippingAndTaxUnitCost,
                 unitOfMeasure: salesOrderLine.data!.unitOfMeasureCode ?? "EA",
                 locationId: salesOrderLine.data!.locationId!,
-                shelfId: salesOrderLine.data!.shelfId!,
+                storageUnitId: salesOrderLine.data!.storageUnitId!,
                 createdBy: payload.userId ?? "",
               })
               .execute();

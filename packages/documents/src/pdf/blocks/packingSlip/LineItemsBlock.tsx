@@ -32,10 +32,14 @@ export function LineItemsBlock({
   block: LineItemsBlockType;
   data: PackingSlipData;
 }) {
-  const { shipmentLines, trackedEntities, thumbnails } = data;
+  const { shipmentLines, trackedEntities, thumbnails, lineCustomerReferences } =
+    data;
   const opts = { ...DEFAULT_LINE_ITEMS_OPTIONS, ...block.options };
   const overflow = itemTextOverflowStyle(opts);
   const hasTrackedEntities = trackedEntities.length > 0;
+  const showLineCustomerPo =
+    lineCustomerReferences &&
+    new Set(Object.values(lineCustomerReferences).filter(Boolean)).size > 1;
   let rowIndex = 0;
 
   return (
@@ -90,6 +94,13 @@ export function LineItemsBlock({
                 >
                   {line.description}
                 </Text>
+                {showLineCustomerPo &&
+                  line.id != null &&
+                  lineCustomerReferences[line.id] && (
+                    <Text style={tw("text-[8px] text-gray-500 mt-0.5")}>
+                      Customer PO #: {lineCustomerReferences[line.id]}
+                    </Text>
+                  )}
                 {opts.showThumbnails &&
                   thumbnails &&
                   line.id != null &&

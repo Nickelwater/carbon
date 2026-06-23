@@ -7,10 +7,14 @@ import Avatar from "./Avatar";
 type CustomerAvatarProps = AvatarProps & {
   customerId: string | null;
   className?: string;
+  name?: string | null;
+  website?: string | null;
 };
 
 const CustomerAvatar = ({
   customerId,
+  name: nameProp,
+  website: websiteProp,
   size,
   className,
   ...props
@@ -19,10 +23,11 @@ const CustomerAvatar = ({
 
   if (!customerId) return null;
 
-  const customer = customers.find((s) => s.id === customerId) ?? {
-    name: "",
-    id: "",
-    website: null
+  const fromStore = customers.find((s) => s.id === customerId);
+  const customer = {
+    id: customerId,
+    name: nameProp ?? fromStore?.name ?? "",
+    website: websiteProp ?? fromStore?.website ?? null
   };
 
   const imageUrl =

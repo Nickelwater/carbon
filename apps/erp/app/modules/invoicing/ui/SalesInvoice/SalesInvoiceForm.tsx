@@ -31,6 +31,7 @@ import {
 import PaymentTerm from "~/components/Form/PaymentTerm";
 import { usePermissions, useRouteData } from "~/hooks";
 import { salesInvoiceValidator } from "~/modules/invoicing";
+import { getCustomerDocumentDefaults } from "~/modules/sales";
 import { path } from "~/utils/path";
 import { isSalesInvoiceLocked } from "../../invoicing.models";
 
@@ -106,13 +107,7 @@ const SalesInvoiceForm = ({ initialValues }: SalesInvoiceFormProps) => {
       });
 
       const [customerData, paymentTermData] = await Promise.all([
-        carbon
-          ?.from("customer")
-          .select(
-            "currencyCode, salesContactId, customerShipping!customerId(shippingCustomerLocationId)"
-          )
-          .eq("id", newValue.value)
-          .single(),
+        getCustomerDocumentDefaults(carbon, newValue.value),
         carbon
           ?.from("customerPayment")
           .select("*")
@@ -128,13 +123,13 @@ const SalesInvoiceForm = ({ initialValues }: SalesInvoiceFormProps) => {
           id: newValue.value,
           invoiceCustomerContactId:
             paymentTermData.data.invoiceCustomerContactId ??
-            customerData.data.salesContactId ??
+            customerData.data?.customerContactId ??
             undefined,
           invoiceCustomerLocationId:
             paymentTermData.data.invoiceCustomerLocationId ??
-            customerData.data.customerShipping?.shippingCustomerLocationId ??
+            customerData.data?.customerLocationId ??
             undefined,
-          currencyCode: customerData.data.currencyCode ?? undefined,
+          currencyCode: customerData.data?.currencyCode ?? undefined,
           paymentTermId: paymentTermData.data.paymentTermId ?? undefined
         }));
       }

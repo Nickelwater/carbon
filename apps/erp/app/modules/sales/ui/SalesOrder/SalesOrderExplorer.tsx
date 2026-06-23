@@ -70,6 +70,8 @@ import type {
   SalesOrderLine,
   SalesOrderRelatedItems
 } from "../../types";
+import { ContractCustomerPartLabel } from "./ContractCustomerPartLabel";
+import type { CustomerPartMapping } from "./contractCustomerPartLabelLogic";
 import DeleteSalesOrderLine from "./DeleteSalesOrderLine";
 import SalesOrderLineForm from "./SalesOrderLineForm";
 
@@ -133,6 +135,7 @@ export default function SalesOrderExplorer() {
     salesOrder: SalesOrder;
     lines: SalesOrderLine[];
     customer: Customer;
+    customerParts: CustomerPartMapping[] | null;
   }>(path.to.salesOrder(orderId));
   const permissions = usePermissions();
 
@@ -208,10 +211,24 @@ export default function SalesOrderExplorer() {
                 onDragStart={editMode.handleDragStart}
                 onDragEnd={editMode.handleDragEnd}
                 renderRow={(line, dragHandle) => (
-                  <SalesOrderLineBody line={line} dragHandle={dragHandle} />
+                  <SalesOrderLineBody
+                    line={line}
+                    dragHandle={dragHandle}
+                    contractCustomer={
+                      !!salesOrderData?.customer?.contractCustomer
+                    }
+                    customerParts={salesOrderData?.customerParts ?? null}
+                  />
                 )}
                 renderOverlay={(line) => (
-                  <SalesOrderLineBody line={line} isOverlay />
+                  <SalesOrderLineBody
+                    line={line}
+                    isOverlay
+                    contractCustomer={
+                      !!salesOrderData?.customer?.contractCustomer
+                    }
+                    customerParts={salesOrderData?.customerParts ?? null}
+                  />
                 )}
               />
             ) : (
@@ -220,6 +237,10 @@ export default function SalesOrderExplorer() {
                   key={line.id}
                   isDisabled={isDisabled}
                   line={line}
+                  contractCustomer={
+                    !!salesOrderData?.customer?.contractCustomer
+                  }
+                  customerParts={salesOrderData?.customerParts ?? null}
                   onDelete={onDeleteLine}
                 />
               ))
@@ -303,45 +324,90 @@ export default function SalesOrderExplorer() {
 function SalesOrderLineBody({
   line,
   dragHandle,
-  isOverlay
+  isOverlay,
+  contractCustomer,
+  customerParts
 }: {
   line: SalesOrderLine;
   dragHandle?: DragHandleBindings;
   isOverlay?: boolean;
+  contractCustomer: boolean;
+  customerParts: CustomerPartMapping[] | null;
 }) {
-  const [items] = useItems();
   return (
     <ReorderableRow dragHandle={dragHandle} isOverlay={isOverlay}>
       <HStack spacing={2} className="flex-grow min-w-0 p-2 pr-10">
         <ItemThumbnail thumbnailPath={line.thumbnailPath} type="Part" />
-        <VStack spacing={0} className="min-w-0">
-          <span className="font-semibold line-clamp-1">
-            {getItemReadableId(items, line.itemId)}
-          </span>
-          <span className="text-muted-foreground text-xs truncate line-clamp-1">
-            {line.description}
-          </span>
-        </VStack>
+        <SalesOrderLinePartLabels
+          line={line}
+          contractCustomer={contractCustomer}
+          customerParts={customerParts}
+        />
       </HStack>
     </ReorderableRow>
+  );
+}
+
+function SalesOrderLinePartLabels({
+  line,
+  contractCustomer,
+  customerParts
+}: {
+  line: SalesOrderLine;
+  contractCustomer: boolean;
+  customerParts: CustomerPartMapping[] | null;
+}) {
+  const [items] = useItems();
+
+  if (line.salesOrderLineType === "Fixed Asset") {
+    return (
+      <VStack spacing={0} className="min-w-0">
+        <span className="font-semibold line-clamp-1">
+          {(line as { assetReadableId?: string | null }).assetReadableId ||
+            "Fixed Asset"}
+        </span>
+        <span className="text-muted-foreground text-xs truncate line-clamp-1">
+          {(line as { assetName?: string | null }).assetName ||
+            line.description}
+        </span>
+      </VStack>
+    );
+  }
+
+  return (
+    <VStack spacing={0} className="min-w-0">
+      <ContractCustomerPartLabel
+        internalReadableId={getItemReadableId(items, line.itemId)}
+        contractCustomer={contractCustomer}
+        customerParts={customerParts}
+        itemId={line.itemId}
+        variant="stacked"
+      />
+      <span className="text-muted-foreground text-xs truncate line-clamp-1">
+        {line.description}
+      </span>
+    </VStack>
   );
 }
 
 type SalesOrderLineItemProps = {
   line: SalesOrderLine;
   isDisabled: boolean;
+  contractCustomer: boolean;
+  customerParts: CustomerPartMapping[] | null;
   onDelete: (line: SalesOrderLine) => void;
 };
 
 function SalesOrderLineItem({
   line,
   isDisabled,
+  contractCustomer,
+  customerParts,
   onDelete
 }: SalesOrderLineItemProps) {
   const { orderId, lineId } = useParams();
   if (!orderId) throw new Error("Could not find orderId");
 
-  const [items] = useItems();
   const permissions = usePermissions();
   const disclosure = useDisclosure();
   const location = useOptimisticLocation();
@@ -378,18 +444,11 @@ function SalesOrderLineItem({
             type="Part" // TODO
           />
 
-          <VStack spacing={0} className="min-w-0">
-            <span className="font-semibold line-clamp-1">
-              {line.salesOrderLineType === "Fixed Asset"
-                ? (line as any).assetReadableId || "Fixed Asset"
-                : getItemReadableId(items, line.itemId)}
-            </span>
-            <span className="text-muted-foreground text-xs truncate line-clamp-1">
-              {line.salesOrderLineType === "Fixed Asset"
-                ? (line as any).assetName || line.description
-                : line.description}
-            </span>
-          </VStack>
+          <SalesOrderLinePartLabels
+            line={line}
+            contractCustomer={contractCustomer}
+            customerParts={customerParts}
+          />
         </HStack>
         <div className="absolute right-2">
           <HStack spacing={1}>

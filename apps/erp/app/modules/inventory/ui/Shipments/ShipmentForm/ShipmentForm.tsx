@@ -1,4 +1,4 @@
-﻿import { ValidatedForm } from "@carbon/form";
+import { ValidatedForm } from "@carbon/form";
 import {
   Button,
   Card,
@@ -90,13 +90,8 @@ const ShipmentForm = ({
   const permissions = usePermissions();
   const navigate = useNavigate();
   const { t } = useLingui();
-  const {
-    locationId,
-    sourceDocuments,
-    customerId,
-    setLocationId,
-    setSourceDocument
-  } = useShipmentForm({ status, initialValues });
+  const { locationId, sourceDocuments, setLocationId, setSourceDocument } =
+    useShipmentForm({ status, initialValues });
 
   const postModal = useDisclosure();
   const voidModal = useDisclosure();
@@ -242,7 +237,7 @@ const ShipmentForm = ({
 
           <CardContent>
             <Hidden name="id" />
-            <Hidden name="customerId" value={customerId ?? ""} />
+            <Hidden name="customerId" />
             <VStack spacing={4} className="min-h-full">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 w-full">
                 <Input name="shipmentId" label={t`Shipment ID`} isReadOnly />

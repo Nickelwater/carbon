@@ -8,7 +8,7 @@ import {
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
-import { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import {
   LuBookMarked,
   LuCalendar,
@@ -37,7 +37,7 @@ import { useCustomerTypes } from "~/components/Form/CustomerType";
 import { ConfirmDelete } from "~/components/Modals";
 import { useCompanySettings, useDateFormatter, usePermissions } from "~/hooks";
 import { useCustomColumns } from "~/hooks/useCustomColumns";
-import { usePeople } from "~/stores";
+import { useCustomers, usePeople } from "~/stores";
 import { path } from "~/utils/path";
 import type { Customer, CustomerStatus } from "../../types";
 
@@ -55,7 +55,30 @@ const CustomersTable = memo(
     const permissions = usePermissions();
     const { formatDate } = useDateFormatter();
     const [people] = usePeople();
+    const [, setCustomers] = useCustomers();
     const deleteModal = useDisclosure();
+
+    useEffect(() => {
+      if (!data.length) return;
+
+      setCustomers((current) => {
+        const byId = new Map(
+          current.map((customer) => [customer.id, customer])
+        );
+        for (const row of data) {
+          if (!row.id) continue;
+          byId.set(row.id, {
+            id: row.id,
+            name: row.name,
+            website: row.website ?? null,
+            readableId: row.readableId ?? null
+          });
+        }
+        return Array.from(byId.values()).sort((a, b) =>
+          a.name.localeCompare(b.name)
+        );
+      });
+    }, [data, setCustomers]);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
       null
     );
@@ -92,7 +115,11 @@ const CustomersTable = memo(
           cell: ({ row }) => (
             <div className="max-w-[320px] truncate">
               <Hyperlink to={path.to.customerDetails(row.original.id!)}>
-                <CustomerAvatar customerId={row.original.id!} />
+                <CustomerAvatar
+                  customerId={row.original.id!}
+                  name={row.original.name}
+                  website={row.original.website}
+                />
               </Hyperlink>
             </div>
           ),

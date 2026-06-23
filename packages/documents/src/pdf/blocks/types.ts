@@ -32,6 +32,8 @@ export interface SalesInvoiceData {
   salesInvoiceLocations: SalesInvoiceLocations;
   salesInvoiceShipment: Database["public"]["Tables"]["salesInvoiceShipment"]["Row"];
   salesOrderIds?: string[];
+  customerReference?: string;
+  lineCustomerReferences?: Record<string, string>;
   accountsReceivableBillingAddress?: AccountsReceivableBillingAddress | null;
   paymentTerms: { id: string; name: string }[];
   shippingMethods: { id: string; name: string }[];

@@ -16,7 +16,8 @@ import {
   getSalesInvoice,
   getSalesInvoiceCustomerDetails,
   getSalesInvoiceLines,
-  getSalesInvoiceShipment
+  getSalesInvoiceShipment,
+  resolveSalesInvoiceCustomerReferences
 } from "~/modules/invoicing";
 import { getSalesOrdersByIds, getSalesTerms } from "~/modules/sales";
 import {
@@ -152,6 +153,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   );
 
   let salesOrderIds: string[] = [];
+  let customerReferences = {
+    headerCustomerReference: salesInvoice.data?.customerReference ?? undefined,
+    lineCustomerReferences: {} as Record<string, string>
+  };
   if (linkedSalesOrderIds.length > 0) {
     const salesOrders = await getSalesOrdersByIds(client, linkedSalesOrderIds);
     if (salesOrders.error) {
@@ -160,6 +165,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     salesOrderIds = Array.from(
       new Set((salesOrders.data ?? []).map((order) => order.salesOrderId))
     ).sort();
+    customerReferences = resolveSalesInvoiceCustomerReferences(
+      salesInvoiceLines.data ?? [],
+      salesOrders.data ?? [],
+      salesInvoice.data?.customerReference
+    );
   }
 
   const { locale } = getPreferenceHeaders(request);
@@ -190,6 +200,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       salesInvoice={salesInvoice.data}
       salesInvoiceLines={salesInvoiceLines.data ?? []}
       salesOrderIds={salesOrderIds}
+      customerReference={customerReferences.headerCustomerReference}
+      lineCustomerReferences={customerReferences.lineCustomerReferences}
       salesInvoiceLocations={salesInvoiceLocations.data}
       salesInvoiceShipment={salesInvoiceShipment.data}
       accountsReceivableBillingAddress={

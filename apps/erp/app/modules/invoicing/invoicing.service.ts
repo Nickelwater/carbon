@@ -1,6 +1,7 @@
 import type { Database, Json } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
 import { getLocalTimeZone, now, today } from "@internationalized/date";
+import type { FileObject } from "@supabase/storage-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { z } from "zod";
 import {
@@ -14,8 +15,10 @@ import { sanitize } from "~/utils/supabase";
 import { getCurrencyByCode } from "../accounting/accounting.service";
 import { getEmployeeJob } from "../people/people.service";
 import {
+  getCustomerPartsForCustomer,
   getCustomerPayment,
-  getCustomerShipping
+  getCustomerShipping,
+  getOpportunityDocuments
 } from "../sales/sales.service";
 import type {
   purchaseInvoiceDeliveryValidator,
@@ -74,6 +77,181 @@ export async function createSalesInvoiceFromShipment(
       userId
     }
   });
+}
+
+export function resolveSalesInvoiceCustomerReferences(
+  lines: { id: string | null; salesOrderId?: string | null }[],
+  salesOrders: { id: string; customerReference?: string | null }[],
+  fallbackHeaderReference?: string | null
+): {
+  headerCustomerReference?: string;
+  lineCustomerReferences: Record<string, string>;
+} {
+  const referenceBySalesOrderId = new Map(
+    salesOrders.map((order) => [
+      order.id,
+      order.customerReference?.trim() ?? ""
+    ])
+  );
+
+  const lineCustomerReferences: Record<string, string> = {};
+  for (const line of lines) {
+    if (!line.id || !line.salesOrderId) continue;
+    const reference = referenceBySalesOrderId.get(line.salesOrderId);
+    if (reference) {
+      lineCustomerReferences[line.id] = reference;
+    }
+  }
+
+  const uniqueReferences = [
+    ...new Set(Object.values(lineCustomerReferences).filter(Boolean))
+  ];
+
+  return {
+    headerCustomerReference:
+      uniqueReferences.length > 1
+        ? "Multiple"
+        : uniqueReferences.length === 1
+          ? uniqueReferences[0]
+          : fallbackHeaderReference?.trim() || undefined,
+    lineCustomerReferences
+  };
+}
+
+export type SalesInvoiceLineDisplayDetails = {
+  customerPartNumber?: string;
+  customerPo?: string;
+};
+
+export async function getSalesInvoiceLineDisplayDetails(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  customerId: string | null | undefined,
+  lines: {
+    id: string | null;
+    itemId: string | null;
+    salesOrderId: string | null;
+  }[]
+): Promise<Record<string, SalesInvoiceLineDisplayDetails>> {
+  const salesOrderIds = [
+    ...new Set(
+      lines
+        .map((line) => line.salesOrderId)
+        .filter((id): id is string => Boolean(id))
+    )
+  ];
+
+  const [salesOrdersResult, customerPartsResult] = await Promise.all([
+    salesOrderIds.length > 0
+      ? client
+          .from("salesOrder")
+          .select("id, customerReference")
+          .in("id", salesOrderIds)
+      : Promise.resolve({ data: [], error: null }),
+    customerId
+      ? getCustomerPartsForCustomer(client, customerId, companyId)
+      : Promise.resolve({ data: [], error: null })
+  ]);
+
+  const customerReferenceBySalesOrderId = new Map(
+    (salesOrdersResult.data ?? []).map((order) => [
+      order.id,
+      order.customerReference?.trim() || undefined
+    ])
+  );
+
+  const customerPartByItemId = new Map(
+    (customerPartsResult.data ?? []).map((part) => [
+      part.itemId,
+      part.customerPartRevision
+        ? `${part.customerPartId}-${part.customerPartRevision}`
+        : part.customerPartId
+    ])
+  );
+
+  const details: Record<string, SalesInvoiceLineDisplayDetails> = {};
+  for (const line of lines) {
+    if (!line.id) continue;
+    details[line.id] = {
+      customerPartNumber: line.itemId
+        ? customerPartByItemId.get(line.itemId)
+        : undefined,
+      customerPo: line.salesOrderId
+        ? customerReferenceBySalesOrderId.get(line.salesOrderId)
+        : undefined
+    };
+  }
+
+  return details;
+}
+
+export async function getSalesInvoiceDocuments(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  opportunityId: string,
+  salesOrderIds: string[]
+) {
+  const opportunityFiles = await getOpportunityDocuments(
+    client,
+    companyId,
+    opportunityId
+  );
+
+  const uniqueSalesOrderIds = [
+    ...new Set(salesOrderIds.filter((id): id is string => Boolean(id)))
+  ];
+
+  if (uniqueSalesOrderIds.length === 0) {
+    return opportunityFiles;
+  }
+
+  const { data: salesOrderDocs, error } = await client
+    .from("documents")
+    .select("id, name, path, size, createdAt, type, sourceDocumentId")
+    .eq("companyId", companyId)
+    .eq("sourceDocument", "Sales Order")
+    .eq("active", true)
+    .in("sourceDocumentId", uniqueSalesOrderIds)
+    .order("createdAt", { ascending: false });
+
+  if (error) {
+    console.error("Failed to load sales order documents for invoice", error);
+    return opportunityFiles;
+  }
+
+  const seenSalesOrderIds = new Set<string>();
+  const seenNames = new Set(opportunityFiles.map((file) => file.name));
+  const additionalFiles: FileObject[] = [];
+
+  for (const doc of salesOrderDocs ?? []) {
+    if (!doc.sourceDocumentId || seenSalesOrderIds.has(doc.sourceDocumentId)) {
+      continue;
+    }
+
+    seenSalesOrderIds.add(doc.sourceDocumentId);
+
+    if (seenNames.has(doc.name)) {
+      continue;
+    }
+
+    seenNames.add(doc.name);
+    additionalFiles.push({
+      id: doc.id,
+      name: doc.name,
+      bucket_id: "private",
+      created_at: doc.createdAt,
+      updated_at: doc.createdAt,
+      last_accessed_at: doc.createdAt,
+      owner: "",
+      metadata: {
+        size: (doc.size ?? 0) * 1024,
+        mimetype: doc.type ?? "application/pdf",
+        storagePath: doc.path
+      }
+    } as FileObject);
+  }
+
+  return [...opportunityFiles, ...additionalFiles];
 }
 
 export async function deletePurchaseInvoice(

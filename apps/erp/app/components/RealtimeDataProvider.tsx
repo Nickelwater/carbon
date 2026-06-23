@@ -3,14 +3,11 @@
 import { useCarbon } from "@carbon/auth";
 import { fetchAllFromTable } from "@carbon/database";
 import { useInterval, useRealtimeChannel } from "@carbon/react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useUser } from "~/hooks";
 import { useCustomers, useItems, usePeople, useSuppliers } from "~/stores";
 import type { Item } from "~/stores/items";
 import type { ListItem } from "~/types";
-
-let hydratedFromIdb = false;
-let hydratedFromServer = false;
 
 const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
   const { carbon, accessToken } = useCarbon();
@@ -18,23 +15,26 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
     company: { id: companyId }
   } = useUser();
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
-  useEffect(() => {
-    hydratedFromServer = false;
-  }, [companyId]);
-
-  // Reset on logout so the next login triggers a fresh server hydrate.
-  useEffect(() => {
-    if (!accessToken) hydratedFromServer = false;
-  }, [accessToken]);
-
   const [, setItems] = useItems();
   const [, setSuppliers] = useSuppliers();
   const [, setCustomers] = useCustomers();
   const [, setPeople] = usePeople();
 
-  const fetchQuantities = async () => {
-    if (!carbon || !companyId) return;
+  const previousCompanyId = useRef<string | null>(null);
+  const hydrateGeneration = useRef(0);
+
+  const isCurrentHydration = (generation: number) =>
+    generation === hydrateGeneration.current;
+
+  const clearStores = () => {
+    setCustomers([]);
+    setSuppliers([]);
+    setItems([]);
+    setPeople([]);
+  };
+
+  const fetchQuantities = async (generation: number) => {
+    if (!carbon || !companyId || !isCurrentHydration(generation)) return;
 
     const { data, error } = await fetchAllFromTable<{
       itemId: string;
@@ -48,7 +48,7 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
       (query) => query.eq("companyId", companyId)
     );
 
-    if (error || !data) return;
+    if (!isCurrentHydration(generation) || error || !data) return;
 
     const totalMap = new Map<string, number>();
     const locationMap = new Map<string, Record<string, number>>();
@@ -73,27 +73,36 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
     );
   };
 
-  const hydrate = async () => {
+  const hydrate = async (generation: number, companyChanged: boolean) => {
     const idb = (await import("localforage")).default;
-    if (!hydratedFromIdb) {
-      hydratedFromIdb = true;
 
-      idb.getItem("customers").then((data) => {
-        if (data && !hydratedFromServer) setCustomers(data as ListItem[], true);
-      });
-      idb.getItem("items").then((data) => {
-        if (data && !hydratedFromServer) setItems(data as Item[], true);
-      });
-      idb.getItem("suppliers").then((data) => {
-        if (data && !hydratedFromServer) setSuppliers(data as ListItem[], true);
-      });
-      idb.getItem("people").then((data) => {
-        // @ts-ignore
-        if (data && !hydratedFromServer) setPeople(data, true);
-      });
+    if (companyChanged) {
+      await Promise.all([
+        idb.removeItem("customers"),
+        idb.removeItem("suppliers"),
+        idb.removeItem("items"),
+        idb.removeItem("people")
+      ]);
+      if (!isCurrentHydration(generation)) return;
+    } else {
+      const [idbCustomers, idbItems, idbSuppliers, idbPeople] =
+        await Promise.all([
+          idb.getItem("customers"),
+          idb.getItem("items"),
+          idb.getItem("suppliers"),
+          idb.getItem("people")
+        ]);
+
+      if (!isCurrentHydration(generation)) return;
+
+      if (idbCustomers) setCustomers(idbCustomers as ListItem[], true);
+      if (idbItems) setItems(idbItems as Item[], true);
+      if (idbSuppliers) setSuppliers(idbSuppliers as ListItem[], true);
+      // @ts-ignore
+      if (idbPeople) setPeople(idbPeople, true);
     }
 
-    if (!carbon || !accessToken || hydratedFromServer) return;
+    if (!carbon || !accessToken || !isCurrentHydration(generation)) return;
 
     const [items, suppliers, customers, people] = await Promise.all([
       fetchAllFromTable<{
@@ -146,6 +155,8 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
       )
     ]);
 
+    if (!isCurrentHydration(generation)) return;
+
     if (items.error) {
       throw new Error("Failed to fetch items");
     }
@@ -158,8 +169,6 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
     if (people.error) {
       throw new Error("Failed to fetch people");
     }
-
-    hydratedFromServer = true;
 
     // @ts-ignore
     setItems(items.data ?? []);
@@ -175,19 +184,43 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
       idb.setItem("people", people.data)
     ]);
 
-    fetchQuantities();
+    if (!isCurrentHydration(generation)) return;
+
+    fetchQuantities(generation);
   };
 
-  // Re-run when auth becomes ready: `hydrate()` bails if `carbon` / `accessToken` are missing,
-  // and with only `[companyId]` that first run could be the only attempt — leaving `items` empty
-  // (e.g. New Job item combobox shows no options).
+  // biome-ignore lint/correctness/useExhaustiveDependencies: clearStores is stable setters only
+  useEffect(() => {
+    if (!accessToken) {
+      hydrateGeneration.current += 1;
+      clearStores();
+    }
+  }, [accessToken]);
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: hydrate closes over setters + idb
   useEffect(() => {
     if (!companyId) return;
-    hydrate().catch((err) => console.error("hydrate failed:", err));
+
+    const companyChanged =
+      previousCompanyId.current !== null &&
+      previousCompanyId.current !== companyId;
+    previousCompanyId.current = companyId;
+
+    const generation = ++hydrateGeneration.current;
+
+    if (companyChanged) {
+      clearStores();
+    }
+
+    hydrate(generation, companyChanged).catch((err) =>
+      console.error("hydrate failed:", err)
+    );
   }, [companyId, carbon, accessToken]);
 
-  useInterval(fetchQuantities, companyId ? 10 * 60 * 1000 : null);
+  useInterval(
+    () => fetchQuantities(hydrateGeneration.current),
+    companyId ? 10 * 60 * 1000 : null
+  );
 
   useRealtimeChannel({
     topic: `realtime:core`,
@@ -234,6 +267,11 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                 );
                 break;
               case "UPDATE":
+                if (
+                  "companyId" in payload.new &&
+                  payload.new.companyId !== companyId
+                )
+                  return;
                 const { new: updated } = payload;
 
                 setItems((items) =>
@@ -293,12 +331,18 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                     {
                       id: inserted.id,
                       name: inserted.name,
-                      website: inserted.website
+                      website: inserted.website,
+                      readableId: inserted.readableId ?? null
                     }
                   ].sort((a, b) => a.name.localeCompare(b.name))
                 );
                 break;
               case "UPDATE":
+                if (
+                  "companyId" in payload.new &&
+                  payload.new.companyId !== companyId
+                )
+                  return;
                 const { new: updated } = payload;
                 setCustomers((customers) =>
                   customers
@@ -307,7 +351,8 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                         return {
                           ...p,
                           name: updated.name,
-                          website: updated.website
+                          website: updated.website,
+                          readableId: updated.readableId ?? p.readableId ?? null
                         };
                       }
                       return p;
@@ -356,6 +401,11 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                 );
                 break;
               case "UPDATE":
+                if (
+                  "companyId" in payload.new &&
+                  payload.new.companyId !== companyId
+                )
+                  return;
                 const { new: updated } = payload;
                 setSuppliers((suppliers) =>
                   suppliers

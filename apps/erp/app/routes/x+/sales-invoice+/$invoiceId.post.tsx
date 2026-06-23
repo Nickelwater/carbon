@@ -15,10 +15,16 @@ import {
   getSalesInvoiceLines,
   getSalesInvoiceShipment
 } from "~/modules/invoicing";
-import { getCustomerContact, salesConfirmValidator } from "~/modules/sales";
+import {
+  getCustomerContact,
+  getSalesOrdersByIds,
+  salesConfirmValidator
+} from "~/modules/sales";
 import { getCompany } from "~/modules/settings";
+import { generateAndAttachSalesOrderPdf } from "~/modules/shared/shared.server";
 import { getUser } from "~/modules/users/users.server";
 import { loader as pdfLoader } from "~/routes/file+/sales-invoice+/$id[.]pdf";
+import { loader as salesOrderPdfLoader } from "~/routes/file+/sales-order+/$id[.]pdf";
 import { stripSpecialCharacters } from "~/utils/string";
 
 export async function action(args: ActionFunctionArgs) {
@@ -172,6 +178,50 @@ export async function action(args: ActionFunctionArgs) {
         success: false,
         message: "Failed to create document"
       };
+    }
+
+    const salesInvoiceLines = await getSalesInvoiceLines(
+      serviceRole,
+      invoiceId
+    );
+    const linkedSalesOrderIds = [
+      ...new Set(
+        (salesInvoiceLines.data ?? [])
+          .map((line) => line.salesOrderId)
+          .filter((id): id is string => Boolean(id))
+      )
+    ];
+
+    if (linkedSalesOrderIds.length > 0) {
+      const salesOrders = await getSalesOrdersByIds(
+        serviceRole,
+        linkedSalesOrderIds
+      );
+
+      for (const salesOrder of salesOrders.data ?? []) {
+        if (!salesOrder.salesOrderId || !salesInvoice.data.opportunityId) {
+          continue;
+        }
+
+        try {
+          await generateAndAttachSalesOrderPdf({
+            routeArgs: args,
+            salesOrderId: salesOrder.id,
+            salesOrderIdentifier: salesOrder.salesOrderId,
+            opportunityId: salesInvoice.data.opportunityId,
+            storageOpportunityId: salesInvoice.data.opportunityId,
+            companyId,
+            userId,
+            serviceRole,
+            pdfLoader: salesOrderPdfLoader
+          });
+        } catch (attachError) {
+          console.error(
+            `Failed to attach sales order PDF for ${salesOrder.salesOrderId}:`,
+            attachError
+          );
+        }
+      }
     }
     // biome-ignore lint/correctness/noUnusedVariables: suppressed due to migration
   } catch (err) {

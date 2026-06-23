@@ -21,6 +21,7 @@ interface PackingSlipProps extends PDF {
     | Database["public"]["Tables"]["customer"]["Row"]
     | Database["public"]["Tables"]["supplier"]["Row"];
   customerReference?: string;
+  lineCustomerReferences?: Record<string, string>;
   sourceDocument?: string;
   sourceDocumentId?: string;
   shipment: Database["public"]["Tables"]["shipment"]["Row"];
@@ -40,6 +41,7 @@ const PackingSlipPDF = ({
   customer,
   meta,
   customerReference,
+  lineCustomerReferences,
   sourceDocument,
   sourceDocumentId,
   shipment,
@@ -75,6 +77,7 @@ const PackingSlipPDF = ({
     locale,
     customer,
     customerReference,
+    lineCustomerReferences,
     sourceDocument,
     sourceDocumentId,
     shipment,

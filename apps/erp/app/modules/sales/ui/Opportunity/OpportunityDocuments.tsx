@@ -299,7 +299,11 @@ export const useOpportunityDocuments = ({
   const canDelete = permissions.can("delete", "sales"); // TODO: or is document owner
 
   const getPath = useCallback(
-    (attachment: { name: string }) => {
+    (attachment: { name: string; metadata?: { storagePath?: string } }) => {
+      if (attachment.metadata?.storagePath) {
+        return attachment.metadata.storagePath;
+      }
+
       return `${
         company.id
       }/opportunity/${opportunityId}/${stripSpecialCharacters(

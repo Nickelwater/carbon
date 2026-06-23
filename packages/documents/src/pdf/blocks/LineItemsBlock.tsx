@@ -22,9 +22,18 @@ export function LineItemsBlock({
   block: LineItemsBlockType;
   data: SalesInvoiceData;
 }) {
-  const { salesInvoiceLines, thumbnails, numberFormatter, theme } = data;
+  const {
+    salesInvoiceLines,
+    thumbnails,
+    numberFormatter,
+    theme,
+    lineCustomerReferences
+  } = data;
   const opts = { ...DEFAULT_LINE_ITEMS_OPTIONS, ...block.options };
   const overflow = itemTextOverflowStyle(opts);
+  const showLineCustomerPo =
+    lineCustomerReferences &&
+    new Set(Object.values(lineCustomerReferences).filter(Boolean)).size > 1;
   let rowIndex = 0;
 
   return (
@@ -87,6 +96,13 @@ export function LineItemsBlock({
                 >
                   {getLineDescriptionDetails(line)}
                 </Text>
+                {showLineCustomerPo &&
+                  line.id &&
+                  lineCustomerReferences[line.id] && (
+                    <Text style={tw("text-[9px] text-gray-500 mt-0.5")}>
+                      Customer PO #: {lineCustomerReferences[line.id]}
+                    </Text>
+                  )}
                 {opts.showThumbnails &&
                   thumbnails &&
                   line.id &&

@@ -9,7 +9,9 @@ export function buildSalesInvoiceVars(
   data: Pick<
     SalesInvoiceData,
     "salesInvoice" | "salesInvoiceLocations" | "company" | "currencyCode"
-  >
+  > & {
+    customerReference?: string;
+  }
 ): Record<string, string> {
   const inv = data.salesInvoice;
   const loc = data.salesInvoiceLocations;
@@ -19,7 +21,9 @@ export function buildSalesInvoiceVars(
     "invoice.number": str(inv?.invoiceId),
     "invoice.dateIssued": str(inv?.dateIssued),
     "invoice.dateDue": str(inv?.dateDue),
-    "invoice.customerReference": str(inv?.customerReference),
+    "invoice.customerReference": str(
+      data.customerReference ?? inv?.customerReference
+    ),
     "invoice.currency": str(data.currencyCode),
     "customer.name": str(loc?.invoiceCustomerName ?? loc?.customerName),
     "customer.addressLine1": str(

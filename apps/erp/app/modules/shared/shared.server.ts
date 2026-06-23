@@ -113,6 +113,8 @@ export async function generateAndAttachSalesOrderPdf(args: {
   salesOrderIdentifier: string;
   /** Opportunity the SO belongs to */
   opportunityId: string;
+  /** Opportunity folder for storage. Defaults to the SO's opportunity. */
+  storageOpportunityId?: string;
   companyId: string;
   userId: string;
   /** A service-role Supabase client for storage + DB writes */
@@ -125,6 +127,7 @@ export async function generateAndAttachSalesOrderPdf(args: {
     salesOrderId,
     salesOrderIdentifier,
     opportunityId,
+    storageOpportunityId,
     companyId,
     userId,
     serviceRole,
@@ -148,7 +151,7 @@ export async function generateAndAttachSalesOrderPdf(args: {
   );
 
   // 2. Upload to Supabase storage
-  const documentFilePath = `${companyId}/opportunity/${opportunityId}/${fileName}`;
+  const documentFilePath = `${companyId}/opportunity/${storageOpportunityId ?? opportunityId}/${fileName}`;
 
   const uploadResult = await serviceRole.storage
     .from("private")

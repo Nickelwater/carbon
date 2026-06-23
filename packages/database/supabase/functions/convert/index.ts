@@ -1206,6 +1206,8 @@ serve(async (req: Request) => {
               .eq("shipped", true),
           ]);
 
+        if (shipment.error) throw shipment.error;
+        if (!shipment.data) throw new Error("Shipment not found");
         if (shipmentLines.error) throw shipmentLines.error;
         if (shipmentFixedAssetLines.error)
           throw shipmentFixedAssetLines.error;
@@ -1228,43 +1230,101 @@ serve(async (req: Request) => {
         const salesOrderLineIds = Object.keys(quantitiesByLine);
 
         if (
-          !shipment.data?.sourceDocumentId ||
-          shipment.data?.sourceDocument !== "Sales Order"
+          shipment.data.sourceDocument &&
+          shipment.data.sourceDocument !== "Sales Order"
         ) {
-          throw new Error("Shipment has no source document id");
+          throw new Error("Shipment is not linked to a sales order");
         }
 
-        const [
-          salesOrder,
-          salesOrderLines,
-          salesOrderPayment,
-          salesOrderShipment,
-        ] = await Promise.all([
-          client
-            .from("salesOrder")
-            .select("*")
-            .eq("id", shipment.data?.sourceDocumentId)
-            .single(),
-          client.from("salesOrderLine").select("*").in("id", salesOrderLineIds),
-          client
-            .from("salesOrderPayment")
-            .select("*")
-            .eq("id", shipment.data?.sourceDocumentId)
-            .single(),
-          client
-            .from("salesOrderShipment")
-            .select("*")
-            .eq("id", shipment.data?.sourceDocumentId)
-            .single(),
-        ]);
+        if (salesOrderLineIds.length === 0) {
+          throw new Error("Shipment has no lines to invoice");
+        }
 
-        if (!salesOrder.data) throw new Error("Purchase order not found");
+        const resolvedSalesOrderLines = await client
+          .from("salesOrderLine")
+          .select("id, salesOrderId")
+          .in("id", salesOrderLineIds);
+
+        if (resolvedSalesOrderLines.error) {
+          throw resolvedSalesOrderLines.error;
+        }
+        if (!resolvedSalesOrderLines.data?.length) {
+          throw new Error("Sales order lines not found for shipment");
+        }
+
+        const salesOrderIds = [
+          ...new Set(
+            resolvedSalesOrderLines.data
+              .map((line) => line.salesOrderId)
+              .filter(Boolean)
+          ),
+        ] as string[];
+
+        const salesOrdersResponse = await client
+          .from("salesOrder")
+          .select("*")
+          .in("id", salesOrderIds);
+
+        if (salesOrdersResponse.error) throw salesOrdersResponse.error;
+
+        const salesOrders = salesOrdersResponse.data ?? [];
+        if (salesOrders.length === 0) {
+          throw new Error("Sales orders not found for shipment");
+        }
+
+        const customerIds = [
+          ...new Set(salesOrders.map((order) => order.customerId)),
+        ];
+        if (customerIds.length !== 1) {
+          throw new Error(
+            "Shipment lines must belong to sales orders for a single customer"
+          );
+        }
+
+        const currencyCodes = [
+          ...new Set(
+            salesOrders.map((order) => order.currencyCode).filter(Boolean)
+          ),
+        ];
+        if (currencyCodes.length > 1) {
+          throw new Error(
+            "Shipment lines must belong to sales orders with the same currency"
+          );
+        }
+
+        const preferredSalesOrderId = shipment.data.sourceDocumentId;
+        const salesOrder =
+          preferredSalesOrderId &&
+          salesOrders.some((order) => order.id === preferredSalesOrderId)
+            ? salesOrders.find((order) => order.id === preferredSalesOrderId)!
+            : salesOrders[0]!;
+
+        const salesOrderId = salesOrder.id;
+
+        const [salesOrderLines, salesOrderPayment, salesOrderShipment] =
+          await Promise.all([
+            client
+              .from("salesOrderLine")
+              .select("*")
+              .in("id", salesOrderLineIds),
+            client
+              .from("salesOrderPayment")
+              .select("*")
+              .eq("id", salesOrderId)
+              .single(),
+            client
+              .from("salesOrderShipment")
+              .select("*")
+              .eq("id", salesOrderId)
+              .single(),
+          ]);
+
         if (salesOrderLines.error)
           throw new Error(salesOrderLines.error.message);
         if (!salesOrderPayment.data)
-          throw new Error("Purchase order payment not found");
+          throw new Error("Sales order payment not found");
         if (!salesOrderShipment.data)
-          throw new Error("Purchase order delivery not found");
+          throw new Error("Sales order shipment not found");
 
         const uninvoicedLines = salesOrderLines?.data?.reduce<
           (typeof salesOrderLines)["data"]
@@ -1314,8 +1374,8 @@ serve(async (req: Request) => {
             .values({
               invoiceId: salesInvoiceId!,
               status: "Draft",
-              customerId: salesOrder.data.customerId,
-              customerReference: salesOrder.data.customerReference ?? "",
+              customerId: shipment.data.customerId ?? salesOrder.customerId,
+              customerReference: salesOrder.customerReference ?? "",
               invoiceCustomerId: salesOrderPayment.data.invoiceCustomerId,
               invoiceCustomerContactId:
                 salesOrderPayment.data.invoiceCustomerContactId,
@@ -1323,11 +1383,11 @@ serve(async (req: Request) => {
                 salesOrderPayment.data.invoiceCustomerLocationId,
               locationId: salesOrderShipment.data.locationId,
               paymentTermId: salesOrderPayment.data.paymentTermId,
-              currencyCode: salesOrder.data.currencyCode ?? "USD",
+              currencyCode: salesOrder.currencyCode ?? "USD",
               dateIssued: new Date().toISOString().split("T")[0],
-              exchangeRate: salesOrder.data.exchangeRate ?? 1,
+              exchangeRate: salesOrder.exchangeRate ?? 1,
               subtotal: uninvoicedSubtotal ?? 0,
-              opportunityId: salesOrder.data.opportunityId,
+              opportunityId: salesOrder.opportunityId,
               shipmentId: shipmentId,
               totalDiscount: 0,
               totalAmount: uninvoicedSubtotal ?? 0,
@@ -1339,7 +1399,7 @@ serve(async (req: Request) => {
             .returning(["id"])
             .executeTakeFirstOrThrow();
 
-          if (!salesInvoice.id) throw new Error("Purchase invoice not created");
+          if (!salesInvoice.id) throw new Error("Sales invoice not created");
           salesInvoiceId = salesInvoice.id;
 
           await trx
