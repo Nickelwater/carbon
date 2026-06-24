@@ -329,7 +329,7 @@ msgid "Error"
 msgstr "Ошибка"
 
 msgid "Error!"
-msgstr ""
+msgstr "Ошибка!"
 
 msgid "Estimated"
 msgstr "План"
@@ -970,7 +970,7 @@ msgid "Size"
 msgstr "Размер"
 
 msgid "Something went wrong"
-msgstr ""
+msgstr "Что-то пошло не так"
 
 msgid "Source"
 msgstr "Источник"

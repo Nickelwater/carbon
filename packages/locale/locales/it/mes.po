@@ -329,7 +329,7 @@ msgid "Error"
 msgstr "Errore"
 
 msgid "Error!"
-msgstr ""
+msgstr "Errore!"
 
 msgid "Estimated"
 msgstr "Stimato"
@@ -970,7 +970,7 @@ msgid "Size"
 msgstr "Dimensione"
 
 msgid "Something went wrong"
-msgstr ""
+msgstr "Qualcosa è andato storto"
 
 msgid "Source"
 msgstr "Origine"

@@ -216,7 +216,11 @@ const JobMaterialForm = ({
                 value={itemData.methodType}
                 replenishmentSystem={itemData.itemReplenishmentSystem}
               />
-              <Number name="quantity" label={t`Quantity per Parent`} />
+              <Number
+                name="quantity"
+                label={t`Quantity per Parent`}
+                termId="job-material-quantity-per-parent"
+              />
               <UnitOfMeasure
                 name="unitOfMeasureCode"
                 value={itemData.unitOfMeasureCode}

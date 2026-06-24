@@ -329,7 +329,7 @@ msgid "Error"
 msgstr "त्रुटि"
 
 msgid "Error!"
-msgstr ""
+msgstr "त्रुटि!"
 
 msgid "Estimated"
 msgstr "अनुमानित"
@@ -970,7 +970,7 @@ msgid "Size"
 msgstr "आकार"
 
 msgid "Something went wrong"
-msgstr ""
+msgstr "कुछ गलत हो गया"
 
 msgid "Source"
 msgstr "स्रोत"

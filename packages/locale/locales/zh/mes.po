@@ -329,7 +329,7 @@ msgid "Error"
 msgstr "错误"
 
 msgid "Error!"
-msgstr ""
+msgstr "错误!"
 
 msgid "Estimated"
 msgstr "估计"
@@ -970,7 +970,7 @@ msgid "Size"
 msgstr "大小"
 
 msgid "Something went wrong"
-msgstr ""
+msgstr "出错了"
 
 msgid "Source"
 msgstr "来源"

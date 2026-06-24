@@ -48,10 +48,6 @@ type ItemFormProps = {
   type: Database["public"]["Enums"]["itemType"];
 };
 
-function getLabel(type: Database["public"]["Enums"]["itemType"]) {
-  return capitalize(type);
-}
-
 const ItemForm = ({ initialValues, type }: ItemFormProps) => {
   const permissions = usePermissions();
   const { t } = useLingui();
@@ -82,6 +78,19 @@ const ItemForm = ({ initialValues, type }: ItemFormProps) => {
   const [defaultMethodType, setDefaultMethodType] = useState<string>(
     initialValues.defaultMethodType ?? "Purchase to Order"
   );
+  const readableIdLabel =
+    type === "Part"
+      ? t`Part ID`
+      : type === "Tool"
+        ? t`Tool ID`
+        : type === "Material"
+          ? t`Material ID`
+          : type === "Consumable"
+            ? t`Consumable ID`
+            : type === "Service"
+              ? t`Service ID`
+              : `${capitalize(type)} ID`;
+
   const itemReplenishmentSystemOptions =
     itemReplenishmentSystems.map((itemReplenishmentSystem) => ({
       label: (
@@ -138,11 +147,7 @@ const ItemForm = ({ initialValues, type }: ItemFormProps) => {
           <Hidden name="id" />
           <Hidden name="type" />
           <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 md:grid-cols-3">
-            <Input
-              isReadOnly
-              name="readableId"
-              label={`${getLabel(type)} ID`}
-            />
+            <Input isReadOnly name="readableId" label={readableIdLabel} />
 
             <Input
               name="name"
@@ -152,7 +157,7 @@ const ItemForm = ({ initialValues, type }: ItemFormProps) => {
             <Select
               name="itemTrackingType"
               label={t`Tracking Type`}
-              termId="tracked-entity"
+              termId="item-tracking-type"
               options={itemTrackingTypeOptions}
             />
 
@@ -173,7 +178,7 @@ const ItemForm = ({ initialValues, type }: ItemFormProps) => {
             <DefaultMethodType
               name="defaultMethodType"
               label={t`Default Method Type`}
-              termId="method-type"
+              termId="item-default-method-type"
               replenishmentSystem={replenishmentSystem}
               value={defaultMethodType}
               onChange={(newValue) =>

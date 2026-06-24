@@ -918,5 +918,667 @@ export const terms = {
   "traceability-expiration-edit-date": {
     term: msg`New expiration date`,
     definition: msg`The corrected expiration for this lot/serial; existing on-hand stock is re-evaluated against shelf-life policy after the change.`
+  },
+
+  // ── Items: core (Part/Tool/Material/Consumable/Item forms) ──────────────
+  "item-tracking-type": {
+    term: msg`Tracking Type`,
+    definition: msg`Whether Carbon follows each unit (Serial), each lot (Batch), or doesn't track stock movements individually (Off).`
+  },
+  "item-default-method-type": {
+    term: msg`Default Method Type`,
+    definition: msg`The method used when this item is added as a component on a method or BOM line, until overridden on that line.`
+  },
+  "item-group": {
+    term: msg`Item Group`,
+    definition: msg`The posting group that decides which GL accounts post for receipts, shipments, COGS, and inventory on this item.`
+  },
+  "part-batch-size": {
+    term: msg`Batch Size`,
+    definition: msg`The default run quantity when this part is made; planning rounds replenishment up to multiples of this.`
+  },
+  "material-sizes": {
+    term: msg`Sizes`,
+    definition: msg`The stock sizes this material is purchased and held in; each size becomes a separate selectable variant on jobs and POs.`
+  },
+
+  // ── Items: Customer/Supplier cross-references ───────────────────────────
+  "customer-part-id": {
+    term: msg`Customer Part ID`,
+    definition: msg`The identifier the customer uses for this part on their POs; Carbon resolves it to our internal Part ID on order import.`
+  },
+  "customer-part-revision": {
+    term: msg`Customer Part Revision`,
+    definition: msg`The customer's revision tag for their Part ID, when it differs from ours; pinned at the cross-reference level, not on our revision.`
+  },
+  "supplier-part-id": {
+    term: msg`Supplier Part ID`,
+    definition: msg`The identifier the supplier uses for this part on their quotes and invoices; Carbon resolves it to our internal Part ID.`
+  },
+  "supplier-part-moq": {
+    term: msg`Minimum Order Quantity`,
+    definition: msg`The smallest quantity this supplier will accept on a PO line for this part; planning rounds up to it.`
+  },
+  "supplier-part-order-multiple": {
+    term: msg`Order Multiple`,
+    definition: msg`Order quantities must be whole multiples of this number (a multiple of 12 → 12, 24, 36 …).`
+  },
+
+  // ── Items: Manufacturing (ItemManufacturingForm) ────────────────────────
+  "item-scrap-percent": {
+    term: msg`Scrap Percent`,
+    definition: msg`The expected percentage of this item's output lost during production; planning multiplies demand by 1 / (1 − scrap) to compensate.`
+  },
+  "item-manufacturing-lead-time": {
+    term: msg`Lead Time (Days)`,
+    definition: msg`The number of days to build one batch of this item, measured from job release to completion; planning offsets demand backward by this much.`
+  },
+  "item-configured": {
+    term: msg`Configured`,
+    definition: msg`This item is built via a configurator and resolves its components per-order; jobs created for it inherit the configurator's resolved BOM.`
+  },
+
+  // ── Items: Purchasing (ItemPurchasingForm) ──────────────────────────────
+  "item-preferred-supplier": {
+    term: msg`Preferred Supplier`,
+    definition: msg`The supplier planning suggests first when this item needs to be bought; other suppliers stay available in the dropdown on each PO line.`
+  },
+  "item-purchasing-lead-time": {
+    term: msg`Lead Time (Days)`,
+    definition: msg`The number of days between placing a PO with the preferred supplier and the goods arriving on the dock; planning offsets demand backward by this much.`
+  },
+  "item-purchasing-uom": {
+    term: msg`Purchasing Unit of Measure`,
+    definition: msg`The unit suppliers price and ship this item in, when different from the inventory unit (e.g. case vs each); paired with Conversion Factor.`
+  },
+
+  // ── Items: Planning (ItemPlanningForm) ──────────────────────────────────
+  "item-max-inventory-quantity": {
+    term: msg`Maximum Inventory Quantity`,
+    definition: msg`Under Maximum Quantity policy, planning orders up to this on-hand level when the reorder point trips.`
+  },
+  "item-accumulation-period-weeks": {
+    term: msg`Accumulation Period (Weeks)`,
+    definition: msg`Under Demand-Based Reorder, planning sums demand inside this rolling window when computing a replenishment quantity.`
+  },
+  "item-safety-stock": {
+    term: msg`Safety Stock`,
+    definition: msg`Buffer stock the demand-based policy holds back to absorb consumption spikes within the accumulation period.`
+  },
+  "item-reorder-quantity": {
+    term: msg`Reorder Quantity`,
+    definition: msg`Under Fixed Reorder Quantity, the exact quantity planning orders each time the reorder point trips.`
+  },
+  "item-planning-order-multiple": {
+    term: msg`Order Multiple`,
+    definition: msg`Planning rounds suggested replenishment up to a whole multiple of this number.`
+  },
+  "item-planning-moq": {
+    term: msg`Minimum Order Quantity`,
+    definition: msg`Planning's lower bound on a suggested replenishment quantity; distinct from a supplier's MOQ, which lives on the supplier-part record.`
+  },
+  "item-planning-max-order-quantity": {
+    term: msg`Maximum Order Quantity`,
+    definition: msg`Planning's upper bound on a single suggested replenishment; quantities above this are split into multiple orders.`
+  },
+
+  // ── Items: Pick method / shelf life (PickMethodForm) ────────────────────
+  "item-default-storage-unit": {
+    term: msg`Default Storage Unit`,
+    definition: msg`Where new stock of this item lands by default on receipt; per-line storage selections on a receipt override it.`
+  },
+  "item-pick-order": {
+    term: msg`Pick Order`,
+    definition: msg`The default order picking uses to offer tracked entities: FEFO (earliest-expiry first), FIFO (oldest first), or LIFO (newest first).`
+  },
+  "item-shelf-life-days": {
+    term: msg`Shelf Life (Days)`,
+    definition: msg`How many days a serial or batch of this item stays usable after its start event; the shelf-life policy decides what happens past this date.`
+  },
+  "item-shelf-life-start-process": {
+    term: msg`Shelf Life Start Process`,
+    definition: msg`Which manufacturing event starts the shelf-life clock — for example, fill, seal, or final QC.`
+  },
+  "item-shelf-life-start-timing": {
+    term: msg`Start Expiration`,
+    definition: msg`Whether the clock starts when the chosen process begins or when it completes.`
+  },
+  "item-calculate-from-bom": {
+    term: msg`Calculate from BOM`,
+    definition: msg`Derive this item's shelf life from the shortest shelf life of its components, ignoring the Days field above.`
+  },
+
+  // ── People (Departments / Attributes) ───────────────────────────────────
+  "department-parent": {
+    term: msg`Parent Department`,
+    definition: msg`The department this one rolls up under for reporting and headcount hierarchies; leave empty for a top-level department.`
+  },
+  "attribute-category-public": {
+    term: msg`Public`,
+    definition: msg`When on, attributes in this category show up on a person's public profile; otherwise they're visible to admins only.`
+  },
+  "attribute-data-type": {
+    term: msg`Data Type`,
+    definition: msg`The kind of value this attribute accepts (text, number, date, boolean, list); locked after the attribute has any recorded values.`
+  },
+  "attribute-list-options": {
+    term: msg`List Options`,
+    definition: msg`The allowed values for a list-type attribute; users pick from these rather than free-typing.`
+  },
+  "attribute-self-managed": {
+    term: msg`Self Managed`,
+    definition: msg`When on, employees can edit this attribute's value on their own profile; otherwise only admins can.`
+  },
+
+  // ── Quality: Calibration (GaugeCalibrationRecordForm) ───────────────────
+  "calibration-requires-action": {
+    term: msg`Requires Action`,
+    definition: msg`Recorded that follow-up is needed after this calibration; surfaces this gauge on the open-actions queue.`
+  },
+  "calibration-requires-adjustment": {
+    term: msg`Requires Adjustment`,
+    definition: msg`Recorded that the gauge was adjusted during this calibration; affects how the calibration interval recalculates.`
+  },
+  "calibration-requires-repair": {
+    term: msg`Requires Repair`,
+    definition: msg`Recorded that the gauge needs repair; the gauge stays unavailable for inspections until the repair is closed out.`
+  },
+  "calibration-measurement-standard": {
+    term: msg`Measurement Standard`,
+    definition: msg`The traceable reference (e.g. NIST standard, master gauge serial) the calibration values were compared against.`
+  },
+
+  // ── Quality: Documents (QualityDocumentForm) ────────────────────────────
+  "quality-document-version": {
+    term: msg`Version`,
+    definition: msg`The version stamp for this document; new versions create a copy that supersedes the previous one without deleting it.`
+  },
+
+  // ── Quality: Gauge (GaugeForm) ──────────────────────────────────────────
+  "gauge-role": {
+    term: msg`Role`,
+    definition: msg`How this gauge is used — Standard (regular checks), Master (calibrates other gauges), or Reference (audit-only).`
+  },
+  "gauge-last-calibration-date": {
+    term: msg`Last Calibration Date`,
+    definition: msg`When this gauge was last successfully calibrated; the next-calibration date recomputes from this value plus the interval.`
+  },
+  "gauge-next-calibration-date": {
+    term: msg`Next Calibration Date`,
+    definition: msg`When this gauge becomes due for calibration; once past due, it's blocked from inspections until calibrated.`
+  },
+  "gauge-calibration-interval-months": {
+    term: msg`Calibration Interval (Months)`,
+    definition: msg`How often this gauge must be recalibrated; combined with Last Calibration Date to recompute Next Calibration Date automatically.`
+  },
+
+  // ── Quality: Inbound inspection (InboundInspectionForm) ─────────────────
+  "inbound-inspection-disposition": {
+    term: msg`Disposition`,
+    definition: msg`Whether this lot/serial passes inspection (Pass) or fails (Fail); a Fail blocks the stock from being received into available inventory.`
+  },
+
+  // ── Quality: Inspection document (InspectionDocumentForm) ───────────────
+  "inspection-document-drawing-number": {
+    term: msg`Drawing Number`,
+    definition: msg`The engineering drawing this inspection document is tied to; inspections recorded against this part reference back to this drawing.`
+  },
+
+  // ── Quality: Issue (IssueForm + IssueProperties) ────────────────────────
+  "issue-issue-type": {
+    term: msg`Issue Type`,
+    definition: msg`The category of this issue (e.g. Customer Complaint, Audit Finding, Production Defect); drives which workflow template applies.`
+  },
+  "issue-workflow": {
+    term: msg`Workflow`,
+    definition: msg`The preset bundle of tasks and approval requirements applied to this issue; overrides the issue type's default workflow when set.`
+  },
+  "issue-required-actions": {
+    term: msg`Required Actions`,
+    definition: msg`Tasks that must be completed before this issue can be closed; selecting actions here adds them on top of whatever the workflow specifies.`
+  },
+  "issue-approval-requirements": {
+    term: msg`Approval Requirements`,
+    definition: msg`Sign-offs that must be recorded before this issue can be closed; in addition to any required by the workflow.`
+  },
+  "issue-source": {
+    term: msg`Source`,
+    definition: msg`Where this issue was raised from — internal QA, customer complaint, supplier audit, etc.; used for reporting, doesn't gate workflow.`
+  },
+
+  // ── Quality: Issue workflow (IssueWorkflowForm) ─────────────────────────
+  "issue-workflow-issue-template": {
+    term: msg`Issue Template`,
+    definition: msg`A pre-written description inserted into every issue that uses this workflow; placeholders like {itemId} and {location} are substituted at creation.`
+  },
+  "issue-workflow-required-actions": {
+    term: msg`Required Actions`,
+    definition: msg`The ordered list of tasks issues using this workflow must complete; the order here is the order they appear on the issue.`
+  },
+  "issue-workflow-approval-requirements": {
+    term: msg`Approval Requirements`,
+    definition: msg`The sign-offs every issue using this workflow needs before it can be closed.`
+  },
+
+  // ── Quality: Risk register (RiskRegisterForm) ───────────────────────────
+  "risk-register-type": {
+    term: msg`Type`,
+    definition: msg`The category of risk (operational, strategic, financial, compliance, etc.); drives which reports the risk rolls into.`
+  },
+  "risk-register-severity": {
+    term: msg`Severity`,
+    definition: msg`The impact rating if the risk is realized (1 = negligible to 5 = catastrophic); paired with Likelihood to compute the risk score.`
+  },
+  "risk-register-likelihood": {
+    term: msg`Likelihood`,
+    definition: msg`The probability rating that the risk occurs (1 = rare to 5 = almost certain); paired with Severity to compute the risk score.`
+  },
+
+  // ── Quality: Sampling plan (SamplingPlanForm) ───────────────────────────
+  "sampling-plan-type": {
+    term: msg`Plan Type`,
+    definition: msg`How the sample size is decided — Inspect All, Inspect First N, Percentage of Lot, or AQL (Z1.4 / ISO 2859-1). Each mode reveals its own parameter fields below.`
+  },
+  "sampling-plan-sample-size": {
+    term: msg`Sample Size`,
+    definition: msg`The fixed number of units to inspect from the front of each lot, regardless of lot size.`
+  },
+  "sampling-plan-percentage": {
+    term: msg`Percentage of Lot`,
+    definition: msg`The fraction of each lot to inspect; the actual count is computed from lot size at the time of inspection.`
+  },
+  "sampling-plan-aql": {
+    term: msg`AQL`,
+    definition: msg`Acceptable Quality Level — the highest defect rate that's still considered passable under the Z1.4 / ISO 2859-1 tables.`
+  },
+  "sampling-plan-inspection-level": {
+    term: msg`Inspection Level`,
+    definition: msg`Z1.4 inspection level (I / II / III); higher levels mean larger sample sizes for the same lot.`
+  },
+  "sampling-plan-severity": {
+    term: msg`Severity`,
+    definition: msg`Z1.4 severity (Normal / Tightened / Reduced); switches by rule based on recent lot-acceptance history.`
+  },
+
+  // ── Production: Jobs (JobForm, JobMaterialForm) ─────────────────────────
+  "job-estimated-scrap-quantity": {
+    term: msg`Estimated Scrap Quantity`,
+    definition: msg`The number of extra units to build to compensate for expected scrap; planning sums this with the order quantity when reserving materials.`
+  },
+  "job-deadline-type": {
+    term: msg`Deadline Type`,
+    definition: msg`How strict the Due Date is — Hard Deadline blocks scheduling past it, Soft Deadline lets planning push out with a warning, No Deadline ignores it entirely.`
+  },
+  "job-bulk-total-quantity": {
+    term: msg`Total Quantity`,
+    definition: msg`The total to make across all jobs created in this bulk batch; combined with Quantity Per Job to decide how many jobs to create.`
+  },
+  "job-bulk-quantity-per-job": {
+    term: msg`Quantity Per Job`,
+    definition: msg`How many units each individual job in the bulk batch builds; the last job's quantity may be smaller if Total Quantity doesn't divide evenly.`
+  },
+  "job-bulk-scrap-quantity-per-job": {
+    term: msg`Scrap Quantity Per Job`,
+    definition: msg`Estimated scrap quantity applied to every job in the bulk batch.`
+  },
+  "job-bulk-due-date-first": {
+    term: msg`Due Date of First Job`,
+    definition: msg`Due date of the earliest job in the bulk batch; later jobs space evenly between this date and Due Date of Last Job.`
+  },
+  "job-bulk-due-date-last": {
+    term: msg`Due Date of Last Job`,
+    definition: msg`Due date of the final job in the bulk batch; combined with Due Date of First Job to space the jobs evenly.`
+  },
+  "job-material-quantity-per-parent": {
+    term: msg`Quantity per Parent`,
+    definition: msg`How many of this material it takes to build one of the job's parent item; multiplied by job quantity to size the consumption.`
+  },
+
+  // ── Production: Events / Quantities (ProductionEventForm, ProductionQuantityForm) ──
+  "production-event-type": {
+    term: msg`Event Type`,
+    definition: msg`What this time entry counts as — Labor (operator time), Machine (run time), or Setup (changeover time); each rolls up under a different rate.`
+  },
+  "production-quantity-type": {
+    term: msg`Quantity Type`,
+    definition: msg`What kind of output this entry records — Production (good units), Scrap (unrecoverable), or Rework (sent back for correction); reveals Scrap Reason when Scrap.`
+  },
+  "production-quantity-scrap-reason": {
+    term: msg`Scrap Reason`,
+    definition: msg`The catalog reason that explains this scrap; rolls up into scrap reports keyed by reason rather than by quantity.`
+  },
+
+  // ── Production: Procedures (ProcedureForm) ──────────────────────────────
+  "procedure-version": {
+    term: msg`Version`,
+    definition: msg`The version stamp for this procedure; new versions create a copy that supersedes the previous one without deleting it.`
+  },
+
+  // ── Purchasing: Supplier (SupplierForm, SupplierPaymentForm, SupplierShippingForm) ──
+  "supplier-status": {
+    term: msg`Supplier Status`,
+    definition: msg`The lifecycle state of this supplier — Active, Inactive, Pending Approval, etc.; only Active suppliers appear in PO / quote selectors.`
+  },
+  "supplier-type-field": {
+    term: msg`Supplier Type`,
+    definition: msg`The category this supplier belongs to (raw-material, services, contract-manufacturer); drives default GL accounts and reporting groupings.`
+  },
+  "supplier-account-manager": {
+    term: msg`Account Manager`,
+    definition: msg`The Carbon user responsible for this supplier relationship; emails and reminders about this supplier route to them.`
+  },
+  "invoice-supplier": {
+    term: msg`Invoice Supplier`,
+    definition: msg`The legal entity to bill, when different from the supplier who delivers the goods — for parent / subsidiary or factoring arrangements.`
+  },
+  "supplier-payment-term": {
+    term: msg`Payment Term`,
+    definition: msg`How many days from invoice date this supplier expects payment; drives the default due date on bills.`
+  },
+  "shipping-supplier": {
+    term: msg`Shipping Supplier`,
+    definition: msg`The carrier that delivers goods from this supplier, when different from the supplier itself (e.g. supplier sells, FedEx ships).`
+  },
+  "supplier-incoterm": {
+    term: msg`Incoterm`,
+    definition: msg`The Incoterm rule (FOB, DAP, EXW, CIF, …) that governs who pays freight, who bears risk, and where the transfer of title occurs on shipments from this supplier.`
+  },
+
+  // ── Shared: Tax fields (Supplier/CustomerTaxForm) ───────────────────────
+  "vat-number": {
+    term: msg`VAT Number`,
+    definition: msg`Value-added-tax registration number; required on EU invoices for reverse-charge or zero-rated supplies.`
+  },
+  eori: {
+    term: msg`EORI`,
+    definition: msg`Economic Operators Registration and Identification number; required for goods crossing customs borders in the EU / UK.`
+  },
+  "tax-exempt": {
+    term: msg`Tax Exempt`,
+    definition: msg`When on, this party's invoices skip tax calculation; the party is responsible for keeping the exemption certificate current.`
+  },
+
+  // ── Shared: ArrayNumeric quantity-break inputs ──────────────────────────
+  "quantity-breaks": {
+    term: msg`Quantity Breaks`,
+    definition: msg`The quantity breakpoints this line is priced at; each column carries its own per-unit price for buyer–supplier negotiation and for converting to downstream documents.`
+  },
+
+  // ── Purchasing: Supplier process (SupplierProcessForm) ──────────────────
+  "supplier-process-minimum-cost": {
+    term: msg`Minimum Cost`,
+    definition: msg`The lowest amount this supplier will charge for this process, regardless of quantity; jobs below the breakeven volume still cost at least this much.`
+  },
+  "supplier-process-lead-time": {
+    term: msg`Standard Lead Time`,
+    definition: msg`The typical number of days between sending work to this supplier for this process and getting it back; planning offsets demand by this much when picking a supplier.`
+  },
+
+  // ── Purchasing: Purchasing RFQ (PurchasingRFQForm) ──────────────────────
+  "purchasing-rfq-suppliers": {
+    term: msg`Suppliers`,
+    definition: msg`The suppliers receiving this RFQ; each gets its own line on the RFQ that they respond to with their own pricing.`
+  },
+  "purchasing-rfq-due-date": {
+    term: msg`Due Date`,
+    definition: msg`When supplier responses are expected back; suppliers see this date on the RFQ portal and Carbon stops accepting late responses after it (configurable).`
+  },
+  "purchasing-rfq-buyer": {
+    term: msg`Buyer`,
+    definition: msg`The Carbon user who owns this RFQ; supplier responses and reminders route to them.`
+  },
+
+  // ── Purchasing: Supplier quote (SupplierQuoteForm) ──────────────────────
+  "supplier-quote-ref-number": {
+    term: msg`Supplier Ref. Number`,
+    definition: msg`The supplier's own quote / proposal number; recorded for traceability on the PO that converts from this quote.`
+  },
+  "supplier-quote-expiration-date": {
+    term: msg`Expiration Date`,
+    definition: msg`When the supplier's pricing stops being honored; converting this quote to a PO after this date may need re-quoting.`
+  },
+  "supplier-quote-type": {
+    term: msg`Quote Type`,
+    definition: msg`What kind of quote this is — standard supplier quote, blanket-agreement priced quote, or contract-manufacturing quote; drives the PO line layout when converted.`
+  },
+
+  // ── Purchasing: Purchase order header (PurchaseOrderForm) ───────────────
+  "purchase-order-supplier-order-number": {
+    term: msg`Supplier Order Number`,
+    definition: msg`The supplier's own reference for this order (their SO number on their system); recorded for audit and surfaced on the receipt.`
+  },
+  "purchase-order-delivery-location": {
+    term: msg`Delivery Location`,
+    definition: msg`Where goods on this PO are shipped to by default; per-line delivery locations on the PO override this for drop-ship and split-delivery scenarios.`
+  },
+  "purchase-order-type": {
+    term: msg`Purchase Order Type`,
+    definition: msg`What kind of PO this is — standard goods, services, outside-processing, or blanket agreement; drives the line layout and the GL posting rules.`
+  },
+
+  // ── Purchasing: Purchase order line (PurchaseOrderLineForm) ─────────────
+  "purchase-order-line-outside-processing-job": {
+    term: msg`Job`,
+    definition: msg`The job whose operation this outside-processing line covers; the line's receipt closes the operation against this job.`
+  },
+  "purchase-order-line-outside-processing-operation": {
+    term: msg`Operation`,
+    definition: msg`The specific operation on the job above that this PO line is purchasing; only operations marked outside-processing are selectable.`
+  },
+  "purchase-order-line-required-date": {
+    term: msg`Required Date`,
+    definition: msg`When the buyer needs this line's goods on the dock; planning uses this date for stock-availability and outside-processing scheduling.`
+  },
+  "purchase-order-line-delivery-location": {
+    term: msg`Delivery Location`,
+    definition: msg`Per-line override of the PO header's Delivery Location; used for split deliveries to multiple warehouses or drop-shipments.`
+  },
+  "purchase-order-line-storage-unit": {
+    term: msg`Storage Unit`,
+    definition: msg`Where this line's goods land in stock on receipt; if blank, receipts use the item's Default Storage Unit.`
+  },
+  "purchase-order-line-shipping": {
+    term: msg`Shipping`,
+    definition: msg`Freight charged by this supplier for this line, when it itemizes shipping rather than rolling it into unit price.`
+  },
+  "purchase-order-line-fixed-asset": {
+    term: msg`Fixed Asset`,
+    definition: msg`The fixed-asset record this purchase capitalizes against; the line's receipt creates the asset entry rather than an inventory entry.`
+  },
+  "purchase-indirect-gl-account": {
+    term: msg`GL Account`,
+    definition: msg`The expense account this indirect-spend line posts to; required because indirect lines don't have an item ledger entry to derive the account from.`
+  },
+
+  // ── Purchasing: PO delivery (PurchaseOrderDeliveryForm) ─────────────────
+  "purchase-order-delivery-requested-date": {
+    term: msg`Requested Date`,
+    definition: msg`When the buyer asked for the goods; the supplier may promise something else on Promised Date and post something else again on Delivery Date.`
+  },
+  "purchase-order-delivery-promised-date": {
+    term: msg`Promised Date`,
+    definition: msg`When the supplier committed to deliver; planning uses this date for the inbound-stock arrival projection.`
+  },
+  "purchase-order-delivery-actual-date": {
+    term: msg`Delivery Date`,
+    definition: msg`When the goods actually arrived; recorded on the receipt and used for supplier on-time-delivery scoring.`
+  },
+
+  // ── Sales: Customer (CustomerForm, CustomerPaymentForm, CustomerShippingForm, CustomerPortalForm) ──
+  "customer-portal-customer": {
+    term: msg`Customer`,
+    definition: msg`The customer this portal link is provisioned for; only contacts on this customer can sign in through the link.`
+  },
+  "customer-status": {
+    term: msg`Customer Status`,
+    definition: msg`The lifecycle state of this customer — Active, Prospect, Inactive, etc.; only Active customers appear in sales-order selectors.`
+  },
+  "customer-type-field": {
+    term: msg`Customer Type`,
+    definition: msg`The category this customer belongs to (OEM, distributor, end-user, internal); drives default pricing rules and GL accounts.`
+  },
+  "customer-account-manager": {
+    term: msg`Account Manager`,
+    definition: msg`The Carbon user responsible for this customer relationship; emails and reminders about this customer route to them.`
+  },
+  "customer-default-tax-percent": {
+    term: msg`Tax Percent`,
+    definition: msg`The default tax rate applied to this customer's quote and sales-order lines, before per-line overrides; jurisdiction-specific tax math runs on top.`
+  },
+  "invoice-customer": {
+    term: msg`Invoice Customer`,
+    definition: msg`The legal entity to bill, when different from the customer who receives the goods — for parent / subsidiary or third-party billing arrangements.`
+  },
+  "customer-payment-term": {
+    term: msg`Payment Term`,
+    definition: msg`How many days from invoice date this customer is given to pay; drives the default due date on customer invoices.`
+  },
+  "shipping-customer": {
+    term: msg`Shipping Customer`,
+    definition: msg`The customer that goods are delivered to, when different from the customer being invoiced (e.g. invoice to HQ, ship to branch).`
+  },
+  "customer-incoterm": {
+    term: msg`Incoterm`,
+    definition: msg`The Incoterm rule (FOB, DAP, EXW, CIF, …) that governs who pays freight, who bears risk, and where the transfer of title occurs on shipments to this customer.`
+  },
+
+  // ── Sales: Shared document reference (RFQ / Quote / Order) ──────────────
+  "customer-document-reference": {
+    term: msg`Customer Reference`,
+    definition: msg`The customer's own reference for this document — typically their RFQ or PO number on their system; surfaced on the printable output and carried forward into any document this one converts into.`
+  },
+
+  // ── Sales: Pricing (PriceOverrideForm, PricingRuleForm) ─────────────────
+  "price-override-price-breaks": {
+    term: msg`Price Breaks`,
+    definition: msg`Quantity-based pricing tiers for this override; the unit price applied is the row with the largest minimum quantity that the order line satisfies.`
+  },
+  "price-override-active": {
+    term: msg`Active`,
+    definition: msg`When on, this price override applies to matching orders; turning off without deleting preserves the history for audit.`
+  },
+  "price-override-apply-rules-on-top": {
+    term: msg`Apply Rules On Top`,
+    definition: msg`When on, pricing rules (volume discounts, promotions) still apply on top of this override; when off, this override is the final price.`
+  },
+  "pricing-rule-type": {
+    term: msg`Rule Type`,
+    definition: msg`The kind of adjustment this rule applies — discount, surcharge, or fixed override; combined with Amount Type to compute the actual delta on each line.`
+  },
+  "pricing-rule-amount-type": {
+    term: msg`Amount Type`,
+    definition: msg`Whether Amount is interpreted as a percentage of the line price or as a fixed currency amount.`
+  },
+  "pricing-rule-quantity-range": {
+    term: msg`Quantity Range`,
+    definition: msg`The quantity range over which this rule applies; orders outside the range fall through to the next rule.`
+  },
+
+  // ── Sales: Quote header & shipment (QuoteForm, QuoteShipmentForm) ───────
+  "quote-fulfillment-location": {
+    term: msg`Fulfillment Location`,
+    definition: msg`The location this quote will fulfill from if it converts to an order; used by planning to project supply at the right warehouse.`
+  },
+  "quote-expiration-date": {
+    term: msg`Expiration Date`,
+    definition: msg`The date past which this quote's pricing is no longer honored; converting to an order after this date may require re-quoting.`
+  },
+  "quote-shipment-from-location": {
+    term: msg`Ship-From Location`,
+    definition: msg`The warehouse goods on this quote will ship from; the customer's Shipping Location is where they'll arrive.`
+  },
+  "quote-shipment-receipt-requested-date": {
+    term: msg`Receipt Requested Date`,
+    definition: msg`When the customer asked to receive the goods; the quote commits to this date if the customer accepts.`
+  },
+
+  // ── Sales: Quote line (QuoteLineForm) ───────────────────────────────────
+  "quote-line-status": {
+    term: msg`Status`,
+    definition: msg`The state of this quote line — Draft, No Quote, Complete; No Quote reveals the Reason field and excludes the line from the quote total.`
+  },
+  "quote-line-no-quote-reason": {
+    term: msg`No Quote Reason`,
+    definition: msg`Why this line is being declined; surfaced on the printable quote and recorded for win-loss reporting.`
+  },
+
+  // ── Sales: Sales order header (SalesOrderForm) ──────────────────────────
+  "sales-order-requested-date": {
+    term: msg`Requested Date`,
+    definition: msg`When the customer asked for delivery; the order commits to Promised Date, which may differ.`
+  },
+  "sales-order-promised-date": {
+    term: msg`Promised Date`,
+    definition: msg`When Carbon committed to deliver; planning treats this as the demand-due-date for fulfillment.`
+  },
+  "sales-order-fulfillment-location": {
+    term: msg`Fulfillment Location`,
+    definition: msg`The location this order will fulfill from; per-line locations override this when set.`
+  },
+
+  // ── Sales: Sales order line (SalesOrderLineForm) ────────────────────────
+  "sales-order-line-unit-price": {
+    term: msg`Unit Price`,
+    definition: msg`The negotiated price per unit on this line; the inline trace icon shows which pricing rule or override produced it.`
+  },
+  "sales-order-line-promised-date": {
+    term: msg`Promised Date`,
+    definition: msg`When this specific line is promised to ship; per-line override of the order header's Promised Date for split shipments.`
+  },
+  "sales-order-line-fulfillment-location": {
+    term: msg`Fulfillment Location`,
+    definition: msg`Per-line override of the order header's fulfillment Location; used for split shipments and drop-ships.`
+  },
+  "sales-order-line-storage-unit": {
+    term: msg`Storage Unit`,
+    definition: msg`The storage bin this line picks from; if blank, picking uses the item's Default Storage Unit.`
+  },
+  "sales-order-line-shipping": {
+    term: msg`Shipping Cost`,
+    definition: msg`Freight billed to the customer for this line, separate from the line's unit price.`
+  },
+  "sales-order-line-add-on-cost": {
+    term: msg`Add-On Cost`,
+    definition: msg`A taxable surcharge (handling, setup, fuel) added to the line; rolls into the tax base.`
+  },
+  "sales-order-line-non-taxable-add-on-cost": {
+    term: msg`Non-Taxable Add-On Cost`,
+    definition: msg`A non-taxable surcharge (e.g. recoverable expenses like permit fees) added to the line; excluded from the tax base.`
+  },
+  "sales-order-line-asset": {
+    term: msg`Asset`,
+    definition: msg`The fixed-asset record this sale disposes; the line's shipment posts the asset's net-book-value disposal entry rather than COGS.`
+  },
+
+  // ── Sales: Sales order shipment (SalesOrderShipmentForm) ────────────────
+  "sales-order-shipment-from-location": {
+    term: msg`Ship-From Location`,
+    definition: msg`The warehouse goods on this order will ship from; the customer's Shipping Location is where they'll arrive.`
+  },
+  "sales-order-shipment-receipt-requested-date": {
+    term: msg`Receipt Requested Date`,
+    definition: msg`When the customer asked to receive the goods.`
+  },
+  "sales-order-shipment-receipt-promised-date": {
+    term: msg`Receipt Promised Date`,
+    definition: msg`When Carbon committed to having the goods arrive; combined with the shipping method's transit days, this drives Ship Date back-calc.`
+  },
+  "sales-order-shipment-date": {
+    term: msg`Shipment Date`,
+    definition: msg`The date the goods actually leave the warehouse; recorded on the shipment posting and used for on-time-shipping scoring.`
+  },
+
+  // ── Sales: Sales RFQ (SalesRFQForm) ─────────────────────────────────────
+  "rfq-date": {
+    term: msg`RFQ Date`,
+    definition: msg`When the customer submitted this RFQ to Carbon; the response clock starts from this date.`
+  },
+  "rfq-receiving-location": {
+    term: msg`Receiving Location`,
+    definition: msg`The location this RFQ would fulfill from if it converts to a quote and then an order.`
+  },
+  "sales-rfq-expiration-date": {
+    term: msg`Expiration Date`,
+    definition: msg`When the customer's request stops being current; past this date the RFQ is auto-closed and won't accept quote responses unless re-opened.`
   }
 } as const satisfies Record<string, GlossaryEntry>;

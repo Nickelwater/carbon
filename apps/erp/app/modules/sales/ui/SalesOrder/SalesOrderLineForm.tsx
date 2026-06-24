@@ -17,6 +17,7 @@ import {
   IconButton,
   Input,
   Label,
+  LabelWithHelp,
   ModalCard,
   ModalCardBody,
   ModalCardContent,
@@ -628,7 +629,12 @@ const SalesOrderLineForm = ({
                             <div className="flex flex-col gap-y-2 w-full">
                               <div className="flex items-center justify-between min-h-[16px]">
                                 <span className="text-xs font-medium text-muted-foreground">
-                                  Unit Price
+                                  <LabelWithHelp
+                                    termId="sales-order-line-unit-price"
+                                    variant="inline"
+                                  >
+                                    <Trans>Unit Price</Trans>
+                                  </LabelWithHelp>
                                 </span>
                                 <PriceTracePopover
                                   trace={itemData.priceTrace}
@@ -653,6 +659,7 @@ const SalesOrderLineForm = ({
                             <DatePicker
                               name="promisedDate"
                               label={t`Promised Date`}
+                              termId="sales-order-line-promised-date"
                             />
                             {[
                               "Part",
@@ -665,6 +672,7 @@ const SalesOrderLineForm = ({
                                 name="locationId"
                                 label={t`Shipping Location`}
                                 onChange={onLocationChange}
+                                termId="sales-order-line-fulfillment-location"
                               />
                             )}
                             {[
@@ -688,6 +696,7 @@ const SalesOrderLineForm = ({
                                     }));
                                   }
                                 }}
+                                termId="sales-order-line-storage-unit"
                               />
                             )}
                           </>
@@ -790,6 +799,7 @@ const SalesOrderLineForm = ({
                                   style: "currency",
                                   currency: baseCurrency
                                 }}
+                                termId="sales-order-line-shipping"
                               />
                               <Number
                                 name="addOnCost"
@@ -798,6 +808,7 @@ const SalesOrderLineForm = ({
                                   style: "currency",
                                   currency: baseCurrency
                                 }}
+                                termId="sales-order-line-add-on-cost"
                               />
                               <Number
                                 name="nonTaxableAddOnCost"
@@ -806,6 +817,7 @@ const SalesOrderLineForm = ({
                                   style: "currency",
                                   currency: baseCurrency
                                 }}
+                                termId="sales-order-line-non-taxable-add-on-cost"
                               />
                             </div>
                           </div>
@@ -835,11 +847,13 @@ const SalesOrderLineForm = ({
                                 assetId: (selected?.value as string) ?? ""
                               }));
                             }}
+                            termId="sales-order-line-asset"
                           />
                           <Location
                             name="locationId"
                             label={t`Shipping Location`}
                             onChange={onLocationChange}
+                            termId="sales-order-line-fulfillment-location"
                           />
                           <FormControl>
                             <FormLabel>
@@ -858,6 +872,7 @@ const SalesOrderLineForm = ({
                           <DatePicker
                             name="promisedDate"
                             label={t`Promised Date`}
+                            termId="sales-order-line-promised-date"
                           />
                           <NumberControlled
                             name="saleQuantity"
@@ -882,6 +897,7 @@ const SalesOrderLineForm = ({
                                 unitPrice: value
                               }))
                             }
+                            termId="sales-order-line-unit-price"
                           />
                           <CustomFormFields table="salesOrderLine" />
                         </div>
@@ -974,6 +990,7 @@ const SalesOrderLineForm = ({
                                   shippingCost: value
                                 }))
                               }
+                              termId="sales-order-line-shipping"
                             />
                             <NumberControlled
                               name="addOnCost"
@@ -989,6 +1006,7 @@ const SalesOrderLineForm = ({
                                   addOnCost: value
                                 }))
                               }
+                              termId="sales-order-line-add-on-cost"
                             />
                             <NumberControlled
                               name="nonTaxableAddOnCost"
@@ -1004,6 +1022,7 @@ const SalesOrderLineForm = ({
                                   nonTaxableAddOnCost: value
                                 }))
                               }
+                              termId="sales-order-line-non-taxable-add-on-cost"
                             />
                           </div>
                         </div>
