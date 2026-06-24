@@ -24,7 +24,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const documentType: ApprovalDocumentType | null =
     typeParam === "purchaseOrder" ||
     typeParam === "qualityDocument" ||
-    typeParam === "supplier"
+    typeParam === "supplier" ||
+    typeParam === "inspectionDocument"
       ? typeParam
       : null;
 

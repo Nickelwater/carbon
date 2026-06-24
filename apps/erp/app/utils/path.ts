@@ -552,6 +552,7 @@ export const path = {
     bulkUpdatePurchaseInvoice: `${x}/purchase-invoice/update`,
     bulkUpdateQuote: `${x}/quote/update`,
     bulkUpdateQualityDocument: `${x}/quality-document/update`,
+    bulkUpdateInspectionDocument: `${x}/inspection/update`,
     bulkUpdateReceiptLine: `${x}/receipt/lines/update`,
     bulkUpdateSalesInvoice: `${x}/sales-invoice/update`,
     bulkUpdateSalesOrder: `${x}/sales-order/update`,
@@ -943,6 +944,8 @@ export const path = {
     failureModes: `${x}/resources/failure-modes`,
     fiscalYears: `${x}/accounting/years`,
     inspectionDocument: (id: string) => generatePath(`${x}/inspection/${id}`),
+    inspectionPartFiles: (partId: string) =>
+      `${x}/inspection/part-files?partId=${encodeURIComponent(partId)}`,
     inspectionDocuments: `${x}/quality/inspection`,
     deleteInspectionDocument: (id: string) =>
       generatePath(`${x}/inspection/${id}/delete`),

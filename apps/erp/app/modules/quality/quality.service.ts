@@ -3,7 +3,9 @@ import { fetchAllFromTable } from "@carbon/database";
 import type { JSONContent } from "@carbon/react";
 import { parseDate } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { nanoid } from "nanoid";
 import type { z } from "zod";
+import { getItemFiles } from "~/modules/items/items.service";
 import type { GenericQueryFilters } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
@@ -13,8 +15,12 @@ import {
   listInspectionFeatures,
   mapBalloonIdsToFeatureIdsForDocument
 } from "./inspectionDocumentDb";
+import { rewireSamplingPlansToActiveInspectionDocument } from "./inspectionDocumentVersioning";
 
-export { mapBalloonIdsToFeatureIdsForDocument };
+export {
+  mapBalloonIdsToFeatureIdsForDocument,
+  rewireSamplingPlansToActiveInspectionDocument
+};
 
 import type { inspectionStatus } from "../shared";
 import type {
@@ -2218,11 +2224,21 @@ function fileNameFromPath(storagePath?: string | null) {
 
 function mapInspectionDocument(row: Record<string, unknown>) {
   const drawingNumber = (row.drawingNumber as string | null) ?? null;
+  const versions = row.versions as
+    | Array<{ id: string; version: number; status: string }>
+    | null
+    | undefined;
   return {
     id: String(row.id),
     name: String(drawingNumber ?? row.fileName ?? "Untitled Diagram"),
     companyId: String(row.companyId),
     partId: (row.partId as string | null) ?? null,
+    documentFamilyId: (row.documentFamilyId as string | null) ?? String(row.id),
+    status:
+      (row.status as Database["public"]["Enums"]["inspectionDocumentStatus"]) ??
+      "Draft",
+    version: Number(row.version ?? 1),
+    versions: versions ?? [],
     createdBy: String(row.createdBy),
     updatedBy: (row.updatedBy as string | null) ?? null,
     createdAt: String(row.createdAt),
@@ -2233,6 +2249,61 @@ function mapInspectionDocument(row: Record<string, unknown>) {
       annotations: [],
       features: []
     }
+  };
+}
+
+async function copyInspectionDocumentStorage(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  sourcePath: string,
+  newDocumentId: string
+): Promise<string | null> {
+  const { data, error } = await client.storage
+    .from("private")
+    .download(sourcePath);
+  if (error || !data) return null;
+
+  const newPath = `${companyId}/inspectionDocument/${newDocumentId}/${nanoid()}.pdf`;
+  const { error: uploadError } = await client.storage
+    .from("private")
+    .upload(newPath, data);
+  if (uploadError) return null;
+  return newPath;
+}
+
+async function copyPartFileToInspectionDocumentStorage(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  partId: string,
+  partFileName: string,
+  newDocumentId: string
+): Promise<string | null> {
+  const sourcePath = `${companyId}/parts/${partId}/${partFileName}`;
+  return copyInspectionDocumentStorage(
+    client,
+    companyId,
+    sourcePath,
+    newDocumentId
+  );
+}
+
+export async function getInspectionDocumentVersions(
+  client: SupabaseClient<Database>,
+  documentFamilyId: string,
+  companyId: string
+) {
+  const result = await client
+    .from("inspectionDocument")
+    .select("*")
+    .eq("documentFamilyId", documentFamilyId)
+    .eq("companyId", companyId)
+    .order("version", { ascending: false });
+
+  return {
+    ...result,
+    data: (result.data ?? []).map((row) =>
+      mapInspectionDocument(row as Record<string, unknown>)
+    )
   };
 }
 
@@ -2342,7 +2413,10 @@ export async function upsertInspectionDocument(
     defaultPageHeight,
     companyId,
     createdBy,
-    updatedBy
+    updatedBy,
+    copyFromId,
+    partFileName,
+    version: requestedVersion
   } = diagram;
 
   const documentClient = client as unknown as {
@@ -2356,6 +2430,15 @@ export async function upsertInspectionDocument(
             data: Record<string, unknown> | null;
             error: unknown;
           }>;
+          order?: (
+            column: string,
+            options: { ascending: boolean }
+          ) => {
+            limit: (count: number) => Promise<{
+              data: Record<string, unknown>[] | null;
+              error: unknown;
+            }>;
+          };
         };
       };
       update: (payload: Record<string, unknown>) => {
@@ -2363,7 +2446,7 @@ export async function upsertInspectionDocument(
           column: string,
           value: unknown
         ) => {
-          eq: (
+          eq?: (
             column: string,
             value: unknown
           ) => {
@@ -2373,6 +2456,12 @@ export async function upsertInspectionDocument(
                 error: unknown;
               }>;
             };
+          };
+          select?: (columns: string) => {
+            single: () => Promise<{
+              data: { id: string } | null;
+              error: unknown;
+            }>;
           };
         };
       };
@@ -2422,6 +2511,12 @@ export async function upsertInspectionDocument(
         }
       };
     }
+    if (existing.status !== "Draft") {
+      return {
+        data: null,
+        error: { message: "Only draft inspection documents can be edited" }
+      };
+    }
 
     const updatePayload: Record<string, unknown> = {
       updatedBy: updatedBy ?? createdBy,
@@ -2464,29 +2559,272 @@ export async function upsertInspectionDocument(
     };
   }
 
-  return documentClient
+  if (partFileName && copyFromId) {
+    return {
+      data: null,
+      error: {
+        message: "Cannot attach a part file when copying from another document"
+      }
+    };
+  }
+
+  if (partFileName) {
+    if (!partId) {
+      return {
+        data: null,
+        error: { message: "Part is required when attaching a part file" }
+      };
+    }
+
+    const partFiles = await getItemFiles(client, partId, companyId);
+    const matchingFile = partFiles.find((file) => file.name === partFileName);
+    if (!matchingFile?.name?.toLowerCase().endsWith(".pdf")) {
+      return {
+        data: null,
+        error: {
+          message:
+            "The selected file was not found on this part or is not a PDF"
+        }
+      };
+    }
+  }
+
+  let documentFamilyId: string | undefined;
+  let version = requestedVersion ?? 1;
+  let sourceDocument: Record<string, unknown> | null = null;
+
+  if (copyFromId) {
+    const sourceResult = await documentClient
+      .from("inspectionDocument")
+      .select("*")
+      .eq("id", copyFromId)
+      .single();
+
+    if (sourceResult.error || !sourceResult.data) {
+      return {
+        data: null,
+        error: sourceResult.error ?? { message: "Source document not found" }
+      };
+    }
+
+    sourceDocument = sourceResult.data;
+    if (String(sourceDocument.companyId ?? "") !== companyId) {
+      return {
+        data: null,
+        error: {
+          message: "Source document does not belong to this company"
+        }
+      };
+    }
+    if (partId && String(sourceDocument.partId ?? "") !== String(partId)) {
+      return {
+        data: null,
+        error: {
+          message: "The selected document does not belong to the chosen part"
+        }
+      };
+    }
+
+    documentFamilyId = String(sourceDocument.documentFamilyId ?? copyFromId);
+
+    const maxVersionResult = await (client as any)
+      .from("inspectionDocument")
+      .select("version")
+      .eq("documentFamilyId", documentFamilyId)
+      .eq("companyId", companyId)
+      .order("version", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    const maxVersion = Number(maxVersionResult.data?.version ?? 0);
+    version = requestedVersion ?? maxVersion + 1;
+  }
+
+  const insertPayload: Record<string, unknown> = {
+    companyId,
+    partId: copyFromId ? sourceDocument?.partId : partId,
+    drawingNumber: copyFromId
+      ? (sourceDocument?.drawingNumber ?? null)
+      : (drawingNumber ?? null),
+    version,
+    status: "Draft",
+    ...(documentFamilyId ? { documentFamilyId } : {}),
+    ...(storagePath
+      ? {
+          storagePath,
+          fileName: fileNameFromPath(storagePath),
+          uploadedBy: createdBy
+        }
+      : {}),
+    ...(pageCount && pageCount > 0 ? { pageCount } : {}),
+    ...(defaultPageWidth && defaultPageWidth > 0 ? { defaultPageWidth } : {}),
+    ...(defaultPageHeight && defaultPageHeight > 0
+      ? { defaultPageHeight }
+      : {}),
+    createdBy
+  };
+
+  const insert = await documentClient
     .from("inspectionDocument")
-    .insert({
-      companyId,
-      partId,
-      drawingNumber: drawingNumber ?? null,
-      version: 0,
-      ...(storagePath
-        ? {
-            storagePath,
-            fileName: fileNameFromPath(storagePath),
-            uploadedBy: createdBy
-          }
-        : {}),
-      ...(pageCount && pageCount > 0 ? { pageCount } : {}),
-      ...(defaultPageWidth && defaultPageWidth > 0 ? { defaultPageWidth } : {}),
-      ...(defaultPageHeight && defaultPageHeight > 0
-        ? { defaultPageHeight }
-        : {}),
-      createdBy
-    })
+    .insert(insertPayload)
     .select("id")
     .single();
+
+  if (insert.error || !insert.data?.id) {
+    return insert;
+  }
+
+  const newId = insert.data.id;
+
+  if (copyFromId && sourceDocument) {
+    const [featuresResult, balloonsResult] = await Promise.all([
+      listInspectionFeatures(client, copyFromId),
+      listBalloons(client, copyFromId)
+    ]);
+
+    const sourceStoragePath =
+      (sourceDocument.storagePath as string | null) ?? null;
+    let copiedStoragePath: string | null = null;
+    if (sourceStoragePath) {
+      copiedStoragePath = await copyInspectionDocumentStorage(
+        client,
+        companyId,
+        sourceStoragePath,
+        newId
+      );
+    }
+
+    const updateFields: Record<string, unknown> = {
+      updatedBy: createdBy,
+      updatedAt: new Date().toISOString()
+    };
+    if (copiedStoragePath) {
+      updateFields.storagePath = copiedStoragePath;
+      updateFields.fileName = fileNameFromPath(copiedStoragePath);
+      updateFields.uploadedBy = createdBy;
+    }
+    if (sourceDocument.pageCount) {
+      updateFields.pageCount = sourceDocument.pageCount;
+    }
+    if (sourceDocument.defaultPageWidth) {
+      updateFields.defaultPageWidth = sourceDocument.defaultPageWidth;
+    }
+    if (sourceDocument.defaultPageHeight) {
+      updateFields.defaultPageHeight = sourceDocument.defaultPageHeight;
+    }
+
+    await documentClient
+      .from("inspectionDocument")
+      .update(updateFields)
+      .eq("id", newId)
+      .eq("companyId", companyId);
+
+    const features = featuresResult.data ?? [];
+    const balloons = balloonsResult.data ?? [];
+    const featureIdMap = new Map<string, string>();
+
+    for (const feature of features) {
+      const { data: newFeature, error: featureError } = await (client as any)
+        .from("inspectionFeature")
+        .insert({
+          inspectionDocumentId: newId,
+          companyId,
+          pageNumber: feature.pageNumber,
+          label: feature.label,
+          description: feature.description,
+          nominalValue: feature.nominalValue,
+          tolerancePlus: feature.tolerancePlus,
+          toleranceMinus: feature.toleranceMinus,
+          unit: feature.unit,
+          type: feature.type,
+          createdBy,
+          updatedBy: createdBy
+        })
+        .select("id")
+        .single();
+
+      if (featureError || !newFeature?.id) {
+        return { data: null, error: featureError };
+      }
+      featureIdMap.set(String(feature.id), String(newFeature.id));
+    }
+
+    if (balloons.length > 0) {
+      const balloonRows = balloons
+        .map((balloon) => {
+          const newFeatureId = featureIdMap.get(
+            String(balloon.inspectionFeatureId)
+          );
+          if (!newFeatureId) return null;
+          return {
+            inspectionDocumentId: newId,
+            companyId,
+            inspectionFeatureId: newFeatureId,
+            pageNumber: balloon.pageNumber,
+            regionX: balloon.regionX,
+            regionY: balloon.regionY,
+            regionWidth: balloon.regionWidth,
+            regionHeight: balloon.regionHeight,
+            xCoordinate: balloon.xCoordinate,
+            yCoordinate: balloon.yCoordinate,
+            createdBy,
+            updatedBy: createdBy
+          };
+        })
+        .filter(Boolean);
+
+      if (balloonRows.length > 0) {
+        const balloonInsert = await (client as any)
+          .from("balloon")
+          .insert(balloonRows);
+        if (balloonInsert.error) {
+          return { data: null, error: balloonInsert.error };
+        }
+      }
+    }
+  }
+
+  if (partFileName && partId) {
+    const copiedStoragePath = await copyPartFileToInspectionDocumentStorage(
+      client,
+      companyId,
+      partId,
+      partFileName,
+      newId
+    );
+
+    if (!copiedStoragePath) {
+      await (client as any)
+        .from("inspectionDocument")
+        .delete()
+        .eq("id", newId)
+        .eq("companyId", companyId);
+      return {
+        data: null,
+        error: { message: "Failed to attach the selected part file" }
+      };
+    }
+
+    const partFileUpdate = await documentClient
+      .from("inspectionDocument")
+      .update({
+        storagePath: copiedStoragePath,
+        fileName: partFileName,
+        uploadedBy: createdBy,
+        updatedBy: createdBy,
+        updatedAt: new Date().toISOString()
+      })
+      .eq("id", newId)
+      .eq("companyId", companyId)
+      .select("id")
+      .single();
+
+    if (partFileUpdate.error) {
+      return { data: null, error: partFileUpdate.error };
+    }
+  }
+
+  return insert;
 }
 
 export async function deleteInspectionDocument(
@@ -2527,6 +2865,13 @@ export async function deleteInspectionDocument(
     return {
       data: null,
       error: { message: "Inspection document not found" }
+    };
+  }
+
+  if (existingResult.data.status !== "Draft") {
+    return {
+      data: null,
+      error: { message: "Only draft inspection documents can be deleted" }
     };
   }
 
@@ -2686,6 +3031,7 @@ export async function getInspectionPlan(
         tolerancePlus: row.tolerancePlus,
         toleranceMinus: row.toleranceMinus,
         unit: row.unit,
+        type: (row.type as string) ?? "Measurement",
         regionX: b ? b.regionX : null,
         regionY: b ? b.regionY : null,
         regionWidth: b ? b.regionWidth : null,
@@ -2739,6 +3085,65 @@ export async function saveInspectionDocumentAtomic(
 // Inbound Inspections (lot-based)
 // -------------------------------------------------------------
 
+export async function getInspectionDocumentsForPart(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  itemId: string
+) {
+  const result = await (client as any)
+    .from("inspectionDocument")
+    .select("id, drawingNumber, fileName, version, updatedAt")
+    .eq("companyId", companyId)
+    .eq("partId", itemId)
+    .eq("status", "Active")
+    .order("updatedAt", { ascending: false });
+
+  return {
+    data: (result.data ?? []) as Array<{
+      id: string;
+      drawingNumber: string | null;
+      fileName: string | null;
+      version: number;
+      updatedAt: string;
+    }>,
+    error: result.error
+  };
+}
+
+export async function getInboundInspectionMeasurements(
+  client: SupabaseClient<Database>,
+  sampleIds: string[]
+) {
+  if (sampleIds.length === 0) {
+    return {
+      data: {} as Record<string, InboundInspectionSampleMeasurement[]>,
+      error: null
+    };
+  }
+
+  const result = await (client as any)
+    .from("inboundInspectionSampleMeasurement")
+    .select("*")
+    .in("inboundInspectionSampleId", sampleIds);
+
+  if (result.error) {
+    return { data: null, error: result.error };
+  }
+
+  const bySampleId: Record<string, InboundInspectionSampleMeasurement[]> = {};
+  for (const row of (result.data ??
+    []) as InboundInspectionSampleMeasurement[]) {
+    const list = bySampleId[row.inboundInspectionSampleId] ?? [];
+    list.push(row);
+    bySampleId[row.inboundInspectionSampleId] = list;
+  }
+
+  return { data: bySampleId, error: null };
+}
+
+type InboundInspectionSampleMeasurement =
+  Database["public"]["Tables"]["inboundInspectionSampleMeasurement"]["Row"];
+
 export async function getItemSamplingPlan(
   client: SupabaseClient<Database>,
   itemId: string,
@@ -2774,6 +3179,9 @@ export async function upsertItemSamplingPlan(
     aql: plan.aql ?? null,
     inspectionLevel: plan.inspectionLevel,
     severity: plan.severity,
+    inspectionDocumentId: plan.inspectionDocumentId?.trim()
+      ? plan.inspectionDocumentId.trim()
+      : null,
     companyId: plan.companyId
   };
 

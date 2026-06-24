@@ -7,6 +7,9 @@ import invariant from "tiny-invariant";
 import {
   getInboundInspection,
   getInboundInspectionLotTrackedEntities,
+  getInboundInspectionMeasurements,
+  getInspectionDocument,
+  getInspectionPlan,
   getIssueTypesList
 } from "~/modules/quality";
 import type {
@@ -63,10 +66,30 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     insp.receiptLineId
   );
 
+  const inspectionDocumentId =
+    (insp as { inspectionDocumentId?: string | null }).inspectionDocumentId ??
+    null;
+  const sampleIds = (insp.inboundInspectionSample ?? []).map((s) => s.id);
+
+  const [inspectionPlan, linkedDocument, measurementsResult] =
+    await Promise.all([
+      inspectionDocumentId
+        ? getInspectionPlan(client, inspectionDocumentId)
+        : Promise.resolve({ data: null, error: null }),
+      inspectionDocumentId
+        ? getInspectionDocument(client, inspectionDocumentId)
+        : Promise.resolve({ data: null, error: null }),
+      getInboundInspectionMeasurements(client, sampleIds)
+    ]);
+
   const isJobSource = (insp as any).sourceType === "Job";
 
   return data({
     inspection: insp,
+    inspectionDocumentId,
+    inspectionPlan: inspectionPlan.data ?? [],
+    linkedDocument: linkedDocument.data,
+    sampleMeasurements: measurementsResult.data ?? {},
     receiptReadableId: insp.receipt?.receiptId ?? null,
     jobReadableId: insp.job?.jobId ?? null,
     receiverId: isJobSource
@@ -86,6 +109,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 export default function InboundInspectionRoute() {
   const {
     inspection,
+    inspectionDocumentId,
+    inspectionPlan,
+    linkedDocument,
+    sampleMeasurements,
     receiptReadableId,
     jobReadableId,
     receiverId,
@@ -101,6 +128,10 @@ export default function InboundInspectionRoute() {
   return (
     <InboundInspectionLotView
       inspection={inspection as InboundInspectionRow}
+      inspectionDocumentId={inspectionDocumentId}
+      inspectionPlan={inspectionPlan}
+      linkedDocument={linkedDocument}
+      sampleMeasurements={sampleMeasurements}
       receiptReadableId={receiptReadableId}
       jobReadableId={jobReadableId}
       receiverId={receiverId}

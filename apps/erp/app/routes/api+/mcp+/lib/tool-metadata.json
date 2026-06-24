@@ -1,6 +1,6 @@
 {
-  "generated": "2026-06-24T17:01:52.877Z",
-  "totalTools": 1200,
+  "generated": "2026-06-24T17:49:46.057Z",
+  "totalTools": 1203,
   "modules": 15,
   "tools": [
     {
@@ -4709,7 +4709,7 @@
       "paramCount": 7,
       "serviceParams": [
         "client",
-        "{\n    companyId,\n    shipmentId,\n    lineId,\n    itemId,\n    locationId,\n    itemTrackingType,\n    fulfillmentType,\n    outstandingQuantity\n  }"
+        "{\r\n    companyId,\r\n    shipmentId,\r\n    lineId,\r\n    itemId,\r\n    locationId,\r\n    itemTrackingType,\r\n    fulfillmentType,\r\n    outstandingQuantity\r\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -4758,7 +4758,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\n    companyId,\n    shipmentId,\n    itemId,\n    locationId\n  }"
+        "{\r\n    companyId,\r\n    shipmentId,\r\n    itemId,\r\n    locationId\r\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -6167,7 +6167,7 @@
           "locationId": {
             "type": "string"
           },
-          "lines: Array<{\n      itemId: string;\n      fromStorageUnitId": {},
+          "lines: Array<{\r\n      itemId: string;\r\n      fromStorageUnitId": {},
           "stockTransferId": {
             "type": "string"
           },
@@ -22378,7 +22378,7 @@
               },
               "status": {},
               "source": {},
-              "// might be needed later for filtering by assignee\r\n    assignee": {
+              "// might be needed later for filtering by assignee\n    assignee": {
                 "type": "array",
                 "items": {
                   "type": "string"
@@ -23456,6 +23456,32 @@
       }
     },
     {
+      "name": "quality_getInspectionDocumentVersions",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get inspection document versions",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "documentFamilyId",
+        "companyId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "documentFamilyId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "documentFamilyId"
+        ]
+      }
+    },
+    {
       "name": "quality_getInspectionDocuments",
       "module": "quality",
       "classification": "READ",
@@ -23521,7 +23547,7 @@
       "module": "quality",
       "classification": "WRITE",
       "description": "upsert inspection document",
-      "paramCount": 7,
+      "paramCount": 6,
       "serviceParams": [
         "client",
         "diagram"
@@ -23546,13 +23572,10 @@
           "drawingNumber": {
             "type": "string"
           },
-          "pdfUrl": {
-            "type": "string"
+          "version": {
+            "type": "number"
           },
-          "annotations": {
-            "type": "string"
-          },
-          "features": {
+          "copyFromId": {
             "type": "string"
           }
         },
@@ -23702,6 +23725,60 @@
           "inspectionDocumentId",
           "features",
           "balloons"
+        ]
+      }
+    },
+    {
+      "name": "quality_getInspectionDocumentsForPart",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get inspection documents for part",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "companyId",
+        "itemId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId"
+        ]
+      }
+    },
+    {
+      "name": "quality_getInboundInspectionMeasurements",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get inbound inspection measurements",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "sampleIds"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "sampleIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "sampleIds"
         ]
       }
     },
@@ -30001,7 +30078,7 @@
           "name": {
             "type": "string"
           },
-          "address: {\n      addressLine1": {},
+          "address: {\r\n      addressLine1": {},
           "customFields": {}
         },
         "required": [
@@ -30486,7 +30563,7 @@
           "name": {
             "type": "string"
           },
-          "address: {\n      addressLine1": {},
+          "address: {\r\n      addressLine1": {},
           "customFields": {}
         },
         "required": [

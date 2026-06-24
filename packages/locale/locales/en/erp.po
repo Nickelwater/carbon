@@ -692,9 +692,9 @@ msgstr "Are you sure you want to delete {0} from this operation? This cannot be 
 msgid "Are you sure you want to delete {0}?"
 msgstr "Are you sure you want to delete {0}?"
 
+#. placeholder {0}: document?.name
 #. placeholder {0}: routeData?.consumableSummary?.readableIdWithRevision
 #. placeholder {0}: routeData?.customer?.name!
-#. placeholder {0}: routeData?.document?.name
 msgid "Are you sure you want to delete {0}? This cannot be undone."
 msgstr "Are you sure you want to delete {0}? This cannot be undone."
 
@@ -1383,6 +1383,12 @@ msgstr "Changing this will overwrite the existing method"
 
 msgid "Changing this will update the part ID"
 msgstr "Changing this will update the part ID"
+
+msgid "Characteristic"
+msgstr "Characteristic"
+
+msgid "Characteristics from this document will be used when inspecting lots of this part."
+msgstr "Characteristics from this document will be used when inspecting lots of this part."
 
 msgid "Chart of Accounts"
 msgstr "Chart of Accounts"
@@ -3157,6 +3163,9 @@ msgstr "Engineering Contact"
 msgid "Enter a batch number before setting the expiration date"
 msgstr "Enter a batch number before setting the expiration date"
 
+msgid "Enter measurements with numeric tolerances to compute a result, or override manually."
+msgstr "Enter measurements with numeric tolerances to compute a result, or override manually."
+
 msgid "Enter or scan serial number"
 msgstr "Enter or scan serial number"
 
@@ -3997,6 +4006,9 @@ msgstr "Implementation Support"
 msgid "Import {label} CSV"
 msgstr "Import {label} CSV"
 
+msgid "In"
+msgstr "In"
+
 msgid "In order to convert this RFQ to a quote, all lines must have an internal part number."
 msgstr "In order to convert this RFQ to a quote, all lines must have an internal part number."
 
@@ -4093,8 +4105,14 @@ msgstr "Inspection"
 msgid "Inspection Document"
 msgstr "Inspection Document"
 
+msgid "Inspection document:"
+msgstr "Inspection document:"
+
 msgid "Inspection Documents"
 msgstr "Inspection Documents"
+
+msgid "Inspection drawing"
+msgstr "Inspection drawing"
 
 msgid "Inspection Level"
 msgstr "Inspection Level"
@@ -4536,6 +4554,9 @@ msgstr "Load Templates"
 msgid "Loading associated jobs..."
 msgstr "Loading associated jobs..."
 
+msgid "Loading files for this part…"
+msgstr "Loading files for this part…"
+
 msgid "Loading item details..."
 msgstr "Loading item details..."
 
@@ -4827,8 +4848,14 @@ msgstr "Mean Time Between Failures"
 msgid "Mean Time To Repair"
 msgstr "Mean Time To Repair"
 
+msgid "Measured"
+msgstr "Measured"
+
 msgid "Measurement Standard"
 msgstr "Measurement Standard"
+
+msgid "Measurements"
+msgstr "Measurements"
 
 msgid "Media Size"
 msgstr "Media Size"
@@ -5383,6 +5410,12 @@ msgstr "No groups assigned"
 msgid "No image"
 msgstr "No image"
 
+msgid "No inspection document linked — record Pass/Fail only for each sample."
+msgstr "No inspection document linked — record Pass/Fail only for each sample."
+
+msgid "No inspection documents exist for this part. <0>Create one</0> in Quality → Inspection Documents."
+msgstr "No inspection documents exist for this part. <0>Create one</0> in Quality → Inspection Documents."
+
 msgid "No issue types configured"
 msgstr "No issue types configured"
 
@@ -5430,6 +5463,9 @@ msgstr "No part ID"
 
 msgid "No parts added yet"
 msgstr "No parts added yet"
+
+msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+msgstr "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
 
 msgid "No planning data"
 msgstr "No planning data"
@@ -5490,6 +5526,9 @@ msgstr "No work centers exist"
 
 msgid "Nom"
 msgstr "Nom"
+
+msgid "Nominal"
+msgstr "Nominal"
 
 msgid "Nominal Cost"
 msgstr "Nominal Cost"
@@ -5731,6 +5770,9 @@ msgstr "Origin"
 msgid "Other Type"
 msgstr "Other Type"
 
+msgid "Out"
+msgstr "Out"
+
 msgid "Outgoing"
 msgstr "Outgoing"
 
@@ -5749,6 +5791,9 @@ msgstr "Overhead Rate"
 msgid "Overhead Rate (Hourly)"
 msgstr "Overhead Rate (Hourly)"
 
+msgid "overridden"
+msgstr "overridden"
+
 msgid "Override needs the inventory:update permission and a reason."
 msgstr "Override needs the inventory:update permission and a reason."
 
@@ -5760,6 +5805,9 @@ msgstr "Override price for a single customer"
 
 msgid "Override price for all customers of a type"
 msgstr "Override price for all customers of a type"
+
+msgid "Override suggested result"
+msgstr "Override suggested result"
 
 msgid "Override the expiration on {label}."
 msgstr "Override the expiration on {label}."
@@ -5781,6 +5829,9 @@ msgstr "Overwrite the target manufacturing method with the quote method"
 
 msgid "Packing Slip"
 msgstr "Packing Slip"
+
+msgid "Page {pdfViewPage} / {numPages}"
+msgstr "Page {pdfViewPage} / {numPages}"
 
 msgid "Page {pdfViewPage} of {documentPageCount}"
 msgstr "Page {pdfViewPage} of {documentPageCount}"
@@ -5820,6 +5871,9 @@ msgstr "Part"
 
 msgid "Part Details"
 msgstr "Part Details"
+
+msgid "Part file"
+msgstr "Part file"
 
 msgid "Part ID"
 msgstr "Part ID"
@@ -6703,6 +6757,9 @@ msgstr "Requested Date"
 msgid "Require approval before suppliers can be set to Active"
 msgstr "Require approval before suppliers can be set to Active"
 
+msgid "Require approval for inspection documents before they can go active"
+msgstr "Require approval for inspection documents before they can go active"
+
 msgid "Require approval for purchase orders based on amount thresholds"
 msgstr "Require approval for purchase orders based on amount thresholds"
 
@@ -6982,6 +7039,9 @@ msgstr "Save and Overwrite"
 msgid "Save Method"
 msgstr "Save Method"
 
+msgid "Save Sample"
+msgstr "Save Sample"
+
 msgid "Save Tool Life Policy"
 msgstr "Save Tool Life Policy"
 
@@ -7055,6 +7115,9 @@ msgstr "Scrap Reason"
 
 msgid "Scrap Reasons"
 msgstr "Scrap Reasons"
+
+msgid "Scroll or drag to pan. Use the mouse wheel to zoom."
+msgstr "Scroll or drag to pan. Use the mouse wheel to zoom."
 
 msgid "Search"
 msgstr "Search"
@@ -7797,6 +7860,9 @@ msgstr "Successfully created a new revision"
 msgid "Suffix"
 msgstr "Suffix"
 
+msgid "Suggested result:"
+msgstr "Suggested result:"
+
 msgid "Suggestion"
 msgstr "Suggestion"
 
@@ -8051,6 +8117,9 @@ msgstr "The latest date to place this PO so it arrives by the need-by date, give
 msgid "The lot will still be rejected, but an NCR cannot be auto-created until at least one Issue Type is configured."
 msgstr "The lot will still be rejected, but an NCR cannot be auto-created until at least one Issue Type is configured."
 
+msgid "The new version number of the document"
+msgstr "The new version number of the document"
+
 msgid "The new version number of the method"
 msgstr "The new version number of the method"
 
@@ -8071,6 +8140,9 @@ msgstr "The quote will be copied with a revision suffix"
 
 msgid "The revision number of the part"
 msgstr "The revision number of the part"
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr "The selected PDF from the part's Files section will be attached to this inspection document."
 
 msgid "The size of the part"
 msgstr "The size of the part"

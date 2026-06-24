@@ -10,6 +10,7 @@ import type {
   getInspectionDocument,
   getInspectionDocuments,
   getInspectionFeatures,
+  getInspectionPlan,
   getIssueActionTasks,
   getIssueApprovalTasks,
   getIssueAssociations,
@@ -42,6 +43,10 @@ export type Balloon = NonNullable<
 
 export type InspectionFeature = NonNullable<
   Awaited<ReturnType<typeof getInspectionFeatures>>["data"]
+>[number];
+
+export type InspectionPlanRow = NonNullable<
+  Awaited<ReturnType<typeof getInspectionPlan>>["data"]
 >[number];
 
 export type BalloonFeature = {
@@ -202,6 +207,9 @@ export type InspectionTrackedEntity = Pick<
 export type InboundInspectionSample = InboundInspectionSampleRow & {
   trackedEntity: InspectionTrackedEntity | null;
 };
+
+export type InboundInspectionSampleMeasurementRow =
+  Database["public"]["Tables"]["inboundInspectionSampleMeasurement"]["Row"];
 
 export type IssueTypeListItem = NonNullable<
   Awaited<ReturnType<typeof getIssueTypesList>>["data"]

@@ -103,14 +103,33 @@ export const riskStatus = [
 
 export const riskRegisterType = ["Risk", "Opportunity"] as const;
 
+export const inspectionDocumentStatus = [
+  "Draft",
+  "Active",
+  "Archived"
+] as const;
+
 export const inspectionDocumentValidator = z.object({
   id: zfd.text(z.string().optional()),
   name: zfd.text(z.string().optional()),
   partId: z.string().min(1, { message: "Part is required" }),
   drawingNumber: zfd.text(z.string().optional()),
+  version: zfd.numeric(z.number().min(0)).optional(),
+  copyFromId: zfd
+    .text(z.string().optional())
+    .transform((value) => (value && value !== "__none__" ? value : undefined)),
+  partFileName: zfd
+    .text(z.string().optional())
+    .transform((value) => (value && value !== "__none__" ? value : undefined)),
   pdfUrl: zfd.text(z.string().optional()),
   annotations: zfd.text(z.string().optional()),
   features: zfd.text(z.string().optional())
+});
+
+export const inspectionDocumentApprovalValidator = z.object({
+  approvalRequestId: zfd.text(z.string().min(1)),
+  decision: z.enum(["Approved", "Rejected"]),
+  notes: zfd.text(z.string().optional())
 });
 
 export const balloonFeatureValidator = z.object({
@@ -721,7 +740,10 @@ export const itemSamplingPlanValidator = z
     percentage: zfd.numeric(z.number().positive().max(100).optional()),
     aql: zfd.numeric(z.number().positive().optional()),
     inspectionLevel: z.enum(inspectionLevels).default("II"),
-    severity: z.enum(inspectionSeverities).default("Normal")
+    severity: z.enum(inspectionSeverities).default("Normal"),
+    inspectionDocumentId: zfd
+      .text(z.string().optional())
+      .transform((value) => (value && value !== "__none__" ? value : undefined))
   })
   .superRefine((value, ctx) => {
     if (value.type === "First" && !value.sampleSize) {
@@ -755,13 +777,27 @@ export const inboundInspectionValidator = z.object({
   notes: zfd.text(z.string().optional())
 });
 
+const inboundInspectionSampleMeasurementEntryValidator = z.object({
+  inspectionFeatureId: z.string().min(1),
+  measuredValue: zfd.text(z.string().optional())
+});
+
 export const inboundInspectionSampleValidator = z.object({
   inspectionId: z.string().min(1, { message: "Inspection is required" }),
   trackedEntityId: z.string().min(1, { message: "Tracked entity is required" }),
   status: z.enum(["Passed", "Failed"], {
     errorMap: () => ({ message: "Status is required" })
   }),
-  notes: zfd.text(z.string().optional())
+  notes: zfd.text(z.string().optional()),
+  statusOverride: z.enum(["Passed", "Failed"]).optional(),
+  measurements: z.preprocess((value) => {
+    if (typeof value !== "string" || value.trim() === "") return undefined;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return undefined;
+    }
+  }, z.array(inboundInspectionSampleMeasurementEntryValidator).optional())
 });
 
 export const inboundInspectionDispositionValidator = z.object({

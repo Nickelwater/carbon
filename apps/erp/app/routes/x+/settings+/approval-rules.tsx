@@ -67,15 +67,21 @@ export async function loader({ request }: LoaderFunctionArgs) {
     (r) => r.documentType === "supplier"
   );
 
+  const idRules = enrichedRules.filter(
+    (r) => r.documentType === "inspectionDocument"
+  );
+
   return {
     poRules,
     qdRules,
-    supplierRules
+    supplierRules,
+    idRules
   };
 }
 
 export default function ApprovalSettingsRoute() {
-  const { poRules, qdRules, supplierRules } = useLoaderData<typeof loader>();
+  const { poRules, qdRules, supplierRules, idRules } =
+    useLoaderData<typeof loader>();
 
   return (
     <>
@@ -83,6 +89,7 @@ export default function ApprovalSettingsRoute() {
         poRules={poRules}
         qdRules={qdRules}
         supplierRules={supplierRules}
+        idRules={idRules}
       />
       <Outlet />
     </>

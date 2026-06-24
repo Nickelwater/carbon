@@ -4,6 +4,10 @@ import { sql } from "kysely";
 import type { z } from "zod";
 
 import { getDatabaseClient } from "~/services/database.server";
+import {
+  computeSampleAutoStatus,
+  evaluateCharacteristicMeasurement
+} from "./evaluateCharacteristicMeasurement";
 import { isBatchInspectionLot } from "./inspectionLot.utils";
 import type {
   inboundInspectionDispositionValidator,
@@ -28,6 +32,75 @@ function computeLotStatus(
   return inspected > 0 ? "In Progress" : "Pending";
 }
 
+type ResolvedSampleStatus = {
+  status: "Passed" | "Failed";
+  statusOverridden: boolean;
+  measurements: Array<{
+    inspectionFeatureId: string;
+    measuredValue: string | null;
+    inTolerance: boolean | null;
+  }>;
+};
+
+async function resolveInboundSampleStatus(
+  trx: any,
+  sample: z.infer<typeof inboundInspectionSampleValidator> & {
+    companyId: string;
+  },
+  inspectionDocumentId: string | null
+): Promise<ResolvedSampleStatus> {
+  if (!inspectionDocumentId || !sample.measurements?.length) {
+    return {
+      status: sample.statusOverride ?? sample.status,
+      statusOverridden: false,
+      measurements: []
+    };
+  }
+
+  const features = await trx
+    .selectFrom("inspectionFeature")
+    .select(["id", "nominalValue", "tolerancePlus", "toleranceMinus", "unit"])
+    .where("inspectionDocumentId", "=", inspectionDocumentId)
+    .execute();
+
+  const featureById = new Map(features.map((f) => [f.id, f]));
+  const evaluations: Array<{ inTolerance: boolean | null }> = [];
+  const measurements: ResolvedSampleStatus["measurements"] = [];
+
+  for (const measurement of sample.measurements) {
+    const feature = featureById.get(measurement.inspectionFeatureId);
+    if (!feature) continue;
+
+    const { inTolerance } = evaluateCharacteristicMeasurement({
+      nominalValue: feature.nominalValue,
+      tolerancePlus: feature.tolerancePlus,
+      toleranceMinus: feature.toleranceMinus,
+      measuredValue: measurement.measuredValue
+    });
+    evaluations.push({ inTolerance });
+    measurements.push({
+      inspectionFeatureId: measurement.inspectionFeatureId,
+      measuredValue: measurement.measuredValue?.trim()
+        ? measurement.measuredValue.trim()
+        : null,
+      inTolerance
+    });
+  }
+
+  const autoStatus = computeSampleAutoStatus(evaluations);
+  const finalStatus = sample.statusOverride ?? autoStatus ?? sample.status;
+  const statusOverridden =
+    sample.statusOverride != null &&
+    autoStatus != null &&
+    sample.statusOverride !== autoStatus;
+
+  return {
+    status: finalStatus,
+    statusOverridden,
+    measurements
+  };
+}
+
 // -------------------------------------------------------------
 // 1. upsertInboundInspectionSample
 // -------------------------------------------------------------
@@ -50,7 +123,13 @@ export async function upsertInboundInspectionSample(
     const result = await db.transaction().execute(async (trx) => {
       const inspection = await trx
         .selectFrom("inboundInspection")
-        .select(["id", "status", "receiptId", "sampleSize"])
+        .select([
+          "id",
+          "status",
+          "receiptId",
+          "sampleSize",
+          "inspectionDocumentId"
+        ])
         .where("id", "=", sample.inspectionId)
         .where("companyId", "=", sample.companyId)
         .executeTakeFirst();
@@ -66,10 +145,17 @@ export async function upsertInboundInspectionSample(
 
       const isBatchEntity = Number(trackedEntity.quantity ?? 1) > 1;
 
+      const resolved = await resolveInboundSampleStatus(
+        trx,
+        sample,
+        inspection.inspectionDocumentId ?? null
+      );
+
       const samplePayload = {
         inboundInspectionId: sample.inspectionId,
         trackedEntityId: sample.trackedEntityId,
-        status: sample.status,
+        status: resolved.status,
+        statusOverridden: resolved.statusOverridden,
         notes: sample.notes ?? null,
         inspectedBy: sample.inspectedBy,
         inspectedAt: nowIso,
@@ -145,12 +231,33 @@ export async function upsertInboundInspectionSample(
         }
 
         const trackedEntityStatus =
-          sample.status === "Passed" ? "Available" : "Rejected";
+          resolved.status === "Passed" ? "Available" : "Rejected";
         await trx
           .updateTable("trackedEntity")
           .set({ status: trackedEntityStatus })
           .where("id", "=", sample.trackedEntityId)
           .where("companyId", "=", sample.companyId)
+          .execute();
+      }
+
+      if (resolved.measurements.length > 0) {
+        await trx
+          .deleteFrom("inboundInspectionSampleMeasurement")
+          .where("inboundInspectionSampleId", "=", sampleId)
+          .execute();
+
+        await trx
+          .insertInto("inboundInspectionSampleMeasurement")
+          .values(
+            resolved.measurements.map((measurement) => ({
+              inboundInspectionSampleId: sampleId,
+              inspectionFeatureId: measurement.inspectionFeatureId,
+              measuredValue: measurement.measuredValue,
+              inTolerance: measurement.inTolerance,
+              companyId: sample.companyId,
+              createdBy: sample.inspectedBy
+            }))
+          )
           .execute();
       }
 
@@ -161,7 +268,7 @@ export async function upsertInboundInspectionSample(
           sourceDocument: "Inbound Inspection",
           sourceDocumentId: sample.inspectionId,
           attributes: {
-            Result: sample.status,
+            Result: resolved.status,
             Receipt: inspection.receiptId,
             Inspector: sample.inspectedBy,
             ...(isBatchEntity ? { "Sample Unit": 1 } : {}),

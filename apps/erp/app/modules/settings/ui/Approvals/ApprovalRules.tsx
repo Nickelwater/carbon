@@ -26,10 +26,11 @@ type ApprovalRulesProps = {
   poRules: ApprovalRule[];
   qdRules: ApprovalRule[];
   supplierRules: ApprovalRule[];
+  idRules: ApprovalRule[];
 };
 
 const ApprovalRules = memo(
-  ({ poRules, qdRules, supplierRules }: ApprovalRulesProps) => {
+  ({ poRules, qdRules, supplierRules, idRules }: ApprovalRulesProps) => {
     const permissions = usePermissions();
     const canCreate = permissions.can("update", "settings");
 
@@ -133,6 +134,48 @@ const ApprovalRules = memo(
                           key={rule.id}
                           rule={rule}
                           documentType="qualityDocument"
+                        />
+                      ))}
+                  </VStack>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg">
+                      <Trans>Inspection Documents</Trans>
+                    </CardTitle>
+                    <CardDescription className="text-sm">
+                      <Trans>
+                        Require approval for inspection documents before they
+                        can go active
+                      </Trans>
+                    </CardDescription>
+                  </div>
+                  {canCreate && idRules.length === 0 && (
+                    <Button variant="primary" leftIcon={<LuPlus />} asChild>
+                      <Link to={path.to.newApprovalRule("inspectionDocument")}>
+                        <Trans>New Rule</Trans>
+                      </Link>
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                {idRules.length === 0 ? (
+                  <Empty className="my-4" />
+                ) : (
+                  <VStack spacing={3} className="items-stretch">
+                    {idRules
+                      .filter((r) => r.id)
+                      .map((rule) => (
+                        <ApprovalRuleCard
+                          key={rule.id}
+                          rule={rule}
+                          documentType="inspectionDocument"
                         />
                       ))}
                   </VStack>

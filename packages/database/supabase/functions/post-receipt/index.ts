@@ -121,7 +121,7 @@ serve(async (req: Request) => {
         (client as any)
           .from("itemSamplingPlan")
           .select(
-            "itemId, type, sampleSize, percentage, aql, inspectionLevel, severity"
+            "itemId, type, sampleSize, percentage, aql, inspectionLevel, severity, inspectionDocumentId"
           )
           .in("itemId", itemIds)
           .eq("companyId", companyId),
@@ -677,6 +677,7 @@ serve(async (req: Request) => {
             inspectionLevel: plan.inspectionLevel ?? null,
             severity: plan.severity ?? null,
             codeLetter: snapshot.codeLetter,
+            inspectionDocumentId: plan.inspectionDocumentId ?? null,
             status: "Pending",
             companyId,
             createdBy: userId,
