@@ -71,10 +71,6 @@ msgstr "{scopeCount} permisos"
 msgid "/month/user"
 msgstr "/mes/usuario"
 
-#. placeholder {0}: allItems.length - 3
-msgid "+{0} more"
-msgstr "+{0} más"
-
 msgid "<0>Add a supplier part</0> for this item to set a preferred supplier."
 msgstr "<0>Agregue una parte de proveedor</0> para este artículo para establecer un proveedor preferido."
 
@@ -374,9 +370,6 @@ msgstr "Costo de adquisición"
 
 msgid "Acquisition Date"
 msgstr "Fecha de adquisición"
-
-msgid "Action Items"
-msgstr "Elementos de Acción"
 
 msgid "Action Status"
 msgstr "Estado de la Acción"
@@ -1304,6 +1297,9 @@ msgstr "Acciones disponibles (haga clic para agregar)"
 msgid "Avg Days to Close"
 msgstr "Días promedio para cerrar"
 
+msgid "Awaiting approval"
+msgstr ""
+
 msgid "Back"
 msgstr "Atrás"
 
@@ -1315,6 +1311,9 @@ msgstr "Volver a trazabilidad"
 
 msgid "Backflush"
 msgstr "Retroceso"
+
+msgid "Backups"
+msgstr ""
 
 msgid "Balance Sheet"
 msgstr "Balance General"
@@ -1694,9 +1693,6 @@ msgstr "Clase (heredada)"
 
 msgid "Clear"
 msgstr "Limpiar"
-
-msgid "Clear All"
-msgstr "Limpiar todo"
 
 msgid "Clear due date"
 msgstr "Borrar fecha de vencimiento"
@@ -4887,6 +4883,9 @@ msgstr "Con qué frecuencia se repite este mantenimiento — Diariamente, Semana
 msgid "How strict the Due Date is — Hard Deadline blocks scheduling past it, Soft Deadline lets planning push out with a warning, No Deadline ignores it entirely."
 msgstr "Qué tan estricta es la fecha de vencimiento — Hard Deadline bloquea la programación, Soft Deadline permite que la planificación se extienda con una advertencia, No Deadline la ignora completamente."
 
+msgid "How the material is sourced (make, purchase, or pull from inventory) and the storage unit it's pulled from."
+msgstr ""
+
 msgid "How the resolved price was calculated."
 msgstr "Cómo se calculó el precio resuelto."
 
@@ -4970,6 +4969,9 @@ msgstr "En Progreso"
 
 msgid "in selected period"
 msgstr "en el período seleccionado"
+
+msgid "In stock"
+msgstr ""
 
 msgid "Inactive"
 msgstr "Inactivo"
@@ -5336,6 +5338,9 @@ msgstr "Trabajo"
 
 msgid "Job ID"
 msgstr "ID de Trabajo"
+
+msgid "Job in progress"
+msgstr ""
 
 msgid "Job Location"
 msgstr "Ubicación del Trabajo"
@@ -5975,9 +5980,6 @@ msgstr "Convención de mitad de mes / mitad de trimestre / mitad de año que det
 msgid "Min Qty"
 msgstr "Cant. Mín"
 
-msgid "Minimize"
-msgstr "Minimizar"
-
 msgid "Minimum"
 msgstr "Mínimo"
 
@@ -6117,6 +6119,9 @@ msgstr "¿Necesitas las columnas correctas?"
 
 msgid "Needs fixing"
 msgstr "Necesita reparación"
+
+msgid "Needs ordering"
+msgstr ""
 
 msgid "Negative Adjustment"
 msgstr "Ajuste Negativo"
@@ -6580,9 +6585,6 @@ msgstr "No hay fuentes principales registradas aún. Haz clic en Recalcular en l
 msgid "No part ID"
 msgstr "Sin ID de pieza"
 
-msgid "No parts added yet"
-msgstr "No hay piezas añadidas aún"
-
 msgid "No planning data"
 msgstr "Sin datos de planificación"
 
@@ -6718,9 +6720,6 @@ msgstr "Notificación"
 msgid "Notifications"
 msgstr "Notificaciones"
 
-msgid "Now let's set up your company"
-msgstr "Ahora configuremos tu empresa"
-
 msgid "Number"
 msgstr "Número"
 
@@ -6750,6 +6749,9 @@ msgstr "En Espera"
 
 msgid "On Jobs"
 msgstr "En Trabajos"
+
+msgid "On order"
+msgstr ""
 
 msgid "On Purchase Order"
 msgstr "En Orden de Compra"
@@ -6885,6 +6887,10 @@ msgstr "O"
 
 msgid "Order"
 msgstr "Pedido"
+
+#. placeholder {0}: status?.shortfall
+msgid "Order {0} for this job"
+msgstr ""
 
 msgid "Order by"
 msgstr "Ordenar por"
@@ -7222,11 +7228,17 @@ msgstr "Fin Planificada"
 msgid "Planned End Time"
 msgstr "Hora de finalización planeada"
 
+msgid "Planned job"
+msgstr ""
+
 msgid "Planned Order"
 msgstr "Orden Planificada"
 
 msgid "Planned order = MRP suggestion to cover projected demand based on the item's reorder policy (or manually added)."
 msgstr "Orden planificada = sugerencia de MRP para cubrir la demanda proyectada basada en la política de reorden del artículo (o agregada manualmente)."
+
+msgid "Planned purchase order"
+msgstr ""
 
 msgid "Planned Start"
 msgstr "Inicio Planificado"
@@ -7479,6 +7491,9 @@ msgstr "producción"
 msgid "Processes"
 msgstr "Procesos"
 
+msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
+msgstr ""
+
 msgid "production"
 msgstr "Varianza de Producción"
 
@@ -7490,6 +7505,9 @@ msgstr "Evento de Producción"
 
 msgid "Production Events"
 msgstr "Eventos de Producción"
+
+msgid "Production planning"
+msgstr ""
 
 msgid "Production Qty"
 msgstr "Cantidad de Producción"
@@ -7610,6 +7628,9 @@ msgstr "Órdenes de Compra"
 msgid "Purchase orders required"
 msgstr "Órdenes de compra requeridas"
 
+msgid "Purchase planning"
+msgstr ""
+
 msgid "Purchase price variance"
 msgstr "Varianza de Precio de Compra"
 
@@ -7704,11 +7725,17 @@ msgstr "Cantidades"
 msgid "Quantity"
 msgstr "Cantidad"
 
+msgid "Quantity arriving — on open purchase orders plus on production (make) orders."
+msgstr ""
+
 msgid "Quantity Breaks"
 msgstr "Saltos de Cantidad"
 
 msgid "Quantity Completed"
 msgstr "Cantidad Completada"
+
+msgid "Quantity in transit to the storage unit via open stock transfers."
+msgstr ""
 
 msgid "Quantity is derived from completed serials/batches in MES and cannot be edited."
 msgstr "La cantidad se deriva de seriales/lotes completados en MES y no se puede editar."
@@ -7733,6 +7760,9 @@ msgstr "Cantidad Por Trabajo"
 
 msgid "Quantity per Parent"
 msgstr "Cantidad por Padre"
+
+msgid "Quantity physically on the material's assigned storage unit (shelf). Turns red when it's below what that unit needs to supply."
+msgstr ""
 
 msgid "Quantity Range"
 msgstr "Rango de Cantidad"
@@ -7861,6 +7891,11 @@ msgstr "Recibir {0} al Inventario"
 
 msgid "Receive to Inventory"
 msgstr "Recibir al Inventario"
+
+#. placeholder {0}: status?.received
+#. placeholder {1}: status?.ordered
+msgid "Received {0} of {1}"
+msgstr ""
 
 msgid "Received At"
 msgstr "Recibido en"
@@ -7992,9 +8027,6 @@ msgstr "Eliminar artículo"
 msgid "Remove order"
 msgstr "Eliminar orden"
 
-msgid "Remove Order"
-msgstr "Eliminar Pedido"
-
 msgid "Remove pair"
 msgstr "Eliminar par"
 
@@ -8003,9 +8035,6 @@ msgstr "Eliminar ordenamiento por columna"
 
 msgid "Remove this storage type from all referencing storage units and delete it. This cannot be undone."
 msgstr "Elimina este tipo de almacenamiento de todas las unidades de almacenamiento que lo referencian y elimínalo. Esto no se puede deshacer."
-
-msgid "Remove Transfer"
-msgstr "Eliminar transferencia"
 
 msgid "Rendering label preview..."
 msgstr "Renderizando vista previa de etiqueta..."
@@ -9156,9 +9185,6 @@ msgstr "Iniciar"
 msgid "Start {0} Day Free Trial"
 msgstr "Iniciar prueba gratuita de {0} días"
 
-msgid "Start adding parts to your stock transfer"
-msgstr "Comienza a agregar piezas a tu transferencia de inventario"
-
 msgid "Start Date"
 msgstr "Fecha de Inicio"
 
@@ -10180,6 +10206,9 @@ msgstr "Este trabajo será recibido en el inventario. Ya no estará disponible e
 msgid "This job will no longer be available on the shop floor."
 msgstr "Este trabajo ya no estará disponible en el piso de producción."
 
+msgid "This job's own required quantity for the material."
+msgstr ""
+
 msgid "This lot is expired and can't be picked."
 msgstr "Este lote ha expirado y no se puede seleccionar."
 
@@ -10360,6 +10389,12 @@ msgstr "Precio Total"
 msgid "Total Quantity"
 msgstr "Cantidad Total"
 
+msgid "Total quantity on hand for the item across all storage units at this location. Turns red when on hand plus incoming can't cover total demand."
+msgstr ""
+
+msgid "Total quantity required across all active jobs and sales orders at this location — not just this job."
+msgstr ""
+
 msgid "Total:"
 msgstr "Total:"
 
@@ -10452,9 +10487,6 @@ msgstr "Transferir la propiedad de esta empresa a otro usuario"
 
 msgid "Transfer To"
 msgstr "Transferir a"
-
-msgid "Transfers"
-msgstr "Transferencias"
 
 msgid "Trash"
 msgstr "Papelera"

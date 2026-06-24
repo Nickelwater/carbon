@@ -30,6 +30,11 @@ export const terms = {
     term: msg`OEM (original equipment manufacturer)`,
     definition: msg`A company that designs and builds its own finished products end to end (here, the shop building humanoid robots) rather than making parts to another company's specification.`
   },
+  "company-group": {
+    term: "Company group",
+    definition:
+      "A set of companies under one owner that share group-scoped configuration — the chart of accounts, currencies, and dimensions — so the same accounting setup spans every company in the group."
+  },
   "method-type": {
     term: msg`Method type`,
     definition: msg`How an item is sourced when added to a method or BOM line.`,
