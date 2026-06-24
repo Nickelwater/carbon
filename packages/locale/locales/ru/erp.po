@@ -1298,7 +1298,7 @@ msgid "Avg Days to Close"
 msgstr "Среднее количество дней до закрытия"
 
 msgid "Awaiting approval"
-msgstr ""
+msgstr "Ожидает утверждения"
 
 msgid "Back"
 msgstr "Назад"
@@ -1313,7 +1313,7 @@ msgid "Backflush"
 msgstr "Обратный отвод"
 
 msgid "Backups"
-msgstr ""
+msgstr "Резервные копии"
 
 msgid "Balance Sheet"
 msgstr "Баланс"
@@ -4884,7 +4884,7 @@ msgid "How strict the Due Date is — Hard Deadline blocks scheduling past it, S
 msgstr "Как строг срок — Жесткий срок блокирует планирование, Мягкий срок позволяет планированию двигаться с предупреждением, Без срока полностью игнорирует."
 
 msgid "How the material is sourced (make, purchase, or pull from inventory) and the storage unit it's pulled from."
-msgstr ""
+msgstr "Способ получения материала (изготовление, закупка или списание из запасов) и складская единица, из которой он берётся."
 
 msgid "How the resolved price was calculated."
 msgstr "Как была рассчитана окончательная цена."
@@ -4971,7 +4971,7 @@ msgid "in selected period"
 msgstr "в выбранном периоде"
 
 msgid "In stock"
-msgstr ""
+msgstr "В наличии"
 
 msgid "Inactive"
 msgstr "Неактивно"
@@ -5340,7 +5340,7 @@ msgid "Job ID"
 msgstr "ID задания"
 
 msgid "Job in progress"
-msgstr ""
+msgstr "Задание в работе"
 
 msgid "Job Location"
 msgstr "Местоположение задания"
@@ -6121,7 +6121,7 @@ msgid "Needs fixing"
 msgstr "Требуется исправление"
 
 msgid "Needs ordering"
-msgstr ""
+msgstr "Требуется заказ"
 
 msgid "Negative Adjustment"
 msgstr "Отрицательная корректировка"
@@ -6751,7 +6751,7 @@ msgid "On Jobs"
 msgstr "На заказах"
 
 msgid "On order"
-msgstr ""
+msgstr "Заказано"
 
 msgid "On Purchase Order"
 msgstr "На заказе покупки"
@@ -6890,7 +6890,7 @@ msgstr "Заказ"
 
 #. placeholder {0}: status?.shortfall
 msgid "Order {0} for this job"
-msgstr ""
+msgstr "Заказать {0} для этого задания"
 
 msgid "Order by"
 msgstr "Заказать до"
@@ -7229,7 +7229,7 @@ msgid "Planned End Time"
 msgstr "Запланированное время окончания"
 
 msgid "Planned job"
-msgstr ""
+msgstr "Запланированное задание"
 
 msgid "Planned Order"
 msgstr "Плановый заказ"
@@ -7238,7 +7238,7 @@ msgid "Planned order = MRP suggestion to cover projected demand based on the ite
 msgstr "Плановый заказ = предложение MRP для покрытия прогнозируемого спроса на основе политики переупорядочения товара (или добавлено вручную)."
 
 msgid "Planned purchase order"
-msgstr ""
+msgstr "Запланированный заказ на закупку"
 
 msgid "Planned Start"
 msgstr "Запланированное начало"
@@ -7492,7 +7492,7 @@ msgid "Processes"
 msgstr "Процессы"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
-msgstr ""
+msgstr "Статус снабжения — требуется заказ, запланировано, заказано или получено. Тот же индикатор, что показан в дереве BoM."
 
 msgid "production"
 msgstr "Производственное отклонение"
@@ -7507,7 +7507,7 @@ msgid "Production Events"
 msgstr "События производства"
 
 msgid "Production planning"
-msgstr ""
+msgstr "Планирование производства"
 
 msgid "Production Qty"
 msgstr "Кол-во производства"
@@ -7629,7 +7629,7 @@ msgid "Purchase orders required"
 msgstr "Требуются заказы на покупку"
 
 msgid "Purchase planning"
-msgstr ""
+msgstr "Планирование закупок"
 
 msgid "Purchase price variance"
 msgstr "Отклонение цены покупки"
@@ -7726,7 +7726,7 @@ msgid "Quantity"
 msgstr "Количество"
 
 msgid "Quantity arriving — on open purchase orders plus on production (make) orders."
-msgstr ""
+msgstr "Ожидаемое поступление — по открытым заказам на закупку и производственным заказам (изготовление)."
 
 msgid "Quantity Breaks"
 msgstr "Разрывы количества"
@@ -7735,7 +7735,7 @@ msgid "Quantity Completed"
 msgstr "Завершено количество"
 
 msgid "Quantity in transit to the storage unit via open stock transfers."
-msgstr ""
+msgstr "Количество в пути к складской единице по открытым перемещениям запасов."
 
 msgid "Quantity is derived from completed serials/batches in MES and cannot be edited."
 msgstr "Количество определяется на основе завершенных серийных номеров/партий в MES и не может быть отредактировано."
@@ -7762,7 +7762,7 @@ msgid "Quantity per Parent"
 msgstr "Количество на родителя"
 
 msgid "Quantity physically on the material's assigned storage unit (shelf). Turns red when it's below what that unit needs to supply."
-msgstr ""
+msgstr "Количество, физически находящееся в назначенной материалу складской единице (полке). Становится красным, когда оно ниже того, что эта единица должна обеспечить."
 
 msgid "Quantity Range"
 msgstr "Диапазон количества"
@@ -7895,7 +7895,7 @@ msgstr "Получить в инвентарь"
 #. placeholder {0}: status?.received
 #. placeholder {1}: status?.ordered
 msgid "Received {0} of {1}"
-msgstr ""
+msgstr "Получено {0} из {1}"
 
 msgid "Received At"
 msgstr "Получено в"
@@ -10207,7 +10207,7 @@ msgid "This job will no longer be available on the shop floor."
 msgstr "Эта работа больше не будет доступна на производственном участке."
 
 msgid "This job's own required quantity for the material."
-msgstr ""
+msgstr "Собственное требуемое количество материала для этого задания."
 
 msgid "This lot is expired and can't be picked."
 msgstr "Эта партия истекла и не может быть выбрана."
@@ -10390,10 +10390,10 @@ msgid "Total Quantity"
 msgstr "Общее количество"
 
 msgid "Total quantity on hand for the item across all storage units at this location. Turns red when on hand plus incoming can't cover total demand."
-msgstr ""
+msgstr "Общее наличное количество позиции по всем складским единицам в этом местоположении. Становится красным, когда наличие плюс поступления не покрывают общий спрос."
 
 msgid "Total quantity required across all active jobs and sales orders at this location — not just this job."
-msgstr ""
+msgstr "Общее требуемое количество по всем активным заданиям и заказам на продажу в этом местоположении — не только по этому заданию."
 
 msgid "Total:"
 msgstr "Итого:"

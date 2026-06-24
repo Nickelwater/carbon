@@ -1298,7 +1298,7 @@ msgid "Avg Days to Close"
 msgstr "平均クローズ日数"
 
 msgid "Awaiting approval"
-msgstr ""
+msgstr "承認待ち"
 
 msgid "Back"
 msgstr "戻る"
@@ -1313,7 +1313,7 @@ msgid "Backflush"
 msgstr "バックフラッシュ"
 
 msgid "Backups"
-msgstr ""
+msgstr "バックアップ"
 
 msgid "Balance Sheet"
 msgstr "貸借対照表"
@@ -4884,7 +4884,7 @@ msgid "How strict the Due Date is — Hard Deadline blocks scheduling past it, S
 msgstr "期日がどれほど厳格であるか——ハード期限はスケジューリングをブロック、ソフト期限は計画を警告で押し出すことを許可、期限なしは完全に無視します。"
 
 msgid "How the material is sourced (make, purchase, or pull from inventory) and the storage unit it's pulled from."
-msgstr ""
+msgstr "材料の調達方法（製造、購入、または在庫からの引き当て）と、引き当て元の保管単位。"
 
 msgid "How the resolved price was calculated."
 msgstr "解決された価格がどのように計算されたかを示します。"
@@ -4971,7 +4971,7 @@ msgid "in selected period"
 msgstr "選択された期間内"
 
 msgid "In stock"
-msgstr ""
+msgstr "在庫あり"
 
 msgid "Inactive"
 msgstr "非アクティブ"
@@ -5340,7 +5340,7 @@ msgid "Job ID"
 msgstr "ジョブID"
 
 msgid "Job in progress"
-msgstr ""
+msgstr "ジョブ進行中"
 
 msgid "Job Location"
 msgstr "ジョブロケーション"
@@ -6121,7 +6121,7 @@ msgid "Needs fixing"
 msgstr "修理が必要です"
 
 msgid "Needs ordering"
-msgstr ""
+msgstr "発注が必要"
 
 msgid "Negative Adjustment"
 msgstr "負の調整"
@@ -6751,7 +6751,7 @@ msgid "On Jobs"
 msgstr "ジョブ上"
 
 msgid "On order"
-msgstr ""
+msgstr "発注済み"
 
 msgid "On Purchase Order"
 msgstr "購買注文中"
@@ -6890,7 +6890,7 @@ msgstr "注文"
 
 #. placeholder {0}: status?.shortfall
 msgid "Order {0} for this job"
-msgstr ""
+msgstr "このジョブ用に{0}を発注"
 
 msgid "Order by"
 msgstr "注文日"
@@ -7229,7 +7229,7 @@ msgid "Planned End Time"
 msgstr "計画終了時刻"
 
 msgid "Planned job"
-msgstr ""
+msgstr "計画済みジョブ"
 
 msgid "Planned Order"
 msgstr "計画注文"
@@ -7238,7 +7238,7 @@ msgid "Planned order = MRP suggestion to cover projected demand based on the ite
 msgstr "計画注文 = 品目の発注ポリシー（または手動で追加）に基づいて予測需要をカバーするためのMRP提案。"
 
 msgid "Planned purchase order"
-msgstr ""
+msgstr "計画済み発注書"
 
 msgid "Planned Start"
 msgstr "計画開始"
@@ -7492,7 +7492,7 @@ msgid "Processes"
 msgstr "プロセス"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
-msgstr ""
+msgstr "調達ステータス — 発注が必要、計画済み、発注済み、または入荷済み。BoM ツリーに表示されるものと同じインジケーター。"
 
 msgid "production"
 msgstr "生産差異"
@@ -7507,7 +7507,7 @@ msgid "Production Events"
 msgstr "本番イベント"
 
 msgid "Production planning"
-msgstr ""
+msgstr "生産計画"
 
 msgid "Production Qty"
 msgstr "生産数量"
@@ -7629,7 +7629,7 @@ msgid "Purchase orders required"
 msgstr "購入注文が必要です"
 
 msgid "Purchase planning"
-msgstr ""
+msgstr "購買計画"
 
 msgid "Purchase price variance"
 msgstr "購買価格差異"
@@ -7726,7 +7726,7 @@ msgid "Quantity"
 msgstr "数量"
 
 msgid "Quantity arriving — on open purchase orders plus on production (make) orders."
-msgstr ""
+msgstr "入荷予定数量 — 未処理の発注書および生産（製造）注文の分。"
 
 msgid "Quantity Breaks"
 msgstr "数量ブレーク"
@@ -7735,7 +7735,7 @@ msgid "Quantity Completed"
 msgstr "完了数量"
 
 msgid "Quantity in transit to the storage unit via open stock transfers."
-msgstr ""
+msgstr "未処理の在庫転送によって保管単位へ輸送中の数量。"
 
 msgid "Quantity is derived from completed serials/batches in MES and cannot be edited."
 msgstr "数量はMESで完了したシリアル/バッチから導出されており、編集することはできません。"
@@ -7762,7 +7762,7 @@ msgid "Quantity per Parent"
 msgstr "親あたりの数量"
 
 msgid "Quantity physically on the material's assigned storage unit (shelf). Turns red when it's below what that unit needs to supply."
-msgstr ""
+msgstr "材料に割り当てられた保管単位（棚）に物理的にある数量。その単位が供給すべき量を下回ると赤くなります。"
 
 msgid "Quantity Range"
 msgstr "数量範囲"
@@ -7895,7 +7895,7 @@ msgstr "在庫に受け取る"
 #. placeholder {0}: status?.received
 #. placeholder {1}: status?.ordered
 msgid "Received {0} of {1}"
-msgstr ""
+msgstr "{1} のうち {0} を受領"
 
 msgid "Received At"
 msgstr "受け取った日時"
@@ -10207,7 +10207,7 @@ msgid "This job will no longer be available on the shop floor."
 msgstr "このジョブはショップフロアで利用できなくなります。"
 
 msgid "This job's own required quantity for the material."
-msgstr ""
+msgstr "この材料に対するこのジョブ自体の必要数量。"
 
 msgid "This lot is expired and can't be picked."
 msgstr "このロットは期限切れであり、ピックできません。"
@@ -10390,10 +10390,10 @@ msgid "Total Quantity"
 msgstr "合計数量"
 
 msgid "Total quantity on hand for the item across all storage units at this location. Turns red when on hand plus incoming can't cover total demand."
-msgstr ""
+msgstr "このロケーションのすべての保管単位における品目の手持ち総数量。手持ち数量と入荷予定の合計が総需要を満たせない場合は赤くなります。"
 
 msgid "Total quantity required across all active jobs and sales orders at this location — not just this job."
-msgstr ""
+msgstr "このロケーションのすべての進行中ジョブおよび受注で必要とされる総数量 — このジョブだけではありません。"
 
 msgid "Total:"
 msgstr "合計:"

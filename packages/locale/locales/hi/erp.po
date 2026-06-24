@@ -1298,7 +1298,7 @@ msgid "Avg Days to Close"
 msgstr "बंद करने के लिए औसत दिन"
 
 msgid "Awaiting approval"
-msgstr ""
+msgstr "अनुमोदन की प्रतीक्षा में"
 
 msgid "Back"
 msgstr "वापस"
@@ -1313,7 +1313,7 @@ msgid "Backflush"
 msgstr "बैकफ्लश"
 
 msgid "Backups"
-msgstr ""
+msgstr "बैकअप"
 
 msgid "Balance Sheet"
 msgstr "बैलेंस शीट"
@@ -4884,7 +4884,7 @@ msgid "How strict the Due Date is — Hard Deadline blocks scheduling past it, S
 msgstr "देय तारीख कितनी सख्त है — कठिन समय सीमा निर्धारण को ब्लॉक करता है, नरम समय सीमा योजना को चेतावनी के साथ धकेलने देता है, कोई समय सीमा नहीं इसे पूरी तरह से नजरअंदाज करता है।"
 
 msgid "How the material is sourced (make, purchase, or pull from inventory) and the storage unit it's pulled from."
-msgstr ""
+msgstr "सामग्री कैसे प्राप्त की जाती है (बनाना, खरीदना, या इन्वेंट्री से लेना) और वह भंडारण इकाई जहाँ से इसे लिया जाता है।"
 
 msgid "How the resolved price was calculated."
 msgstr "हल की गई कीमत की गणना कैसे की गई।"
@@ -4971,7 +4971,7 @@ msgid "in selected period"
 msgstr "चयनित अवधि में"
 
 msgid "In stock"
-msgstr ""
+msgstr "स्टॉक में"
 
 msgid "Inactive"
 msgstr "निष्क्रिय"
@@ -5340,7 +5340,7 @@ msgid "Job ID"
 msgstr "जॉब आईडी"
 
 msgid "Job in progress"
-msgstr ""
+msgstr "कार्य प्रगति पर"
 
 msgid "Job Location"
 msgstr "जॉब स्थान"
@@ -6121,7 +6121,7 @@ msgid "Needs fixing"
 msgstr "मरम्मत की आवश्यकता है"
 
 msgid "Needs ordering"
-msgstr ""
+msgstr "ऑर्डर करने की आवश्यकता"
 
 msgid "Negative Adjustment"
 msgstr "नकारात्मक समायोजन"
@@ -6751,7 +6751,7 @@ msgid "On Jobs"
 msgstr "नौकरियों पर"
 
 msgid "On order"
-msgstr ""
+msgstr "ऑर्डर पर"
 
 msgid "On Purchase Order"
 msgstr "खरीद आदेश पर"
@@ -6890,7 +6890,7 @@ msgstr "आदेश"
 
 #. placeholder {0}: status?.shortfall
 msgid "Order {0} for this job"
-msgstr ""
+msgstr "इस कार्य के लिए {0} ऑर्डर करें"
 
 msgid "Order by"
 msgstr "आदेश दें"
@@ -7229,7 +7229,7 @@ msgid "Planned End Time"
 msgstr "नियोजित समाप्ति समय"
 
 msgid "Planned job"
-msgstr ""
+msgstr "नियोजित कार्य"
 
 msgid "Planned Order"
 msgstr "नियोजित आदेश"
@@ -7238,7 +7238,7 @@ msgid "Planned order = MRP suggestion to cover projected demand based on the ite
 msgstr "नियोजित आदेश = अनुमानित मांग को कवर करने के लिए MRP सुझाव आइटम की पुनः आदेश नीति के आधार पर (या मैन्युअल रूप से जोड़ा गया)।"
 
 msgid "Planned purchase order"
-msgstr ""
+msgstr "नियोजित खरीद आदेश"
 
 msgid "Planned Start"
 msgstr "नियोजित प्रारंभ"
@@ -7492,7 +7492,7 @@ msgid "Processes"
 msgstr "प्रक्रियाएं"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
-msgstr ""
+msgstr "खरीद स्थिति — ऑर्डर करने की आवश्यकता, नियोजित, ऑर्डर पर, या प्राप्त। वही संकेतक जो BoM ट्री में दिखाया जाता है।"
 
 msgid "production"
 msgstr "उत्पादन विचरण"
@@ -7507,7 +7507,7 @@ msgid "Production Events"
 msgstr "उत्पादन घटनाएं"
 
 msgid "Production planning"
-msgstr ""
+msgstr "उत्पादन योजना"
 
 msgid "Production Qty"
 msgstr "उत्पादन मात्रा"
@@ -7629,7 +7629,7 @@ msgid "Purchase orders required"
 msgstr "क्रय आदेश आवश्यक हैं"
 
 msgid "Purchase planning"
-msgstr ""
+msgstr "खरीद योजना"
 
 msgid "Purchase price variance"
 msgstr "खरीद मूल्य विचरण"
@@ -7726,7 +7726,7 @@ msgid "Quantity"
 msgstr "मात्रा"
 
 msgid "Quantity arriving — on open purchase orders plus on production (make) orders."
-msgstr ""
+msgstr "आने वाली मात्रा — खुले खरीद आदेशों के साथ-साथ उत्पादन (निर्माण) आदेशों पर।"
 
 msgid "Quantity Breaks"
 msgstr "मात्रा विघ्न"
@@ -7735,7 +7735,7 @@ msgid "Quantity Completed"
 msgstr "पूर्ण मात्रा"
 
 msgid "Quantity in transit to the storage unit via open stock transfers."
-msgstr ""
+msgstr "खुले स्टॉक स्थानांतरण के माध्यम से भंडारण इकाई तक पारगमन में मात्रा।"
 
 msgid "Quantity is derived from completed serials/batches in MES and cannot be edited."
 msgstr "मात्रा MES में पूर्ण सीरीज़/बैच से प्राप्त है और संपादित नहीं की जा सकती।"
@@ -7762,7 +7762,7 @@ msgid "Quantity per Parent"
 msgstr "प्रति पैरेंट मात्रा"
 
 msgid "Quantity physically on the material's assigned storage unit (shelf). Turns red when it's below what that unit needs to supply."
-msgstr ""
+msgstr "सामग्री की निर्दिष्ट भंडारण इकाई (शेल्फ) पर भौतिक रूप से मौजूद मात्रा। जब यह उस इकाई द्वारा आपूर्ति की जाने वाली मात्रा से कम हो जाती है तो लाल हो जाती है।"
 
 msgid "Quantity Range"
 msgstr "मात्रा श्रृंखला"
@@ -7895,7 +7895,7 @@ msgstr "इन्वेंटरी में प्राप्त करें
 #. placeholder {0}: status?.received
 #. placeholder {1}: status?.ordered
 msgid "Received {0} of {1}"
-msgstr ""
+msgstr "{1} में से {0} प्राप्त"
 
 msgid "Received At"
 msgstr "प्राप्त किया गया"
@@ -10207,7 +10207,7 @@ msgid "This job will no longer be available on the shop floor."
 msgstr "यह नौकरी अब शॉप फ्लोर पर उपलब्ध नहीं होगी।"
 
 msgid "This job's own required quantity for the material."
-msgstr ""
+msgstr "इस सामग्री के लिए इस कार्य की अपनी आवश्यक मात्रा।"
 
 msgid "This lot is expired and can't be picked."
 msgstr "यह लॉट समाप्त हो गया है और इसे चुना नहीं जा सकता।"
@@ -10390,10 +10390,10 @@ msgid "Total Quantity"
 msgstr "कुल मात्रा"
 
 msgid "Total quantity on hand for the item across all storage units at this location. Turns red when on hand plus incoming can't cover total demand."
-msgstr ""
+msgstr "इस स्थान पर सभी भंडारण इकाइयों में आइटम की कुल उपलब्ध मात्रा। जब उपलब्ध मात्रा और आने वाली मात्रा कुल मांग को पूरा नहीं कर पाती तो लाल हो जाती है।"
 
 msgid "Total quantity required across all active jobs and sales orders at this location — not just this job."
-msgstr ""
+msgstr "इस स्थान पर सभी सक्रिय कार्यों और बिक्री आदेशों में आवश्यक कुल मात्रा — केवल इस कार्य के लिए नहीं।"
 
 msgid "Total:"
 msgstr "कुल:"

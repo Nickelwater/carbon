@@ -1298,7 +1298,7 @@ msgid "Avg Days to Close"
 msgstr "平均关闭天数"
 
 msgid "Awaiting approval"
-msgstr ""
+msgstr "等待批准"
 
 msgid "Back"
 msgstr "返回"
@@ -1313,7 +1313,7 @@ msgid "Backflush"
 msgstr "反冲"
 
 msgid "Backups"
-msgstr ""
+msgstr "备份"
 
 msgid "Balance Sheet"
 msgstr "资产负债表"
@@ -4884,7 +4884,7 @@ msgid "How strict the Due Date is — Hard Deadline blocks scheduling past it, S
 msgstr "截止日期有多严格——硬期限阻止计划，软期限允许计划以警告方式推动，无期限完全忽略。"
 
 msgid "How the material is sourced (make, purchase, or pull from inventory) and the storage unit it's pulled from."
-msgstr ""
+msgstr "物料的获取方式（制造、采购或从库存中提取）以及提取所用的存储单元。"
 
 msgid "How the resolved price was calculated."
 msgstr "已解决价格的计算方式。"
@@ -4971,7 +4971,7 @@ msgid "in selected period"
 msgstr "在选定的时间段内"
 
 msgid "In stock"
-msgstr ""
+msgstr "有库存"
 
 msgid "Inactive"
 msgstr "未激活"
@@ -5340,7 +5340,7 @@ msgid "Job ID"
 msgstr "工作ID"
 
 msgid "Job in progress"
-msgstr ""
+msgstr "作业进行中"
 
 msgid "Job Location"
 msgstr "工作地点"
@@ -6121,7 +6121,7 @@ msgid "Needs fixing"
 msgstr "需要修复"
 
 msgid "Needs ordering"
-msgstr ""
+msgstr "需要订购"
 
 msgid "Negative Adjustment"
 msgstr "负调整"
@@ -6751,7 +6751,7 @@ msgid "On Jobs"
 msgstr "在工作中"
 
 msgid "On order"
-msgstr ""
+msgstr "已订购"
 
 msgid "On Purchase Order"
 msgstr "采购订单上"
@@ -6890,7 +6890,7 @@ msgstr "订单"
 
 #. placeholder {0}: status?.shortfall
 msgid "Order {0} for this job"
-msgstr ""
+msgstr "为此作业订购 {0}"
 
 msgid "Order by"
 msgstr "订购截止日期"
@@ -7229,7 +7229,7 @@ msgid "Planned End Time"
 msgstr "计划结束时间"
 
 msgid "Planned job"
-msgstr ""
+msgstr "计划作业"
 
 msgid "Planned Order"
 msgstr "计划订单"
@@ -7238,7 +7238,7 @@ msgid "Planned order = MRP suggestion to cover projected demand based on the ite
 msgstr "计划订单 = MRP 建议，用于根据物品的重新订购政策（或手动添加）覆盖预计需求。"
 
 msgid "Planned purchase order"
-msgstr ""
+msgstr "计划采购订单"
 
 msgid "Planned Start"
 msgstr "计划开始"
@@ -7492,7 +7492,7 @@ msgid "Processes"
 msgstr "流程"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
-msgstr ""
+msgstr "采购状态——需要订购、已计划、已订购或已收货。与 BoM 树中显示的指示器相同。"
 
 msgid "production"
 msgstr "生产差异"
@@ -7507,7 +7507,7 @@ msgid "Production Events"
 msgstr "生产事件"
 
 msgid "Production planning"
-msgstr ""
+msgstr "生产计划"
 
 msgid "Production Qty"
 msgstr "生产数量"
@@ -7629,7 +7629,7 @@ msgid "Purchase orders required"
 msgstr "采购订单必需"
 
 msgid "Purchase planning"
-msgstr ""
+msgstr "采购计划"
 
 msgid "Purchase price variance"
 msgstr "采购价格差异"
@@ -7726,7 +7726,7 @@ msgid "Quantity"
 msgstr "数量"
 
 msgid "Quantity arriving — on open purchase orders plus on production (make) orders."
-msgstr ""
+msgstr "即将到货的数量——来自未结采购订单以及生产（制造）订单。"
 
 msgid "Quantity Breaks"
 msgstr "数量档次"
@@ -7735,7 +7735,7 @@ msgid "Quantity Completed"
 msgstr "完成数量"
 
 msgid "Quantity in transit to the storage unit via open stock transfers."
-msgstr ""
+msgstr "通过未结库存调拨在途运往该存储单元的数量。"
 
 msgid "Quantity is derived from completed serials/batches in MES and cannot be edited."
 msgstr "数量来自MES中已完成的序列号/批次，无法编辑。"
@@ -7762,7 +7762,7 @@ msgid "Quantity per Parent"
 msgstr "每个父项的数量"
 
 msgid "Quantity physically on the material's assigned storage unit (shelf). Turns red when it's below what that unit needs to supply."
-msgstr ""
+msgstr "物料所分配的存储单元（货架）上实际存在的数量。当低于该单元需要供应的数量时变为红色。"
 
 msgid "Quantity Range"
 msgstr "数量范围"
@@ -7895,7 +7895,7 @@ msgstr "接收到库存"
 #. placeholder {0}: status?.received
 #. placeholder {1}: status?.ordered
 msgid "Received {0} of {1}"
-msgstr ""
+msgstr "已接收 {1} 中的 {0}"
 
 msgid "Received At"
 msgstr "接收于"
@@ -10207,7 +10207,7 @@ msgid "This job will no longer be available on the shop floor."
 msgstr "此工作将不再在车间可用。"
 
 msgid "This job's own required quantity for the material."
-msgstr ""
+msgstr "此作业自身对该物料的所需数量。"
 
 msgid "This lot is expired and can't be picked."
 msgstr "此批次已过期，无法领取。"
@@ -10390,10 +10390,10 @@ msgid "Total Quantity"
 msgstr "总数量"
 
 msgid "Total quantity on hand for the item across all storage units at this location. Turns red when on hand plus incoming can't cover total demand."
-msgstr ""
+msgstr "此地点所有存储单元中该物料的现有总数量。当现有数量加上在途数量无法满足总需求时变为红色。"
 
 msgid "Total quantity required across all active jobs and sales orders at this location — not just this job."
-msgstr ""
+msgstr "此地点所有活动作业和销售订单所需的总数量——而不仅仅是此作业。"
 
 msgid "Total:"
 msgstr "总计："
