@@ -14,10 +14,12 @@ import {
   Heading,
   HStack,
   IconButton,
+  LabelWithHelp,
   Status,
   useDisclosure,
   VStack
 } from "@carbon/react";
+import { Trans } from "@lingui/react/macro";
 import { useCallback, useMemo, useState } from "react";
 import {
   LuCheckCheck,
@@ -276,6 +278,7 @@ const JournalEntryForm = ({
                 <Select
                   name="sourceType"
                   label="Source"
+                  termId="journal-entry-source"
                   value={sourceType}
                   options={sourceTypeOptions}
                   isReadOnly
@@ -283,7 +286,7 @@ const JournalEntryForm = ({
                 <DatePicker
                   name="postingDate"
                   label="Posting Date"
-                  termId="posting"
+                  termId="journal-entry-posting-date"
                   isDisabled={isDisabled}
                 />
               </div>
@@ -294,8 +297,24 @@ const JournalEntryForm = ({
                 <div className="grid grid-cols-[auto_1fr_140px_140px_40px] items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground font-medium bg-muted/50 border-b border-border">
                   <div className="w-6" />
                   <div className="pl-3">Account & Details</div>
-                  <div className="text-right pr-3">Debit</div>
-                  <div className="text-right pr-3">Credit</div>
+                  <div className="text-right pr-3">
+                    <LabelWithHelp
+                      variant="inline"
+                      termId="journal-line-debit"
+                      className="justify-end"
+                    >
+                      <Trans>Debit</Trans>
+                    </LabelWithHelp>
+                  </div>
+                  <div className="text-right pr-3">
+                    <LabelWithHelp
+                      variant="inline"
+                      termId="journal-line-credit"
+                      className="justify-end"
+                    >
+                      <Trans>Credit</Trans>
+                    </LabelWithHelp>
+                  </div>
                   <div />
                 </div>
 

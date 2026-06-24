@@ -471,6 +471,9 @@ msgstr "套件"
 msgid "Labor"
 msgstr "人工"
 
+msgid "Learn more"
+msgstr ""
+
 msgid "Leave this page"
 msgstr "离开此页面"
 
@@ -1098,6 +1101,9 @@ msgstr "查看维护工单"
 
 msgid "We've sent you a magic link to sign in to your account."
 msgstr "我们已向您发送了登录链接，请查收。"
+
+msgid "What is {translatedTerm}?"
+msgstr ""
 
 msgid "WIP"
 msgstr "在制品"

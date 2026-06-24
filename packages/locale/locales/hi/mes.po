@@ -471,6 +471,9 @@ msgstr "किट"
 msgid "Labor"
 msgstr "श्रम"
 
+msgid "Learn more"
+msgstr ""
+
 msgid "Leave this page"
 msgstr "इस पृष्ठ को छोड़ें"
 
@@ -1098,6 +1101,9 @@ msgstr "रखरखाव डिस्पैच देखें"
 
 msgid "We've sent you a magic link to sign in to your account."
 msgstr "हमने आपके खाते में साइन इन करने के लिए आपको एक जादुई लिंक भेजा है।"
+
+msgid "What is {translatedTerm}?"
+msgstr ""
 
 msgid "WIP"
 msgstr "WIP"

@@ -103,11 +103,23 @@ msgstr "5 MB dosya sınırı"
 msgid "7D"
 msgstr "7G"
 
+msgid "8D"
+msgstr ""
+
 msgid "9-12 weeks"
 msgstr "9-12 hafta"
 
 msgid "90D"
 msgstr "90G"
+
+msgid "A clearing account holding the value of goods received but not yet billed; the supplier invoice clears it."
+msgstr ""
+
+msgid "A company that designs and builds its own finished products end to end (here, the shop building humanoid robots) rather than making parts to another company's specification."
+msgstr ""
+
+msgid "A completed job's output, received into inventory at the job's actual accumulated WIP cost."
+msgstr ""
 
 msgid "A consumable is a physical item used to make a part that can be used across multiple jobs"
 msgstr "Sarflama, birden fazla işte kullanılabilecek bir parça yapmak için kullanılan fiziksel bir malzemedir"
@@ -118,8 +130,29 @@ msgstr "Bir yüklenici, belirli yeteneklere ve müsait saatlere sahip bir tedari
 msgid "A customer is a business or person who buys your parts or services."
 msgstr "Bir müşteri, parçalarınızı veya hizmetlerinizi satın alan bir işletme veya kişidir."
 
+msgid "A dated window postings fall into (Active or Inactive, not open or closed), opened automatically when needed."
+msgstr ""
+
+msgid "A depreciation method that charges a fixed percentage of remaining book value each period — heavier early, lighter later."
+msgstr ""
+
+msgid "A depreciation method that charges an equal amount each period across the asset's useful life."
+msgstr ""
+
+msgid "A firm customer commitment to deliver; fulfillment status splits across ship and invoice before reaching Completed."
+msgstr ""
+
+msgid "A firm order to a supplier; status moves through receive and invoice before Completed as goods and bills arrive."
+msgstr ""
+
 msgid "A issue record tracks quality issues and their resolution process."
 msgstr "Bir sorun kaydı kalite sorunlarını ve çözüm süreçlerini izler."
+
+msgid "A Make to Order component that gets its own job and routing inside the parent's build."
+msgstr ""
+
+msgid "A Make to Order component whose parts are issued together into the parent job — no separate build."
+msgstr ""
 
 msgid "A material is a physical item used to make a part that can be used across multiple jobs"
 msgstr "Bir malzeme, birden fazla işte kullanılabilecek bir parça yapmak için kullanılan fiziksel bir öğedir"
@@ -136,17 +169,35 @@ msgstr "Yeni bir revizyon, mevcut revizyonun bir kopyası kullanılarak oluştur
 msgid "A new size will be created using a copy of the current size"
 msgstr "Yeni bir boyut, mevcut boyutun bir kopyası kullanılarak oluşturulacaktır"
 
+msgid "A nonconformance task that fixes a confirmed root cause — as opposed to a preventive or immediate containment action."
+msgstr ""
+
+msgid "A nonconformance task that stops the problem recurring elsewhere — distinct from the corrective fix and containment."
+msgstr ""
+
 msgid "A part contains the information about a specific item that can be purchased or manufactured."
 msgstr "Bir parça, satın alınabilir veya üretilebilir belirli bir öğe hakkındaki bilgileri içerir."
 
+msgid "A posted accounting entry: a header plus balanced debit and credit lines against GL accounts."
+msgstr ""
+
+msgid "A priced sales quotation; Draft → Sent → Ordered, or ends Lost, Expired, or Cancelled."
+msgstr ""
+
 msgid "A purchase invoice is a document that specifies the products or services purchased by a customer and the corresponding cost."
 msgstr "Bir satın alma faturası, bir müşterinin satın aldığı ürünleri veya hizmetleri ve bunlara karşılık gelen maliyeti belirten bir belgedir."
+
+msgid "A quantity of identical units shares one tracked entity and batch number — one entity, many units."
+msgstr ""
 
 msgid "A quote is a set of prices for specific parts and quantities."
 msgstr "Teklif, belirli parçalar ve miktarlar için bir fiyat kümesidir."
 
 msgid "A quote line contains pricing and lead times for a particular part"
 msgstr "Bir fiyat teklifi satırı, belirli bir parça için fiyatlandırma ve teslim süreleri içerir"
+
+msgid "A sales invoice (you bill a customer) or purchase invoice (a supplier bills you); payment is a field, not a separate record."
+msgstr ""
 
 msgid "A sales invoice is a document that specifies the products or services sold to a customer and the corresponding cost."
 msgstr "Satış faturası, bir müşteriye satılan ürünleri veya hizmetleri ve bunlara karşılık gelen maliyeti belirten bir belgedir."
@@ -162,6 +213,18 @@ msgstr "Bir satış siparişi satırı belirli bir ürünün sipariş ayrıntıl
 
 msgid "A sales request for quote (RFQ) is a customer inquiry for pricing on a set of parts and quantities. It may result in a quote."
 msgstr "Teklif talebi (RFQ), bir dizi parça ve miktar için müşterinin fiyat teklifi talebidir. Bir teklifle sonuçlanabilir."
+
+msgid "A sales RFQ (a customer asks you to quote) or a purchasing RFQ (you ask suppliers); both feed the opportunity thread."
+msgstr ""
+
+msgid "A separate schedule for tax reporting when tax rules require a method different from book depreciation."
+msgstr ""
+
+msgid "A shipment line sent straight from supplier to customer, bypassing your warehouse — set per line, not on the header."
+msgstr ""
+
+msgid "A supplier's priced response to a purchasing RFQ — one per supplier; Draft → Active when they submit, or Declined."
+msgstr ""
 
 msgid "A tool is a physical item used to make a part that can be used across multiple jobs"
 msgstr "Bir takım, birden fazla işte kullanılabilecek bir parça yapmak için kullanılan fiziksel bir öğedir"
@@ -193,6 +256,21 @@ msgstr "Teklifi Kabul Et"
 msgid "Account"
 msgstr "Hesap"
 
+msgid "Account for advance payments made before goods or services are received"
+msgstr ""
+
+msgid "Account for production orders not yet completed"
+msgstr ""
+
+msgid "Account for small rounding differences in transactions"
+msgstr ""
+
+msgid "Account for the cost of fixed assets when disposed"
+msgstr ""
+
+msgid "Account for the purchase cost of fixed assets"
+msgstr ""
+
 msgid "Account Manager"
 msgstr "Hesap Yöneticisi"
 
@@ -204,6 +282,9 @@ msgstr "Hesap Ayarları"
 
 msgid "Account Type"
 msgstr "Hesap Türü"
+
+msgid "Account Type (inherited)"
+msgstr ""
 
 msgid "accounting"
 msgstr ""
@@ -217,14 +298,59 @@ msgstr "Muhasebe devre dışı"
 msgid "Accounting is enabled"
 msgstr "Muhasebe etkinleştirilmiş"
 
+msgid "Accounting period"
+msgstr ""
+
 msgid "Accounts"
 msgstr "Hesaplar"
+
+msgid "Accounts Payable"
+msgstr ""
+
+msgid "Accounts payable for amounts owed to suppliers"
+msgstr ""
+
+msgid "Accounts Receivable"
+msgstr ""
+
+msgid "Accounts receivable for amounts owed by customers"
+msgstr ""
+
+msgid "Accrual account debited at shipment to recognize the receivable before the sales invoice posts; cleared when the invoice posts."
+msgstr ""
+
+msgid "Accrual for inventory shipped but not yet invoiced to customer"
+msgstr ""
+
+msgid "Accumulated Depreciation"
+msgstr ""
+
+msgid "Accumulated Depreciation (default)"
+msgstr ""
+
+msgid "Accumulated Depreciation (opening)"
+msgstr ""
+
+msgid "Accumulated Depreciation Account"
+msgstr ""
+
+msgid "Accumulated Depreciation on Disposal"
+msgstr ""
+
+msgid "Accumulated Depreciation on Disposal (default)"
+msgstr ""
 
 msgid "Accumulation Period (Weeks)"
 msgstr "Biriktirme Süresi (Hafta)"
 
 msgid "Accumulation Period:"
 msgstr "Biriktirme Dönemi:"
+
+msgid "Acquisition Cost"
+msgstr ""
+
+msgid "Acquisition Date"
+msgstr ""
 
 msgid "Action Items"
 msgstr "Eylem Öğeleri"
@@ -446,6 +572,9 @@ msgstr "Gelişmiş"
 msgid "After"
 msgstr "Sonra"
 
+msgid "After (calculation method)"
+msgstr ""
+
 msgid "AI Tokens"
 msgstr "Yapay Zeka Jetonları"
 
@@ -494,11 +623,29 @@ msgstr "Her zaman"
 msgid "Amount"
 msgstr "Tutar"
 
+msgid "Amount that increases assets/expenses or decreases liabilities/equity/revenue on this line."
+msgstr ""
+
+msgid "Amount that increases liabilities/equity/revenue or decreases assets/expenses on this line."
+msgstr ""
+
 msgid "Amount Type"
 msgstr "Tutar Türü"
 
+msgid "An accounting bucket that groups expenses by department or function so the GL can report spend by group, not just by account."
+msgstr ""
+
+msgid "An accounting record for a capitalized item you depreciate rather than expense; Draft → Active → Fully Depreciated → Disposed."
+msgstr ""
+
+msgid "An asset's acquisition cost minus accumulated depreciation — what it's still worth on the books, and the figure it's disposed at."
+msgstr ""
+
 msgid "An item cannot be added to itself."
 msgstr "Bir öğe kendisine eklenemez."
+
+msgid "An operation done by an outside supplier rather than an in-house work center, covered by a subcontracting purchase order."
+msgstr ""
 
 msgid "AND"
 msgstr "VE"
@@ -520,6 +667,12 @@ msgstr "Açıklama metni gerekli"
 
 msgid "Annotation updated"
 msgstr "Açıklama güncellendi"
+
+msgid "Another cost center this one rolls up into, letting you nest a sub-department under its parent for hierarchical cost reporting."
+msgstr ""
+
+msgid "Another storage unit this one nests inside (e.g. a bin within a rack); must be in the same location."
+msgstr ""
 
 msgid "Any item group"
 msgstr "Herhangi bir ürün grubu"
@@ -966,7 +1119,22 @@ msgstr "Montaj:"
 msgid "Asset"
 msgstr "Varlık"
 
+msgid "Asset Account"
+msgstr ""
+
+msgid "Asset Acquisition Cost"
+msgstr ""
+
+msgid "Asset Acquisition Cost (default)"
+msgstr ""
+
 msgid "asset class"
+msgstr ""
+
+msgid "Asset class"
+msgstr ""
+
+msgid "Asset Class"
 msgstr ""
 
 msgid "asset classes"
@@ -974,6 +1142,12 @@ msgstr ""
 
 msgid "Asset Classes"
 msgstr "Varlık Sınıfları"
+
+msgid "Asset Cost on Disposal"
+msgstr ""
+
+msgid "Asset Cost on Disposal (default)"
+msgstr ""
 
 msgid "Assets"
 msgstr "Varlıklar"
@@ -1004,6 +1178,9 @@ msgstr "Atamalar"
 
 msgid "Assigns this storage unit to a work center (lineside)"
 msgstr "Bu depolama birimini bir iş merkezine atar (hat boyunca)"
+
+msgid "Assigns this unit to a work center for lineside material, so operators see it on the production view; inherited from the parent unit when set there."
+msgstr ""
 
 msgid "At least one condition must match"
 msgstr "En az bir koşul eşleşmelidir"
@@ -1071,6 +1248,9 @@ msgstr "Otomatik Süre Güncellemeleri"
 msgid "Automatic Updates"
 msgstr "Otomatik Güncellemeler"
 
+msgid "Automatic, prorated consumption of a job's untracked materials when output is reported — tracked materials are issued manually."
+msgstr ""
+
 msgid "Automatically release the job when the kanban is scanned"
 msgstr "Kanban taranmış olduğunda işi otomatik olarak serbest bırak"
 
@@ -1104,6 +1284,33 @@ msgstr "Bilanço"
 msgid "Balloon"
 msgstr "Balon"
 
+msgid "Bank - Cash"
+msgstr ""
+
+msgid "Bank - Foreign Currency"
+msgstr ""
+
+msgid "Bank - Local Currency"
+msgstr ""
+
+msgid "Bank — Cash (default)"
+msgstr ""
+
+msgid "Bank — Foreign Currency (default)"
+msgstr ""
+
+msgid "Bank — Local Currency (default)"
+msgstr ""
+
+msgid "Bank account denominated in a foreign currency"
+msgstr ""
+
+msgid "Bank account denominated in the local currency"
+msgstr ""
+
+msgid "Bank and financial service charge expenses"
+msgstr ""
+
 msgid "Bars show each week's flow: <0>supply</0> pushes inventory up, <1>demand</1> pulls it down. The <2>line</2> is your projected on-hand inventory — when it dips below <3>safety stock</3> you're at risk, and below zero is a <4>stockout</4>."
 msgstr ""
 
@@ -1134,6 +1341,9 @@ msgstr "Toplu Özellikler"
 msgid "Batch Size"
 msgstr "Lot Boyutu"
 
+msgid "Batch tracking"
+msgstr ""
+
 msgid "Batch Tracking"
 msgstr "Lot Takibi"
 
@@ -1145,6 +1355,9 @@ msgstr "Beta"
 
 msgid "Bill of Material"
 msgstr "Malzeme Listesi"
+
+msgid "Bill of materials"
+msgstr ""
 
 msgid "Bill of Materials"
 msgstr "Malzeme Listesi"
@@ -1182,6 +1395,9 @@ msgstr "BOM + BOP"
 
 msgid "BOM synced successfully"
 msgstr "BOM başarıyla senkronize edildi"
+
+msgid "Bonus Depreciation %"
+msgstr ""
 
 msgid "Breadcrumb"
 msgstr "Sayfa Yolu"
@@ -1245,6 +1461,9 @@ msgstr "Kalibrasyon Tedarikçisi"
 
 msgid "Calibrations"
 msgstr "Kalibrasyonlar"
+
+msgid "Called a method in Carbon — the components plus operations that produce a part."
+msgstr ""
 
 msgid "Can't disable the only active break. Add another break or toggle the override's Active instead."
 msgstr "Yalnızca aktif olan aralığı devre dışı bırakamazsınız. Başka bir aralık ekleyin veya geçersiz kılmanın Aktif özelliğini değiştirin."
@@ -1327,6 +1546,18 @@ msgstr "Carbon Logosu"
 msgid "Carbon Value"
 msgstr "Carbon Değeri"
 
+msgid "Carbon's name for a bill of materials: the components plus the operations that make a part."
+msgstr ""
+
+msgid "Carbon's planning run nets supply against demand and explodes methods, surfacing shortfalls — but it creates no orders itself."
+msgstr ""
+
+msgid "Carbon's production order — one job builds a quantity of one item from its own copied method and routing."
+msgstr ""
+
+msgid "Carbon's quality issue — a logged deviation or defect with a configurable workflow of investigation and action tasks."
+msgstr ""
+
 msgid "Cards"
 msgstr "Kartlar"
 
@@ -1335,6 +1566,9 @@ msgstr "Taşıyıcı"
 
 msgid "Carrier Account"
 msgstr "Taşıyıcı Hesap"
+
+msgid "Cash & Banking"
+msgstr ""
 
 msgid "Category"
 msgstr "Kategori"
@@ -1405,6 +1639,9 @@ msgstr "Şehir"
 msgid "Class"
 msgstr "Sınıf"
 
+msgid "Class (inherited)"
+msgstr ""
+
 msgid "Clear"
 msgstr "Temizle"
 
@@ -1422,6 +1659,12 @@ msgstr "Aramayı temizle"
 
 msgid "Clear search query"
 msgstr "Arama sorgusunu temizle"
+
+msgid "Clearing account between goods receipt and supplier invoice; balances when both have posted."
+msgstr ""
+
+msgid "Clearing account for goods received / invoice received matching"
+msgstr ""
 
 msgid "Click to upload a PDF drawing"
 msgstr "PDF çizimi yüklemek için tıklayın"
@@ -1499,6 +1742,9 @@ msgstr "Açıklama"
 msgid "Comments"
 msgstr "Yorumlar"
 
+msgid "Committing a receipt, shipment, or invoice: quantities move, journal entries hit the ledger, and status becomes Posted."
+msgstr ""
+
 msgid "Companies"
 msgstr "Şirketler"
 
@@ -1573,6 +1819,21 @@ msgstr "Yapılandır"
 
 msgid "Configure {label}"
 msgstr "{label} yapılandır"
+
+msgid "Configure default accounts for cash and bank transactions"
+msgstr ""
+
+msgid "Configure default accounts for inventory management"
+msgstr ""
+
+msgid "Configure default accounts for purchasing and COGS"
+msgstr ""
+
+msgid "Configure default accounts for vendor and supplier transactions"
+msgstr ""
+
+msgid "Configure default equity and retained earnings accounts"
+msgstr ""
 
 msgid "Configure defaults for the quality dashboard."
 msgstr "Kalite panosu için varsayılan ayarları yapılandırın."
@@ -1680,6 +1941,9 @@ msgstr "Sarflar"
 msgid "Consumed"
 msgstr "Tüketildi"
 
+msgid "Consuming material from inventory into a job, which writes a Consumption entry to the item ledger."
+msgstr ""
+
 msgid "contact"
 msgstr ""
 
@@ -1701,14 +1965,32 @@ msgstr "İçlenmiş"
 msgid "Containment"
 msgstr "İzolasyon"
 
+msgid "Containment action"
+msgstr ""
+
+msgid "Contra-asset account for total depreciation of fixed assets"
+msgstr ""
+
+msgid "Contra-revenue account for discounts given on sales"
+msgstr ""
+
+msgid "Contra-revenue GL account for discounts given on customer invoices."
+msgstr ""
+
 msgid "Contractor"
 msgstr "Yüklenici"
 
 msgid "Contractors"
 msgstr "Yükleniciler"
 
+msgid "Convention"
+msgstr ""
+
 msgid "Conversion"
 msgstr "Dönüşüm"
+
+msgid "Conversion factor"
+msgstr ""
 
 msgid "Conversion Factor"
 msgstr "Dönüşüm Faktörü"
@@ -1727,6 +2009,9 @@ msgstr "Satırları İşlere Dönüştür"
 
 msgid "Convert to Quote"
 msgstr "Teklif Oluştur"
+
+msgid "Converts a supplier's purchase unit to your inventory unit on a PO, receipt, or bill line — buy in cartons of 12, stock in eaches."
+msgstr ""
 
 msgid "Copied link to clipboard"
 msgstr "Bağlantı panoya kopyalandı"
@@ -1866,7 +2151,13 @@ msgstr "Doğru Cevap"
 msgid "Correct Answers"
 msgstr "Doğru Cevaplar"
 
+msgid "Corrective action"
+msgstr ""
+
 msgid "cost center"
+msgstr ""
+
+msgid "Cost center"
 msgstr ""
 
 msgid "Cost Center"
@@ -1881,11 +2172,23 @@ msgstr "Maliyet Merkezleri"
 msgid "Cost History"
 msgstr "Maliyet Geçmişi"
 
+msgid "Cost of Goods Sold"
+msgstr ""
+
+msgid "Cost of goods sold (COGS)"
+msgstr ""
+
+msgid "Cost of Goods Sold (default)"
+msgstr ""
+
 msgid "Costing"
 msgstr "Maliyetlendirme"
 
 msgid "Costing & Posting"
 msgstr "Maliyetlendirme ve Kayıt"
+
+msgid "Costing method"
+msgstr ""
 
 msgid "Costing Method"
 msgstr "Maliyetlendirme Yöntemi"
@@ -1983,6 +2286,9 @@ msgstr "Oluşturulma"
 
 msgid "Created account"
 msgstr "Oluşturulan hesap"
+
+msgid "Created asset class"
+msgstr ""
 
 msgid "Created At"
 msgstr "Oluşturulma Tarihi"
@@ -2094,6 +2400,15 @@ msgstr "İş merkezi oluşturuldu"
 msgid "Creating part..."
 msgstr "Parça oluşturuluyor..."
 
+msgid "Credit"
+msgstr ""
+
+msgid "Credit Account"
+msgstr ""
+
+msgid "Credit account when labor/machine time is absorbed into WIP"
+msgstr ""
+
 msgid "Critical"
 msgstr "Kritik"
 
@@ -2109,8 +2424,17 @@ msgstr "Kümülatif %"
 msgid "Currency"
 msgstr "Para Birimi"
 
+msgid "Currency Translation"
+msgstr ""
+
+msgid "Currency Translation (default)"
+msgstr ""
+
 msgid "Current"
 msgstr "Mevcut"
+
+msgid "Current Net Book Value:"
+msgstr ""
 
 msgid "Current Password"
 msgstr "Mevcut Şifre"
@@ -2177,6 +2501,12 @@ msgstr "Müşteri Parça Revizyonu"
 
 msgid "Customer Parts"
 msgstr "Müşteri Parçaları"
+
+msgid "Customer Payment Discounts"
+msgstr ""
+
+msgid "Customer Payment Discounts (default)"
+msgstr ""
 
 msgid "Customer PO"
 msgstr "Müşteri Sipariş Numarası"
@@ -2286,6 +2616,9 @@ msgstr "İskonto Günleri"
 msgid "Days Due"
 msgstr "Vade Tarihi"
 
+msgid "Days from ordering a part to having it available; planning offsets demand backward by this much."
+msgstr ""
+
 msgid "Days in advance to generate dispatches"
 msgstr "Gönderileri oluşturmak için kaç gün önceden"
 
@@ -2329,14 +2662,44 @@ msgstr "İş Merkezi Devre Dışı Bırak"
 msgid "Deadline Type"
 msgstr "Son Teslim Tarihi Türü"
 
+msgid "Debit"
+msgstr ""
+
+msgid "Debit Account"
+msgstr ""
+
 msgid "Decide what an operator sees if they try to issue a batch or serial that's already expired."
 msgstr "Operatörün zaten süresi dolmuş bir parti veya seri çıkarmaya çalışması durumunda ne göreceğini belirleyin."
+
+msgid "Decimal Places"
+msgstr ""
+
+msgid "Declining balance"
+msgstr ""
 
 msgid "Default"
 msgstr "Varsayılan"
 
+msgid "Default account for posting sales revenue from invoices"
+msgstr ""
+
 msgid "Default Accounts"
 msgstr "Varsayılan Hesaplar"
+
+msgid "Default accounts for business expenses"
+msgstr ""
+
+msgid "Default accounts for customer transactions and receivables"
+msgstr ""
+
+msgid "Default accounts for long-term assets and depreciation"
+msgstr ""
+
+msgid "Default accounts for sales and income"
+msgstr ""
+
+msgid "Default accounts for tax-related transactions"
+msgstr ""
 
 msgid "Default Approver"
 msgstr "Varsayılan Onaylayıcı"
@@ -2344,11 +2707,32 @@ msgstr "Varsayılan Onaylayıcı"
 msgid "Default Attachments"
 msgstr "Varsayılan Ekler"
 
+msgid "Default cash account for transactions in non-base currencies."
+msgstr ""
+
+msgid "Default cash account for transactions in your base currency."
+msgstr ""
+
 msgid "Default CC Recipients"
 msgstr "Varsayılan Bilgi Ekleyicileri"
 
+msgid "Default GL account that holds inventory value; debited on receipt, credited on shipment/issue."
+msgstr ""
+
+msgid "Default GL account used for cash transactions when no specific bank account is selected."
+msgstr ""
+
+msgid "Default GL expense account for equipment and facility maintenance."
+msgstr ""
+
+msgid "Default GL expense account for periodic depreciation runs."
+msgstr ""
+
 msgid "Default Method"
 msgstr "Varsayılan Yöntem"
+
+msgid "Default method that pre-fills on new assets in this class (still editable per asset)."
+msgstr ""
 
 msgid "Default Method Type"
 msgstr "Varsayılan Yöntem Türü"
@@ -2359,6 +2743,9 @@ msgstr "Varsayılan İzinler"
 msgid "Default Priority"
 msgstr "Varsayılan Öncelik"
 
+msgid "Default revenue GL account credited when a sales invoice posts."
+msgstr ""
+
 msgid "Default shelf-life duration (days)"
 msgstr "Varsayılan raf ömrü süresi (gün)"
 
@@ -2368,11 +2755,32 @@ msgstr "Varsayılan Kaynak"
 msgid "Default Storage Unit"
 msgstr "Varsayılan Depolama Birimi"
 
+msgid "Default tax depreciation method for new assets in this class."
+msgstr ""
+
+msgid "Default tax-book life for new assets in this class."
+msgstr ""
+
 msgid "Default Unit"
 msgstr "Varsayılan Birim"
 
+msgid "Default useful life that pre-fills on new assets in this class."
+msgstr ""
+
 msgid "Defaults"
 msgstr "Varsayılanlar"
+
+msgid "Deferred Tax Expense"
+msgstr ""
+
+msgid "Deferred Tax Expense (default)"
+msgstr ""
+
+msgid "Deferred Tax Liability"
+msgstr ""
+
+msgid "Deferred Tax Liability (default)"
+msgstr ""
 
 msgid "Defines how many tracked entities are inspected per lot, and how many failures are tolerated before the lot is rejected."
 msgstr "Lot başına kaç izlenen varlığın denetlendiğini ve parti reddedilmeden önce kaç hatanın tolere edildiğini tanımlar."
@@ -2614,6 +3022,9 @@ msgstr "Teslimat Yeri"
 msgid "Demand"
 msgstr "Talep"
 
+msgid "Demand forecast"
+msgstr ""
+
 msgid "Demand Forecast"
 msgstr "Talep Tahmini"
 
@@ -2646,6 +3057,27 @@ msgstr "Departmanlar"
 
 msgid "Depreciation"
 msgstr "Amortisman"
+
+msgid "Depreciation Expense"
+msgstr ""
+
+msgid "Depreciation Expense (default)"
+msgstr ""
+
+msgid "Depreciation Expense Account"
+msgstr ""
+
+msgid "Depreciation Method"
+msgstr ""
+
+msgid "Depreciation Method (default)"
+msgstr ""
+
+msgid "Depreciation reversal when a fixed asset is disposed"
+msgstr ""
+
+msgid "Depreciation Start Date"
+msgstr ""
 
 msgid "Description"
 msgstr "Açıklama"
@@ -2695,6 +3127,9 @@ msgstr "Atıkla"
 msgid "Discount"
 msgstr "İskonto"
 
+msgid "Discount Days"
+msgstr ""
+
 msgid "Discount Days after {selectedCalculationMethod}"
 msgstr "{selectedCalculationMethod} sonrası İskonto Günleri"
 
@@ -2703,6 +3138,12 @@ msgstr "İskonto Yüzdesi"
 
 msgid "Discount Percentage"
 msgstr "İskonto Yüzdesi"
+
+msgid "Discounts earned for early payment to suppliers"
+msgstr ""
+
+msgid "Discounts given to customers for early payment"
+msgstr ""
 
 msgid "Dismiss"
 msgstr "Kapat"
@@ -2718,6 +3159,21 @@ msgstr "Gönderiler"
 
 msgid "Display Settings"
 msgstr "Görüntü Ayarları"
+
+msgid "Disposal"
+msgstr ""
+
+msgid "Disposal Account"
+msgstr ""
+
+msgid "Disposal Date"
+msgstr ""
+
+msgid "Dispose"
+msgstr ""
+
+msgid "Dispose Asset"
+msgstr ""
 
 msgid "Disposition"
 msgstr "Durum"
@@ -2803,6 +3259,9 @@ msgstr "Sevkiyatı Bölme Durumları"
 msgid "Drop your file here, or click to browse."
 msgstr "Dosyanızı buraya bırakın veya göz atmak için tıklayın."
 
+msgid "Drop-ship"
+msgstr ""
+
 msgid "Due"
 msgstr "Vade"
 
@@ -2818,6 +3277,9 @@ msgstr "İlk İşin Son Tarihi"
 
 msgid "Due Date of Last Job"
 msgstr "Son İşin Son Tarihi"
+
+msgid "Due Days"
+msgstr ""
 
 msgid "Due Days after {selectedCalculationMethod}"
 msgstr "Sonraki Gün Sayısı {selectedCalculationMethod} sonrası"
@@ -2849,6 +3311,9 @@ msgstr "örneğin DWG-1234"
 msgid "e.g. Zebra 2x1"
 msgstr "örneğin Zebra 2x1"
 
+msgid "Each physical unit gets its own tracked entity and unique number — one entity, one unit."
+msgstr ""
+
 msgid "Edit"
 msgstr "Düzenle"
 
@@ -2860,6 +3325,9 @@ msgstr "API Anahtarını Düzenle"
 
 msgid "Edit Approval Rule"
 msgstr "Onay Kuralını Düzenle"
+
+msgid "Edit Asset Class"
+msgstr ""
 
 msgid "Edit Assignment"
 msgstr "Atamayı Düzenle"
@@ -2903,6 +3371,9 @@ msgstr "Tarih aralığını düzenle"
 msgid "Edit Department"
 msgstr "Departmanı Düzenle"
 
+msgid "Edit Dimension"
+msgstr ""
+
 msgid "Edit Dispatch"
 msgstr "Görev Düzenle"
 
@@ -2920,6 +3391,9 @@ msgstr "Son Kullanma Tarihini Düzenle"
 
 msgid "Edit Failure Mode"
 msgstr "Hata Modunu Düzenle"
+
+msgid "Edit Fixed Asset"
+msgstr ""
 
 msgid "Edit Gauge Calibration Record"
 msgstr "Kalibrasyon Kaydını Düzenle"
@@ -2983,6 +3457,9 @@ msgstr "Partneri Düzenle"
 
 msgid "Edit Payment Term"
 msgstr "Ödeme Şartını Düzenle"
+
+msgid "Edit permissions"
+msgstr ""
 
 msgid "Edit Permissions"
 msgstr "Düzenleme İzinleri"
@@ -3236,8 +3713,23 @@ msgstr "Varlık"
 msgid "Entity is {status}"
 msgstr "Varlık {status}'da"
 
+msgid "Entity Type"
+msgstr ""
+
+msgid "Entity type cannot be changed"
+msgstr ""
+
 msgid "EORI"
 msgstr "EORI"
+
+msgid "Equity"
+msgstr ""
+
+msgid "Equity account for accumulated profits or losses"
+msgstr ""
+
+msgid "Equity account for currency translation adjustments (CTA)"
+msgstr ""
 
 msgid "ERP, MES, QMS"
 msgstr "ERP, MES, QMS"
@@ -3378,11 +3870,32 @@ msgstr "Kurulumu Genişlet"
 msgid "Expand subtree"
 msgstr "Alt ağacı genişlet"
 
+msgid "Expected future demand for an item, bucketed by period, populated by the planning run alongside actual demand."
+msgstr ""
+
 msgid "Expected Receipt"
 msgstr "Beklenen Teslim Alma"
 
 msgid "Expected Receipt Date"
 msgstr "Beklenen Teslim Alma Tarihi"
+
+msgid "Expense account for deferred tax adjustments on depreciation"
+msgstr ""
+
+msgid "Expense account for equipment and facility maintenance"
+msgstr ""
+
+msgid "Expense account for non-inventory purchases (services, supplies)"
+msgstr ""
+
+msgid "Expense account for the cost of items sold"
+msgstr ""
+
+msgid "Expense GL account debited when inventory is shipped/issued against a sale."
+msgstr ""
+
+msgid "Expense side of deferred tax movements (paired with deferred tax liability)."
+msgstr ""
 
 msgid "Expiration Date"
 msgstr "Son Kullanma Tarihi"
@@ -3452,6 +3965,10 @@ msgstr "Harici Referans"
 
 msgid "Fail"
 msgstr "Başarısız"
+
+#. placeholder {0}: fetcher.data.error.message
+msgid "Failed to create asset class: {0}"
+msgstr ""
 
 #. placeholder {0}: fetcher.data.error.message
 msgid "Failed to create consumable: {0}"
@@ -3764,6 +4281,9 @@ msgstr "Geri bildirim"
 msgid "Fees"
 msgstr "Ücretler"
 
+msgid "FEFO (first-expiry-first-out)"
+msgstr ""
+
 msgid "Fetch"
 msgstr "Al\\\\'ındır"
 
@@ -3829,6 +4349,9 @@ msgstr "Bitiş"
 msgid "Finish To"
 msgstr "Bitirmek İçin"
 
+msgid "Finished goods"
+msgstr ""
+
 msgid "finishes"
 msgstr ""
 
@@ -3840,6 +4363,9 @@ msgstr "Adı Soyad"
 
 msgid "First Operation"
 msgstr "İlk İşlem"
+
+msgid "First-year additional deduction taken before the regular MACRS schedule begins."
+msgstr ""
 
 msgid "Fiscal Year"
 msgstr "Mali Yılı"
@@ -3853,11 +4379,17 @@ msgstr "Mali Yıllar"
 msgid "Fixed"
 msgstr "Sabit"
 
+msgid "Fixed asset"
+msgstr ""
+
 msgid "Fixed Asset"
 msgstr "Sabit Kıymet"
 
 msgid "Fixed Assets"
 msgstr "Sabit Varlıklar"
+
+msgid "Fixed cost amortization variance when batch size differs from standard"
+msgstr ""
 
 msgid "Fixed Reorder"
 msgstr "Sabit Yeniden Sipariş"
@@ -3899,6 +4431,15 @@ msgstr "Kaynak Depo Birimi"
 msgid "Fully trained for"
 msgstr "Tamamen eğitilmiş"
 
+msgid "Gains and Losses"
+msgstr ""
+
+msgid "Gains and Losses (default)"
+msgstr ""
+
+msgid "Gains or losses recognized on disposal of fixed assets"
+msgstr ""
+
 msgid "gauge"
 msgstr ""
 
@@ -3925,6 +4466,12 @@ msgstr ""
 
 msgid "Gauges"
 msgstr "Kalibratörler"
+
+msgid "Genealogy"
+msgstr ""
+
+msgid "General ledger"
+msgstr ""
 
 msgid "General Ledger"
 msgstr "Genel Defter"
@@ -3953,6 +4500,117 @@ msgstr "Yöntemi Al"
 msgid "GL Account"
 msgstr "BÜTÇE HESABI"
 
+msgid "GL account capturing cost differences on outside-processing operations."
+msgstr ""
+
+msgid "GL account capturing differences between applied and actual manufacturing overhead."
+msgstr ""
+
+msgid "GL account capturing differences between BOM-expected and actual material consumed."
+msgstr ""
+
+msgid "GL account capturing differences between routing-expected and actual labor/machine time."
+msgstr ""
+
+msgid "GL account capturing fixed-cost differences when actual lot size differs from planned."
+msgstr ""
+
+msgid "GL account credited to remove the asset's original cost when it is disposed."
+msgstr ""
+
+msgid "GL account credited when a supplier invoice is posted (AP balance)."
+msgstr ""
+
+msgid "GL account credited when labor or machine cost is absorbed into a production job."
+msgstr ""
+
+msgid "GL account debited to clear accumulated depreciation when an asset is disposed."
+msgstr ""
+
+msgid "GL account debited when a customer invoice posts; cleared when the customer pays."
+msgstr ""
+
+msgid "GL account debited when a fixed asset is acquired (purchase or capitalized cost)."
+msgstr ""
+
+msgid "GL account debited when an asset in this class is acquired."
+msgstr ""
+
+msgid "GL account for bank service charges and similar fees."
+msgstr ""
+
+msgid "GL account for interest income or expense."
+msgstr ""
+
+msgid "GL account for purchase tax paid to suppliers (or reclaimable)."
+msgstr ""
+
+msgid "GL account for tax accrued under reverse-charge rules where the buyer self-assesses."
+msgstr ""
+
+msgid "GL account for tax timing differences (e.g. accelerated tax depreciation vs. book depreciation)."
+msgstr ""
+
+msgid "GL account hit when an asset is written off (cost removed without disposal proceeds)."
+msgstr ""
+
+msgid "GL account hit when an asset's book value is reduced (impairment)."
+msgstr ""
+
+msgid "GL account hit when physical counts differ from system inventory."
+msgstr ""
+
+msgid "GL account in the source company to debit for this intercompany transaction."
+msgstr ""
+
+msgid "GL account in the target company to credit for this intercompany transaction."
+msgstr ""
+
+msgid "GL account that absorbs sub-cent rounding differences on posting."
+msgstr ""
+
+msgid "GL account that captures the difference between standard cost and actual purchase cost."
+msgstr ""
+
+msgid "GL account that holds the value of jobs in production until they post to finished goods."
+msgstr ""
+
+msgid "GL account used when a customer pays before an invoice is issued; cleared when the invoice posts."
+msgstr ""
+
+msgid "GL account where early-payment discounts given to customers are recorded."
+msgstr ""
+
+msgid "GL account where early-payment discounts taken from suppliers are recorded."
+msgstr ""
+
+msgid "GL account where gain or loss is booked on fixed-asset disposal."
+msgstr ""
+
+msgid "GL account where gain or loss is booked when an asset in this class is disposed."
+msgstr ""
+
+msgid "GL contra-asset account credited when depreciation posts for assets in this class."
+msgstr ""
+
+msgid "GL contra-asset account that accumulates depreciation booked against fixed assets."
+msgstr ""
+
+msgid "GL equity account (CTA reserve) that holds unrealized FX differences from re-translating foreign-currency balances at period-end; separate from realized FX gain/loss in P&L."
+msgstr ""
+
+msgid "GL equity account where net income closes at fiscal year-end."
+msgstr ""
+
+msgid "GL expense account debited each period when depreciation posts."
+msgstr ""
+
+msgid "GL expense account for non-inventory purchases (supplies, services)."
+msgstr ""
+
+msgid "GL liability account credited for sales tax collected from customers."
+msgstr ""
+
 #. placeholder {0}: user.firstName
 msgid "Good afternoon, {0}"
 msgstr "İyi öğleden sonra, {0}"
@@ -3967,6 +4625,15 @@ msgstr "Günaydın, {0}"
 
 msgid "Google Places API key not configured"
 msgstr "Google Yerler API anahtarı yapılandırılmamış"
+
+msgid "GR/IR (goods received, not invoiced)"
+msgstr ""
+
+msgid "GR/IR Clearing"
+msgstr ""
+
+msgid "GR/IR Clearing (default)"
+msgstr ""
 
 msgid "grade"
 msgstr ""
@@ -4007,6 +4674,12 @@ msgstr "Daha yüksek öncelik, eşitlik durumlarında kazanır ve eklemeler içi
 msgid "Hints in the first row"
 msgstr "İlk satırdaki ipuçları"
 
+msgid "Historical Rate (equity)"
+msgstr ""
+
+msgid "Historical Rate (Equity)"
+msgstr ""
+
 msgid "History"
 msgstr "Geçmiş"
 
@@ -4033,6 +4706,27 @@ msgstr "Saat/1000 Parça"
 
 msgid "Hours/Piece"
 msgstr "Saat/Adet"
+
+msgid "How a part gets into its parent, set per line: Make to Order, Purchase to Order, or Pull from Inventory."
+msgstr ""
+
+msgid "How an item is replenished overall (Buy, Make, or Buy and Make), set per item, unlike the per-line method type."
+msgstr ""
+
+msgid "How an item is replenished: Manual Reorder, Demand-Based Reorder, Fixed Reorder Quantity, or Maximum Quantity."
+msgstr ""
+
+msgid "How an item's unit cost is valued: Standard, Average, FIFO, or LIFO. Set per item."
+msgstr ""
+
+msgid "How many days after the calculation date the early-payment discount is still available."
+msgstr ""
+
+msgid "How many days after the calculation date the full amount is due."
+msgstr ""
+
+msgid "How many fractional digits to keep when rounding amounts in this currency."
+msgstr ""
 
 msgid "How many were actually picked?"
 msgstr "Gerçekte kaç tane toplandı?"
@@ -4127,6 +4821,9 @@ msgstr "Pasifleri Dahil Et"
 msgid "Includes tax and shipping costs"
 msgstr "Vergiler ve nakliye masrafları dahildir"
 
+msgid "Income / Balance (inherited)"
+msgstr ""
+
 msgid "Income Statement"
 msgstr "Gelir Tablosu"
 
@@ -4145,6 +4842,12 @@ msgstr "Teslim Yeri Şartı Konumu"
 msgid "Indirect"
 msgstr "Dolaylı"
 
+msgid "Indirect Materials & Services"
+msgstr ""
+
+msgid "Indirect Materials & Services (default)"
+msgstr ""
+
 msgid "Infrastructure"
 msgstr "Altyapı"
 
@@ -4153,6 +4856,18 @@ msgstr "Malzemelerden Devral"
 
 msgid "Inherited from parent"
 msgstr "Ebeveyn'den miras alındı"
+
+msgid "Inherited from the group: top-level classification (asset, liability, equity, revenue, expense)."
+msgstr ""
+
+msgid "Inherited from the group: where this account appears on financial statements."
+msgstr ""
+
+msgid "Inherited from the group: whether this account closes to retained earnings (income) or carries forward (balance)."
+msgstr ""
+
+msgid "Inherited from the parent group."
+msgstr ""
 
 msgid "Insert token"
 msgstr "Token ekle"
@@ -4205,6 +4920,15 @@ msgstr "Entegrasyonlar"
 msgid "Intercompany"
 msgstr "Şirketler Arası"
 
+msgid "Interest"
+msgstr ""
+
+msgid "Interest (default)"
+msgstr ""
+
+msgid "Interest income or expense from banking activities"
+msgstr ""
+
 msgid "Internal"
 msgstr "Dahili"
 
@@ -4223,11 +4947,17 @@ msgstr ""
 msgid "Inventory"
 msgstr "Stok"
 
+msgid "Inventory (default)"
+msgstr ""
+
 msgid "Inventory actions"
 msgstr "Envanter aksiyonları"
 
 msgid "Inventory Adjustment"
 msgstr "Stok Ayarlaması"
+
+msgid "Inventory Adjustment (default)"
+msgstr ""
 
 msgid "Inventory History"
 msgstr "Envanter Geçmişi"
@@ -4237,6 +4967,12 @@ msgstr "Envanter İş Bildirimleri"
 
 msgid "Inventory Qty"
 msgstr "Stok Miktarı"
+
+msgid "Inventory Shipped Not Invoiced"
+msgstr ""
+
+msgid "Inventory Shipped Not Invoiced (default)"
+msgstr ""
 
 msgid "Inventory Tracking"
 msgstr "Stok Takibi"
@@ -4307,6 +5043,9 @@ msgstr "herhangi biri"
 msgid "Issue"
 msgstr "Sorun"
 
+msgid "Issue (material)"
+msgstr ""
+
 msgid "Issue description"
 msgstr "Açıklama"
 
@@ -4373,6 +5112,9 @@ msgstr "Ürün Grupları"
 msgid "Item ID"
 msgstr "Ürün Kimliği"
 
+msgid "Item ledger"
+msgstr ""
+
 msgid "Item Master"
 msgstr "Malzeme Ana Verisi"
 
@@ -4434,6 +5176,9 @@ msgstr "İşler Gerekli"
 msgid "Join {0}"
 msgstr "Join {0}"
 
+msgid "Journal"
+msgstr ""
+
 msgid "Journal Entries"
 msgstr "Yevrak Girişleri"
 
@@ -4480,6 +5225,18 @@ msgstr "Etiketler"
 msgid "Labor"
 msgstr "İşgücü"
 
+msgid "Labor & Machine Absorption"
+msgstr ""
+
+msgid "Labor & Machine Absorption (default)"
+msgstr ""
+
+msgid "Labor & Machine Variance"
+msgstr ""
+
+msgid "Labor & Machine Variance (default)"
+msgstr ""
+
 msgid "Labor Rate"
 msgstr "İşçilik Ücreti"
 
@@ -4511,6 +5268,9 @@ msgstr "Son senkronize edildi: {0}"
 msgid "Last updated: {formattedDate}"
 msgstr "Son güncellendi: {formattedDate}"
 
+msgid "Lead time"
+msgstr ""
+
 msgid "Lead Time"
 msgstr "Teslim Süresi"
 
@@ -4522,6 +5282,9 @@ msgstr "Teslim Süresi (Gün)"
 
 msgid "Lead Time:"
 msgstr "Teslim Süresi:"
+
+msgid "Learn more"
+msgstr ""
 
 msgid "Leave any related receipts untouched"
 msgstr "İlgili tüm makbuzları dokunulmamış bırakır"
@@ -4552,6 +5315,21 @@ msgstr "Hesabınızı kuralım"
 
 msgid "Letter"
 msgstr "Harf"
+
+msgid "Liability account for deferred taxes from accelerated depreciation"
+msgstr ""
+
+msgid "Liability account for sales tax collected from customers"
+msgstr ""
+
+msgid "Liability account for tax paid on purchases"
+msgstr ""
+
+msgid "Lifetime Usage (units)"
+msgstr ""
+
+msgid "Lifetime Usage (Units)"
+msgstr ""
 
 msgid "Light"
 msgstr "Aydınlık"
@@ -4676,6 +5454,12 @@ msgstr "Parti lot boyutu"
 msgid "Lot Size"
 msgstr "Lot Boyutu"
 
+msgid "Lot Size Variance"
+msgstr ""
+
+msgid "Lot Size Variance (default)"
+msgstr ""
+
 msgid "Lot Size:"
 msgstr "Lot Boyutu:"
 
@@ -4697,6 +5481,15 @@ msgstr "Makine Süresi"
 msgid "Machine Unit"
 msgstr "Makine Birimi"
 
+msgid "MACRS"
+msgstr ""
+
+msgid "MACRS Convention"
+msgstr ""
+
+msgid "MACRS Property Class"
+msgstr ""
+
 msgid "Maintenance"
 msgstr "Bakım"
 
@@ -4705,6 +5498,12 @@ msgstr "Bakım Sevkiyat Bildirimleri"
 
 msgid "Maintenance Dispatches"
 msgstr "Bakım Görevleri"
+
+msgid "Maintenance Expense"
+msgstr ""
+
+msgid "Maintenance Expense (default)"
+msgstr ""
 
 msgid "Maintenance Scheduling"
 msgstr "Bakım Planlaması"
@@ -4891,6 +5690,12 @@ msgstr ""
 msgid "Material Types"
 msgstr "Malzeme Tipleri"
 
+msgid "Material Usage Variance"
+msgstr ""
+
+msgid "Material Usage Variance (default)"
+msgstr ""
+
 msgid "materials"
 msgstr ""
 
@@ -4957,6 +5762,9 @@ msgstr "Metot Malzemeleri"
 msgid "Method Operations"
 msgstr "Metot İşlemleri"
 
+msgid "Method type"
+msgstr ""
+
 msgid "Method Type"
 msgstr "Metot Türü"
 
@@ -4971,6 +5779,9 @@ msgstr "Metrik birimleri devre dışı"
 
 msgid "Metric units are enabled"
 msgstr "Metrik birimler etkinleştirilmiş"
+
+msgid "Mid-month / mid-quarter / half-year convention that determines the first-year deduction."
+msgstr ""
 
 msgid "Min Qty"
 msgstr "Min Miktar"
@@ -5047,6 +5858,9 @@ msgstr "Modüller"
 msgid "Monday"
 msgstr "Pazartesi"
 
+msgid "Months over which this asset depreciates for tax purposes (when not using MACRS)."
+msgstr ""
+
 msgid "More"
 msgstr "Daha fazla"
 
@@ -5082,6 +5896,9 @@ msgstr "Çöp Sepetine Taşı"
 msgid "Moved {0} to {1} bucket"
 msgstr "{0} dosyası {1} klasörüne taşındı"
 
+msgid "MRP (planning)"
+msgstr ""
+
 msgid "MRP runs automatically every 3 hours, but you can run it manually here."
 msgstr "MRP otomatik olarak her 3 saatte bir çalışır, ancak buradan manuel olarak çalıştırabilirsiniz."
 
@@ -5112,6 +5929,9 @@ msgstr "Doğru sütunlara ihtiyacınız var mı?"
 msgid "Negative Adjustment"
 msgstr "Negatif Ayarlama"
 
+msgid "Net book value"
+msgstr ""
+
 msgid "Never"
 msgstr "Asla"
 
@@ -5126,6 +5946,9 @@ msgstr "Yeni API Anahtarı"
 
 msgid "New Approval Rule"
 msgstr "Yeni Onay Kuralı"
+
+msgid "New Asset Class"
+msgstr ""
 
 msgid "New Assignment"
 msgstr "Yeni Atama"
@@ -5154,6 +5977,9 @@ msgstr "Yeni Müşteri Parçası"
 msgid "New Department"
 msgstr "Yeni Departman"
 
+msgid "New Dimension"
+msgstr ""
+
 msgid "New Employee Type"
 msgstr "Yeni Çalışan Türü"
 
@@ -5166,6 +5992,9 @@ msgstr "Yeni Hata Modu"
 msgid "New Field"
 msgstr "Yeni Alan"
 
+msgid "New Fixed Asset"
+msgstr ""
+
 msgid "New Gauge Calibration Record"
 msgstr "Yeni Kalibrasyon Kaydı"
 
@@ -5177,6 +6006,9 @@ msgstr "Yeni Grup"
 
 msgid "New Holiday"
 msgstr "Yeni Tatil"
+
+msgid "New IC Transaction"
+msgstr ""
 
 msgid "New Inspection Document"
 msgstr "Yeni Muayene Belgesi"
@@ -5625,8 +6457,14 @@ msgstr "Envanter Dışı Takip"
 msgid "Non-Taxable Add-On Cost"
 msgstr "Vergisiz Ek Ücret"
 
+msgid "Nonconformance (issue)"
+msgstr ""
+
 msgid "None"
 msgstr "Yok"
+
+msgid "Not a table but a general-ledger balance: cost accumulates as job materials are issued and clears when the job is received to stock."
+msgstr ""
 
 msgid "Not enough jobs to cover quantity"
 msgstr "Miktarı karşılayacak yeterli iş yok"
@@ -5673,6 +6511,9 @@ msgstr "Satın alma birimi başına envanter birimi sayısı"
 msgid "OEE Impact"
 msgstr "OEE Etkisi"
 
+msgid "OEM (original equipment manufacturer)"
+msgstr ""
+
 msgid "of"
 msgstr "adet"
 
@@ -5699,6 +6540,12 @@ msgstr "Satış Siparişi'nde"
 
 msgid "On Storage Unit"
 msgstr "Depolizdeki"
+
+msgid "One serial unit or one batch that Carbon follows individually, carrying its own status and attributes such as an expiry date."
+msgstr ""
+
+msgid "One step in a job's routing, naming a process and a work center and carrying its own setup, labor, and machine times and rates."
+msgstr ""
 
 msgid "Onshape Status"
 msgstr "Onshape Durumu"
@@ -5763,6 +6610,12 @@ msgstr "Görev ayrıntılarını aç"
 msgid "Opened"
 msgstr "Açık"
 
+msgid "Opening balance of depreciation already booked before this asset was added to Carbon (use 0 for new acquisitions)."
+msgstr ""
+
+msgid "Operating Expenses"
+msgstr ""
+
 msgid "Operation"
 msgstr "Operasyon"
 
@@ -5801,6 +6654,12 @@ msgstr "İsteğe bağlı"
 
 msgid "Optional context for this rule"
 msgstr "Bu kural için isteğe bağlı bağlam"
+
+msgid "Optional fixed rate used when translating equity balances per IAS 21 (instead of the period rate)."
+msgstr ""
+
+msgid "Optional tags (cost center, project, etc.) that let you slice this posting in reports."
+msgstr ""
 
 msgid "Options"
 msgstr "Seçenekler"
@@ -5856,6 +6715,9 @@ msgstr "Çıktı"
 msgid "Output never outlasts its raw materials. Falls back to the fixed duration when no input has an expiry date."
 msgstr "Çıktı, ham malzemelerinin ömrünü asla aşmaz. Hiçbir girdinin son kullanma tarihi yoksa sabit süreye geri döner."
 
+msgid "Outside operation"
+msgstr ""
+
 msgid "Overdue"
 msgstr "Geçmiş"
 
@@ -5864,6 +6726,12 @@ msgstr "Genel Gider Oranı"
 
 msgid "Overhead Rate (Hourly)"
 msgstr "Genel Gider Oranı (Saatlik)"
+
+msgid "Overhead Variance"
+msgstr ""
+
+msgid "Overhead Variance (default)"
+msgstr ""
 
 msgid "Override needs the inventory:update permission and a reason."
 msgstr "Geçersiz kılma için envanter:güncelleme izni ve bir gerekçe gerekir."
@@ -5895,6 +6763,9 @@ msgstr "Teklif yöntemini kaynak yöntemle üzerine yaz"
 msgid "Overwrite the target manufacturing method with the quote method"
 msgstr "Hedef üretim yöntemini teklif yöntemiyle üzerine yaz"
 
+msgid "Owner (cost center)"
+msgstr ""
+
 msgid "Packing Slip"
 msgstr "Paketleme Fişi"
 
@@ -5915,6 +6786,9 @@ msgstr "Parametreler prosedürden miras alınır."
 
 msgid "Params"
 msgstr "Parametreler"
+
+msgid "Parent cost center"
+msgstr ""
 
 msgid "Parent Department"
 msgstr "Üst Departman"
@@ -5966,6 +6840,12 @@ msgstr "Geçerli"
 
 msgid "Path"
 msgstr "Yol"
+
+msgid "Payables"
+msgstr ""
+
+msgid "Payables (default)"
+msgstr ""
 
 msgid "Payment"
 msgstr "Ödeme"
@@ -6023,6 +6903,9 @@ msgstr "Düşük maliyetli değerlendirme için mükemmel"
 
 msgid "Period"
 msgstr "Dönem"
+
+msgid "Periodic depreciation expense for fixed assets"
+msgstr ""
 
 msgid "Permanently Delete"
 msgstr "Kalıcı Olarak Sil"
@@ -6083,6 +6966,9 @@ msgstr "Toplama Listesi Notları"
 
 msgid "Picking Lists"
 msgstr "Toplu Alma Listeleri"
+
+msgid "Picking offers tracked entities earliest-expiry-first, so the soonest-to-expire stock leaves first by default."
+msgstr ""
 
 msgid "Pieces/Hour"
 msgstr "Adet/Saat"
@@ -6198,6 +7084,9 @@ msgstr "Yayınlandı"
 msgid "Posted By"
 msgstr "Gönderen"
 
+msgid "Posting"
+msgstr ""
+
 msgid "Posting Date"
 msgstr "Yükleme Tarihi"
 
@@ -6216,8 +7105,17 @@ msgstr "Tercih Edilen Tedarikçi"
 msgid "Prefix"
 msgstr "Ön Ek"
 
+msgid "Prepayments"
+msgstr ""
+
+msgid "Prepayments (default)"
+msgstr ""
+
 msgid "Prev"
 msgstr "Önceki"
+
+msgid "Preventive action"
+msgstr ""
 
 msgid "Preview"
 msgstr "Önizle"
@@ -6266,6 +7164,12 @@ msgstr "Fiyatlandırma Kuralları"
 
 msgid "Pricing Trace"
 msgstr "Fiyatlandırma İzleme"
+
+msgid "Primary account for on-hand inventory valuation"
+msgstr ""
+
+msgid "Primary cash account for bank transactions"
+msgstr ""
 
 msgid "Print"
 msgstr "Yazdır"
@@ -6359,6 +7263,9 @@ msgstr "Üretim Miktarları"
 msgid "Production Quantity"
 msgstr "Üretim Miktarı"
 
+msgid "Production variance"
+msgstr ""
+
 msgid "Profile"
 msgstr "Profil"
 
@@ -6433,6 +7340,9 @@ msgstr "Satın Alma Faturası Kalemi"
 msgid "Purchase Invoices"
 msgstr "Satın Alma Faturaları"
 
+msgid "Purchase order"
+msgstr ""
+
 msgid "Purchase Order"
 msgstr "Satın Alma Siparişi"
 
@@ -6460,8 +7370,23 @@ msgstr "Satın Alma Siparişleri"
 msgid "Purchase orders required"
 msgstr "Satın alma siparişleri gerekli"
 
+msgid "Purchase price variance"
+msgstr ""
+
+msgid "Purchase Price Variance"
+msgstr ""
+
+msgid "Purchase Price Variance (default)"
+msgstr ""
+
 msgid "Purchase Qty"
 msgstr "Satın Alma Miktarı"
+
+msgid "Purchase Tax Payable"
+msgstr ""
+
+msgid "Purchase Tax Payable (default)"
+msgstr ""
 
 msgid "Purchase to Order"
 msgstr "Sipariş Üretimine"
@@ -6480,6 +7405,9 @@ msgstr ""
 
 msgid "Purchasing"
 msgstr "Satın Alma"
+
+msgid "Purchasing & Cost of Goods"
+msgstr ""
 
 msgid "Purchasing Contact"
 msgstr "Satın Alma İletişim Kişisi"
@@ -6606,6 +7534,9 @@ msgstr "Teklif bulunamadı"
 msgid "Quote Number"
 msgstr "Teklif Numarası"
 
+msgid "Quote to cash"
+msgstr ""
+
 msgid "Quoted Date"
 msgstr "Teklif Tarihi"
 
@@ -6663,6 +7594,12 @@ msgstr "Talep Edilen Teslim Tarihi"
 msgid "Receipts"
 msgstr "Makbuzlar"
 
+msgid "Receivables"
+msgstr ""
+
+msgid "Receivables (default)"
+msgstr ""
+
 msgid "Receive"
 msgstr "Teslim Al"
 
@@ -6691,6 +7628,9 @@ msgstr "Son Aramalar"
 msgid "Recently Created"
 msgstr "Son Oluşturulanlar"
 
+msgid "Reconciling a purchase order against what was received and invoiced — implicit in Carbon, via the line quantities and GR/IR balance."
+msgstr ""
+
 msgid "Record"
 msgstr "Kayıt"
 
@@ -6703,6 +7643,9 @@ msgstr "Bu numune için muayene sonucunu kaydedin."
 msgid "Records"
 msgstr "Kayıtlar"
 
+msgid "Recovery Period"
+msgstr ""
+
 msgid "Redirecting to verification page..."
 msgstr "Doğrulama sayfasına yönlendiriliyor..."
 
@@ -6714,6 +7657,12 @@ msgstr "Yenile"
 
 msgid "Refresh exchange rate"
 msgstr "Döviz kurunu yenile"
+
+msgid "Register"
+msgstr ""
+
+msgid "Register Existing Asset"
+msgstr ""
 
 msgid "Registered"
 msgstr "Kayıtlı"
@@ -6806,6 +7755,9 @@ msgstr "Yeniden Sırala"
 msgid "Reorder Group"
 msgstr "Grubu Yeniden Sırala"
 
+msgid "Reorder point"
+msgstr ""
+
 msgid "Reorder Point"
 msgstr "Yeniden Sipariş Noktası"
 
@@ -6827,6 +7779,9 @@ msgstr "Yeniden Sipariş Miktarı"
 msgid "Reorder Quantity:"
 msgstr "Yeniden Sipariş Miktarı:"
 
+msgid "Reordering policy"
+msgstr ""
+
 msgid "Reordering Policy"
 msgstr "Yeniden Sipariş Politikası"
 
@@ -6844,6 +7799,9 @@ msgstr "PDF'i değiştirmek bu belgedeki tüm balon yerleşimlerini kaldırır. 
 
 msgid "Replenishment"
 msgstr "Yenileştirme"
+
+msgid "Replenishment system"
+msgstr ""
 
 msgid "Replenishment System"
 msgstr "Yenileştirme Sistemi"
@@ -6913,6 +7871,12 @@ msgstr "PIN'i sıfırla {0} {1}"
 msgid "Reset View"
 msgstr "Görünümü Sıfırla"
 
+msgid "Residual value"
+msgstr ""
+
+msgid "Residual Value %"
+msgstr ""
+
 msgid "Resolve these before completing the NCR: every row must have a non-Pending disposition, and its linked entity quantities must match the row quantity."
 msgstr "Bu NC'yi tamamlamadan önce bunları çözün: her satırın Geçici Olmayan bir elden çıkarma durumuna sahip olması ve bağlı varlık miktarlarının satır miktarını eşleştirmesi gerekir."
 
@@ -6940,6 +7904,15 @@ msgstr "Sonuçlar"
 msgid "Results per page"
 msgstr "Sayfa başına sonuçlar"
 
+msgid "Retained Earnings"
+msgstr ""
+
+msgid "Retained Earnings (default)"
+msgstr ""
+
+msgid "Retiring an asset by write-off instead of sale, booking the remaining net book value as a loss — status becomes Disposed."
+msgstr ""
+
 msgid "Retry"
 msgstr "Tekrar Dene"
 
@@ -6957,6 +7930,12 @@ msgstr "Tüm günlük ve mali defter kayıtlarını tersine çevirir"
 
 msgid "Reverse any item ledger entries from this invoice"
 msgstr "Bu faturadaki herhangi bir kalem defteri girişini tersine çevirir"
+
+msgid "Reverse Charge Sales Tax"
+msgstr ""
+
+msgid "Reverse Charge Sales Tax (default)"
+msgstr ""
 
 msgid "Reverse the related journal entries"
 msgstr "İlgili günlük girişlerini tersine çevir"
@@ -6977,8 +7956,14 @@ msgstr "Davetlemeyi İptal Et"
 msgid "Revoke Invites"
 msgstr "Davetleri İptal Et"
 
+msgid "Rework"
+msgstr ""
+
 msgid "RFQ"
 msgstr "Teklif Talebi"
+
+msgid "RFQ (request for quote)"
+msgstr ""
 
 msgid "RFQ Date"
 msgstr "Teklif Tarihi"
@@ -7016,11 +8001,20 @@ msgstr "Rol"
 msgid "Role:"
 msgstr "Rol:"
 
+msgid "Rounding Account"
+msgstr ""
+
+msgid "Rounding Account (default)"
+msgstr ""
+
 msgid "Route all AP invoices to one address (e.g. corporate headquarters) instead of individual purchasers."
 msgstr "Tüm fatura edilebilir alacak faturalarını bireysel satın alanlar yerine tek bir adrese yönlendirin (örneğin, kurumsal genel merkez)."
 
 msgid "Route all AR invoices to one address (e.g. corporate headquarters) instead of individual locations."
 msgstr "Tüm alacak faturalarını bireysel konumlar yerine tek bir adrese yönlendirin (örneğin, kurumsal merkez)."
+
+msgid "Routing"
+msgstr ""
 
 msgid "rows"
 msgstr "satırlar"
@@ -7071,8 +8065,20 @@ msgstr ""
 msgid "Sales"
 msgstr "Satışlar"
 
+msgid "Sales (default)"
+msgstr ""
+
+msgid "Sales & Revenue"
+msgstr ""
+
 msgid "Sales Contact"
 msgstr "Satış Temsilcisi"
+
+msgid "Sales Discounts"
+msgstr ""
+
+msgid "Sales Discounts (default)"
+msgstr ""
 
 msgid "Sales Funnel"
 msgstr "Satış Hunisi"
@@ -7088,6 +8094,9 @@ msgstr "Satış Faturaları"
 
 msgid "Sales Job Notifications"
 msgstr "Satış İş Bildirimleri"
+
+msgid "Sales order"
+msgstr ""
 
 msgid "Sales Order"
 msgstr "Satış Siparişi"
@@ -7112,6 +8121,15 @@ msgstr "Satış Temsilcisi"
 
 msgid "Sales Revenue"
 msgstr "Satış Geliri"
+
+msgid "Sales Tax Payable"
+msgstr ""
+
+msgid "Sales Tax Payable (default)"
+msgstr ""
+
+msgid "Same as Book"
+msgstr ""
 
 msgid "Sample"
 msgstr "Örnek"
@@ -7194,6 +8212,9 @@ msgstr "Kapsam"
 
 msgid "Scopes"
 msgstr "Kapsamlar"
+
+msgid "Scrap"
+msgstr ""
 
 msgid "Scrap Percent"
 msgstr "Hurda Yüzdesi"
@@ -7428,6 +8449,9 @@ msgstr "Tedarikçilere RFQ Gönder"
 msgid "Send Via"
 msgstr "Gönderim Yolu"
 
+msgid "Sending defective units back to an earlier operation to be corrected instead of scrapping them."
+msgstr ""
+
 msgid "Sends this document for approval before it can go active."
 msgstr "Bu belge aktif hale gelmeden önce onay için gönderilir."
 
@@ -7455,6 +8479,9 @@ msgstr "Seri Numarası:"
 msgid "Serial or Batch Tracking Required"
 msgstr "Seri veya Parti Takibi Gerekli"
 
+msgid "Serial tracking"
+msgstr ""
+
 msgid "Serial Tracking"
 msgstr "Seri Takibi"
 
@@ -7462,6 +8489,12 @@ msgid "Serial/Batch #"
 msgstr "Seri/Parti No"
 
 msgid "service"
+msgstr ""
+
+msgid "Service Charges"
+msgstr ""
+
+msgid "Service Charges (default)"
 msgstr ""
 
 msgid "services"
@@ -7720,6 +8753,9 @@ msgstr "Alım sırasında belirlenen hammadde tarihlerini atla. Yalnızca kendi 
 msgid "Skip scheduled maintenance on company holidays"
 msgstr "Şirket tatillerinde planlanmış bakımı atla"
 
+msgid "Skip the released-but-not-started state — the job starts immediately on scan."
+msgstr ""
+
 msgid "Skipped"
 msgstr "Atlanmış"
 
@@ -7755,6 +8791,9 @@ msgstr "Kaynak"
 
 msgid "Source Analysis"
 msgstr "Kaynak Analizi"
+
+msgid "Source Company"
+msgstr ""
 
 msgid "Source Document"
 msgstr "Kaynak Belge"
@@ -7943,6 +8982,9 @@ msgstr "Bu öğe için sabit sayıda gün saklayın. Son kullanma tarihi başlan
 msgid "Store a fixed number of days on this item. Expiry start date is set on each batch or serial when it's received."
 msgstr "Bu öğeye sabit sayıda gün saklayın. Son kullanma tarihi, her parti veya seri alındığında belirlenir."
 
+msgid "Straight line"
+msgstr ""
+
 msgid "Style of kanban output to show in the Kanban table"
 msgstr "Kanban tablosunda gösterilecek kanban çıktısı stili"
 
@@ -7954,6 +8996,12 @@ msgstr "Alt Departmanlar"
 
 msgid "Subassembly"
 msgstr "Alt Montaj"
+
+msgid "Subcontracting Variance"
+msgstr ""
+
+msgid "Subcontracting Variance (default)"
+msgstr ""
 
 msgid "Submit anonymously"
 msgstr "Anonim olarak gönder"
@@ -8054,6 +9102,12 @@ msgstr "Tedarikçi Parça Numarası"
 msgid "Supplier Parts"
 msgstr "Tedarikçi Parçaları"
 
+msgid "Supplier Payment Discounts"
+msgstr ""
+
+msgid "Supplier Payment Discounts (default)"
+msgstr ""
+
 msgid "supplier process"
 msgstr ""
 
@@ -8065,6 +9119,9 @@ msgstr "Tedarikçi Süreçleri"
 
 msgid "Supplier Quality"
 msgstr "Tedarikçi Kalitesi"
+
+msgid "Supplier quote"
+msgstr ""
 
 msgid "Supplier Quote"
 msgstr "Tedarikçi Teklifi"
@@ -8163,6 +9220,9 @@ msgstr "Hedef"
 msgid "Target an item group."
 msgstr "Bir ürün grubunu hedefleyin."
 
+msgid "Target Company"
+msgstr ""
+
 msgid "Target customers by type."
 msgstr "Müşterileri türlerine göre hedefleyin."
 
@@ -8202,14 +9262,44 @@ msgstr "Vergi ve Nakliye"
 msgid "Tax Amount"
 msgstr "Vergi Tutarı"
 
+msgid "Tax Depreciation"
+msgstr ""
+
+msgid "Tax Depreciation Method"
+msgstr ""
+
 msgid "Tax ID"
 msgstr "Vergi Kimlik Numarası"
+
+msgid "Tax liability for reverse-charge transactions"
+msgstr ""
+
+msgid "Tax Method"
+msgstr ""
+
+msgid "Tax Method (default)"
+msgstr ""
 
 msgid "Tax Percent"
 msgstr "Vergi Yüzdesi"
 
+msgid "Tax Residual Value %"
+msgstr ""
+
+msgid "Tax Useful Life (default)"
+msgstr ""
+
+msgid "Tax Useful Life (months)"
+msgstr ""
+
+msgid "Tax Useful Life (Months)"
+msgstr ""
+
 msgid "Tax:"
 msgstr "Vergi:"
+
+msgid "Taxes"
+msgstr ""
 
 msgid "Temperature"
 msgstr "Sıcaklık"
@@ -8235,13 +9325,46 @@ msgstr "Test Değeri"
 msgid "Text size"
 msgstr "Metin boyutu"
 
+msgid "The action that copies a saved method (its materials, operations, and work instructions) onto a job or quote line."
+msgstr ""
+
+msgid "The allowed values users can pick when tagging postings with this dimension."
+msgstr ""
+
 msgid "The amount of days after the calculation method that the cash discount is available"
 msgstr "Nakit indirimi için mevcut olan gün sayısı hesaplama yönteminden itibaren"
 
 msgid "The amount of days after the calculation method that the payment is due"
 msgstr "Ödeme vadesinin hesaplama yönteminden sonraki gün sayısı"
 
+msgid "The append-only record of every stock movement; on-hand is the sum of its signed entries and the source of truth."
+msgstr ""
+
+msgid "The book of all posted journal lines, summed by account — written only when the company has accounting enabled."
+msgstr ""
+
+msgid "The carrier's tracking-page URL with {trackingNumber} as a placeholder — Carbon substitutes the actual number when generating links on shipments."
+msgstr ""
+
+msgid "The cash discount the customer can take if they pay within the discount window."
+msgstr ""
+
+msgid "The categories of stock allowed in this unit; used to enforce putaway rules (e.g. cold chain, hazardous)."
+msgstr ""
+
+msgid "The category a fixed asset belongs to, carrying the GL accounts every asset of that kind posts to."
+msgstr ""
+
+msgid "The code printed on the kanban card that operators scan to mark the job complete; auto-generated when left blank."
+msgstr ""
+
+msgid "The corrected expiration for this lot/serial; existing on-hand stock is re-evaluated against shelf-life policy after the change."
+msgstr ""
+
 msgid "The dashed threshold you don't want inventory to fall below."
+msgstr ""
+
+msgid "The date depreciation begins for this asset; usually the in-service date."
 msgstr ""
 
 msgid "The date the customer expects to receive the goods"
@@ -8250,14 +9373,35 @@ msgstr "Müşterinin malı almayı beklediği tarih"
 msgid "The date the item is required on-site to cover the period's projected demand."
 msgstr "Ürünün dönemdeki beklenen talebi karşılamak için sahada gerekli olduğu tarih."
 
+msgid "The date this asset is retired from service; depreciation stops on this date and remaining net book value is booked to the disposal account."
+msgstr ""
+
+msgid "The date this entry hits the ledger; determines the accounting period it falls in."
+msgstr ""
+
+msgid "The date this intercompany transaction hits both companies' ledgers."
+msgstr ""
+
 msgid "The date you received this RFQ from the customer. Defaults to today."
 msgstr "Bu RFQ'yu müşteriden aldığınız tarih. Varsayılan olarak bugün ayarlanır."
 
 msgid "The deadline to send your quote to the customer."
 msgstr "Müşteriye teklif gönderme son tarihi."
 
+msgid "The eight-disciplines quality method, modeled with the nonconformance workflow's tasks rather than hard-coded."
+msgstr ""
+
+msgid "The employee accountable for this cost center — when purchase order approvals are on, they're the approver for spend posted against it."
+msgstr ""
+
+msgid "The end-to-end commercial flow from quoting a customer to collecting payment: RFQ to quote to sales order, then shipment, invoice, and settled payment."
+msgstr ""
+
 msgid "The endpoint that receives a POST request with the updated data when the table is updated"
 msgstr "Tablo güncellendiğinde güncellenmiş verilerle bir POST isteği alan uç nokta"
+
+msgid "The floor an asset depreciates down to; when net book value reaches it, the asset flips to Fully Depreciated."
+msgstr ""
 
 msgid "The following assemblies have no operations. Please assign an operation to each before releasing."
 msgstr "Aşağıdaki montajlarda işlem bulunmamaktadır. Lütfen yayınlamadan önce her birine bir işlem atayın."
@@ -8265,8 +9409,32 @@ msgstr "Aşağıdaki montajlarda işlem bulunmamaktadır. Lütfen yayınlamadan 
 msgid "The following line items are missing prices or lead times:"
 msgstr "Aşağıdaki kalemlerde fiyat veya teslim süresi eksik:"
 
+msgid "The gap between a purchase order's price and the supplier's bill, posted to a variance account when the invoice posts."
+msgstr ""
+
+msgid "The GL account charges for this carrier post to (freight expense, freight in/out)."
+msgstr ""
+
+msgid "The group account this account rolls up to; determines its type, class, and statement placement."
+msgstr ""
+
+msgid "The immediate nonconformance task that quarantines affected stock or work before the root cause is known."
+msgstr ""
+
+msgid "The inbound posting document that takes goods into stock (from a PO, transfer, or job output) and creates any tracked entities."
+msgstr ""
+
+msgid "The inventory cost recognized when a shipment posts, valued by the item's costing method."
+msgstr ""
+
+msgid "The IRS recovery-period class for this asset under MACRS (3, 5, 7, 10, 15, 20, 27.5, 39-year)."
+msgstr ""
+
 msgid "The latest date to place this PO so it arrives by the need-by date, given the supplier's lead time."
 msgstr "Tedarikçinin teslim süresine göre bu Satın Alma Siparişini (PO) ihtiyaç tarihine kadar ulaşması için en geç tarih."
+
+msgid "The lot identifier for this stock; one row per batch, quantity is the on-hand for that lot."
+msgstr ""
 
 msgid "The lot stays open so you can keep inspecting and disposition later. Sampled outcomes are preserved."
 msgstr "Lot açık kalır böylece daha sonra incelemeye ve elden çıkarmaya devam edebilirsiniz. Örneklenmiş sonuçlar korunur."
@@ -8277,11 +9445,41 @@ msgstr "Lot bu olarak işaretlenecektir. Kayıtlarınız için {fails} örnek ba
 msgid "The lot will still be rejected, but an NCR cannot be created until at least one Issue Type is configured."
 msgstr "Lot yine de reddedilecek, ancak en az bir Hata Türü yapılandırılana kadar Bir Uygunluk Raporu (NCR) oluşturulamaz."
 
+msgid "The material is purchased from a supplier for that specific order, rather than made or pulled from stock."
+msgstr ""
+
+msgid "The month your financial year begins; periods are numbered from this month."
+msgstr ""
+
+msgid "The month your tax year begins; may differ from the fiscal year in some jurisdictions."
+msgstr ""
+
 msgid "The new version number of the method"
 msgstr "metodun yeni sürüm numarası"
 
 msgid "The number of hours per week the contractor is available to work."
 msgstr "Yüklenicinin çalışmak için haftalık olarak müsait olduğu saat sayısı."
+
+msgid "The number of months over which this asset will be depreciated."
+msgstr ""
+
+msgid "The on-hand level that triggers a new replenishment order under the quantity-based policies."
+msgstr ""
+
+msgid "The ordered sequence of operations a job runs through, copied from the method's bill of process."
+msgstr ""
+
+msgid "The outbound posting document that takes goods out of stock to a customer, posting COGS as it goes."
+msgstr ""
+
+msgid "The parent-child chain of tracked entities — what a unit was built from and what it became."
+msgstr ""
+
+msgid "The part is manufactured as its own job when the parent that needs it is built."
+msgstr ""
+
+msgid "The part is taken from existing stock when its parent is built — no new job or purchase order."
+msgstr ""
 
 msgid "The percentage of the cash discount. Use 0 for no discount."
 msgstr "Nakit indirim yüzdesi. İndirim yoksa 0 kullanın."
@@ -8295,17 +9493,50 @@ msgstr "Teklif oluşturuldu"
 msgid "The quote will be copied with a revision suffix"
 msgstr "Teklif revizyon ekiyle kopyalanacaktır"
 
+msgid "The recorded genealogy of tracked entities — which inputs were consumed to produce which outputs, receipt through shipment."
+msgstr ""
+
+msgid "The residual WIP a job has left at close, swept to a Production Variance account — the only variance Carbon books for a job."
+msgstr ""
+
 msgid "The revision number of the part"
 msgstr "Parçanın revizyon numarası"
+
+msgid "The schedule used to spread this asset's cost over its useful life (straight-line, declining balance, units of production)."
+msgstr ""
 
 msgid "The size of the part"
 msgstr "Parçanın boyutu"
 
+msgid "The specific PO, return, or transfer this receipt posts against; available IDs depend on the source document type above."
+msgstr ""
+
+msgid "The specific SO, transfer, or RMA this shipment posts against; available IDs depend on the source document type above."
+msgstr ""
+
+msgid "The statement bucket all accounts under this group will use."
+msgstr ""
+
 msgid "The storage service didn't respond in time. Please try again."
 msgstr "Depolama hizmeti zamanında yanıt vermedi. Lütfen tekrar deneyin."
 
+msgid "The supplier's packing-slip or shipment number, recorded for audit; not used by any posting logic."
+msgstr ""
+
+msgid "The thread linking a sales RFQ, its quote, and the resulting sales order — a join, not a document with its own status."
+msgstr ""
+
+msgid "The unique identifier on this physical unit; one row per serial, quantity is always 1."
+msgstr ""
+
 msgid "The unit price of the item at the time of the purchase"
 msgstr "Satın alma zamanındaki birim fiyat"
+
+msgid "The unit suppliers price and ship this item in, when different from the inventory unit (e.g. case vs each)."
+msgstr ""
+
+msgid "The US tax depreciation system with IRS property-class tables, run as a separate tax schedule alongside the book schedule."
+msgstr ""
 
 msgid "Theme"
 msgstr "Tema"
@@ -8396,6 +9627,12 @@ msgstr "Bu, diğer revizyonlardaki tüm yöntem malzemelerini bu revizyonla değ
 
 msgid "This will replace all method materials of other sizes with this size."
 msgstr "Bu, diğer boyutlardaki tüm yöntem malzemelerini bu boyutuyla değiştirecektir."
+
+msgid "This will write off the remaining book value of the asset."
+msgstr ""
+
+msgid "Three-way match"
+msgstr ""
 
 msgid "Thumbnail"
 msgstr "Küçük Resim"
@@ -8502,8 +9739,17 @@ msgstr ""
 msgid "Tools"
 msgstr "Araçlar"
 
+msgid "Top-level classification (asset / liability / equity / revenue / expense); set only on root groups, inherited by children."
+msgstr ""
+
 msgid "Total"
 msgstr "Toplam"
+
+msgid "Total capitalized cost of the asset (purchase price plus freight, install, and other costs that become part of book value)."
+msgstr ""
+
+msgid "Total expected production units for units-of-production depreciation; cost is spread per unit produced."
+msgstr ""
 
 msgid "Total Hours"
 msgstr "Toplam Saat"
@@ -8546,6 +9792,9 @@ msgstr "Bu öğenin partileri veya seri numaraları ne zaman sona erdiğini izle
 
 msgid "Tracked Entities"
 msgstr "Takip Edilen Varlıklar"
+
+msgid "Tracked entity"
+msgstr ""
 
 msgid "Tracked Entity"
 msgstr "Takip Edilen Varlık"
@@ -8691,7 +9940,13 @@ msgstr "Birim Satış Fiyatı"
 msgid "Units"
 msgstr "Birimler"
 
+msgid "Units of base currency per one unit of this currency; used to translate amounts on posting."
+msgstr ""
+
 msgid "units of measure"
+msgstr ""
+
+msgid "Units reported as unrecoverable at an operation, with a reason — the alternative to rework."
 msgstr ""
 
 msgid "Unknown"
@@ -8875,6 +10130,15 @@ msgstr "Karanlık modda ana ekranda kullanılır"
 msgid "Used to categorize items for reporting and analysis"
 msgstr "Raporlama ve analiz için ürünleri kategorize etmek amacıyla kullanılır"
 
+msgid "Useful Life (default)"
+msgstr ""
+
+msgid "Useful Life (months)"
+msgstr ""
+
+msgid "Useful Life (Months)"
+msgstr ""
+
 msgid "User"
 msgstr "Kullanıcı"
 
@@ -8883,6 +10147,12 @@ msgstr ""
 
 msgid "Users"
 msgstr "Kullanıcılar"
+
+msgid "Users and groups allowed to open or download this document; the uploader is always included."
+msgstr ""
+
+msgid "Users and groups allowed to rename, replace, or re-label this document; the uploader is always included, and edit access implies view access."
+msgstr ""
 
 msgid "Users can update this value for themselves"
 msgstr "Kullanıcılar bu değeri kendileri için güncelleyebilir"
@@ -8907,6 +10177,27 @@ msgstr "Değer"
 
 msgid "Value source by surface"
 msgstr "Yüzeye göre değer kaynağı"
+
+msgid "Values"
+msgstr ""
+
+msgid "Variance between actual and standard BOM component consumption"
+msgstr ""
+
+msgid "Variance between actual and standard routing hours and rates"
+msgstr ""
+
+msgid "Variance between actual purchase price and standard cost"
+msgstr ""
+
+msgid "Variance between applied and actual manufacturing overhead"
+msgstr ""
+
+msgid "Variance from physical inventory count adjustments"
+msgstr ""
+
+msgid "Variance in outside processing costs"
+msgstr ""
 
 msgid "VAT Number"
 msgstr "KDV Numarası"
@@ -9000,6 +10291,9 @@ msgstr "Açık Teklifleri Görüntüle"
 
 msgid "View Open RFQs"
 msgstr "Açık RFQ'ları Görüntüle"
+
+msgid "View permissions"
+msgstr ""
 
 msgid "View Permissions"
 msgstr "İzinleri Görüntüle"
@@ -9158,17 +10452,50 @@ msgstr "Faturanın işlendiği sırada hesaplanan ağırlıklı ortalama maliyet
 msgid "Welcome to Carbon"
 msgstr "Carbon'a Hoş Geldiniz"
 
+msgid "What is {translatedTerm}?"
+msgstr ""
+
+msgid "What source this dimension pulls its allowed values from (custom list or an existing entity like customer, location, employee)."
+msgstr ""
+
+msgid "What the due-date countdown starts from (invoice date, end of month, etc.)."
+msgstr ""
+
+msgid "What this receipt is fulfilling — a purchase order, a return, an inbound transfer, or a manual receipt with no parent."
+msgstr ""
+
+msgid "What this shipment is fulfilling — a sales order, an outbound transfer, an RMA return, or a manual shipment."
+msgstr ""
+
 msgid "When"
 msgstr "Ne zaman"
 
 msgid "When a finished product's shelf life is set to Calculated, pick which consumed inputs feed the calculation."
 msgstr "Bir bitmiş ürünün raf ömrü Hesaplanan olarak ayarlandığında, hesaplamaya hangi tüketilen girdilerin dahil edileceğini seçin."
 
+msgid "When a serial or batch expires, and what happens if used after — a company policy can Warn, Block, or BlockWithOverride."
+msgstr ""
+
 msgid "When expired stock is used"
 msgstr "Süresi dolmuş stok kullanıldığında"
 
 msgid "When on, this rule fires for every target of its type. Assignment rows are ignored but preserved."
 msgstr "Açıkken bu kural, türündeki her hedef için tetiklenir. Atama satırları yok sayılır ancak korunur."
+
+msgid "When the kanban card is scanned, the job is automatically moved out of draft and released to the floor."
+msgstr ""
+
+msgid "When the receiving location expects the stock to arrive; drives MRP availability at the destination."
+msgstr ""
+
+msgid "When this specific lot/serial expires; drives FEFO picking and the shelf-life policy on consumption."
+msgstr ""
+
+msgid "Where an operation runs; carries labor and quoting rates, with overhead the difference between them."
+msgstr ""
+
+msgid "Where this entry originated (manual entry, posting from sales/purchasing, recurring template, etc.)."
+msgstr ""
 
 msgid "Who Can Approve"
 msgstr "Kimler Onaylayabilir"
@@ -9212,6 +10539,9 @@ msgstr "Geçiş tarihi neden değiştiriliyor?"
 msgid "Why is this included?"
 msgstr "Neden dahil edildi?"
 
+msgid "Why stock is changing — Positive (found), Negative (lost/scrap), or Set (replace count with a measured value)."
+msgstr ""
+
 msgid "WIP"
 msgstr "Yarı Mamul"
 
@@ -9227,6 +10557,9 @@ msgstr "Marka Açık Mod"
 msgid "work center"
 msgstr ""
 
+msgid "Work center"
+msgstr ""
+
 msgid "Work Center"
 msgstr "İş Merkezi"
 
@@ -9238,6 +10571,15 @@ msgstr ""
 
 msgid "Work Centers"
 msgstr "İş Merkezleri"
+
+msgid "Work in process (WIP)"
+msgstr ""
+
+msgid "Work in Progress (default)"
+msgstr ""
+
+msgid "Work in Progress (WIP)"
+msgstr ""
 
 msgid "Work Instructions"
 msgstr "İş Talimatları"
@@ -9253,6 +10595,15 @@ msgstr "İş Akışı"
 
 msgid "Worst Performing Machines"
 msgstr "En kötü performans gösteren makineler"
+
+msgid "Write-Down Account"
+msgstr ""
+
+msgid "Write-Off Account"
+msgstr ""
+
+msgid "Writing an asset's value down over its life — a monthly batch you create, review as a draft, then post."
+msgstr ""
 
 msgid "Year"
 msgstr "Yıl"

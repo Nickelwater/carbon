@@ -471,6 +471,9 @@ msgstr "Kit"
 msgid "Labor"
 msgstr "Manodopera"
 
+msgid "Learn more"
+msgstr ""
+
 msgid "Leave this page"
 msgstr "Lascia questa pagina"
 
@@ -1098,6 +1101,9 @@ msgstr "Visualizza intervento di manutenzione"
 
 msgid "We've sent you a magic link to sign in to your account."
 msgstr "Ti abbiamo inviato un link di accesso al tuo account."
+
+msgid "What is {translatedTerm}?"
+msgstr ""
 
 msgid "WIP"
 msgstr "WIP"
