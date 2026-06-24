@@ -3,6 +3,7 @@ import { Number, Submit, ValidatedForm } from "@carbon/form";
 import {
   Button,
   Card,
+  CardAction,
   CardContent,
   CardHeader,
   CardTitle,
@@ -29,6 +30,7 @@ import {
   ModalTitle,
   NumberField,
   NumberInput,
+  Switch,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -38,8 +40,17 @@ import {
 import type { TrackedEntityAttributes } from "@carbon/utils";
 import { getItemReadableId } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useCallback, useEffect, useState } from "react";
 import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from "react";
+import {
+  LuArrowDown,
+  LuArrowUp,
+  LuArrowUpDown,
   LuCheck,
   LuCircleAlert,
   LuCirclePlus,
@@ -62,24 +73,57 @@ import { Enumerable } from "~/components/Enumerable";
 import { useStorageUnits } from "~/components/Form/StorageUnit";
 import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";
 import { ConfirmDelete } from "~/components/Modals";
-import { useRouteData } from "~/hooks";
+import { useDateFormatter, useRouteData, useUser } from "~/hooks";
 import type {
   getBatchNumbersForItem,
   getSerialNumbersForItem,
   ItemTracking,
   Shipment,
   ShipmentLine,
-  ShipmentLineTracking
+  ShipmentLineTracking,
+  ShipmentSourceDocument
 } from "~/modules/inventory";
-import { splitValidator } from "~/modules/inventory";
+import {
+  getAvailableSalesOrderLinesForCustomer,
+  shipmentLineRequiresInventoryCheck,
+  splitValidator
+} from "~/modules/inventory";
+import { getCustomer, getCustomerPartsForCustomer } from "~/modules/sales";
+import type { CustomerPartMapping } from "~/modules/sales/ui/SalesOrder/contractCustomerPartLabelLogic";
+import { customerPartNumberLabel } from "~/modules/sales/ui/SalesOrder/contractCustomerPartLabelLogic";
 import type { action as shipmentLinesAddAction } from "~/routes/x+/shipment+/lines.add";
 import type { action as shipmentLinesUpdateAction } from "~/routes/x+/shipment+/lines.update";
 import { useItems } from "~/stores";
+import type { Item } from "~/stores/items";
 import { path } from "~/utils/path";
 
-const ShipmentLines = () => {
+type AvailableShipmentLine = {
+  id: string;
+  itemId: string | null;
+  description?: string | null;
+  quantityToSend: number | null;
+  quantitySent?: number | null;
+  saleQuantity?: number | null;
+  promisedDate?: string | null;
+  salesOrderReadableId: string | null;
+  salesOrderId: string;
+  unitOfMeasureCode?: string | null;
+};
+
+type AddLineSortColumn = "order" | "item" | "promised" | "qtyDue" | "onHand";
+
+const ShipmentLines = ({
+  selectedCustomerId,
+  sourceDocument = "Sales Order"
+}: {
+  selectedCustomerId?: string;
+  sourceDocument?: ShipmentSourceDocument;
+}) => {
   const { shipmentId } = useParams();
   if (!shipmentId) throw new Error("shipmentId not found");
+
+  const { carbon } = useCarbon();
+  const { company } = useUser();
 
   const fetcher = useFetcher<typeof shipmentLinesUpdateAction>();
   const addLineFetcher = useFetcher<typeof shipmentLinesAddAction>();
@@ -90,13 +134,9 @@ const ShipmentLines = () => {
     shipment: Shipment;
     shipmentLines: ShipmentLine[];
     shipmentLineTracking: ShipmentLineTracking[];
-    availableShipmentLines?: Array<{
-      id: string;
-      itemId: string;
-      quantityToSend: number;
-      salesOrderReadableId: string | null;
-      salesOrderId: string;
-    }>;
+    availableShipmentLines?: AvailableShipmentLine[];
+    customer?: { contractCustomer?: boolean | null } | null;
+    customerParts?: CustomerPartMapping[];
     fixedAssetLines: {
       id: string;
       salesOrderLineId: string;
@@ -108,6 +148,192 @@ const ShipmentLines = () => {
       serialNumber: string | null;
     }[];
   }>(path.to.shipment(shipmentId));
+
+  const shipmentLocationId = routeData?.shipment?.locationId ?? undefined;
+  const { formatDate } = useDateFormatter();
+
+  const [availableShipmentLines, setAvailableShipmentLines] = useState<
+    AvailableShipmentLine[]
+  >(routeData?.availableShipmentLines ?? []);
+  const [selectedLineIds, setSelectedLineIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [showCustomerPartNumbers, setShowCustomerPartNumbers] = useState(true);
+  const [clientCustomerPartContext, setClientCustomerPartContext] = useState<{
+    contractCustomer: boolean;
+    customerParts: CustomerPartMapping[];
+  } | null>(null);
+
+  const effectiveCustomerId =
+    selectedCustomerId ?? routeData?.shipment?.customerId ?? undefined;
+
+  const customerPartContext = useMemo(() => {
+    if (
+      effectiveCustomerId &&
+      effectiveCustomerId === routeData?.shipment?.customerId
+    ) {
+      return {
+        contractCustomer: !!routeData?.customer?.contractCustomer,
+        customerParts: routeData?.customerParts ?? []
+      };
+    }
+    return clientCustomerPartContext;
+  }, [
+    clientCustomerPartContext,
+    effectiveCustomerId,
+    routeData?.customer?.contractCustomer,
+    routeData?.customerParts,
+    routeData?.shipment?.customerId
+  ]);
+
+  const canToggleCustomerParts =
+    !!customerPartContext?.contractCustomer &&
+    (customerPartContext.customerParts.length ?? 0) > 0;
+
+  useEffect(() => {
+    if (!effectiveCustomerId || !carbon || sourceDocument !== "Sales Order") {
+      setClientCustomerPartContext(null);
+      return;
+    }
+
+    if (effectiveCustomerId === routeData?.shipment?.customerId) {
+      setClientCustomerPartContext(null);
+      return;
+    }
+
+    let cancelled = false;
+    getCustomer(carbon, effectiveCustomerId).then(async (customerResult) => {
+      const customer = customerResult.data;
+      if (
+        cancelled ||
+        !(customer as { contractCustomer?: boolean | null })
+          ?.contractCustomer ||
+        !customer.id
+      ) {
+        if (!cancelled) {
+          setClientCustomerPartContext({
+            contractCustomer: false,
+            customerParts: []
+          });
+        }
+        return;
+      }
+
+      const partsResult = await getCustomerPartsForCustomer(
+        carbon,
+        customer.id,
+        company.id
+      );
+      if (!cancelled) {
+        setClientCustomerPartContext({
+          contractCustomer: true,
+          customerParts: partsResult.data ?? []
+        });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    carbon,
+    company.id,
+    effectiveCustomerId,
+    routeData?.shipment?.customerId,
+    sourceDocument
+  ]);
+
+  useEffect(() => {
+    if (!effectiveCustomerId || !carbon || sourceDocument !== "Sales Order") {
+      setAvailableShipmentLines([]);
+      return;
+    }
+
+    if (
+      effectiveCustomerId === routeData?.shipment?.customerId &&
+      routeData?.availableShipmentLines
+    ) {
+      setAvailableShipmentLines(routeData.availableShipmentLines);
+      return;
+    }
+
+    let cancelled = false;
+    getAvailableSalesOrderLinesForCustomer(
+      carbon,
+      effectiveCustomerId,
+      company.id,
+      { excludeShipmentId: shipmentId }
+    ).then((result) => {
+      if (!cancelled) {
+        setAvailableShipmentLines(result.data ?? []);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    carbon,
+    company.id,
+    effectiveCustomerId,
+    routeData?.availableShipmentLines,
+    routeData?.shipment?.customerId,
+    shipmentId,
+    sourceDocument
+  ]);
+
+  useEffect(() => {
+    if (!addLineDisclosure.isOpen) {
+      setSelectedLineIds(new Set());
+      setAddLineSortColumn("promised");
+      setAddLineSortDirection("asc");
+      setShowCustomerPartNumbers(true);
+    }
+  }, [addLineDisclosure.isOpen]);
+
+  const [addLineSortColumn, setAddLineSortColumn] =
+    useState<AddLineSortColumn>("promised");
+  const [addLineSortDirection, setAddLineSortDirection] = useState<
+    "asc" | "desc"
+  >("asc");
+
+  const sortedAvailableShipmentLines = useMemo(
+    () =>
+      [...availableShipmentLines].sort((a, b) =>
+        compareAddShipmentLines(
+          a,
+          b,
+          addLineSortColumn,
+          addLineSortDirection,
+          items,
+          shipmentLocationId,
+          canToggleCustomerParts && showCustomerPartNumbers
+            ? customerPartContext?.customerParts
+            : undefined
+        )
+      ),
+    [
+      addLineSortColumn,
+      addLineSortDirection,
+      availableShipmentLines,
+      canToggleCustomerParts,
+      customerPartContext?.customerParts,
+      items,
+      shipmentLocationId,
+      showCustomerPartNumbers
+    ]
+  );
+
+  const onAddLineSort = (column: AddLineSortColumn) => {
+    if (addLineSortColumn === column) {
+      setAddLineSortDirection((direction) =>
+        direction === "asc" ? "desc" : "asc"
+      );
+    } else {
+      setAddLineSortColumn(column);
+      setAddLineSortDirection("asc");
+    }
+  };
 
   const shipmentsById = new Map<string, ShipmentLine>(
     // @ts-expect-error
@@ -239,15 +465,20 @@ const ShipmentLines = () => {
   const isReadOnly = isPosted || isVoided;
 
   const canAddLine =
-    routeData?.shipment?.customerId &&
+    sourceDocument === "Sales Order" &&
+    effectiveCustomerId &&
     !isPosted &&
     !isVoided &&
-    (routeData?.availableShipmentLines?.length ?? 0) > 0;
+    availableShipmentLines.length > 0;
 
-  const onAddLine = (salesOrderLineId: string) => {
+  const onAddSelectedLines = () => {
+    if (selectedLineIds.size === 0) return;
     const formData = new FormData();
     formData.append("shipmentId", shipmentId);
-    formData.append("salesOrderLineId", salesOrderLineId);
+    formData.append(
+      "salesOrderLineIds",
+      JSON.stringify(Array.from(selectedLineIds))
+    );
     addLineFetcher.submit(formData, {
       method: "post",
       action: path.to.shipmentLinesAdd
@@ -255,24 +486,67 @@ const ShipmentLines = () => {
     addLineDisclosure.onClose();
   };
 
+  const toggleLineSelection = (lineId: string) => {
+    const line = availableShipmentLines.find((entry) => entry.id === lineId);
+    if (
+      line &&
+      !isAvailableLineShippable(line, items, shipmentLocationId, shipmentLines)
+    ) {
+      return;
+    }
+    setSelectedLineIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(lineId)) next.delete(lineId);
+      else next.add(lineId);
+      return next;
+    });
+  };
+
+  const shippableAvailableLines = useMemo(
+    () =>
+      availableShipmentLines.filter((line) =>
+        isAvailableLineShippable(line, items, shipmentLocationId, shipmentLines)
+      ),
+    [availableShipmentLines, items, shipmentLocationId, shipmentLines]
+  );
+
+  const allLinesSelected =
+    shippableAvailableLines.length > 0 &&
+    shippableAvailableLines.every((line) => selectedLineIds.has(line.id));
+  const someLinesSelected =
+    shippableAvailableLines.some((line) => selectedLineIds.has(line.id)) &&
+    !allLinesSelected;
+
+  const toggleAllLines = () => {
+    setSelectedLineIds((prev) => {
+      const allSelected =
+        shippableAvailableLines.length > 0 &&
+        shippableAvailableLines.every((line) => prev.has(line.id));
+      if (allSelected) return new Set();
+      return new Set(shippableAvailableLines.map((line) => line.id));
+    });
+  };
+
   return (
     <>
       <Card>
-        <HStack className="justify-between items-start">
+        <HStack className="w-full justify-between">
           <CardHeader>
             <CardTitle>
               <Trans>Shipment Lines</Trans>
             </CardTitle>
           </CardHeader>
           {canAddLine && (
-            <Button
-              leftIcon={<LuCirclePlus />}
-              variant="secondary"
-              onClick={addLineDisclosure.onOpen}
-              isLoading={addLineFetcher.state !== "idle"}
-            >
-              Add shipment line
-            </Button>
+            <CardAction>
+              <Button
+                leftIcon={<LuCirclePlus />}
+                variant="secondary"
+                onClick={addLineDisclosure.onOpen}
+                isLoading={addLineFetcher.state !== "idle"}
+              >
+                Add shipment line
+              </Button>
+            </CardAction>
           )}
         </HStack>
 
@@ -302,6 +576,7 @@ const ShipmentLines = () => {
                       key={line.id}
                       line={line}
                       shipment={routeData?.shipment}
+                      shipmentLines={shipmentLines}
                       hasTrackingLabel={
                         routeData?.shipmentLineTracking?.some((t) => {
                           const attributes =
@@ -334,40 +609,191 @@ const ShipmentLines = () => {
         open={addLineDisclosure.isOpen}
         onOpenChange={(open) => !open && addLineDisclosure.onClose()}
       >
-        <ModalContent>
+        <ModalContent size="xlarge">
           <ModalHeader>
-            <ModalTitle>Add shipment line</ModalTitle>
+            <ModalTitle>
+              <Trans>Add shipment lines</Trans>
+            </ModalTitle>
             <ModalDescription>
-              Choose a sales order line to add to this shipment.
+              <Trans>
+                Select open sales order lines to add to this shipment.
+              </Trans>
             </ModalDescription>
           </ModalHeader>
           <ModalBody>
-            <VStack spacing={2}>
-              {(routeData?.availableShipmentLines ?? []).map((line) => (
-                <button
-                  key={line.id}
-                  type="button"
-                  className="flex items-center justify-between w-full rounded-lg border p-3 text-left hover:bg-muted/50"
-                  onClick={() => onAddLine(line.id)}
+            <VStack spacing={3}>
+              {canToggleCustomerParts ? (
+                <HStack
+                  spacing={3}
+                  className="w-full items-center justify-between px-1"
                 >
-                  <HStack spacing={2}>
-                    <span className="font-medium">
-                      {line.salesOrderReadableId ?? line.salesOrderId}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {getItemReadableId(items, line.itemId) ?? line.itemId}
-                    </span>
-                  </HStack>
-                  <span className="text-muted-foreground">
-                    Qty to send: {line.quantityToSend}
+                  <Switch
+                    variant="small"
+                    label={<Trans>Customer part numbers</Trans>}
+                    checked={showCustomerPartNumbers}
+                    onCheckedChange={setShowCustomerPartNumbers}
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {showCustomerPartNumbers ? (
+                      <Trans>Showing this customer's part numbers</Trans>
+                    ) : (
+                      <Trans>Showing internal part numbers</Trans>
+                    )}
                   </span>
-                </button>
-              ))}
+                </HStack>
+              ) : null}
+              <div className="hidden sm:block max-h-[min(60vh,520px)] w-full overflow-y-auto">
+                <table className="w-full table-fixed border-separate border-spacing-0">
+                  <colgroup>
+                    <col className="w-10" />
+                    <col className="w-[6.5rem]" />
+                    <col />
+                    <col className="w-[7.5rem]" />
+                    <col className="w-[7.5rem]" />
+                    <col className="w-[7.5rem]" />
+                  </colgroup>
+                  <thead className="sticky top-0 z-10 bg-background">
+                    <tr className="border-b text-xs font-medium uppercase text-muted-foreground">
+                      <th className="py-2 pl-1 text-left align-bottom">
+                        <Checkbox
+                          isChecked={allLinesSelected}
+                          isIndeterminate={someLinesSelected}
+                          onCheckedChange={toggleAllLines}
+                          aria-label="Select all"
+                        />
+                      </th>
+                      <th className="py-2 pr-2 text-left align-bottom">
+                        <AddLineSortHeader
+                          label={<Trans>Order</Trans>}
+                          column="order"
+                          activeColumn={addLineSortColumn}
+                          direction={addLineSortDirection}
+                          onSort={onAddLineSort}
+                        />
+                      </th>
+                      <th className="py-2 pr-3 text-left align-bottom">
+                        <AddLineSortHeader
+                          label={<Trans>Item</Trans>}
+                          column="item"
+                          activeColumn={addLineSortColumn}
+                          direction={addLineSortDirection}
+                          onSort={onAddLineSort}
+                        />
+                      </th>
+                      <th className="py-2 px-2 text-left align-bottom">
+                        <AddLineSortHeader
+                          label={<Trans>Promised</Trans>}
+                          column="promised"
+                          activeColumn={addLineSortColumn}
+                          direction={addLineSortDirection}
+                          onSort={onAddLineSort}
+                        />
+                      </th>
+                      <th className="py-2 px-2 text-right align-bottom">
+                        <AddLineSortHeader
+                          label={<Trans>Qty due</Trans>}
+                          column="qtyDue"
+                          activeColumn={addLineSortColumn}
+                          direction={addLineSortDirection}
+                          onSort={onAddLineSort}
+                          align="right"
+                        />
+                      </th>
+                      <th className="py-2 pr-1 text-right align-bottom">
+                        <AddLineSortHeader
+                          label={<Trans>On hand</Trans>}
+                          column="onHand"
+                          activeColumn={addLineSortColumn}
+                          direction={addLineSortDirection}
+                          onSort={onAddLineSort}
+                          align="right"
+                        />
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sortedAvailableShipmentLines.map((line) => {
+                      const isShippable = isAvailableLineShippable(
+                        line,
+                        items,
+                        shipmentLocationId,
+                        shipmentLines
+                      );
+                      return (
+                        <AddShipmentLineTableRow
+                          key={line.id}
+                          line={line}
+                          items={items}
+                          locationId={shipmentLocationId}
+                          isSelected={selectedLineIds.has(line.id)}
+                          isShippable={isShippable}
+                          onToggle={() => toggleLineSelection(line.id)}
+                          formatDate={formatDate}
+                          showCustomerPartNumbers={
+                            canToggleCustomerParts && showCustomerPartNumbers
+                          }
+                          customerParts={customerPartContext?.customerParts}
+                        />
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="sm:hidden max-h-[min(60vh,520px)] w-full overflow-y-auto">
+                <HStack className="px-1 mb-2">
+                  <Checkbox
+                    isChecked={allLinesSelected}
+                    isIndeterminate={someLinesSelected}
+                    onCheckedChange={toggleAllLines}
+                  />
+                  <span className="text-xs uppercase text-muted-foreground">
+                    <Trans>Select all</Trans>
+                  </span>
+                </HStack>
+                {sortedAvailableShipmentLines.map((line) => {
+                  const isShippable = isAvailableLineShippable(
+                    line,
+                    items,
+                    shipmentLocationId,
+                    shipmentLines
+                  );
+                  return (
+                    <AddShipmentLineCard
+                      key={line.id}
+                      line={line}
+                      items={items}
+                      locationId={shipmentLocationId}
+                      isSelected={selectedLineIds.has(line.id)}
+                      isShippable={isShippable}
+                      onToggle={() => toggleLineSelection(line.id)}
+                      formatDate={formatDate}
+                      showCustomerPartNumbers={
+                        canToggleCustomerParts && showCustomerPartNumbers
+                      }
+                      customerParts={customerPartContext?.customerParts}
+                    />
+                  );
+                })}
+              </div>
             </VStack>
           </ModalBody>
           <ModalFooter>
             <Button variant="secondary" onClick={addLineDisclosure.onClose}>
-              Cancel
+              <Trans>Cancel</Trans>
+            </Button>
+            <Button
+              variant="primary"
+              onClick={onAddSelectedLines}
+              isDisabled={selectedLineIds.size === 0}
+              isLoading={addLineFetcher.state !== "idle"}
+            >
+              {selectedLineIds.size === 0 ? (
+                <Trans>Add lines</Trans>
+              ) : selectedLineIds.size === 1 ? (
+                <Trans>Add line</Trans>
+              ) : (
+                <Trans>Add {selectedLineIds.size} lines</Trans>
+              )}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -473,6 +899,7 @@ function ShipmentFixedAssetLineItem({
 function ShipmentLineItem({
   line,
   shipment,
+  shipmentLines,
   className,
   hasTrackingLabel,
   isReadOnly,
@@ -483,6 +910,7 @@ function ShipmentLineItem({
 }: {
   line: ShipmentLine;
   shipment?: Shipment;
+  shipmentLines: ShipmentLine[];
   className?: string;
   hasTrackingLabel: boolean;
   isReadOnly: boolean;
@@ -513,11 +941,30 @@ function ShipmentLineItem({
   const unitsOfMeasure = useUnitOfMeasure();
   const splitDisclosure = useDisclosure();
   const deleteDisclosure = useDisclosure();
+  const lineLocationId = line.locationId ?? shipment?.locationId ?? undefined;
+
+  const maxShippableQuantity = getMaxShippableQuantityClient({
+    itemId: line.itemId,
+    item,
+    fulfillmentType: line.fulfillment?.type,
+    locationId: lineLocationId,
+    items,
+    outstandingQuantity: line.outstandingQuantity ?? 0,
+    shipmentLines,
+    currentLineId: line.id
+  });
+
+  const inventoryOnHand =
+    getInventoryOnHand(line.itemId, lineLocationId, items)?.quantity ?? 0;
 
   // Check if shipped quantity exceeds job quantity for job fulfillments
   const isJobOverShipped =
     line.fulfillment?.type === "Job" &&
     (line.shippedQuantity || 0) > (line.fulfillment?.job?.quantity || 0);
+
+  const isOverInventory =
+    lineRequiresInventoryCheck(item, line.fulfillment?.type) &&
+    (line.shippedQuantity || 0) > maxShippableQuantity;
 
   return (
     <div className={cn("flex flex-col border-b p-6 gap-6 relative", className)}>
@@ -593,48 +1040,53 @@ function ShipmentLineItem({
             <VStack spacing={1}>
               <div className="flex items-center justify-between gap-1 w-full">
                 <label className="text-xs text-muted-foreground">Shipped</label>
-                {isJobOverShipped && (
+                {(isJobOverShipped || isOverInventory) && (
                   <Tooltip>
                     <TooltipTrigger>
                       <LuCircleAlert className="text-red-500" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      Shipped quantity exceeds job quantity
+                      {isOverInventory
+                        ? t`Shipped quantity exceeds available inventory (${maxShippableQuantity})`
+                        : t`Shipped quantity exceeds job quantity`}
                     </TooltipContent>
                   </Tooltip>
                 )}
               </div>
               <NumberField
                 value={line.shippedQuantity || 0}
+                maxValue={maxShippableQuantity}
                 onChange={(value) => {
                   // Default to 0 if value is NaN, null, or undefined
                   const safeValue = isNaN(value) || value == null ? 0 : value;
+                  const cappedValue = Math.min(safeValue, maxShippableQuantity);
                   onUpdate({
                     lineId: line.id!,
                     field: "shippedQuantity",
-                    value: safeValue
+                    value: cappedValue
                   });
                   // Adjust serial numbers array size while preserving existing values
-                  if (safeValue > serialNumbers.length) {
+                  if (cappedValue > serialNumbers.length) {
                     onSerialNumbersChange([
                       ...serialNumbers,
                       ...Array.from(
-                        { length: safeValue - serialNumbers.length },
+                        { length: cappedValue - serialNumbers.length },
                         (_, i) => ({
                           index: i,
                           id: ""
                         })
                       )
                     ]);
-                  } else if (safeValue < serialNumbers.length) {
-                    onSerialNumbersChange(serialNumbers.slice(0, safeValue));
+                  } else if (cappedValue < serialNumbers.length) {
+                    onSerialNumbersChange(serialNumbers.slice(0, cappedValue));
                   }
                 }}
               >
                 <NumberInput
                   className={cn(
                     "disabled:bg-transparent disabled:opacity-100 min-w-[100px]",
-                    isJobOverShipped && "border-red-500 border-2"
+                    (isJobOverShipped || isOverInventory) &&
+                      "border-red-500 border-2"
                   )}
                   isDisabled={
                     isReadOnly ||
@@ -645,6 +1097,11 @@ function ShipmentLineItem({
                   min={0}
                 />
               </NumberField>
+              {lineRequiresInventoryCheck(item, line.fulfillment?.type) ? (
+                <span className="text-xs text-muted-foreground tabular-nums">
+                  <Trans>On hand:</Trans> {formatQuantity(inventoryOnHand)}
+                </span>
+              ) : null}
             </VStack>
             <VStack spacing={1} className="text-center items-center">
               <label className="text-xs text-muted-foreground">Ordered</label>
@@ -1439,6 +1896,407 @@ function resolveTrackedEntity(
     entities.find((e) => e.readableId === scannedValue) ??
     null
   );
+}
+
+function formatQuantity(value: number | null | undefined): string {
+  if (value == null || typeof value !== "number" || !isFinite(value)) {
+    return "—";
+  }
+  return value % 1 === 0
+    ? value.toLocaleString("en-US")
+    : value.toLocaleString("en-US", { maximumFractionDigits: 4 });
+}
+
+function getInventoryOnHand(
+  itemId: string | null | undefined,
+  locationId: string | undefined,
+  items: Item[]
+): { quantity: number; unitOfMeasureCode: string } | null {
+  if (!itemId) return null;
+  const item = items.find((entry) => entry.id === itemId);
+  if (!item) return null;
+
+  const quantity =
+    locationId != null
+      ? (item.quantityByLocation?.[locationId] ?? 0)
+      : (item.quantityOnHand ?? 0);
+
+  return {
+    quantity,
+    unitOfMeasureCode: item.unitOfMeasureCode
+  };
+}
+
+function lineRequiresInventoryCheck(
+  item: Item | undefined,
+  fulfillmentType?: string | null
+) {
+  return shipmentLineRequiresInventoryCheck(
+    item?.itemTrackingType,
+    fulfillmentType
+  );
+}
+
+function getReservedShipmentQuantityForItemClient(
+  shipmentLines: ShipmentLine[],
+  itemId: string | null | undefined,
+  excludeLineId?: string | null
+) {
+  if (!itemId) return 0;
+  return shipmentLines
+    .filter((line) => line.itemId === itemId && line.id !== excludeLineId)
+    .reduce((sum, line) => sum + (line.shippedQuantity ?? 0), 0);
+}
+
+function getMaxShippableQuantityClient({
+  itemId,
+  item,
+  fulfillmentType,
+  locationId,
+  items,
+  outstandingQuantity,
+  shipmentLines,
+  currentLineId
+}: {
+  itemId: string | null | undefined;
+  item: Item | undefined;
+  fulfillmentType?: string | null;
+  locationId?: string;
+  items: Item[];
+  outstandingQuantity: number;
+  shipmentLines: ShipmentLine[];
+  currentLineId?: string | null;
+}) {
+  if (!lineRequiresInventoryCheck(item, fulfillmentType)) {
+    return outstandingQuantity;
+  }
+
+  const onHand = getInventoryOnHand(itemId, locationId, items)?.quantity ?? 0;
+  const reservedQuantity = getReservedShipmentQuantityForItemClient(
+    shipmentLines,
+    itemId,
+    currentLineId
+  );
+  const availableInventory = Math.max(0, onHand - reservedQuantity);
+  return Math.min(outstandingQuantity, availableInventory);
+}
+
+function isAvailableLineShippable(
+  line: AvailableShipmentLine,
+  items: Item[],
+  locationId: string | undefined,
+  shipmentLines: ShipmentLine[]
+) {
+  const item = items.find((entry) => entry.id === line.itemId);
+  if (!lineRequiresInventoryCheck(item)) {
+    return true;
+  }
+
+  const maxShippable = getMaxShippableQuantityClient({
+    itemId: line.itemId,
+    item,
+    locationId,
+    items,
+    outstandingQuantity: line.quantityToSend ?? 0,
+    shipmentLines
+  });
+
+  return maxShippable > 0;
+}
+
+function getAddLineItemPartLabel(
+  line: AvailableShipmentLine,
+  items: Item[],
+  showCustomerPartNumbers: boolean,
+  customerParts?: CustomerPartMapping[]
+): string {
+  const internal = getItemReadableId(items, line.itemId) ?? line.itemId ?? "";
+  if (!showCustomerPartNumbers || !line.itemId || !customerParts?.length) {
+    return internal;
+  }
+  const mapping = customerParts.find((cp) => cp.itemId === line.itemId);
+  return mapping ? customerPartNumberLabel(mapping) : internal;
+}
+
+function AddShipmentLineTableRow({
+  line,
+  items,
+  locationId,
+  isSelected,
+  isShippable,
+  onToggle,
+  formatDate,
+  showCustomerPartNumbers,
+  customerParts
+}: {
+  line: AvailableShipmentLine;
+  items: Item[];
+  locationId?: string;
+  isSelected: boolean;
+  isShippable: boolean;
+  onToggle: () => void;
+  formatDate: (value: string) => string;
+  showCustomerPartNumbers: boolean;
+  customerParts?: CustomerPartMapping[];
+}) {
+  const qtyDue = line.quantityToSend ?? 0;
+  const qtySent = line.quantitySent ?? 0;
+  const qtyOrdered = line.saleQuantity ?? 0;
+  const inventory = getInventoryOnHand(line.itemId, locationId, items);
+  const uom = line.unitOfMeasureCode ?? inventory?.unitOfMeasureCode ?? "";
+
+  return (
+    <tr
+      className={cn(
+        "border-b last:border-b-0",
+        isShippable
+          ? "cursor-pointer hover:bg-muted/50"
+          : "opacity-60 cursor-not-allowed"
+      )}
+      onClick={isShippable ? onToggle : undefined}
+    >
+      <td
+        className="py-2.5 pl-1 align-top"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <Checkbox
+          isChecked={isSelected}
+          disabled={!isShippable}
+          onCheckedChange={onToggle}
+        />
+      </td>
+      <td className="py-2.5 pr-2 align-top text-sm font-medium whitespace-nowrap">
+        {line.salesOrderReadableId ?? line.salesOrderId}
+      </td>
+      <td className="py-2.5 pr-3 align-top min-w-0">
+        <div className="min-w-0 text-sm text-muted-foreground">
+          <div className="truncate">
+            {getAddLineItemPartLabel(
+              line,
+              items,
+              showCustomerPartNumbers,
+              customerParts
+            )}
+          </div>
+          {line.description ? (
+            <div className="text-xs truncate">{line.description}</div>
+          ) : null}
+        </div>
+      </td>
+      <td className="py-2.5 px-2 align-top text-sm text-muted-foreground whitespace-nowrap">
+        {line.promisedDate ? formatDate(line.promisedDate) : "—"}
+      </td>
+      <td className="py-2.5 px-2 align-top text-right tabular-nums text-sm whitespace-nowrap">
+        <div className="font-medium">
+          {formatQuantity(qtyDue)}
+          {uom ? ` ${uom}` : ""}
+        </div>
+        {qtySent > 0 ? (
+          <div className="text-xs text-muted-foreground">
+            {formatQuantity(qtySent)} of {formatQuantity(qtyOrdered)}{" "}
+            <Trans>shipped</Trans>
+          </div>
+        ) : null}
+      </td>
+      <td className="py-2.5 pr-1 align-top text-right tabular-nums text-sm whitespace-nowrap">
+        {inventory ? (
+          <span className={cn(!isShippable && "text-destructive")}>
+            {formatQuantity(inventory.quantity)} {inventory.unitOfMeasureCode}
+          </span>
+        ) : (
+          "—"
+        )}
+      </td>
+    </tr>
+  );
+}
+
+function AddShipmentLineCard({
+  line,
+  items,
+  locationId,
+  isSelected,
+  isShippable,
+  onToggle,
+  formatDate,
+  showCustomerPartNumbers,
+  customerParts
+}: {
+  line: AvailableShipmentLine;
+  items: Item[];
+  locationId?: string;
+  isSelected: boolean;
+  isShippable: boolean;
+  onToggle: () => void;
+  formatDate: (value: string) => string;
+  showCustomerPartNumbers: boolean;
+  customerParts?: CustomerPartMapping[];
+}) {
+  const qtyDue = line.quantityToSend ?? 0;
+  const qtySent = line.quantitySent ?? 0;
+  const qtyOrdered = line.saleQuantity ?? 0;
+  const inventory = getInventoryOnHand(line.itemId, locationId, items);
+  const uom = line.unitOfMeasureCode ?? inventory?.unitOfMeasureCode ?? "";
+
+  return (
+    <label
+      className={cn(
+        "flex gap-3 w-full rounded-lg border mb-2 last:mb-0 p-3",
+        isShippable
+          ? "cursor-pointer hover:bg-muted/50"
+          : "opacity-60 cursor-not-allowed"
+      )}
+    >
+      <Checkbox
+        isChecked={isSelected}
+        disabled={!isShippable}
+        onCheckedChange={onToggle}
+      />
+      <VStack spacing={0} className="min-w-0 flex-1">
+        <div className="min-w-0 text-sm">
+          <div className="font-medium">
+            {line.salesOrderReadableId ?? line.salesOrderId}
+          </div>
+          <div className="text-muted-foreground truncate">
+            {getAddLineItemPartLabel(
+              line,
+              items,
+              showCustomerPartNumbers,
+              customerParts
+            )}
+          </div>
+        </div>
+        {line.description ? (
+          <span className="text-xs text-muted-foreground truncate">
+            {line.description}
+          </span>
+        ) : null}
+        <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5 text-xs text-muted-foreground">
+          <span>
+            <Trans>Promised:</Trans>{" "}
+            {line.promisedDate ? formatDate(line.promisedDate) : "—"}
+          </span>
+          <span>
+            <Trans>Qty due:</Trans> {formatQuantity(qtyDue)}
+            {uom ? ` ${uom}` : ""}
+            {qtySent > 0 ? (
+              <span className="text-muted-foreground/80">
+                {" "}
+                ({formatQuantity(qtySent)} of {formatQuantity(qtyOrdered)}{" "}
+                <Trans>shipped</Trans>)
+              </span>
+            ) : null}
+          </span>
+          <span>
+            <Trans>On hand:</Trans>{" "}
+            {inventory ? (
+              <span className={cn(!isShippable && "text-destructive")}>
+                {formatQuantity(inventory.quantity)}{" "}
+                {inventory.unitOfMeasureCode}
+              </span>
+            ) : (
+              "—"
+            )}
+          </span>
+        </div>
+      </VStack>
+    </label>
+  );
+}
+
+function AddLineSortHeader({
+  label,
+  column,
+  activeColumn,
+  direction,
+  onSort,
+  align = "left"
+}: {
+  label: ReactNode;
+  column: AddLineSortColumn;
+  activeColumn: AddLineSortColumn;
+  direction: "asc" | "desc";
+  onSort: (column: AddLineSortColumn) => void;
+  align?: "left" | "right";
+}) {
+  const isActive = activeColumn === column;
+  const SortIcon = isActive
+    ? direction === "asc"
+      ? LuArrowUp
+      : LuArrowDown
+    : LuArrowUpDown;
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        "inline-flex items-center gap-1 text-inherit uppercase hover:text-foreground transition-colors",
+        align === "right" && "w-full justify-end"
+      )}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSort(column);
+      }}
+    >
+      <span>{label}</span>
+      <SortIcon className="h-3.5 w-3.5 shrink-0 opacity-70" />
+    </button>
+  );
+}
+
+function compareAddShipmentLines(
+  a: AvailableShipmentLine,
+  b: AvailableShipmentLine,
+  column: AddLineSortColumn,
+  direction: "asc" | "desc",
+  items: Item[],
+  locationId?: string,
+  customerParts?: CustomerPartMapping[]
+): number {
+  const factor = direction === "asc" ? 1 : -1;
+  const showCustomerPartNumbers = !!customerParts?.length;
+
+  switch (column) {
+    case "order": {
+      const aLabel = a.salesOrderReadableId ?? a.salesOrderId;
+      const bLabel = b.salesOrderReadableId ?? b.salesOrderId;
+      return aLabel.localeCompare(bLabel) * factor;
+    }
+    case "item": {
+      const aLabel = getAddLineItemPartLabel(
+        a,
+        items,
+        showCustomerPartNumbers,
+        customerParts
+      );
+      const bLabel = getAddLineItemPartLabel(
+        b,
+        items,
+        showCustomerPartNumbers,
+        customerParts
+      );
+      return aLabel.localeCompare(bLabel) * factor;
+    }
+    case "promised": {
+      const aDate = a.promisedDate ?? "";
+      const bDate = b.promisedDate ?? "";
+      if (!aDate && !bDate) return 0;
+      if (!aDate) return 1 * factor;
+      if (!bDate) return -1 * factor;
+      return aDate.localeCompare(bDate) * factor;
+    }
+    case "qtyDue":
+      return ((a.quantityToSend ?? 0) - (b.quantityToSend ?? 0)) * factor;
+    case "onHand": {
+      const aQty =
+        getInventoryOnHand(a.itemId, locationId, items)?.quantity ?? 0;
+      const bQty =
+        getInventoryOnHand(b.itemId, locationId, items)?.quantity ?? 0;
+      return (aQty - bQty) * factor;
+    }
+    default:
+      return 0;
+  }
 }
 
 export default ShipmentLines;

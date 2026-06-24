@@ -1,6 +1,6 @@
 {
-  "generated": "2026-06-23T19:44:03.980Z",
-  "totalTools": 1195,
+  "generated": "2026-06-24T17:01:52.877Z",
+  "totalTools": 1200,
   "modules": 15,
   "tools": [
     {
@@ -4608,6 +4608,182 @@
       }
     },
     {
+      "name": "inventory_getItemQuantityOnHandAtLocation",
+      "module": "inventory",
+      "classification": "READ",
+      "description": "get item quantity on hand at location",
+      "paramCount": 2,
+      "serviceParams": [
+        "client",
+        "itemId",
+        "companyId",
+        "locationId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId",
+          "locationId"
+        ]
+      }
+    },
+    {
+      "name": "inventory_shipmentLineRequiresInventoryCheck",
+      "module": "inventory",
+      "classification": "WRITE",
+      "description": "shipment line requires inventory check",
+      "paramCount": 2,
+      "serviceParams": [
+        "itemTrackingType",
+        "fulfillmentType"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemTrackingType": {},
+          "fulfillmentType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "itemTrackingType"
+        ]
+      }
+    },
+    {
+      "name": "inventory_getReservedShipmentQuantityForItem",
+      "module": "inventory",
+      "classification": "READ",
+      "description": "get reserved shipment quantity for item",
+      "paramCount": 3,
+      "serviceParams": [
+        "client",
+        "shipmentId",
+        "itemId",
+        "excludeLineId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shipmentId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "excludeLineId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shipmentId",
+          "itemId"
+        ]
+      }
+    },
+    {
+      "name": "inventory_getMaxShippableQuantityForShipmentLine",
+      "module": "inventory",
+      "classification": "READ",
+      "description": "get max shippable quantity for shipment line",
+      "paramCount": 7,
+      "serviceParams": [
+        "client",
+        "{\n    companyId,\n    shipmentId,\n    lineId,\n    itemId,\n    locationId,\n    itemTrackingType,\n    fulfillmentType,\n    outstandingQuantity\n  }"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shipmentId": {
+            "type": "string"
+          },
+          "lineId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "itemTrackingType": {},
+          "fulfillmentType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outstandingQuantity": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "shipmentId",
+          "lineId",
+          "itemId",
+          "locationId",
+          "itemTrackingType",
+          "outstandingQuantity"
+        ]
+      }
+    },
+    {
+      "name": "inventory_getAvailableInventoryForShipmentItem",
+      "module": "inventory",
+      "classification": "READ",
+      "description": "get available inventory for shipment item",
+      "paramCount": 3,
+      "serviceParams": [
+        "client",
+        "{\n    companyId,\n    shipmentId,\n    itemId,\n    locationId\n  }"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "shipmentId": {
+            "type": "string"
+          },
+          "itemId": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "shipmentId",
+          "itemId",
+          "locationId"
+        ]
+      }
+    },
+    {
       "name": "inventory_getAvailableSalesOrderLinesForCustomer",
       "module": "inventory",
       "classification": "READ",
@@ -5991,7 +6167,7 @@
           "locationId": {
             "type": "string"
           },
-          "lines: Array<{\r\n      itemId: string;\r\n      fromStorageUnitId": {},
+          "lines: Array<{\n      itemId: string;\n      fromStorageUnitId": {},
           "stockTransferId": {
             "type": "string"
           },

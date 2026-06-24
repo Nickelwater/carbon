@@ -4,6 +4,7 @@ import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
+import { useEffect, useState } from "react";
 import type { ActionFunctionArgs } from "react-router";
 import { data, redirect, useParams } from "react-router";
 import { useRouteData } from "~/hooks";
@@ -13,6 +14,7 @@ import {
   shipmentValidator,
   upsertShipment
 } from "~/modules/inventory";
+import type { ShipmentSourceDocument } from "~/modules/inventory/types";
 import {
   ShipmentForm,
   ShipmentLines,
@@ -52,35 +54,17 @@ export async function action({ request }: ActionFunctionArgs) {
   const shipmentDataHasChanged =
     currentShipment.data.sourceDocument !== d.sourceDocument ||
     currentShipment.data.sourceDocumentId !== d.sourceDocumentId ||
-    currentShipment.data.locationId !== d.locationId;
+    currentShipment.data.locationId !== d.locationId ||
+    (currentShipment.data.customerId ?? "") !== (d.customerId ?? "");
 
-  if (shipmentDataHasChanged && d.sourceDocumentId) {
+  const shouldRebuildFromSourceDocument =
+    shipmentDataHasChanged &&
+    !!d.sourceDocumentId &&
+    d.sourceDocument !== "Sales Order";
+
+  if (shouldRebuildFromSourceDocument) {
     const serviceRole = getCarbonServiceRole();
     switch (d.sourceDocument) {
-      case "Sales Order":
-        const salesOrderShipment = await serviceRole.functions.invoke<{
-          id: string;
-        }>("create", {
-          body: {
-            type: "shipmentFromSalesOrder",
-            companyId,
-            locationId: d.locationId,
-            salesOrderId: d.sourceDocumentId,
-            shipmentId: id,
-            userId: userId
-          }
-        });
-        if (!salesOrderShipment.data || salesOrderShipment.error) {
-          console.error(salesOrderShipment.error);
-          throw redirect(
-            path.to.shipment(id),
-            await flash(
-              request,
-              error(salesOrderShipment.error, "Failed to create shipment")
-            )
-          );
-        }
-        break;
       case "Purchase Order":
         const purchaseOrderShipment = await serviceRole.functions.invoke<{
           id: string;
@@ -176,6 +160,26 @@ export default function ShipmentDetailsRoute() {
   if (!routeData?.shipment)
     throw new Error("Could not find shipment in routeData");
 
+  const [selectedCustomerId, setSelectedCustomerId] = useState<
+    string | undefined
+  >(routeData.shipment.customerId ?? undefined);
+  const [selectedSourceDocument, setSelectedSourceDocument] =
+    useState<ShipmentSourceDocument>(
+      (routeData.shipment.sourceDocument ??
+        "Sales Order") as ShipmentSourceDocument
+    );
+
+  useEffect(() => {
+    setSelectedCustomerId(routeData.shipment.customerId ?? undefined);
+  }, [routeData.shipment.customerId]);
+
+  useEffect(() => {
+    setSelectedSourceDocument(
+      (routeData.shipment.sourceDocument ??
+        "Sales Order") as ShipmentSourceDocument
+    );
+  }, [routeData.shipment.sourceDocument]);
+
   const initialValues = {
     ...routeData.shipment,
     shipmentId: routeData.shipment.shipmentId ?? undefined,
@@ -196,14 +200,19 @@ export default function ShipmentDetailsRoute() {
   return (
     <>
       <ShipmentForm
-        key={initialValues.sourceDocumentId}
+        key={`${initialValues.customerId ?? ""}-${initialValues.sourceDocumentId ?? ""}`}
         // @ts-ignore
         initialValues={initialValues}
         status={routeData.shipment.status}
         shipmentLines={routeData.shipmentLines}
+        onCustomerIdChange={setSelectedCustomerId}
+        onSourceDocumentChange={setSelectedSourceDocument}
       />
 
-      <ShipmentLines />
+      <ShipmentLines
+        selectedCustomerId={selectedCustomerId}
+        sourceDocument={selectedSourceDocument}
+      />
 
       <ShipmentNotes
         key={`notes-${initialValues.id}`}

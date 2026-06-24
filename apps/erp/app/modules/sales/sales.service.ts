@@ -10,6 +10,7 @@ import type {
   SupabaseClient
 } from "@supabase/supabase-js";
 import { FunctionRegion } from "@supabase/supabase-js";
+import { sql } from "kysely";
 import type { z } from "zod";
 import { getSupplierPriceBreaksForItems } from "~/modules/items/items.service";
 import { getEmployeeJob } from "~/modules/people";
@@ -1976,14 +1977,16 @@ export async function insertSalesOrderLines(
     customFields?: Json;
   })[]
 ) {
-  const linesWithDefaults = salesOrderLines.map((line) => ({
+  const linesWithDefaults = salesOrderLines.map((line, index) => ({
     ...line,
     setupPrice: line.setupPrice ?? 0,
     unitPrice: line.unitPrice ?? 0,
     shippingCost: line.shippingCost ?? 0,
     addOnCost: line.addOnCost ?? 0,
     nonTaxableAddOnCost: line.nonTaxableAddOnCost ?? 0,
-    taxPercent: line.taxPercent ?? 0
+    taxPercent: line.taxPercent ?? 0,
+    sortOrder: index + 1,
+    lineNumber: index + 1
   }));
   return client.from("salesOrderLine").insert(linesWithDefaults).select("id");
 }
@@ -5641,10 +5644,12 @@ export async function upsertSalesOrderLine(
     0
   );
 
+  const nextOrder = maxSortOrder + 1;
+
   return client
     .from("salesOrderLine")
     .insert([
-      {
+      sanitize({
         ...salesOrderLine,
         setupPrice: salesOrderLine.setupPrice ?? 0,
         unitPrice: salesOrderLine.unitPrice ?? 0,
@@ -5653,8 +5658,9 @@ export async function upsertSalesOrderLine(
         nonTaxableAddOnCost: salesOrderLine.nonTaxableAddOnCost ?? 0,
         taxPercent: salesOrderLine.taxPercent ?? 0,
         exchangeRate: salesOrder.data?.exchangeRate ?? 1,
-        sortOrder: maxSortOrder + 1
-      }
+        sortOrder: nextOrder,
+        lineNumber: nextOrder
+      }) as Database["public"]["Tables"]["salesOrderLine"]["Insert"]
     ])
     .select("id")
     .single();
@@ -5666,11 +5672,14 @@ export async function updateSalesOrderLineOrder(
 ) {
   return db.transaction().execute(async (trx) => {
     for (const { id, sortOrder, updatedBy } of updates) {
-      await trx
-        .updateTable("salesOrderLine")
-        .set({ sortOrder, updatedBy })
-        .where("id", "=", id)
-        .execute();
+      const lineNumber = Math.trunc(sortOrder);
+      await sql`
+        UPDATE "salesOrderLine"
+        SET "sortOrder" = ${sortOrder},
+            "lineNumber" = ${lineNumber},
+            "updatedBy" = ${updatedBy}
+        WHERE "id" = ${id}
+      `.execute(trx);
     }
   });
 }

@@ -839,6 +839,118 @@ export async function getShipmentFiles(
   };
 }
 
+export async function getItemQuantityOnHandAtLocation(
+  client: SupabaseClient<Database>,
+  itemId: string,
+  companyId: string,
+  locationId: string
+) {
+  const { data } = await client
+    .from("itemStockQuantities")
+    .select("quantityOnHand")
+    .eq("itemId", itemId)
+    .eq("companyId", companyId)
+    .eq("locationId", locationId)
+    .maybeSingle();
+
+  return Number(data?.quantityOnHand ?? 0);
+}
+
+export function shipmentLineRequiresInventoryCheck(
+  itemTrackingType:
+    | Database["public"]["Enums"]["itemTrackingType"]
+    | null
+    | undefined,
+  fulfillmentType?: string | null
+) {
+  if (itemTrackingType === "Non-Inventory") return false;
+  if (fulfillmentType === "Job") return false;
+  return true;
+}
+
+export async function getReservedShipmentQuantityForItem(
+  client: SupabaseClient<Database>,
+  shipmentId: string,
+  itemId: string,
+  excludeLineId?: string
+) {
+  let query = client
+    .from("shipmentLine")
+    .select("shippedQuantity")
+    .eq("shipmentId", shipmentId)
+    .eq("itemId", itemId);
+
+  if (excludeLineId) {
+    query = query.neq("id", excludeLineId);
+  }
+
+  const { data } = await query;
+  return (data ?? []).reduce(
+    (sum, line) => sum + Number(line.shippedQuantity ?? 0),
+    0
+  );
+}
+
+export async function getMaxShippableQuantityForShipmentLine(
+  client: SupabaseClient<Database>,
+  {
+    companyId,
+    shipmentId,
+    lineId,
+    itemId,
+    locationId,
+    itemTrackingType,
+    fulfillmentType,
+    outstandingQuantity
+  }: {
+    companyId: string;
+    shipmentId: string;
+    lineId: string;
+    itemId: string;
+    locationId: string;
+    itemTrackingType:
+      | Database["public"]["Enums"]["itemTrackingType"]
+      | null
+      | undefined;
+    fulfillmentType?: string | null;
+    outstandingQuantity: number;
+  }
+) {
+  if (!shipmentLineRequiresInventoryCheck(itemTrackingType, fulfillmentType)) {
+    return outstandingQuantity;
+  }
+
+  const [onHand, reservedQuantity] = await Promise.all([
+    getItemQuantityOnHandAtLocation(client, itemId, companyId, locationId),
+    getReservedShipmentQuantityForItem(client, shipmentId, itemId, lineId)
+  ]);
+
+  const availableInventory = Math.max(0, onHand - reservedQuantity);
+  return Math.min(outstandingQuantity, availableInventory);
+}
+
+export async function getAvailableInventoryForShipmentItem(
+  client: SupabaseClient<Database>,
+  {
+    companyId,
+    shipmentId,
+    itemId,
+    locationId
+  }: {
+    companyId: string;
+    shipmentId: string;
+    itemId: string;
+    locationId: string;
+  }
+) {
+  const [onHand, reservedQuantity] = await Promise.all([
+    getItemQuantityOnHandAtLocation(client, itemId, companyId, locationId),
+    getReservedShipmentQuantityForItem(client, shipmentId, itemId)
+  ]);
+
+  return Math.max(0, onHand - reservedQuantity);
+}
+
 export async function getAvailableSalesOrderLinesForCustomer(
   client: SupabaseClient<Database>,
   customerId: string,
@@ -865,7 +977,9 @@ export async function getAvailableSalesOrderLinesForCustomer(
       .select("lineId")
       .eq("shipmentId", options.excludeShipmentId);
     if (!existing.error && existing.data) {
-      for (const r of existing.data) lineIdsOnShipment.add(r.lineId);
+      for (const r of existing.data) {
+        if (r.lineId) lineIdsOnShipment.add(r.lineId);
+      }
     }
   }
 
@@ -878,7 +992,9 @@ export async function getAvailableSalesOrderLinesForCustomer(
 
   if (result.error) return result;
   const filtered = lineIdsOnShipment.size
-    ? (result.data ?? []).filter((row) => !lineIdsOnShipment.has(row.id))
+    ? (result.data ?? []).filter(
+        (row) => row.id && !lineIdsOnShipment.has(row.id)
+      )
     : (result.data ?? []);
   return { data: filtered, error: null };
 }

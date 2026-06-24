@@ -12,6 +12,7 @@ import {
   getShipmentRelatedItems,
   getShipmentTracking
 } from "~/modules/inventory";
+import { getCustomer, getCustomerPartsForCustomer } from "~/modules/sales";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
@@ -79,6 +80,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         )
       : { data: [] };
 
+  const customer = customerId ? await getCustomer(client, customerId) : null;
+  const customerData = customer?.data ?? null;
+  const customerParts =
+    customerData?.contractCustomer && customerData.id
+      ? await getCustomerPartsForCustomer(client, customerData.id, companyId)
+      : null;
+
   let fixedAssetLines: {
     id: string;
     salesOrderLineId: string;
@@ -128,7 +136,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     fixedAssetLines,
     shipmentLineTracking: shipmentLineTracking.data ?? [],
     relatedItems,
-    availableShipmentLines: availableShipmentLines.data ?? []
+    availableShipmentLines: availableShipmentLines.data ?? [],
+    customer: customerData,
+    customerParts: customerParts?.data ?? []
   };
 }
 

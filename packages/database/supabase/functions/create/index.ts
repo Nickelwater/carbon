@@ -11,6 +11,62 @@ import { getNextSequence } from "../shared/get-next-sequence.ts";
 const pool = getConnectionPool(1);
 const db = getDatabaseClient<DB>(pool);
 
+async function getItemQuantityOnHandAtLocation(
+  client: Awaited<ReturnType<typeof requirePermissions>>,
+  itemId: string,
+  companyId: string,
+  locationId: string
+) {
+  const { data } = await client
+    .from("itemStockQuantities")
+    .select("quantityOnHand")
+    .eq("itemId", itemId)
+    .eq("companyId", companyId)
+    .eq("locationId", locationId)
+    .maybeSingle();
+
+  return Number(data?.quantityOnHand ?? 0);
+}
+
+async function getReservedShipmentQuantityForItem(
+  client: Awaited<ReturnType<typeof requirePermissions>>,
+  shipmentId: string,
+  itemId: string
+) {
+  const { data } = await client
+    .from("shipmentLine")
+    .select("shippedQuantity")
+    .eq("shipmentId", shipmentId)
+    .eq("itemId", itemId);
+
+  return (data ?? []).reduce(
+    (sum, line) => sum + Number(line.shippedQuantity ?? 0),
+    0
+  );
+}
+
+async function getAvailableInventoryForShipmentItem(
+  client: Awaited<ReturnType<typeof requirePermissions>>,
+  {
+    companyId,
+    shipmentId,
+    itemId,
+    locationId,
+  }: {
+    companyId: string;
+    shipmentId: string;
+    itemId: string;
+    locationId: string;
+  }
+) {
+  const [onHand, reservedQuantity] = await Promise.all([
+    getItemQuantityOnHandAtLocation(client, itemId, companyId, locationId),
+    getReservedShipmentQuantityForItem(client, shipmentId, itemId),
+  ]);
+
+  return Math.max(0, onHand - reservedQuantity);
+}
+
 const payloadValidator = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("nonConformanceTasks"),
@@ -2805,10 +2861,31 @@ serve(async (req: Request) => {
               }
             }
           } else {
-            const outstandingQuantity = Math.max(
+            let outstandingQuantity = Math.max(
               0,
               (salesOrderLine.data!.saleQuantity ?? 0) - previouslyShippedQuantity
             );
+
+            if (item.data.itemTrackingType !== "Non-Inventory") {
+              const availableInventory = await getAvailableInventoryForShipmentItem(
+                client,
+                {
+                  companyId: payload.companyId,
+                  shipmentId,
+                  itemId: salesOrderLine.data!.itemId!,
+                  locationId,
+                }
+              );
+
+              if (availableInventory <= 0) {
+                throw new Error("Insufficient inventory to add this line");
+              }
+
+              outstandingQuantity = Math.min(
+                outstandingQuantity,
+                availableInventory
+              );
+            }
 
             const shippingAndTaxUnitCost =
               (salesOrderLine.data!.shippingCost /

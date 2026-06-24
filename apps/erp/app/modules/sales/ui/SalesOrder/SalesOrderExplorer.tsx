@@ -63,7 +63,10 @@ import type { MethodItemType } from "~/modules/shared";
 import { methodItemType } from "~/modules/shared";
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";
-import { isSalesOrderLocked } from "../../sales.models";
+import {
+  formatSalesOrderLineNumber,
+  isSalesOrderLocked
+} from "../../sales.models";
 import type {
   Customer,
   SalesOrder,
@@ -213,6 +216,9 @@ export default function SalesOrderExplorer() {
                 renderRow={(line, dragHandle) => (
                   <SalesOrderLineBody
                     line={line}
+                    lineIndex={editMode.draft.findIndex(
+                      (l) => l.id === line.id
+                    )}
                     dragHandle={dragHandle}
                     contractCustomer={
                       !!salesOrderData?.customer?.contractCustomer
@@ -223,6 +229,9 @@ export default function SalesOrderExplorer() {
                 renderOverlay={(line) => (
                   <SalesOrderLineBody
                     line={line}
+                    lineIndex={editMode.draft.findIndex(
+                      (l) => l.id === line.id
+                    )}
                     isOverlay
                     contractCustomer={
                       !!salesOrderData?.customer?.contractCustomer
@@ -232,11 +241,12 @@ export default function SalesOrderExplorer() {
                 )}
               />
             ) : (
-              lines.map((line) => (
+              lines.map((line, index) => (
                 <SalesOrderLineItem
                   key={line.id}
                   isDisabled={isDisabled}
                   line={line}
+                  lineIndex={index}
                   contractCustomer={
                     !!salesOrderData?.customer?.contractCustomer
                   }
@@ -321,14 +331,30 @@ export default function SalesOrderExplorer() {
   );
 }
 
+function SalesOrderLineNumber({
+  line,
+  lineIndex
+}: {
+  line: SalesOrderLine;
+  lineIndex: number;
+}) {
+  return (
+    <span className="text-muted-foreground text-sm tabular-nums w-6 shrink-0">
+      {formatSalesOrderLineNumber(line, lineIndex)}
+    </span>
+  );
+}
+
 function SalesOrderLineBody({
   line,
+  lineIndex,
   dragHandle,
   isOverlay,
   contractCustomer,
   customerParts
 }: {
   line: SalesOrderLine;
+  lineIndex: number;
   dragHandle?: DragHandleBindings;
   isOverlay?: boolean;
   contractCustomer: boolean;
@@ -337,6 +363,7 @@ function SalesOrderLineBody({
   return (
     <ReorderableRow dragHandle={dragHandle} isOverlay={isOverlay}>
       <HStack spacing={2} className="flex-grow min-w-0 p-2 pr-10">
+        <SalesOrderLineNumber line={line} lineIndex={lineIndex} />
         <ItemThumbnail thumbnailPath={line.thumbnailPath} type="Part" />
         <SalesOrderLinePartLabels
           line={line}
@@ -392,6 +419,7 @@ function SalesOrderLinePartLabels({
 
 type SalesOrderLineItemProps = {
   line: SalesOrderLine;
+  lineIndex: number;
   isDisabled: boolean;
   contractCustomer: boolean;
   customerParts: CustomerPartMapping[] | null;
@@ -400,6 +428,7 @@ type SalesOrderLineItemProps = {
 
 function SalesOrderLineItem({
   line,
+  lineIndex,
   isDisabled,
   contractCustomer,
   customerParts,
@@ -439,6 +468,7 @@ function SalesOrderLineItem({
         onClick={onLineClick}
       >
         <HStack spacing={2} className="flex-grow min-w-0 pr-10">
+          <SalesOrderLineNumber line={line} lineIndex={lineIndex} />
           <ItemThumbnail
             thumbnailPath={line.thumbnailPath}
             type="Part" // TODO

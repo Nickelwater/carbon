@@ -296,6 +296,10 @@ msgstr "実際の開始"
 msgid "Add"
 msgstr "追加"
 
+#. placeholder {0}: selectedLineIds.size
+msgid "Add {0} lines"
+msgstr ""
+
 msgid "Add & Issue"
 msgstr "追加して発行"
 
@@ -347,11 +351,17 @@ msgstr "グループを追加"
 msgid "Add Item"
 msgstr "アイテムを追加"
 
+msgid "Add line"
+msgstr ""
+
 msgid "Add Line"
 msgstr "行を追加"
 
 msgid "Add Line Item"
 msgstr "ラインアイテムを追加"
+
+msgid "Add lines"
+msgstr ""
 
 msgid "Add Note"
 msgstr "ノートを追加"
@@ -406,6 +416,9 @@ msgstr "セレクターを追加"
 
 msgid "Add Shipment"
 msgstr "配送を追加"
+
+msgid "Add shipment lines"
+msgstr ""
 
 msgid "Add Shipping"
 msgstr "配送を追加"
@@ -2124,6 +2137,9 @@ msgstr "顧客部品ID"
 
 msgid "Customer Part Number"
 msgstr "顧客部品番号"
+
+msgid "Customer part numbers"
+msgstr ""
 
 msgid "Customer Part Revision"
 msgstr "顧客部品リビジョン"
@@ -5547,8 +5563,14 @@ msgstr "の"
 msgid "OK"
 msgstr "OK"
 
+msgid "On hand"
+msgstr ""
+
 msgid "On Hand"
 msgstr "手持在庫"
+
+msgid "On hand:"
+msgstr ""
 
 msgid "On Hold"
 msgstr "保留中"
@@ -6203,8 +6225,14 @@ msgstr "予測"
 msgid "Projections"
 msgstr "予測"
 
+msgid "Promised"
+msgstr ""
+
 msgid "Promised Date"
 msgstr "約束日"
+
+msgid "Promised:"
+msgstr ""
 
 msgid "Properties"
 msgstr "プロパティ"
@@ -6302,6 +6330,12 @@ msgstr "このカンバンの次の操作を開始するためのQRコード"
 
 msgid "Qty"
 msgstr "数量"
+
+msgid "Qty due"
+msgstr ""
+
+msgid "Qty due:"
+msgstr ""
 
 msgid "Qty to Order"
 msgstr "注文数量"
@@ -7170,6 +7204,9 @@ msgstr "アイテムタイプを選択"
 msgid "Select items"
 msgstr "アイテムを選択"
 
+msgid "Select open sales order lines to add to this shipment."
+msgstr ""
+
 msgid "Select Printer"
 msgstr "プリンターを選択"
 
@@ -7391,8 +7428,17 @@ msgstr "配送場所"
 msgid "Shipments"
 msgstr "出荷"
 
+msgid "shipped"
+msgstr ""
+
 msgid "Shipped Qty"
 msgstr "出荷数量"
+
+msgid "Shipped quantity exceeds available inventory ({maxShippableQuantity})"
+msgstr ""
+
+msgid "Shipped quantity exceeds job quantity"
+msgstr ""
 
 msgid "Shipping"
 msgstr "配送"
@@ -7456,6 +7502,12 @@ msgstr "仕入先IDを表示"
 
 msgid "Show sync options"
 msgstr "同期オプションを表示"
+
+msgid "Showing internal part numbers"
+msgstr ""
+
+msgid "Showing this customer's part numbers"
+msgstr ""
 
 msgid "Shown as a faint background behind every page of generated PDFs"
 msgstr "生成されたPDFの各ページの背景に薄く表示されます"

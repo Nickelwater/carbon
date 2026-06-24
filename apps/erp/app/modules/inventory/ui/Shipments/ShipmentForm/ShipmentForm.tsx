@@ -34,6 +34,7 @@ import { DocumentHeader, PrintButton } from "~/components";
 import { useAuditLog } from "~/components/AuditLog";
 import {
   Combobox,
+  Customer,
   CustomFormFields,
   DefaultDisabledSubmit,
   Hidden,
@@ -67,6 +68,8 @@ type ShipmentFormProps = {
   initialValues: z.infer<typeof shipmentValidator>;
   status: (typeof shipmentStatusType)[number];
   shipmentLines: ShipmentLine[];
+  onCustomerIdChange?: (customerId: string | undefined) => void;
+  onSourceDocumentChange?: (sourceDocument: ShipmentSourceDocument) => void;
 };
 
 const formId = "shipment-form";
@@ -74,7 +77,9 @@ const formId = "shipment-form";
 const ShipmentForm = ({
   initialValues,
   status,
-  shipmentLines
+  shipmentLines,
+  onCustomerIdChange,
+  onSourceDocumentChange
 }: ShipmentFormProps) => {
   const { shipmentId } = useParams();
   if (!shipmentId) throw new Error("shipmentId not found");
@@ -90,8 +95,15 @@ const ShipmentForm = ({
   const permissions = usePermissions();
   const navigate = useNavigate();
   const { t } = useLingui();
-  const { locationId, sourceDocuments, setLocationId, setSourceDocument } =
-    useShipmentForm({ status, initialValues });
+  const {
+    locationId,
+    sourceDocument,
+    sourceDocuments,
+    setLocationId,
+    setSourceDocument
+  } = useShipmentForm({ status, initialValues });
+
+  const isSalesOrderSource = sourceDocument === "Sales Order";
 
   const postModal = useDisclosure();
   const voidModal = useDisclosure();
@@ -237,7 +249,8 @@ const ShipmentForm = ({
 
           <CardContent>
             <Hidden name="id" />
-            <Hidden name="customerId" />
+            {!isSalesOrderSource && <Hidden name="customerId" />}
+            {isSalesOrderSource && <Hidden name="sourceDocumentId" />}
             <VStack spacing={4} className="min-h-full">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 w-full">
                 <Input name="shipmentId" label={t`Shipment ID`} isReadOnly />
@@ -259,22 +272,36 @@ const ShipmentForm = ({
                   }))}
                   onChange={(newValue) => {
                     if (newValue) {
-                      setSourceDocument(
-                        newValue.value as ShipmentSourceDocument
-                      );
+                      const next = newValue.value as ShipmentSourceDocument;
+                      setSourceDocument(next);
+                      onSourceDocumentChange?.(next);
+                      onCustomerIdChange?.(undefined);
                     }
                   }}
                   isReadOnly={isPosted}
                 />
-                <Combobox
-                  name="sourceDocumentId"
-                  label={t`Source Document ID`}
-                  options={sourceDocuments.map((d) => ({
-                    label: d.name,
-                    value: d.id
-                  }))}
-                  isReadOnly={isPosted}
-                />
+                {isSalesOrderSource ? (
+                  <Customer
+                    name="customerId"
+                    label={t`Customer`}
+                    isReadOnly={isPosted}
+                    onChange={(newValue) => {
+                      onCustomerIdChange?.(
+                        newValue?.value ? String(newValue.value) : undefined
+                      );
+                    }}
+                  />
+                ) : (
+                  <Combobox
+                    name="sourceDocumentId"
+                    label={t`Source Document ID`}
+                    options={sourceDocuments.map((d) => ({
+                      label: d.name,
+                      value: d.id
+                    }))}
+                    isReadOnly={isPosted}
+                  />
+                )}
                 <Input name="trackingNumber" label={t`Tracking Number`} />
                 <ShippingMethod
                   name="shippingMethodId"

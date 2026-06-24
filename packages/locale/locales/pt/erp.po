@@ -296,6 +296,10 @@ msgstr "Início Real"
 msgid "Add"
 msgstr "Adicionar"
 
+#. placeholder {0}: selectedLineIds.size
+msgid "Add {0} lines"
+msgstr ""
+
 msgid "Add & Issue"
 msgstr "Adicionar e Emitir"
 
@@ -347,11 +351,17 @@ msgstr "Adicionar Grupo"
 msgid "Add Item"
 msgstr "Adicionar Item"
 
+msgid "Add line"
+msgstr ""
+
 msgid "Add Line"
 msgstr "Adicionar Linha"
 
 msgid "Add Line Item"
 msgstr "Adicionar Item de Linha"
+
+msgid "Add lines"
+msgstr ""
 
 msgid "Add Note"
 msgstr "Adicionar Nota"
@@ -406,6 +416,9 @@ msgstr "Adicionar Seletor"
 
 msgid "Add Shipment"
 msgstr "Adicionar Envio"
+
+msgid "Add shipment lines"
+msgstr ""
 
 msgid "Add Shipping"
 msgstr "Adicionar Envio"
@@ -2124,6 +2137,9 @@ msgstr "ID da Peça do Cliente"
 
 msgid "Customer Part Number"
 msgstr "Número de Peça do Cliente"
+
+msgid "Customer part numbers"
+msgstr ""
 
 msgid "Customer Part Revision"
 msgstr "Revisão da Peça do Cliente"
@@ -5547,8 +5563,14 @@ msgstr "de"
 msgid "OK"
 msgstr "OK"
 
+msgid "On hand"
+msgstr ""
+
 msgid "On Hand"
 msgstr "Em Mãos"
+
+msgid "On hand:"
+msgstr ""
 
 msgid "On Hold"
 msgstr "Em Espera"
@@ -6203,8 +6225,14 @@ msgstr "Projeção"
 msgid "Projections"
 msgstr "Projeções"
 
+msgid "Promised"
+msgstr ""
+
 msgid "Promised Date"
 msgstr "Data Prometida"
+
+msgid "Promised:"
+msgstr ""
 
 msgid "Properties"
 msgstr "Propriedades"
@@ -6302,6 +6330,12 @@ msgstr "Código QR para iniciar a próxima operação para este kanban"
 
 msgid "Qty"
 msgstr "Qtd"
+
+msgid "Qty due"
+msgstr ""
+
+msgid "Qty due:"
+msgstr ""
 
 msgid "Qty to Order"
 msgstr "Qtd a Encomendar"
@@ -7170,6 +7204,9 @@ msgstr "Selecionar Tipo de Item"
 msgid "Select items"
 msgstr "Selecionar itens"
 
+msgid "Select open sales order lines to add to this shipment."
+msgstr ""
+
 msgid "Select Printer"
 msgstr "Selecionar Impressora"
 
@@ -7391,8 +7428,17 @@ msgstr "Localização do Envio"
 msgid "Shipments"
 msgstr "Remessas"
 
+msgid "shipped"
+msgstr ""
+
 msgid "Shipped Qty"
 msgstr "Qtd. Enviada"
+
+msgid "Shipped quantity exceeds available inventory ({maxShippableQuantity})"
+msgstr ""
+
+msgid "Shipped quantity exceeds job quantity"
+msgstr ""
 
 msgid "Shipping"
 msgstr "Envio"
@@ -7456,6 +7502,12 @@ msgstr "Mostrar IDs de Fornecedor"
 
 msgid "Show sync options"
 msgstr "Mostrar opções de sincronização"
+
+msgid "Showing internal part numbers"
+msgstr ""
+
+msgid "Showing this customer's part numbers"
+msgstr ""
 
 msgid "Shown as a faint background behind every page of generated PDFs"
 msgstr "Exibido como um fundo suave atrás de cada página dos PDFs gerados"

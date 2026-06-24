@@ -990,6 +990,15 @@ export function isSalesOrderLocked(status: string | null | undefined): boolean {
   );
 }
 
+/** Display line reference (01, 02, …) for sales order explorer rows. */
+export function formatSalesOrderLineNumber(
+  line: { lineNumber?: number | null },
+  lineIndex: number
+): string {
+  const value = line.lineNumber ?? lineIndex + 1;
+  return String(value).padStart(2, "0");
+}
+
 // Sales RFQ Locked Status
 export function isSalesRfqLocked(status: string | null | undefined): boolean {
   return status !== null && status !== undefined && status !== "Draft";

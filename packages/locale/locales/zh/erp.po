@@ -296,6 +296,10 @@ msgstr "实际开始"
 msgid "Add"
 msgstr "添加"
 
+#. placeholder {0}: selectedLineIds.size
+msgid "Add {0} lines"
+msgstr ""
+
 msgid "Add & Issue"
 msgstr "添加并发放"
 
@@ -347,11 +351,17 @@ msgstr "添加组"
 msgid "Add Item"
 msgstr "添加项目"
 
+msgid "Add line"
+msgstr ""
+
 msgid "Add Line"
 msgstr "添加行"
 
 msgid "Add Line Item"
 msgstr "添加行项目"
+
+msgid "Add lines"
+msgstr ""
 
 msgid "Add Note"
 msgstr "添加备注"
@@ -406,6 +416,9 @@ msgstr "添加选择器"
 
 msgid "Add Shipment"
 msgstr "添加发货"
+
+msgid "Add shipment lines"
+msgstr ""
 
 msgid "Add Shipping"
 msgstr "添加运费"
@@ -2124,6 +2137,9 @@ msgstr "客户零件ID"
 
 msgid "Customer Part Number"
 msgstr "客户零件号"
+
+msgid "Customer part numbers"
+msgstr ""
 
 msgid "Customer Part Revision"
 msgstr "客户零件版本"
@@ -5547,8 +5563,14 @@ msgstr "的"
 msgid "OK"
 msgstr "确定"
 
+msgid "On hand"
+msgstr ""
+
 msgid "On Hand"
 msgstr "现有"
+
+msgid "On hand:"
+msgstr ""
 
 msgid "On Hold"
 msgstr "暂停"
@@ -6203,8 +6225,14 @@ msgstr "预测"
 msgid "Projections"
 msgstr "预测"
 
+msgid "Promised"
+msgstr ""
+
 msgid "Promised Date"
 msgstr "承诺日期"
+
+msgid "Promised:"
+msgstr ""
 
 msgid "Properties"
 msgstr "属性"
@@ -6302,6 +6330,12 @@ msgstr "二维码用于启动此看板的下一个操作"
 
 msgid "Qty"
 msgstr "数量"
+
+msgid "Qty due"
+msgstr ""
+
+msgid "Qty due:"
+msgstr ""
 
 msgid "Qty to Order"
 msgstr "订购数量"
@@ -7170,6 +7204,9 @@ msgstr "选择项目类型"
 msgid "Select items"
 msgstr "选择项目"
 
+msgid "Select open sales order lines to add to this shipment."
+msgstr ""
+
 msgid "Select Printer"
 msgstr "选择打印机"
 
@@ -7391,8 +7428,17 @@ msgstr "发货地点"
 msgid "Shipments"
 msgstr "发货单"
 
+msgid "shipped"
+msgstr ""
+
 msgid "Shipped Qty"
 msgstr "已发货数量"
+
+msgid "Shipped quantity exceeds available inventory ({maxShippableQuantity})"
+msgstr ""
+
+msgid "Shipped quantity exceeds job quantity"
+msgstr ""
 
 msgid "Shipping"
 msgstr "运输"
@@ -7456,6 +7502,12 @@ msgstr "显示供应商ID"
 
 msgid "Show sync options"
 msgstr "显示同步选项"
+
+msgid "Showing internal part numbers"
+msgstr ""
+
+msgid "Showing this customer's part numbers"
+msgstr ""
 
 msgid "Shown as a faint background behind every page of generated PDFs"
 msgstr "作为淡色背景显示在每个生成的PDF页面后面"

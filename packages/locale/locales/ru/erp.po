@@ -296,6 +296,10 @@ msgstr "Фактическое начало"
 msgid "Add"
 msgstr "Добавить"
 
+#. placeholder {0}: selectedLineIds.size
+msgid "Add {0} lines"
+msgstr ""
+
 msgid "Add & Issue"
 msgstr "Добавить и выдать"
 
@@ -347,11 +351,17 @@ msgstr "Добавить группу"
 msgid "Add Item"
 msgstr "Добавить элемент"
 
+msgid "Add line"
+msgstr ""
+
 msgid "Add Line"
 msgstr "Добавить строку"
 
 msgid "Add Line Item"
 msgstr "Добавить позицию"
+
+msgid "Add lines"
+msgstr ""
 
 msgid "Add Note"
 msgstr "Добавить примечание"
@@ -406,6 +416,9 @@ msgstr "Добавить селектор"
 
 msgid "Add Shipment"
 msgstr "Добавить отправку"
+
+msgid "Add shipment lines"
+msgstr ""
 
 msgid "Add Shipping"
 msgstr "Добавить доставку"
@@ -2124,6 +2137,9 @@ msgstr "ID детали клиента"
 
 msgid "Customer Part Number"
 msgstr "Номер детали клиента"
+
+msgid "Customer part numbers"
+msgstr ""
 
 msgid "Customer Part Revision"
 msgstr "Редакция детали клиента"
@@ -5547,8 +5563,14 @@ msgstr "из"
 msgid "OK"
 msgstr "ОК"
 
+msgid "On hand"
+msgstr ""
+
 msgid "On Hand"
 msgstr "На складе"
+
+msgid "On hand:"
+msgstr ""
 
 msgid "On Hold"
 msgstr "На удержании"
@@ -6203,8 +6225,14 @@ msgstr "Прогноз"
 msgid "Projections"
 msgstr "Прогнозы"
 
+msgid "Promised"
+msgstr ""
+
 msgid "Promised Date"
 msgstr "Обещанная дата"
+
+msgid "Promised:"
+msgstr ""
 
 msgid "Properties"
 msgstr "Свойства"
@@ -6302,6 +6330,12 @@ msgstr "QR-код для начала следующей операции для
 
 msgid "Qty"
 msgstr "Кол-во"
+
+msgid "Qty due"
+msgstr ""
+
+msgid "Qty due:"
+msgstr ""
 
 msgid "Qty to Order"
 msgstr "Кол-во для заказа"
@@ -7170,6 +7204,9 @@ msgstr "Выберите тип элемента"
 msgid "Select items"
 msgstr "Выберите товары"
 
+msgid "Select open sales order lines to add to this shipment."
+msgstr ""
+
 msgid "Select Printer"
 msgstr "Выберите принтер"
 
@@ -7391,8 +7428,17 @@ msgstr "Местоположение отправки"
 msgid "Shipments"
 msgstr "Отправки"
 
+msgid "shipped"
+msgstr ""
+
 msgid "Shipped Qty"
 msgstr "Отправленное кол-во"
+
+msgid "Shipped quantity exceeds available inventory ({maxShippableQuantity})"
+msgstr ""
+
+msgid "Shipped quantity exceeds job quantity"
+msgstr ""
 
 msgid "Shipping"
 msgstr "Доставка"
@@ -7456,6 +7502,12 @@ msgstr "Показать ID поставщиков"
 
 msgid "Show sync options"
 msgstr "Показать параметры синхронизации"
+
+msgid "Showing internal part numbers"
+msgstr ""
+
+msgid "Showing this customer's part numbers"
+msgstr ""
 
 msgid "Shown as a faint background behind every page of generated PDFs"
 msgstr "Отображается как бледный фон на каждой странице сгенерированных PDF-файлов"

@@ -47,23 +47,7 @@ export default function useShipmentForm({
 
     switch (sourceDocument) {
       case "Sales Order":
-        carbon
-          ?.from("salesOrder")
-          .select("id, salesOrderId")
-          .eq("companyId", user.company.id)
-          .in("status", ["To Ship", "To Ship and Invoice", "Draft"])
-          .then((response) => {
-            if (response.error) {
-              setError(response.error.message);
-            } else {
-              setSourceDocuments(
-                response.data.map((d) => ({
-                  name: d.salesOrderId,
-                  id: d.id
-                }))
-              );
-            }
-          });
+        setSourceDocuments([]);
         break;
       case "Purchase Order":
         carbon
@@ -118,6 +102,7 @@ export default function useShipmentForm({
   return {
     error,
     locationId,
+    sourceDocument,
     sourceDocuments,
     setLocationId,
     setSourceDocument

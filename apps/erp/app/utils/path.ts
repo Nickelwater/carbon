@@ -1613,8 +1613,6 @@ export const path = {
       generatePath(`${x}/sales-order/${orderId}/line-order`),
     salesOrderLineToJob: (orderId: string, lineId: string) =>
       generatePath(`${x}/sales-order/${orderId}/${lineId}/job`),
-    salesOrderLinesReorder: (orderId: string) =>
-      generatePath(`${x}/sales-order/${orderId}/lines/reorder`),
     salesOrderLinesToJobs: (orderId: string) =>
       generatePath(`${x}/sales-order/${orderId}/lines/jobs`),
     salesOrderPayment: (id: string) =>

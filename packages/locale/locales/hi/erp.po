@@ -296,6 +296,10 @@ msgstr "वास्तविक शुरुआत"
 msgid "Add"
 msgstr "जोड़ें"
 
+#. placeholder {0}: selectedLineIds.size
+msgid "Add {0} lines"
+msgstr ""
+
 msgid "Add & Issue"
 msgstr "जोड़ें और जारी करें"
 
@@ -347,11 +351,17 @@ msgstr "समूह जोड़ें"
 msgid "Add Item"
 msgstr "आइटम जोड़ें"
 
+msgid "Add line"
+msgstr ""
+
 msgid "Add Line"
 msgstr "लाइन जोड़ें"
 
 msgid "Add Line Item"
 msgstr "लाइन आइटम जोड़ें"
+
+msgid "Add lines"
+msgstr ""
 
 msgid "Add Note"
 msgstr "नोट जोड़ें"
@@ -406,6 +416,9 @@ msgstr "सिलेक्टर जोड़ें"
 
 msgid "Add Shipment"
 msgstr "शिपमेंट जोड़ें"
+
+msgid "Add shipment lines"
+msgstr ""
 
 msgid "Add Shipping"
 msgstr "शिपिंग जोड़ें"
@@ -2124,6 +2137,9 @@ msgstr "ग्राहक पार्ट आईडी"
 
 msgid "Customer Part Number"
 msgstr "ग्राहक भाग संख्या"
+
+msgid "Customer part numbers"
+msgstr ""
 
 msgid "Customer Part Revision"
 msgstr "ग्राहक भाग संशोधन"
@@ -5547,8 +5563,14 @@ msgstr "का"
 msgid "OK"
 msgstr "ठीक है"
 
+msgid "On hand"
+msgstr ""
+
 msgid "On Hand"
 msgstr "हाथ में"
+
+msgid "On hand:"
+msgstr ""
 
 msgid "On Hold"
 msgstr "होल्ड पर"
@@ -6203,8 +6225,14 @@ msgstr "प्रक्षेपण"
 msgid "Projections"
 msgstr "अनुमान"
 
+msgid "Promised"
+msgstr ""
+
 msgid "Promised Date"
 msgstr "वादा की गई तारीख"
+
+msgid "Promised:"
+msgstr ""
 
 msgid "Properties"
 msgstr "गुण"
@@ -6302,6 +6330,12 @@ msgstr "इस कनबन के लिए अगली ऑपरेशन श
 
 msgid "Qty"
 msgstr "मात्रा"
+
+msgid "Qty due"
+msgstr ""
+
+msgid "Qty due:"
+msgstr ""
 
 msgid "Qty to Order"
 msgstr "ऑर्डर करने की मात्रा"
@@ -7170,6 +7204,9 @@ msgstr "आइटम प्रकार चुनें"
 msgid "Select items"
 msgstr "आइटम चुनें"
 
+msgid "Select open sales order lines to add to this shipment."
+msgstr ""
+
 msgid "Select Printer"
 msgstr "प्रिंटर चुनें"
 
@@ -7391,8 +7428,17 @@ msgstr "शिपमेंट स्थान"
 msgid "Shipments"
 msgstr "शिपमेंट"
 
+msgid "shipped"
+msgstr ""
+
 msgid "Shipped Qty"
 msgstr "भेजी गई मात्रा"
+
+msgid "Shipped quantity exceeds available inventory ({maxShippableQuantity})"
+msgstr ""
+
+msgid "Shipped quantity exceeds job quantity"
+msgstr ""
 
 msgid "Shipping"
 msgstr "शिपिंग"
@@ -7456,6 +7502,12 @@ msgstr "आपूर्तिकर्ता आईडी दिखाएं"
 
 msgid "Show sync options"
 msgstr "सिंक विकल्प दिखाएं"
+
+msgid "Showing internal part numbers"
+msgstr ""
+
+msgid "Showing this customer's part numbers"
+msgstr ""
 
 msgid "Shown as a faint background behind every page of generated PDFs"
 msgstr "जनरेट की गई PDF के हर पेज के पीछे हल्की पृष्ठभूमि के रूप में दिखाया जाता है"
