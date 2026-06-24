@@ -12,16 +12,23 @@ import type { Company } from "../../../types";
 export interface PackingSlipData {
   company: Company;
   locale: string;
+  title?: string;
   customer:
     | Database["public"]["Tables"]["customer"]["Row"]
     | Database["public"]["Tables"]["supplier"]["Row"];
   customerReference?: string;
   lineCustomerReferences?: Record<string, string>;
+  /** Pre-formatted PO/line labels keyed by shipment line id. */
+  linePurchaseOrderLines?: Record<string, string>;
+  /** Customer part number/revision keyed by shipment line id. */
+  lineCustomerParts?: Record<string, { partNumber: string; revision: string }>;
   sourceDocument?: string;
   sourceDocumentId?: string;
   shipment: Database["public"]["Tables"]["shipment"]["Row"];
   shipmentLines: Database["public"]["Views"]["shipmentLines"]["Row"][];
   shippingAddress: Database["public"]["Tables"]["address"]["Row"] | null;
+  /** Defaults to shipping address when omitted. */
+  soldToAddress?: Database["public"]["Tables"]["address"]["Row"] | null;
   paymentTerm: { id: string; name: string };
   shippingMethod: { id: string; name: string };
   terms: JSONContent;

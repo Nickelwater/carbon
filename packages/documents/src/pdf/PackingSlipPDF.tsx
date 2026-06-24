@@ -22,11 +22,14 @@ interface PackingSlipProps extends PDF {
     | Database["public"]["Tables"]["supplier"]["Row"];
   customerReference?: string;
   lineCustomerReferences?: Record<string, string>;
+  linePurchaseOrderLines?: Record<string, string>;
+  lineCustomerParts?: Record<string, { partNumber: string; revision: string }>;
   sourceDocument?: string;
   sourceDocumentId?: string;
   shipment: Database["public"]["Tables"]["shipment"]["Row"];
   shipmentLines: Database["public"]["Views"]["shipmentLines"]["Row"][];
   shippingAddress: Database["public"]["Tables"]["address"]["Row"] | null;
+  soldToAddress?: Database["public"]["Tables"]["address"]["Row"] | null;
   paymentTerm: { id: string; name: string };
   shippingMethod: { id: string; name: string };
   terms: JSONContent;
@@ -42,15 +45,18 @@ const PackingSlipPDF = ({
   meta,
   customerReference,
   lineCustomerReferences,
+  linePurchaseOrderLines,
+  lineCustomerParts,
   sourceDocument,
   sourceDocumentId,
   shipment,
   shipmentLines,
   shippingAddress,
+  soldToAddress,
   terms,
   paymentTerm,
   shippingMethod,
-  title = "Packing Slip",
+  title = "Pack List",
   locale,
   trackedEntities,
   thumbnails,
@@ -75,14 +81,18 @@ const PackingSlipPDF = ({
   const data: PackingSlipData = {
     company,
     locale,
+    title,
     customer,
     customerReference,
     lineCustomerReferences,
+    linePurchaseOrderLines,
+    lineCustomerParts,
     sourceDocument,
     sourceDocumentId,
     shipment,
     shipmentLines,
     shippingAddress,
+    soldToAddress,
     paymentTerm,
     shippingMethod,
     terms,

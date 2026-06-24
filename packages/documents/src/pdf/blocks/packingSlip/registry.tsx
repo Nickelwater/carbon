@@ -17,7 +17,10 @@ export const packingSlipBlockRegistry: Partial<
   header: ({ data }) => <HeaderBlock data={data} />,
   parties: ({ data }) => <PartiesBlock data={data} />,
   notes: ({ data }) => <NotesBlock data={data} />,
-  details: ({ data }) => <DetailsBlock data={data} />,
+  details: ({ block, data }) =>
+    block.type === "details" ? (
+      <DetailsBlock block={block} data={data} />
+    ) : null,
   lineItems: ({ block, data }) =>
     block.type === "lineItems" ? (
       <LineItemsBlock block={block} data={data} />

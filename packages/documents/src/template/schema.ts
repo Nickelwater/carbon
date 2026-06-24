@@ -60,18 +60,37 @@ export const headerOptionsSchema = z.object({
   showDocumentId: z.boolean().default(true)
 });
 
+/** Per-column leading inset for packing slip line items (pt, applied before the column). */
+export const DEFAULT_PACKING_SLIP_COLUMN_INSET = {
+  part: 0,
+  description: 0,
+  quantity: 0,
+  purchaseOrder: 0,
+  qr: 0
+} as const;
+
+const packingSlipColumnInsetSchema = z.object({
+  part: z.number().min(0).max(24).default(0),
+  description: z.number().min(0).max(24).default(0),
+  quantity: z.number().min(0).max(24).default(0),
+  purchaseOrder: z.number().min(0).max(24).default(0),
+  qr: z.number().min(0).max(24).default(0)
+});
+
 /** Per-block display options for the Line Items table. */
 export const DEFAULT_LINE_ITEMS_OPTIONS = {
   showThumbnails: true,
   zebra: true,
-  textOverflow: "truncate"
+  textOverflow: "truncate",
+  packingSlipColumnInset: { ...DEFAULT_PACKING_SLIP_COLUMN_INSET }
 } as const;
 
 const lineItemsOptionsSchema = z.object({
   showThumbnails: z.boolean().default(true),
   zebra: z.boolean().default(true),
   /** How the item title/description behave: wrap to new lines or truncate. */
-  textOverflow: z.enum(["wrap", "truncate"]).default("truncate")
+  textOverflow: z.enum(["wrap", "truncate"]).default("truncate"),
+  packingSlipColumnInset: packingSlipColumnInsetSchema.optional()
 });
 
 /** Per-block options for the Summary totals. */
@@ -83,6 +102,17 @@ const summaryOptionsSchema = z.object({
   taxLabel: z.string().default("Taxes")
 });
 
+/** Per-block display options for the Details metadata block (packing slip). */
+export const DEFAULT_DETAILS_OPTIONS = {
+  showSourceDocument: true,
+  showCustomerPo: true
+} as const;
+
+const detailsOptionsSchema = z.object({
+  showSourceDocument: z.boolean().default(true),
+  showCustomerPo: z.boolean().default(true)
+});
+
 const headerBlock = z.object({
   ...baseFields,
   type: z.literal("header"),
@@ -91,7 +121,11 @@ const headerBlock = z.object({
 const partiesBlock = builtInBlock("parties");
 const notesBlock = builtInBlock("notes");
 /** Data-bound metadata block (e.g. shipment/transfer details). */
-const detailsBlock = builtInBlock("details");
+const detailsBlock = z.object({
+  ...baseFields,
+  type: z.literal("details"),
+  options: detailsOptionsSchema.optional()
+});
 const lineItemsBlock = z.object({
   ...baseFields,
   type: z.literal("lineItems"),
@@ -446,6 +480,11 @@ export type HeaderOptions = z.infer<typeof headerOptionsSchema>;
 export type SectionConfig = z.infer<typeof sectionConfigSchema>;
 export type LineItemsBlock = Extract<DocumentBlock, { type: "lineItems" }>;
 export type LineItemsOptions = z.infer<typeof lineItemsOptionsSchema>;
+export type PackingSlipColumnInset = z.infer<
+  typeof packingSlipColumnInsetSchema
+>;
+export type DetailsBlock = Extract<DocumentBlock, { type: "details" }>;
+export type DetailsOptions = z.infer<typeof detailsOptionsSchema>;
 export type SummaryBlock = Extract<DocumentBlock, { type: "summary" }>;
 export type SummaryOptions = z.infer<typeof summaryOptionsSchema>;
 export type FieldBlock = Extract<DocumentBlock, { type: "field" }>;

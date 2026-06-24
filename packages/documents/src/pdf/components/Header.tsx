@@ -1,5 +1,5 @@
 import { formatCityStatePostalCode } from "@carbon/utils";
-import { Text, View } from "@react-pdf/renderer";
+import { Image, Text, View } from "@react-pdf/renderer";
 import { createTw } from "react-pdf-tailwind";
 import { DEFAULT_HEADER_OPTIONS, type HeaderOptions } from "../../template";
 import type { Company } from "../../types";
@@ -10,6 +10,8 @@ type HeaderProps = {
   title: string;
   documentId?: string | null;
   documentSubId?: string | null;
+  /** Code128 (or other) barcode rendered below the document id when shown. */
+  documentBarcode?: Promise<string> | string | null;
   date?: string | null;
   currencyCode?: string | null;
   locale?: string;
@@ -46,6 +48,7 @@ const Header = ({
   title,
   documentId,
   documentSubId,
+  documentBarcode,
   options,
   fixed
 }: HeaderProps) => {
@@ -99,9 +102,27 @@ const Header = ({
           <Text style={tw("text-2xl font-bold text-gray-800")}>{title}</Text>
         )}
         {opts.showDocumentId && documentId && (
-          <Text style={tw("text-sm font-bold text-gray-600 -mt-4")}>
+          <Text
+            style={tw(
+              documentBarcode
+                ? "text-sm font-bold text-gray-600 mt-1"
+                : "text-sm font-bold text-gray-600 -mt-4"
+            )}
+          >
             {documentId}
           </Text>
+        )}
+        {opts.showDocumentId && documentBarcode && (
+          <View style={tw("mt-1 self-end")}>
+            <Image
+              src={documentBarcode}
+              style={{
+                height: 14,
+                objectFit: "contain",
+                alignSelf: "flex-end"
+              }}
+            />
+          </View>
         )}
         {documentSubId && (
           <Text style={tw("text-[8px] font-bold text-gray-600")}>

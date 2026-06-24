@@ -1,5 +1,6 @@
 import type {
   CustomFieldBlock,
+  DetailsBlock as DetailsTemplateBlock,
   DocumentBlockType,
   KeyValueBlock,
   LineItemsBlock,
@@ -13,9 +14,12 @@ import type {
 import {
   BLOCK_META,
   BUILT_IN_SECTION_IDS,
+  DEFAULT_DETAILS_OPTIONS,
   DEFAULT_LINE_ITEMS_OPTIONS,
+  DEFAULT_PACKING_SLIP_COLUMN_INSET,
   DEFAULT_SUMMARY_OPTIONS,
-  getMergeFields
+  getMergeFields,
+  type PackingSlipColumnInset
 } from "@carbon/documents/template";
 import type { JSONContent } from "@carbon/react";
 import {
@@ -74,8 +78,30 @@ function appendText(content: JSONContent, text: string): JSONContent {
   return { ...doc, type: "doc", content: nodes };
 }
 
+function DetailsConfig({ block }: { block: DetailsTemplateBlock }) {
+  const { updateBlock } = useDocumentTemplate();
+  const opts = { ...DEFAULT_DETAILS_OPTIONS, ...block.options };
+  const set = <K extends keyof typeof opts>(key: K, value: (typeof opts)[K]) =>
+    updateBlock(block.id, { options: { ...opts, [key]: value } });
+
+  return (
+    <div className="flex flex-col gap-3">
+      <ToggleRow
+        label="Sales order"
+        checked={opts.showSourceDocument}
+        onChange={(v) => set("showSourceDocument", v)}
+      />
+      <ToggleRow
+        label="Customer PO"
+        checked={opts.showCustomerPo}
+        onChange={(v) => set("showCustomerPo", v)}
+      />
+    </div>
+  );
+}
+
 export function BlockConfig() {
-  const { blocks, sections, selectedId } = useDocumentTemplate();
+  const { blocks, sections, selectedId, documentType } = useDocumentTemplate();
 
   if (selectedId === HEADER_LOGO_ID) {
     return (
@@ -137,6 +163,7 @@ export function BlockConfig() {
     block.type === "lineItems" ||
     block.type === "summary" ||
     block.type === "terms" ||
+    (block.type === "details" && documentType === "packingSlip") ||
     block.type === "labelRevision" ||
     block.type === "labelQuantity" ||
     block.type === "labelTracking" ||
@@ -166,6 +193,9 @@ export function BlockConfig() {
       {block.type === "header" && <ChromeConfig kind="header" />}
       {block.type === "watermark" && <WatermarkConfig block={block} />}
       {block.type === "lineItems" && <LineItemsConfig block={block} />}
+      {block.type === "details" && documentType === "packingSlip" && (
+        <DetailsConfig block={block} />
+      )}
       {block.type === "operations" && <OperationsConfig block={block} />}
       {block.type === "summary" && <SummaryConfig block={block} />}
       {block.type === "terms" && <TermsConfig block={block} />}
@@ -447,7 +477,7 @@ function OperationsConfig({ block }: { block: OperationsBlock }) {
 }
 
 function LineItemsConfig({ block }: { block: LineItemsBlock }) {
-  const { updateBlock } = useDocumentTemplate();
+  const { updateBlock, documentType } = useDocumentTemplate();
   const opts = { ...DEFAULT_LINE_ITEMS_OPTIONS, ...block.options };
   const set = <K extends keyof typeof opts>(key: K, value: (typeof opts)[K]) =>
     updateBlock(block.id, { options: { ...opts, [key]: value } });
@@ -464,6 +494,9 @@ function LineItemsConfig({ block }: { block: LineItemsBlock }) {
         checked={opts.zebra}
         onChange={(v) => set("zebra", v)}
       />
+      {documentType === "packingSlip" && (
+        <PackingSlipColumnInsetConfig block={block} />
+      )}
       <div className="flex flex-col gap-1.5">
         <Label>Item text</Label>
         <Select
@@ -481,6 +514,52 @@ function LineItemsConfig({ block }: { block: LineItemsBlock }) {
           </SelectContent>
         </Select>
       </div>
+    </div>
+  );
+}
+
+const PACKING_SLIP_COLUMN_INSET_FIELDS: {
+  key: keyof PackingSlipColumnInset;
+  label: string;
+}[] = [
+  { key: "part", label: "Part number" },
+  { key: "description", label: "Description" },
+  { key: "quantity", label: "Quantity" },
+  { key: "purchaseOrder", label: "Purchase order/line" },
+  { key: "qr", label: "QR code" }
+];
+
+function PackingSlipColumnInsetConfig({ block }: { block: LineItemsBlock }) {
+  const { updateBlock } = useDocumentTemplate();
+  const opts = { ...DEFAULT_LINE_ITEMS_OPTIONS, ...block.options };
+  const insets: PackingSlipColumnInset = {
+    ...DEFAULT_PACKING_SLIP_COLUMN_INSET,
+    ...opts.packingSlipColumnInset
+  };
+
+  const setInset = (key: keyof PackingSlipColumnInset, value: number) =>
+    updateBlock(block.id, {
+      options: {
+        ...opts,
+        packingSlipColumnInset: { ...insets, [key]: value }
+      }
+    });
+
+  return (
+    <div className="flex flex-col gap-3 border-t pt-3">
+      <p className="text-xs text-muted-foreground">
+        Leading space before each column (pt).
+      </p>
+      {PACKING_SLIP_COLUMN_INSET_FIELDS.map(({ key, label }) => (
+        <NumberRow
+          key={key}
+          label={label}
+          minValue={0}
+          maxValue={24}
+          value={insets[key]}
+          onChange={(v) => setInset(key, v)}
+        />
+      ))}
     </div>
   );
 }

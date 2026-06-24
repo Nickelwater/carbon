@@ -41,12 +41,62 @@ import { getBase64ImageFromSupabase } from "~/modules/shared";
 
 type ShipmentLineRow = Database["public"]["Views"]["shipmentLines"]["Row"];
 
+async function resolveShipmentLineCustomerParts(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  customerId: string | null | undefined,
+  shipmentLines: ShipmentLineRow[]
+): Promise<Record<string, { partNumber: string; revision: string }>> {
+  if (!customerId) return {};
+
+  const itemIds = [
+    ...new Set(
+      shipmentLines.map((line) => line.itemId).filter(Boolean) as string[]
+    )
+  ];
+  if (itemIds.length === 0) return {};
+
+  const { data, error } = await client
+    .from("customerPartToItem")
+    .select("itemId, customerPartId, customerPartRevision")
+    .eq("customerId", customerId)
+    .eq("companyId", companyId)
+    .in("itemId", itemIds);
+
+  if (error || !data) return {};
+
+  const customerPartByItemId = new Map(
+    data.map((row) => [
+      row.itemId,
+      {
+        partNumber: row.customerPartId,
+        revision: row.customerPartRevision?.trim() ?? ""
+      }
+    ])
+  );
+
+  const lineCustomerParts: Record<
+    string,
+    { partNumber: string; revision: string }
+  > = {};
+  for (const line of shipmentLines) {
+    if (!line.id || !line.itemId) continue;
+    const customerPart = customerPartByItemId.get(line.itemId);
+    if (customerPart) {
+      lineCustomerParts[line.id] = customerPart;
+    }
+  }
+
+  return lineCustomerParts;
+}
+
 async function resolveShipmentCustomerReferences(
   client: SupabaseClient<Database>,
   shipmentLines: ShipmentLineRow[]
 ): Promise<{
   headerCustomerReference?: string;
   lineCustomerReferences: Record<string, string>;
+  linePurchaseOrderLines: Record<string, string>;
 }> {
   const salesOrderLineIds = [
     ...new Set(
@@ -55,28 +105,37 @@ async function resolveShipmentCustomerReferences(
   ];
 
   if (salesOrderLineIds.length === 0) {
-    return { lineCustomerReferences: {} };
+    return { lineCustomerReferences: {}, linePurchaseOrderLines: {} };
   }
 
   const { data, error } = await client
     .from("salesOrderLine")
-    .select("id, salesOrder:salesOrderId(customerReference)")
+    .select("id, lineNumber, salesOrder:salesOrderId(customerReference)")
     .in("id", salesOrderLineIds);
 
   if (error || !data) {
-    return { lineCustomerReferences: {} };
+    return { lineCustomerReferences: {}, linePurchaseOrderLines: {} };
   }
 
   const referenceBySalesOrderLineId = new Map(
     data.map((row) => [row.id, row.salesOrder?.customerReference?.trim() ?? ""])
   );
+  const lineNumberBySalesOrderLineId = new Map(
+    data.map((row) => [row.id, row.lineNumber])
+  );
 
   const lineCustomerReferences: Record<string, string> = {};
+  const linePurchaseOrderLines: Record<string, string> = {};
   for (const line of shipmentLines) {
     if (!line.id || !line.lineId) continue;
     const reference = referenceBySalesOrderLineId.get(line.lineId);
     if (reference) {
       lineCustomerReferences[line.id] = reference;
+      const lineNumber = lineNumberBySalesOrderLineId.get(line.lineId);
+      linePurchaseOrderLines[line.id] =
+        lineNumber != null
+          ? `${reference} / ${String(lineNumber).padStart(3, "0")}`
+          : reference;
     }
   }
 
@@ -91,7 +150,8 @@ async function resolveShipmentCustomerReferences(
         : uniqueReferences.length === 1
           ? uniqueReferences[0]
           : undefined,
-    lineCustomerReferences
+    lineCustomerReferences,
+    linePurchaseOrderLines
   };
 }
 
@@ -226,6 +286,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       serviceRole,
       shipmentLines.data ?? []
     );
+    const lineCustomerParts = await resolveShipmentLineCustomerParts(
+      serviceRole,
+      companyId,
+      customerId,
+      shipmentLines.data ?? []
+    );
 
     const stream = await renderToStream(
       <PackingSlipPDF
@@ -239,6 +305,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         }}
         customerReference={customerReferences.headerCustomerReference}
         lineCustomerReferences={customerReferences.lineCustomerReferences}
+        linePurchaseOrderLines={customerReferences.linePurchaseOrderLines}
+        lineCustomerParts={lineCustomerParts}
         shipment={shipment.data}
         shipmentLines={shipmentLines.data ?? []}
         // @ts-expect-error
@@ -247,7 +315,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         paymentTerm={paymentTerm.data ?? { id: "", name: "" }}
         shippingMethod={shippingMethod.data ?? { id: "", name: "" }}
         trackedEntities={shipmentTracking.data ?? []}
-        title="Packing Slip"
+        title="Pack List"
         thumbnails={thumbnails}
         template={templateConfig}
         sections={templateSections}
@@ -316,6 +384,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         serviceRole,
         shipmentLines.data ?? []
       );
+      const lineCustomerParts = await resolveShipmentLineCustomerParts(
+        serviceRole,
+        companyId,
+        salesOrder.data?.customerId,
+        shipmentLines.data ?? []
+      );
 
       const stream = await renderToStream(
         <PackingSlipPDF
@@ -333,6 +407,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             undefined
           }
           lineCustomerReferences={customerReferences.lineCustomerReferences}
+          linePurchaseOrderLines={customerReferences.linePurchaseOrderLines}
+          lineCustomerParts={lineCustomerParts}
           sourceDocument="Sales Order"
           sourceDocumentId={salesOrder.data?.salesOrderId ?? undefined}
           shipment={shipment.data}
@@ -343,7 +419,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           paymentTerm={paymentTerm.data ?? { id: "", name: "" }}
           shippingMethod={shippingMethod.data ?? { id: "", name: "" }}
           trackedEntities={shipmentTracking.data ?? []}
-          title="Packing Slip"
+          title="Pack List"
           thumbnails={thumbnails}
           template={templateConfig}
           sections={templateSections}
@@ -413,6 +489,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
         (path) => getBase64ImageFromSupabase(serviceRole, path)
       );
 
+      const lineCustomerParts = await resolveShipmentLineCustomerParts(
+        serviceRole,
+        companyId,
+        salesInvoice.data?.customerId,
+        shipmentLines.data ?? []
+      );
+
       const stream = await renderToStream(
         <PackingSlipPDF
           company={company.data as any}
@@ -424,6 +507,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             subject: "Packing Slip"
           }}
           customerReference={salesInvoice.data?.customerReference ?? undefined}
+          lineCustomerParts={lineCustomerParts}
           sourceDocument="Sales Invoice"
           sourceDocumentId={salesInvoice.data?.invoiceId ?? undefined}
           shipment={shipment.data}
@@ -434,7 +518,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           paymentTerm={paymentTerm.data ?? { id: "", name: "" }}
           shippingMethod={shippingMethod.data ?? { id: "", name: "" }}
           trackedEntities={shipmentTracking.data ?? []}
-          title="Packing Slip"
+          title="Pack List"
           thumbnails={thumbnails}
           template={templateConfig}
           sections={templateSections}
@@ -520,7 +604,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
           paymentTerm={poPaymentTerm.data ?? { id: "", name: "" }}
           shippingMethod={poShippingMethod.data ?? { id: "", name: "" }}
           trackedEntities={poShipmentTracking.data ?? []}
-          title="Packing Slip"
+          title="Pack List"
           thumbnails={poThumbnails}
           template={templateConfig}
           sections={templateSections}

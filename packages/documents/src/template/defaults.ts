@@ -10,6 +10,7 @@ import type {
 } from "./schema";
 import {
   CURRENT_TEMPLATE_FORMAT_VERSION,
+  DEFAULT_DETAILS_OPTIONS,
   DEFAULT_DOCUMENT_SETTINGS,
   DEFAULT_HEADER_OPTIONS,
   DEFAULT_LINE_ITEMS_OPTIONS,
@@ -327,7 +328,12 @@ function fulfillmentBlocks(): DocumentBlock[] {
   return [
     { id: "header", type: "header", visible: true },
     { id: "parties", type: "parties", visible: true },
-    { id: "details", type: "details", visible: true },
+    {
+      id: "details",
+      type: "details",
+      visible: true,
+      options: { ...DEFAULT_DETAILS_OPTIONS }
+    },
     { id: "lineItems", type: "lineItems", visible: true },
     { id: "notes", type: "notes", visible: true },
     { id: "terms", type: "terms", visible: true }

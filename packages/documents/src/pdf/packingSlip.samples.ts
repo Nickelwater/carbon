@@ -5,6 +5,9 @@ export const SAMPLE_PACKING_SLIP = {
     name: "Acme Manufacturing Co.",
     countryCode: "US",
     city: "Detroit",
+    stateProvince: "MI",
+    postalCode: "48201",
+    addressLine1: "100 Industrial Way",
     taxId: null,
     logoLight: null,
     logoLightIcon: null
@@ -38,13 +41,20 @@ export const SAMPLE_PACKING_SLIP = {
     },
     {
       id: "line-2",
-      itemReadableId: "BRACKET-22",
+      itemReadableId: "BRACKET-22.B",
       description: "Mounting Bracket",
       shippedQuantity: 4,
       orderQuantity: 4,
       unitOfMeasure: "EA"
     }
   ],
+  linePurchaseOrderLines: {
+    "line-1": "PO-88421 / 001",
+    "line-2": "PO-88421 / 002"
+  },
+  lineCustomerParts: {
+    "line-1": { partNumber: "CUST-WIDGET", revision: "A" }
+  },
   shippingAddress: {
     addressLine1: "500 Commerce Blvd",
     city: "Chicago",
@@ -65,5 +75,6 @@ export const SAMPLE_PACKING_SLIP = {
   },
   trackedEntities: [],
   thumbnails: {},
-  locale: "en-US"
+  locale: "en-US",
+  title: "Pack List"
 } as any;
