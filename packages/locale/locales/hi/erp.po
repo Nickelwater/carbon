@@ -231,7 +231,7 @@ msgid "A separate schedule for tax reporting when tax rules require a method dif
 msgstr "कर रिपोर्टिंग के लिए एक अलग अनुसूची जब कर नियम पुस्तक मूल्यह्रास से अलग विधि की आवश्यकता होती है।"
 
 msgid "A set of companies under one owner that share group-scoped configuration — the chart of accounts, currencies, and dimensions — so the same accounting setup spans every company in the group."
-msgstr ""
+msgstr "एक ही मालिक के अधीन कंपनियों का समूह जो समूह-स्तरीय कॉन्फ़िगरेशन साझा करती हैं — खातों का चार्ट, मुद्राएँ और आयाम — ताकि वही लेखांकन सेटअप समूह की हर कंपनी पर लागू हो।"
 
 msgid "A shipment line sent straight from supplier to customer, bypassing your warehouse — set per line, not on the header."
 msgstr "एक शिपमेंट लाइन जो सीधे आपूर्तिकर्ता से ग्राहक को भेजी जाती है, आपके गोदाम को दरकिनार करते हुए — प्रति लाइन सेट, हेडर पर नहीं।"
@@ -1801,7 +1801,7 @@ msgid "Company"
 msgstr "कंपनी"
 
 msgid "Company group"
-msgstr ""
+msgstr "कंपनी समूह"
 
 msgid "Company Name"
 msgstr "कंपनी का नाम"

@@ -231,7 +231,7 @@ msgid "A separate schedule for tax reporting when tax rules require a method dif
 msgstr "当税收规则要求与账面折旧不同的方法时，用于税务报告的单独时间表。"
 
 msgid "A set of companies under one owner that share group-scoped configuration — the chart of accounts, currencies, and dimensions — so the same accounting setup spans every company in the group."
-msgstr ""
+msgstr "同一所有者下的一组公司，共享组范围的配置——会计科目表、币种和维度——因此同一套会计设置适用于组内的每家公司。"
 
 msgid "A shipment line sent straight from supplier to customer, bypassing your warehouse — set per line, not on the header."
 msgstr "从供应商直接发送给客户，绕过您仓库的装运行——按行设置，而不是在标题上。"
@@ -1801,7 +1801,7 @@ msgid "Company"
 msgstr "公司"
 
 msgid "Company group"
-msgstr ""
+msgstr "公司组"
 
 msgid "Company Name"
 msgstr "公司名称"

@@ -231,7 +231,7 @@ msgid "A separate schedule for tax reporting when tax rules require a method dif
 msgstr "Отдельный график для налоговой отчетности, когда налоговые правила требуют метода, отличного от бухгалтерской амортизации."
 
 msgid "A set of companies under one owner that share group-scoped configuration — the chart of accounts, currencies, and dimensions — so the same accounting setup spans every company in the group."
-msgstr ""
+msgstr "Набор компаний под одним владельцем, которые совместно используют конфигурацию уровня группы — план счетов, валюты и аналитики — так что одна и та же настройка учёта распространяется на каждую компанию в группе."
 
 msgid "A shipment line sent straight from supplier to customer, bypassing your warehouse — set per line, not on the header."
 msgstr "Строка отгрузки, отправленная прямо от поставщика к клиенту, минуя ваш склад — устанавливается для каждой строки, а не в заголовке."
@@ -1801,7 +1801,7 @@ msgid "Company"
 msgstr "Компания"
 
 msgid "Company group"
-msgstr ""
+msgstr "Группа компаний"
 
 msgid "Company Name"
 msgstr "Название компании"

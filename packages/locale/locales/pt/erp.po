@@ -231,7 +231,7 @@ msgid "A separate schedule for tax reporting when tax rules require a method dif
 msgstr "Um cronograma separado para fins de declaração de impostos quando as regras fiscais exigem um método diferente da depreciação contábil."
 
 msgid "A set of companies under one owner that share group-scoped configuration — the chart of accounts, currencies, and dimensions — so the same accounting setup spans every company in the group."
-msgstr ""
+msgstr "Um conjunto de empresas sob um mesmo proprietário que compartilham configuração com escopo de grupo — o plano de contas, as moedas e as dimensões — de modo que a mesma configuração contábil abrange todas as empresas do grupo."
 
 msgid "A shipment line sent straight from supplier to customer, bypassing your warehouse — set per line, not on the header."
 msgstr "Uma linha de remessa enviada diretamente do fornecedor ao cliente, contornando seu armazém — definida por linha, não no cabeçalho."
@@ -1801,7 +1801,7 @@ msgid "Company"
 msgstr "Empresa"
 
 msgid "Company group"
-msgstr ""
+msgstr "Grupo de empresas"
 
 msgid "Company Name"
 msgstr "Nome da Empresa"
