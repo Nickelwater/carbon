@@ -53,8 +53,14 @@ The catalog is **schema-introspected**, not a hand-maintained list:
   externalIntegrationMapping — skipped on onboarding reseed),
   `IN_PLACE_SKIPPED_TABLES` (access/identity tables a restore must keep so the
   user isn't locked out).
-- Versioning: `BACKUP_VERSION` in the manifest; `assertBackupImportable` rejects a
-  file whose version no longer matches or that's missing a now-required column.
+- Format: the gz is **NDJSON** — line 1 is `{ manifest }`, every later line is one
+  `{ t, r }` table row. Written/read a line at a time (`serializeBackup` /
+  `deserializeBackup` in `company-backup.ts`) so a large backup never materializes
+  as one `>512MB` string (V8's max) nor a single giant `JSON.parse`. The old
+  whole-file `{ manifest, data }` JSON broke at ~512MB of row data.
+- Versioning: `BACKUP_VERSION` (currently **1** — single supported format, no
+  legacy branch) in the manifest; `assertBackupImportable` rejects a file whose
+  version no longer matches or that's missing a now-required column.
 - Id minting: `newIdForTable(table)` → `randomUUID()` for uuid id columns else
   `nanoid()`. Id remap is **gated to text/uuid id columns** (serial/int ids are
   left alone).
@@ -62,21 +68,40 @@ The catalog is **schema-introspected**, not a hand-maintained list:
   `{targetCompanyId}/` + remapped id segments), `rewriteToTemplateAssetPath`
   (`{co}/…` → `_templates/{industryId}/…`). `STORAGE_PATH_COLUMNS` =
   `modelPath`, `thumbnailPath`.
+- Asset transport: `copyAssetsToBackup` (server-side `storage.copy`
+  of `private/{companyId}/…` files into a backup's `.assets/` folder) and
+  `restoreAssetsFromBackup` (copy them back to `private/`, rewriting paths +
+  guarding every write to the target `{companyId}/` prefix). `removeStoragePrefix`
+  recursively deletes a backup's `.assets/` folder. `backupAssetPrefix(gzPath)`
+  derives `exports/<name>.assets` from `exports/<name>.carbon.json.gz`
+  (`BACKUP_GZ_SUFFIX`). Copies are server-side — **no asset bytes pass through the
+  job process**, so memory stays flat regardless of asset size.
 
 Buckets (important, two different things):
 - `STORAGE_BUCKET = "private"` — the **shared** bucket holding every company's
-  uploaded assets under a `{companyId}/` prefix. Asset files in a backup go here.
+  uploaded assets under a `{companyId}/` prefix.
 - The **per-company bucket named by `companyId`** holds the backup `.gz` files
-  (`exports/…`) and pre-restore snapshots — see `client.storage.from(companyId)`.
+  (`exports/<name>.carbon.json.gz`), each backup's sibling `.assets/` folder of
+  copied storage files (`exports/<name>.assets/{companyId}/…`), and pre-restore
+  snapshots — see `client.storage.from(companyId)`.
 - `TEMPLATE_BUCKET = "company-templates"`, `TEMPLATE_ASSET_PREFIX = "_templates"`.
 
 ## Export — `company-export.ts`
 
-Dumps each catalog table scoped by its scope column, gzips (`await gzipAsync`,
-promisified). **Empty tables are skipped** (`if (result.rows.length === 0)
-continue`) — so a backup of a company with no GL postings simply has no
-`journalLine`/`costLedger` rows; that is data-absence, not a coverage gap. With
-`includeStorage: "all"`, asset files under `private/{companyId}/` are base64-embedded.
+Dumps each catalog table scoped by its scope column into a **data-only** NDJSON gz
+(`serializeBackup`, line-streamed). **Empty tables are skipped**
+(`if (result.rows.length === 0) continue`) — so a backup of a company with no GL
+postings simply has no `journalLine`/`costLedger` rows; that is data-absence, not a
+coverage gap. With `includeStorage: "all"`, `buildCompanyBackup` records the
+in-scope asset paths in `manifest.storage` and returns them; the job then
+`copyAssetsToBackup` them server-side into the backup's `.assets/` folder.
+- **Asset cap** (`company-export.ts`): no per-file cap (the bucket already bounds
+  uploads — 120MB CAD, 50MB docs; the `private` bucket's own limit is the dev
+  `50MiB` global in `config.toml`), only a `MAX_STORAGE_TOTAL_BYTES = 1GiB` guard on
+  the whole backup. Files are included greedily until the budget is hit; each is
+  recorded in `manifest.storage` with `included: true|false`. The cap is storage-cost
+  only (server-side copy is memory-flat) — each backup duplicates the bundled bytes.
+  The old `25MiB`-per-file / `200MiB`-total caps silently dropped legit large media.
 
 ## Restore — `company-restore.ts`
 
@@ -86,7 +111,8 @@ Three Inngest fns: `companyRestoreFunction`, `companyRestoreFinalizeFunction`,
 per company at a time.
 
 Forward flow:
-1. `downloadBackup` from the per-company bucket; `gunzipAsync`.
+1. `downloadBackup` from the per-company bucket; `deserializeBackup` (streamed
+   NDJSON gunzip — never a single `>512MB` string).
 2. Compute `targetGroupId`, then `groupCompanyCount` (count of companies with that
    `companyGroupId`). `includeGroup = groupCompanyCount === 1`. A **foreign**
    backup (`manifest.sourceCompanyId !== companyId`) onto a shared group
@@ -104,9 +130,14 @@ Forward flow:
      `targetGroupId`; on a foreign/remap load it mints new ids (text/uuid only) and
      remaps FKs, with a dangling-ref guard (nullable FK → null, non-nullable →
      throw).
-5. `restoreStorage` (outside the txn, non-transactional) uploads embedded files to
-   `private/<rewritten path>` with `upsert: true`.
-6. `assertWipeSafe(catalog)` guards the invariant that a KEPT table has no NOT-NULL
+5. `restoreAssetsFromBackup` (outside the txn, non-transactional) copies the files
+   from the backup's `.assets/` folder back to `private/<rewritten path>`,
+   server-side. It runs **before** the `ready` marker (step below) so the progress
+   dialog only reports "complete" once data AND files are in place — but it never
+   throws (per-file warnings), so a storage hiccup still can't fail a committed
+   restore. Every write is guarded to the target `{companyId}/` prefix.
+6. State marker → `ready` (data committed + files copied).
+7. `assertWipeSafe(catalog)` guards the invariant that a KEPT table has no NOT-NULL
    FK into a WIPED table.
 
 State marker: a row on `externalIntegrationMapping`, `integration =
@@ -116,14 +147,14 @@ snapshotPath, foreign, includeGroup }`. `revert` reads the marker and reloads
 
 ### Known caveats in the committed code (not yet hardened)
 
-- **`restoreStorage` has no target-prefix assertion.** It writes to the shared
-  `private` bucket via `rewriteStoragePath`, which only rewrites paths under
-  `sourceCompanyId/`. A backup whose storage map holds a path NOT under
-  `sourceCompanyId` would upload outside this company's prefix (cross-tenant write,
-  `upsert:true`). Own/normal backups never trigger it; add a
-  `targetPath.startsWith(\`${companyId}/\`)` guard if hardening.
-- **Storage restore is best-effort** — upload failures `console.warn` only; the
-  restore still reports success.
+- **Storage restore is best-effort** — copy failures `console.warn` only; the
+  restore still reports success (data is the source of truth). The cross-tenant
+  write guard (`targetPath.startsWith(\`${companyId}/\`)`) IS now in
+  `restoreAssetsFromBackup`.
+- **Asset copy duplicates bytes** — a self-contained backup copies the company's
+  assets into its `.assets/` folder, so each backup costs roughly its asset size in
+  storage. Snapshots are transient (their `.assets/` is removed on keep/revert);
+  exports persist until deleted (`deleteCompanyBackupExport` removes the folder).
 - **`company-import` id-gate drift** — restore gates id remap on column type
   (text/uuid); import still uses a `typeof row.id === "string"` heuristic. Share
   one transform builder to fix.
@@ -136,9 +167,11 @@ snapshotPath, foreign, includeGroup }`. `revert` reads the marker and reloads
 ## ERP layer
 
 - `backups.service.ts` — per-company bucket ops: `exportCompanyBackup`,
-  `listCompanyBackupExports` (`from(companyId).list("exports")`),
-  `getCompanyBackupSignedUrl`, `deleteCompanyBackupExport`,
-  `getCompanyRestoreRuns` (reads the markers).
+  `listCompanyBackupExports` (`from(companyId).list("exports")` — folder entries
+  like `.assets/` have `id === null` and the loader filters them out, so only gz
+  files show as backups), `getCompanyBackupSignedUrl`, `deleteCompanyBackupExport`
+  (removes the gz **and** recursively its `.assets/` folder so the bucket space is
+  released), `getCompanyRestoreRuns` (reads the markers).
 - `backups.server.ts` — server-only trigger wrappers (`startCompanyRestore`,
   `finalizeCompanyRestore`, `revertCompanyRestore`) — kept off the client to avoid
   `Buffer`-in-client.
@@ -151,24 +184,31 @@ snapshotPath, foreign, includeGroup }`. `revert` reads the marker and reloads
   from `requirePermissions`, so a user can't poll another company's run.
 - UI: `modules/settings/ui/Backups/` — `BackupChoices` (Data only / Data + files),
   `BackupSourcePicker`, `BackupProgressModal`, `RestoreReviewRow` (Keep/Revert),
-  `BackupContentsInfo` (lazy popover), `format.ts`.
+  `BackupContentsInfo` (lazy popover), `format.ts`. `JobProgressModal` tracks real
+  completion, not a timer: restore/revert poll the status marker; **export** has no
+  marker, so the route component revalidates the list and passes `completed` once
+  the new backup actually appears (`exportBaseline` diff) — the dialog never claims
+  success before the artifact exists.
 
 ## Onboarding seed
 
 `routes/onboarding+/industry.tsx` → `dataChoice: "template" | "import" | "none"`
 ("Use a demo template" / "Restore from a backup" / "I don't need data"). A demo
-template is a committed `.gz` at
-`packages/database/supabase/backups/<industryId>.carbon.json.gz` (one per
-`industry` row). `provisionCompanyData` (onboarding.server.ts) imports it on top of
-an identity-only seed, **referencing** the shared `_templates/<industryId>/` assets
+template is a committed data-only `.gz` at
+`packages/database/supabase/backups/<industryId>.carbon.json.gz` plus a sibling
+`<industryId>.assets/` folder of its storage files (one per `industry` row).
+`provisionCompanyData` (onboarding.server.ts) imports it on top of an
+identity-only seed, **referencing** the shared `_templates/<industryId>/` assets
 instead of copying files per company. No file → clean seed.
 
 ## CI publish
 
 `ci/src/upload-backup-templates.ts` — **manual, idempotent** (`--force` to
 overwrite). Uploads each committed `.gz` to every workspace's `company-templates`
-bucket and fans its assets into `private/_templates/<industryId>/`. Run via the
-`Publish backup templates` workflow (`.github/workflows/publish-templates.yml`,
-`workflow_dispatch`) or `pnpm --filter ci ci:upload-backup-templates`. NOT run on
-every deploy (templates are large + change rarely). The script hardcodes the
-`_templates` literal — keep in sync with `TEMPLATE_ASSET_PREFIX`.
+bucket and fans the files from the committed `<industryId>.assets/` folder into
+`private/_templates/<industryId>/` (assets live as real files in the sibling
+folder, not embedded in the gz). Run via the `Publish backup templates` workflow
+(`.github/workflows/publish-templates.yml`, `workflow_dispatch`) or
+`pnpm --filter ci ci:upload-backup-templates`. NOT run on every deploy (templates
+are large + change rarely). The script hardcodes the `_templates` and `.assets`
+literals — keep in sync with `TEMPLATE_ASSET_PREFIX` / `BACKUP_GZ_SUFFIX`.
