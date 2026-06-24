@@ -46,12 +46,17 @@ export const ImportCSVModal = ({ table, onClose }: ImportCSVModalProps) => {
     if (fetcher.data?.success === true) {
       const inserted = fetcher.data.inserted ?? 0;
       const updated = fetcher.data.updated ?? 0;
-      const skipped = fetcher.data.skipped ?? 0;
+      const errorCount = fetcher.data.errors?.length ?? 0;
+      const skippedCount = fetcher.data.skipped?.length ?? 0;
       // The results modal renders next (see the early return below); just
       // surface a quick toast summary here.
-      if (skipped > 0) {
+      if (errorCount > 0) {
         toast.info(
-          `Imported ${inserted}, updated ${updated}, skipped ${skipped} row(s).`
+          `Imported ${inserted}, updated ${updated} — ${errorCount} row(s) need fixing.`
+        );
+      } else if (skippedCount > 0) {
+        toast.info(
+          `Imported ${inserted}, updated ${updated}, skipped ${skippedCount} row(s).`
         );
       } else {
         toast.success(`Imported ${inserted}, updated ${updated}.`);
@@ -71,17 +76,14 @@ export const ImportCSVModal = ({ table, onClose }: ImportCSVModalProps) => {
   // After a successful import, swap the wizard for the bigger results modal:
   // every parsed row marked valid/error, filterable, with an errors-only CSV
   // download (firstRows holds the full file, so no re-parse needed).
-  if (fetcher.data?.success === true && firstRows && fileColumns) {
+  if (fetcher.data?.success === true && fileColumns) {
     return (
       <ImportResultsModal
         table={table}
-        result={{
-          inserted: fetcher.data.inserted ?? 0,
-          updated: fetcher.data.updated ?? 0,
-          skipped: fetcher.data.skipped ?? 0,
-          errors: fetcher.data.errors ?? []
-        }}
-        rows={firstRows}
+        inserted={fetcher.data.inserted ?? 0}
+        updated={fetcher.data.updated ?? 0}
+        errors={fetcher.data.errors ?? []}
+        skipped={fetcher.data.skipped ?? []}
         columns={fileColumns}
         onClose={onClose}
       />

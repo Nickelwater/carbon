@@ -23,7 +23,6 @@ const importCsvValidator = z.object({
     "material",
     "bom",
     "operations",
-    "partWithMethod",
     "part",
     "supplier",
     "supplierContact",
@@ -904,7 +903,10 @@ serve(async (req: Request) => {
     const summary = {
       inserted: 0,
       updated: 0,
+      // Rows the user should fix and re-import (validation / missing required data).
       errors: [] as Array<{ row: number; reason: string }>,
+      // Rows intentionally not written (duplicates, already-existing) — informational.
+      skipped: [] as Array<{ row: number; reason: string }>,
     };
 
     switch (table) {
@@ -982,7 +984,9 @@ serve(async (req: Request) => {
             });
 
             if (decision.action === "skip") {
-              summary.errors.push({ row: rowIndex, reason: decision.reason });
+              const bucket =
+                decision.category === "error" ? summary.errors : summary.skipped;
+              bucket.push({ row: rowIndex, reason: decision.reason });
               continue;
             }
 
@@ -1181,7 +1185,9 @@ serve(async (req: Request) => {
             });
 
             if (decision.action === "skip") {
-              summary.errors.push({ row: rowIndex, reason: decision.reason });
+              const bucket =
+                decision.category === "error" ? summary.errors : summary.skipped;
+              bucket.push({ row: rowIndex, reason: decision.reason });
               continue;
             }
 
@@ -2250,8 +2256,7 @@ serve(async (req: Request) => {
         break;
       }
       case "bom":
-      case "operations":
-      case "partWithMethod": {
+      case "operations": {
         await importMethods(db, {
           table,
           mappedRecords,
@@ -2266,13 +2271,20 @@ serve(async (req: Request) => {
       }
     }
 
+    // Attach each failed/skipped row's original CSV cells (keyed by the user's
+    // headers) so the results UI renders the exact rows the server parsed — no
+    // dependence on a second, client-side parse. `row` is the 0-based index into
+    // parsedCsv for both the standard and method importers.
+    const withValues = (issues: Array<{ row: number; reason: string }>) =>
+      issues.map((issue) => ({ ...issue, values: parsedCsv[issue.row] ?? {} }));
+
     return new Response(
       JSON.stringify({
         success: true,
         inserted: summary.inserted,
         updated: summary.updated,
-        skipped: summary.errors.length,
-        errors: summary.errors,
+        errors: withValues(summary.errors),
+        skipped: withValues(summary.skipped),
       }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },

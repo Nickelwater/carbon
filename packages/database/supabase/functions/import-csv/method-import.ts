@@ -1,5 +1,5 @@
-// Method (BOM/BOP) importer — backs the `bom`, `operations`, and `partWithMethod`
-// CSV imports. One row-type-multiplexed engine (ADR-0002): a single file carries
+// Method (BOM/BOP) importer — backs the `bom` and `operations` CSV imports.
+// One row-type-multiplexed engine (ADR-0002): a single file carries
 // PART/BOM/BOP/STEP/TOOL/PARAM rows, each non-PART row naming its parent part
 // explicitly. Atomic per parent part and create-only / fill-if-empty (ADR-0001).
 //
@@ -16,6 +16,7 @@ type Summary = {
   inserted: number;
   updated: number;
   errors: Array<{ row: number; reason: string }>;
+  skipped: Array<{ row: number; reason: string }>;
 };
 
 const ROW_TYPES = ["PART", "BOM", "BOP", "STEP", "TOOL", "PARAM"] as const;
@@ -74,8 +75,10 @@ const bool = (s: string | undefined): boolean =>
 
 const text = (s: string | undefined): string => (s ?? "").trim();
 
-// A CSV row number for messages: header is row 1, data starts at row 2.
-const lineNo = (index: number) => index + 2;
+// The `row` reported on each error: the 0-based index of the data row. This must
+// match how the results modal keys errors to rows (by array index into the parsed
+// rows) and the standard importer in index.ts — NOT a human CSV line number.
+const rowOf = (index: number) => index;
 
 // Plain text → minimal tiptap doc for a step's rich-text description.
 function plainTextToTiptap(value: string): Record<string, unknown> {
@@ -106,7 +109,7 @@ function normalizeRowType(
 export async function importMethods(
   db: Kysely<DB>,
   args: {
-    table: "bom" | "operations" | "partWithMethod";
+    table: "bom" | "operations";
     mappedRecords: Rec[];
     companyId: string;
     userId: string;
@@ -139,7 +142,7 @@ export async function importMethods(
     const rowType = normalizeRowType(record.rowType, table);
     if (!rowType) {
       summary.errors.push({
-        row: lineNo(index),
+        row: rowOf(index),
         reason: `Unknown or missing Row Type "${text(record.rowType)}"`,
       });
       return;
@@ -149,7 +152,7 @@ export async function importMethods(
       const readableId = text(record.readableId);
       if (!readableId) {
         summary.errors.push({
-          row: lineNo(index),
+          row: rowOf(index),
           reason: "PART row is missing Part Number",
         });
         return;
@@ -163,7 +166,7 @@ export async function importMethods(
     const parentId = text(record.parentId);
     if (!parentId) {
       summary.errors.push({
-        row: lineNo(index),
+        row: rowOf(index),
         reason: `${rowType} row is missing Parent ID`,
       });
       return;
@@ -305,8 +308,9 @@ export async function importMethods(
         else summary.updated++;
       } else if (result.skippedExisting) {
         // The targeted version already had content — create-only, never clobber.
-        summary.errors.push({
-          row: lineNo(g.firstIndex),
+        // Benign: not something the user needs to fix, so it's a skip, not an error.
+        summary.skipped.push({
+          row: rowOf(g.firstIndex),
           reason: `Part ${partLabel} already has a method; skipped`,
         });
       } else if (g.partRow) {
@@ -315,7 +319,7 @@ export async function importMethods(
       }
     } catch (err) {
       summary.errors.push({
-        row: lineNo(g.firstIndex),
+        row: rowOf(g.firstIndex),
         reason: `Part ${partLabel} failed to import: ${
           err instanceof Error ? err.message : String(err)
         }`,
@@ -378,12 +382,12 @@ function validateGroup(
     const parent = lk.itemMap.get(parentKey);
     if (!parent) {
       errors.push({
-        row: lineNo(g.firstIndex),
+        row: rowOf(g.firstIndex),
         reason: `Parent part ${partLabel} not found`,
       });
     } else if (parent.type !== "Part" && parent.type !== "Tool") {
       errors.push({
-        row: lineNo(g.firstIndex),
+        row: rowOf(g.firstIndex),
         reason: `Parent ${partLabel} is a ${parent.type}; only a Part or Tool can own a method`,
       });
     }
@@ -395,12 +399,12 @@ function validateGroup(
     for (const e of bucket.bop) {
       const opNo = text(e.record.opNo);
       if (!opNo) {
-        errors.push({ row: lineNo(e.index), reason: "BOP row is missing Op No" });
+        errors.push({ row: rowOf(e.index), reason: "BOP row is missing Op No" });
         continue;
       }
       if (opNos.has(opNo)) {
         errors.push({
-          row: lineNo(e.index),
+          row: rowOf(e.index),
           reason: `Duplicate Op No "${opNo}" for ${partLabel}`,
         });
       }
@@ -409,19 +413,19 @@ function validateGroup(
       // process required + resolvable
       const proc = text(e.record.process).toLowerCase();
       if (!proc) {
-        errors.push({ row: lineNo(e.index), reason: `Op ${opNo}: Process is required` });
+        errors.push({ row: rowOf(e.index), reason: `Op ${opNo}: Process is required` });
       } else if (lk.processAmbiguous.has(proc)) {
-        errors.push({ row: lineNo(e.index), reason: `Op ${opNo}: Process name is ambiguous` });
+        errors.push({ row: rowOf(e.index), reason: `Op ${opNo}: Process name is ambiguous` });
       } else if (!lk.processMap.has(proc)) {
-        errors.push({ row: lineNo(e.index), reason: `Op ${opNo}: Process "${text(e.record.process)}" not found` });
+        errors.push({ row: rowOf(e.index), reason: `Op ${opNo}: Process "${text(e.record.process)}" not found` });
       }
 
       const wc = text(e.record.workCenter).toLowerCase();
       if (wc) {
         if (lk.workCenterAmbiguous.has(wc)) {
-          errors.push({ row: lineNo(e.index), reason: `Op ${opNo}: Work Center name is ambiguous` });
+          errors.push({ row: rowOf(e.index), reason: `Op ${opNo}: Work Center name is ambiguous` });
         } else if (!lk.workCenterMap.has(wc)) {
-          errors.push({ row: lineNo(e.index), reason: `Op ${opNo}: Work Center "${text(e.record.workCenter)}" not found` });
+          errors.push({ row: rowOf(e.index), reason: `Op ${opNo}: Work Center "${text(e.record.workCenter)}" not found` });
         }
       }
 
@@ -430,7 +434,7 @@ function validateGroup(
       if (opType === "Inside") {
         if (!text(e.record.setupUnit) || !text(e.record.laborUnit) || !text(e.record.machineUnit)) {
           errors.push({
-            row: lineNo(e.index),
+            row: rowOf(e.index),
             reason: `Op ${opNo}: Inside operations require Setup, Labor, and Machine units`,
           });
         }
@@ -441,22 +445,22 @@ function validateGroup(
     for (const e of bucket.bom) {
       const componentId = text(e.record.componentId);
       if (!componentId) {
-        errors.push({ row: lineNo(e.index), reason: "BOM row is missing Material ID" });
+        errors.push({ row: rowOf(e.index), reason: "BOM row is missing Material ID" });
         continue;
       }
       const compKey = key(componentId, text(e.record.componentRevision));
       if (!lk.itemMap.has(compKey) && !lk.fileCreatedParts.has(compKey)) {
         errors.push({
-          row: lineNo(e.index),
+          row: rowOf(e.index),
           reason: `Material ${componentId} rev ${text(e.record.componentRevision) || "0"} not found`,
         });
       }
       if (num(e.record.quantity) === undefined) {
-        errors.push({ row: lineNo(e.index), reason: "BOM row has an invalid Quantity" });
+        errors.push({ row: rowOf(e.index), reason: "BOM row has an invalid Quantity" });
       }
       const uom = text(e.record.unitOfMeasureCode);
       if (uom && !lk.uomSet.has(uom)) {
-        errors.push({ row: lineNo(e.index), reason: `Unit of Measure "${uom}" not found` });
+        errors.push({ row: rowOf(e.index), reason: `Unit of Measure "${uom}" not found` });
       }
     }
 
@@ -464,50 +468,50 @@ function validateGroup(
     for (const e of bucket.step) {
       const opNo = text(e.record.opNo);
       if (!opNos.has(opNo)) {
-        errors.push({ row: lineNo(e.index), reason: `STEP references unknown Op No "${opNo}"` });
+        errors.push({ row: rowOf(e.index), reason: `STEP references unknown Op No "${opNo}"` });
       }
       if (!text(e.record.stepName)) {
-        errors.push({ row: lineNo(e.index), reason: "STEP row is missing Name" });
+        errors.push({ row: rowOf(e.index), reason: "STEP row is missing Name" });
       }
       const stepType = text(e.record.stepType) || "Task";
       if (!(STEP_TYPES as readonly string[]).includes(stepType)) {
-        errors.push({ row: lineNo(e.index), reason: `Invalid Step Type "${stepType}"` });
+        errors.push({ row: rowOf(e.index), reason: `Invalid Step Type "${stepType}"` });
       }
       if (stepType === "Measurement" && !text(e.record.stepUnitOfMeasureCode)) {
-        errors.push({ row: lineNo(e.index), reason: "Measurement step requires a Step Unit of Measure" });
+        errors.push({ row: rowOf(e.index), reason: "Measurement step requires a Step Unit of Measure" });
       }
       if (stepType === "List" && !text(e.record.stepListValues)) {
-        errors.push({ row: lineNo(e.index), reason: "List step requires Step List Values" });
+        errors.push({ row: rowOf(e.index), reason: "List step requires Step List Values" });
       }
     }
     for (const e of bucket.tool) {
       const opNo = text(e.record.opNo);
       if (!opNos.has(opNo)) {
-        errors.push({ row: lineNo(e.index), reason: `TOOL references unknown Op No "${opNo}"` });
+        errors.push({ row: rowOf(e.index), reason: `TOOL references unknown Op No "${opNo}"` });
       }
       const toolId = text(e.record.toolId);
       if (!toolId) {
-        errors.push({ row: lineNo(e.index), reason: "TOOL row is missing Tool ID" });
+        errors.push({ row: rowOf(e.index), reason: "TOOL row is missing Tool ID" });
       } else {
         const toolKey = key(toolId, text(e.record.toolRevision));
         if (!lk.itemMap.has(toolKey) && !lk.fileCreatedParts.has(toolKey)) {
-          errors.push({ row: lineNo(e.index), reason: `Tool ${toolId} rev ${text(e.record.toolRevision) || "0"} not found` });
+          errors.push({ row: rowOf(e.index), reason: `Tool ${toolId} rev ${text(e.record.toolRevision) || "0"} not found` });
         }
       }
       if (num(e.record.toolQuantity) === undefined) {
-        errors.push({ row: lineNo(e.index), reason: "TOOL row has an invalid Quantity" });
+        errors.push({ row: rowOf(e.index), reason: "TOOL row has an invalid Quantity" });
       }
     }
     for (const e of bucket.param) {
       const opNo = text(e.record.opNo);
       if (!opNos.has(opNo)) {
-        errors.push({ row: lineNo(e.index), reason: `PARAM references unknown Op No "${opNo}"` });
+        errors.push({ row: rowOf(e.index), reason: `PARAM references unknown Op No "${opNo}"` });
       }
       if (!text(e.record.paramKey)) {
-        errors.push({ row: lineNo(e.index), reason: "PARAM row is missing Key" });
+        errors.push({ row: rowOf(e.index), reason: "PARAM row is missing Key" });
       }
       if (!text(e.record.paramValue)) {
-        errors.push({ row: lineNo(e.index), reason: "PARAM row is missing Value" });
+        errors.push({ row: rowOf(e.index), reason: "PARAM row is missing Value" });
       }
     }
   }

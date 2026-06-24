@@ -1,5 +1,4 @@
 import {
-  Badge,
   Button,
   Count,
   cn,
@@ -16,70 +15,58 @@ import {
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import Papa from "papaparse";
-import { useMemo, useState } from "react";
-import { LuCircleCheck, LuCircleX, LuDownload } from "react-icons/lu";
+import { useState } from "react";
+import { LuCircleCheck, LuCircleX, LuDownload, LuInfo } from "react-icons/lu";
 
-type ImportResult = {
-  inserted: number;
-  updated: number;
-  skipped: number;
-  errors: Array<{ row: number; reason: string }>;
+// A row the importer did not insert/update. `values` holds the original CSV cells
+// (keyed by the user's headers) exactly as the server parsed them — so the modal
+// renders the real rows without re-parsing the file client-side.
+type RowIssue = {
+  row: number;
+  reason: string;
+  values: Record<string, string>;
 };
-
-type RowFilter = "all" | "valid" | "errors";
 
 type ImportResultsModalProps = {
   table: string;
-  result: ImportResult;
-  // Every parsed CSV data row, keyed by column header (the wizard's `firstRows`,
-  // which holds the full file — not a sample). Row index aligns with the edge
-  // function's per-row `errors[].row`, so we can mark each row valid/error.
-  rows: Record<string, string>[];
+  inserted: number;
+  updated: number;
+  // Rows the user should fix and re-import (validation / missing required data).
+  errors: RowIssue[];
+  // Rows intentionally not written (duplicates, already-existing) — informational.
+  skipped: RowIssue[];
   columns: string[];
   onClose: () => void;
 };
 
+type Bucket = "errors" | "skipped";
+
 export const ImportResultsModal = ({
   table,
-  result,
-  rows,
+  inserted,
+  updated,
+  errors,
+  skipped,
   columns,
   onClose
 }: ImportResultsModalProps) => {
   const { t } = useLingui();
-  const [filter, setFilter] = useState<RowFilter>("all");
-
-  const reasonByRow = useMemo(() => {
-    const map = new Map<number, string>();
-    for (const error of result.errors ?? []) map.set(error.row, error.reason);
-    return map;
-  }, [result.errors]);
-
-  const classified = useMemo(
-    () =>
-      rows.map((data, index) => ({
-        index,
-        data,
-        reason: reasonByRow.get(index),
-        isError: reasonByRow.has(index)
-      })),
-    [rows, reasonByRow]
+  const hasErrors = errors.length > 0;
+  const hasSkipped = skipped.length > 0;
+  const allClean = !hasErrors && !hasSkipped;
+  const [bucket, setBucket] = useState<Bucket>(
+    hasErrors ? "errors" : "skipped"
   );
 
-  const errorCount = reasonByRow.size;
-  const validCount = rows.length - errorCount;
+  const rows = bucket === "errors" ? errors : skipped;
 
-  const visibleRows = classified.filter((row) =>
-    filter === "errors" ? row.isError : filter === "valid" ? !row.isError : true
-  );
-
-  // The CSV is already uploaded; the user just needs the failed rows back to fix
-  // and re-import. Re-emit the original column values for error rows only.
+  // Only the fixable rows go into the "fix and re-import" download — duplicates and
+  // already-existing rows aren't something the user re-imports.
   const downloadInvalidRows = () => {
-    const invalid = classified
-      .filter((row) => row.isError)
-      .map((row) => columns.map((column) => row.data[column] ?? ""));
-    const csv = Papa.unparse({ fields: columns, data: invalid });
+    const data = errors.map((issue) =>
+      columns.map((column) => issue.values[column] ?? "")
+    );
+    const csv = Papa.unparse({ fields: columns, data });
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -106,119 +93,127 @@ export const ImportResultsModal = ({
             <Trans>Import results</Trans>
           </ModalTitle>
           <ModalDescription>
-            {errorCount > 0 ? (
+            {allClean ? (
               <Trans>
-                {result.inserted} inserted, {result.updated} updated —{" "}
-                {errorCount} row(s) need fixing.
+                All rows imported — {inserted} inserted, {updated} updated.
               </Trans>
             ) : (
               <Trans>
-                All {rows.length} row(s) imported — {result.inserted} inserted,{" "}
-                {result.updated} updated.
+                {inserted} inserted, {updated} updated, {errors.length} need
+                fixing, {skipped.length} skipped.
               </Trans>
             )}
           </ModalDescription>
         </ModalHeader>
         <ModalBody className="min-w-0">
-          <div className="flex items-center justify-between gap-4">
-            <Tabs
-              value={filter}
-              onValueChange={(value) => setFilter(value as RowFilter)}
-            >
-              <TabsList>
-                <TabsTrigger value="all" className="gap-1.5">
-                  <Trans>All</Trans>
-                  <Count count={rows.length} />
-                </TabsTrigger>
-                <TabsTrigger value="valid" className="gap-1.5">
-                  <Trans>Valid</Trans>
-                  <Count count={validCount} />
-                </TabsTrigger>
-                <TabsTrigger value="errors" className="gap-1.5">
-                  <Trans>Errors</Trans>
-                  <Count count={errorCount} />
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-            {errorCount > 0 && (
-              <Button
-                variant="secondary"
-                size="md"
-                leftIcon={<LuDownload />}
-                onClick={downloadInvalidRows}
-              >
-                <Trans>Download {errorCount} invalid row(s)</Trans>
-              </Button>
-            )}
-          </div>
-
-          <div className="mt-4 w-full min-w-0 max-h-[420px] overflow-auto rounded-md border border-border">
-            <table className="w-full border-collapse text-sm">
-              <thead className="sticky top-0 z-10 bg-card">
-                <tr className="border-b border-border text-left text-muted-foreground">
-                  <th className="w-10 px-3 py-2 font-medium" />
-                  {columns.map((column) => (
-                    <th
-                      key={column}
-                      className="whitespace-nowrap px-3 py-2 font-medium"
-                    >
-                      {column}
-                    </th>
-                  ))}
-                  <th className="whitespace-nowrap px-3 py-2 font-medium">
-                    <Trans>Result</Trans>
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleRows.map((row) => (
-                  <tr
-                    key={row.index}
-                    className={cn(
-                      "border-b border-border last:border-0",
-                      row.isError && "bg-destructive/5"
-                    )}
+          {allClean ? (
+            <div className="flex flex-col items-center justify-center gap-2 py-10 text-center">
+              <LuCircleCheck className="h-8 w-8 text-emerald-500" />
+              <p className="text-sm text-muted-foreground">
+                <Trans>Every row was imported successfully.</Trans>
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-4">
+                <Tabs
+                  value={bucket}
+                  onValueChange={(value) => setBucket(value as Bucket)}
+                >
+                  <TabsList>
+                    <TabsTrigger value="errors" className="gap-1.5">
+                      <Trans>Needs fixing</Trans>
+                      <Count count={errors.length} />
+                    </TabsTrigger>
+                    <TabsTrigger value="skipped" className="gap-1.5">
+                      <Trans>Skipped</Trans>
+                      <Count count={skipped.length} />
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+                {hasErrors && (
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    leftIcon={<LuDownload />}
+                    onClick={downloadInvalidRows}
                   >
-                    <td className="px-3 py-2 align-top">
-                      {row.isError ? (
-                        <LuCircleX className="h-4 w-4 text-destructive" />
-                      ) : (
-                        <LuCircleCheck className="h-4 w-4 text-emerald-500" />
-                      )}
-                    </td>
-                    {columns.map((column) => (
-                      <td
-                        key={column}
-                        className="max-w-48 truncate px-3 py-2 align-top"
-                        title={row.data[column]}
-                      >
-                        {row.data[column]}
-                      </td>
-                    ))}
-                    <td className="px-3 py-2 align-top">
-                      {row.isError ? (
-                        <span className="text-destructive">{row.reason}</span>
-                      ) : (
-                        <Badge variant="secondary">
-                          <Trans>Imported</Trans>
-                        </Badge>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-                {visibleRows.length === 0 && (
-                  <tr>
-                    <td
-                      colSpan={columns.length + 2}
-                      className="px-3 py-8 text-center text-muted-foreground"
-                    >
-                      <Trans>No rows to show.</Trans>
-                    </td>
-                  </tr>
+                    <Trans>Download {errors.length} row(s) to fix</Trans>
+                  </Button>
                 )}
-              </tbody>
-            </table>
-          </div>
+              </div>
+
+              <div className="mt-4 w-full min-w-0 max-h-[420px] overflow-auto rounded-md border border-border">
+                <table className="w-full border-collapse text-sm">
+                  <thead className="sticky top-0 z-10 bg-card">
+                    <tr className="border-b border-border text-left text-muted-foreground">
+                      <th className="w-10 px-3 py-2 font-medium" />
+                      {columns.map((column) => (
+                        <th
+                          key={column}
+                          className="whitespace-nowrap px-3 py-2 font-medium"
+                        >
+                          {column}
+                        </th>
+                      ))}
+                      <th className="whitespace-nowrap px-3 py-2 font-medium">
+                        <Trans>Reason</Trans>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr
+                        key={row.row}
+                        className={cn(
+                          "border-b border-border last:border-0",
+                          bucket === "errors" && "bg-destructive/5"
+                        )}
+                      >
+                        <td className="px-3 py-2 align-top">
+                          {bucket === "errors" ? (
+                            <LuCircleX className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <LuInfo className="h-4 w-4 text-muted-foreground" />
+                          )}
+                        </td>
+                        {columns.map((column) => (
+                          <td
+                            key={column}
+                            className="max-w-48 truncate px-3 py-2 align-top"
+                            title={row.values[column]}
+                          >
+                            {row.values[column]}
+                          </td>
+                        ))}
+                        <td className="px-3 py-2 align-top">
+                          <span
+                            className={cn(
+                              bucket === "errors"
+                                ? "text-destructive"
+                                : "text-muted-foreground"
+                            )}
+                          >
+                            {row.reason}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {rows.length === 0 && (
+                      <tr>
+                        <td
+                          colSpan={columns.length + 2}
+                          className="px-3 py-8 text-center text-muted-foreground"
+                        >
+                          <Trans>No rows here.</Trans>
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </>
+          )}
         </ModalBody>
         <ModalFooter>
           <Button onClick={onClose}>{t`Done`}</Button>
