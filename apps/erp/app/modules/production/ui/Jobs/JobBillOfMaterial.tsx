@@ -968,6 +968,7 @@ function MaterialForm({
           <DefaultMethodType
             name="methodType"
             label={t`Method Type`}
+            termId="method-type"
             value={itemData.methodType}
             onChange={(value) => {
               setItemData((d) => ({
@@ -1041,6 +1042,7 @@ function MaterialForm({
           <Select
             name="jobOperationId"
             label={t`Operation`}
+            termId="operation"
             isClearable
             options={jobOperations.map((o) => ({
               value: o.id!,

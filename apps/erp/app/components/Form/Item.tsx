@@ -40,6 +40,8 @@ import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import { MethodItemTypeIcon } from "../Icons";
 import { ItemLifecycleBadge } from "../ItemLifecycleBadge";
+import type { EntityKey } from "./emptyStates";
+import { useEmptyState } from "./emptyStates";
 
 type ItemSelectProps = Omit<ComboboxProps, "options" | "type" | "inline"> & {
   isReadOnly?: boolean;
@@ -218,6 +220,31 @@ const Item = ({
               ? t`Consumable`
               : (label ?? translateItemType(type));
 
+  const entityKey: EntityKey =
+    type === "Part"
+      ? "part"
+      : type === "Material"
+        ? "material"
+        : type === "Tool"
+          ? "tool"
+          : type === "Consumable"
+            ? "consumable"
+            : "item";
+
+  const storeEmptyMessage = useEmptyState(entityKey, {
+    onCreate: () => {
+      if (type === "Item") {
+        selectTypeModal.onOpen();
+      } else {
+        newItemsModal.onOpen();
+      }
+    }
+  });
+  // Only surface the empty state when the underlying store has no items at all
+  // — when filters (validItemTypes, replenishmentSystem, whitelist, …) narrow
+  // to zero, fall back to the bare empty list so the CTA doesn't mislead.
+  const emptyMessage = items.length === 0 ? storeEmptyMessage : undefined;
+
   return (
     <>
       <FormControl isInvalid={!!error} className="w-full">
@@ -272,6 +299,7 @@ const Item = ({
                         : undefined
             }
             itemHeight={44}
+            emptyMessage={emptyMessage}
             onCreateOption={(option) => {
               if (type === "Item") {
                 selectTypeModal.onOpen();
