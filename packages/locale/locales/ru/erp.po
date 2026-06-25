@@ -3541,6 +3541,9 @@ msgstr "Редактировать тип материала"
 msgid "Edit Non Conformance Type"
 msgstr "Редактировать тип несоответствия"
 
+msgid "Edit notes"
+msgstr ""
+
 msgid "Edit Part"
 msgstr "Редактировать деталь"
 

@@ -3,6 +3,7 @@ import type { Cell as CellType, Column } from "@tanstack/react-table";
 import { flexRender } from "@tanstack/react-table";
 import type { CSSProperties } from "react";
 import { memo, useState } from "react";
+import { LuPencil } from "react-icons/lu";
 import type { EditableTableCellComponent } from "~/components/Editable";
 import { useMovingCellRef } from "~/hooks";
 import { getAccessorKey } from "../utils";
@@ -54,10 +55,15 @@ const Cell = <T extends object>({
 
   const isPinned = cell.column.getIsPinned();
 
+  // Inline-editable cells render as plain text until clicked; surface a subtle
+  // pencil on hover so users can tell the value is editable.
+  const showEditAffordance =
+    isEditMode && hasEditableTableCellComponent && !isSelected;
+
   return (
     <Td
       className={cn(
-        "relative py-2 whitespace-nowrap text-sm outline-none max-w-[30dvw] truncate",
+        "group/cell relative py-2 whitespace-nowrap text-sm outline-none max-w-[30dvw] truncate",
         cell.column.id === "Select" ? "px-2" : "px-4",
         wasEdited && "bg-yellow-100 dark:bg-yellow-900",
         isEditMode && !hasEditableTableCellComponent && "bg-muted/50",
@@ -100,6 +106,12 @@ const Cell = <T extends object>({
       ) : (
         <div ref={ref}>
           {flexRender(cell.column.columnDef.cell, cell.getContext())}
+          {showEditAffordance && (
+            <LuPencil
+              aria-hidden
+              className="pointer-events-none absolute right-1.5 top-1/2 size-3 -translate-y-1/2 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover/cell:opacity-60"
+            />
+          )}
         </div>
       )}
     </Td>

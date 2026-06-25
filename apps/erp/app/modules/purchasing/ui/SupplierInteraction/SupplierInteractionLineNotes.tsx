@@ -7,7 +7,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  generateHTML,
   HStack,
   Tabs,
   TabsContent,
@@ -16,11 +15,11 @@ import {
   toast,
   useDebounce
 } from "@carbon/react";
-import { Editor } from "@carbon/react/Editor";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { nanoid } from "nanoid";
 import { useState } from "react";
+import EditableNotes from "~/components/EditableNotes";
 import { usePermissions, useUser } from "~/hooks";
 import { getPrivateUrl } from "~/utils/path";
 
@@ -143,23 +142,17 @@ const SupplierInteractionLineNotes = ({
           </HStack>
           <CardContent>
             <TabsContent value="internal">
-              {!isReadOnly && permissions.can("update", "purchasing") ? (
-                <Editor
-                  initialValue={(internalNotes ?? {}) as JSONContent}
-                  onUpload={onUploadImage}
-                  onChange={(value) => {
-                    setInternalNotes(value);
-                    onUpdateInternalNotes(value);
-                  }}
-                />
-              ) : (
-                <div
-                  className="prose dark:prose-invert"
-                  dangerouslySetInnerHTML={{
-                    __html: generateHTML(internalNotes as JSONContent)
-                  }}
-                />
-              )}
+              <EditableNotes
+                value={(internalNotes ?? {}) as JSONContent}
+                isEditable={
+                  !isReadOnly && permissions.can("update", "purchasing")
+                }
+                onUpload={onUploadImage}
+                onChange={(value) => {
+                  setInternalNotes(value);
+                  onUpdateInternalNotes(value);
+                }}
+              />
             </TabsContent>
             {[
               "purchasingRfqLine",
@@ -167,23 +160,17 @@ const SupplierInteractionLineNotes = ({
               "purchaseOrderLine"
             ].includes(table) && (
               <TabsContent value="external">
-                {!isReadOnly && permissions.can("update", "purchasing") ? (
-                  <Editor
-                    initialValue={(externalNotes ?? {}) as JSONContent}
-                    onUpload={onUploadImage}
-                    onChange={(value) => {
-                      setExternalNotes(value);
-                      onUpdateExternalNotes(value);
-                    }}
-                  />
-                ) : (
-                  <div
-                    className="prose dark:prose-invert"
-                    dangerouslySetInnerHTML={{
-                      __html: generateHTML(externalNotes as JSONContent)
-                    }}
-                  />
-                )}
+                <EditableNotes
+                  value={(externalNotes ?? {}) as JSONContent}
+                  isEditable={
+                    !isReadOnly && permissions.can("update", "purchasing")
+                  }
+                  onUpload={onUploadImage}
+                  onChange={(value) => {
+                    setExternalNotes(value);
+                    onUpdateExternalNotes(value);
+                  }}
+                />
               </TabsContent>
             )}
           </CardContent>
