@@ -10,6 +10,7 @@ import net from "node:net";
 import { homedir } from "node:os";
 import { execa } from "execa";
 import { basename, dirname, join, normalize } from "pathe";
+import { isDockerPublishPortUsable } from "./host-ports.js";
 
 // ---------------------------------------------------------------------------
 // Types & constants
@@ -191,6 +192,48 @@ export function removeSlot(slug: string) {
   if (!(slug in registry)) return;
   delete registry[slug];
   writeRegistry(registry);
+}
+
+export type PinnedPortsResult = {
+  ports: Partial<PortMap>;
+  fallbacks: string[];
+};
+
+/**
+ * Pin well-known dev ports when not using portless. LAN mode keeps Kong on a
+ * dynamic loopback port (ERP proxies API traffic); only ERP/MES are fixed.
+ */
+export async function resolvePinnedPorts(opts: {
+  lan: boolean;
+  existing: PortMap;
+}): Promise<PinnedPortsResult> {
+  const taken = new Set(Object.values(opts.existing));
+  const fallbacks: string[] = [];
+  const ports: Partial<PortMap> = {};
+
+  const pin = async (name: PortName, preferred: number) => {
+    if (taken.has(preferred) || !(await isDockerPublishPortUsable(preferred))) {
+      const allocated = await pickFreePort(taken);
+      if (allocated !== preferred) {
+        fallbacks.push(`${name} ${preferred} → ${allocated}`);
+      }
+      ports[name] = allocated;
+      return;
+    }
+    taken.add(preferred);
+    ports[name] = preferred;
+  };
+
+  if (opts.lan) {
+    await pin("PORT_ERP", 3000);
+    await pin("PORT_MES", 3001);
+  } else {
+    await pin("PORT_API", 54321);
+    await pin("PORT_ERP", 3000);
+    await pin("PORT_MES", 3001);
+  }
+
+  return { ports, fallbacks };
 }
 
 // ---------------------------------------------------------------------------

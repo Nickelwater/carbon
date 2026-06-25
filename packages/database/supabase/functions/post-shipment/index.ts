@@ -11,6 +11,7 @@ import { calculateCOGS } from "../shared/calculate-cogs.ts";
 import { getCurrentAccountingPeriod } from "../shared/get-accounting-period.ts";
 import { getNextSequence } from "../shared/get-next-sequence.ts";
 import { getDefaultPostingGroup } from "../shared/get-posting-group.ts";
+import { validateShipmentCanPost } from "../shared/shipment-inventory.ts";
 
 const pool = getConnectionPool(1);
 const db = getDatabaseClient<DB>(pool);
@@ -105,6 +106,15 @@ serve(async (req: Request) => {
 
     switch (type) {
       case "post": {
+        await validateShipmentCanPost(client, {
+          companyId,
+          shipment: shipment.data,
+          shipmentLines: shipmentLines.data ?? [],
+          itemsById: new Map(
+            (items.data ?? []).map((item) => [item.id, item])
+          ),
+        });
+
         const lineIds = [
           ...new Set(
             shipmentLines.data

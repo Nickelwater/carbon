@@ -13,35 +13,61 @@ export interface ResolvedLabelLogo {
   widthDots?: number;
 }
 
+export type ResolveLabelLogoOptions = {
+  supabaseUrl: string;
+  /** Use the company logo when the tracking-label template has no logo block. */
+  fallbackToCompanyLogo?: boolean;
+  /** Override the template logo variant (`icon` = symbol/mark, `mark` = wordmark). */
+  logoVariant?: "mark" | "icon";
+  /** Fraction of label width used for ZPL logo rendering (default 0.3). */
+  logoWidthFraction?: number;
+};
+
 /**
  * If the tracking-label template has a visible logo block, resolve the company
  * logo into a color URL (PDF), a monochrome PNG (PDF B&W) and a ZPL `^GFA`
  * graphic — the last two via the `logo-resizer` edge function (ImageMagick).
- * Returns null when there's no logo block or no company logo. `supabaseUrl` is
- * passed in so this stays free of app-specific auth imports.
+ * Returns null when there's no logo block or no company logo, unless
+ * `fallbackToCompanyLogo` is set. `supabaseUrl` is passed in so this stays
+ * free of app-specific auth imports.
  */
 export async function resolveLabelLogo(
   company: { logoLight?: string | null; logoLightIcon?: string | null } | null,
   template: DocumentTemplate | null,
   labelSize: LabelSize,
-  { supabaseUrl }: { supabaseUrl: string }
+  {
+    supabaseUrl,
+    fallbackToCompanyLogo = false,
+    logoVariant,
+    logoWidthFraction = 0.3
+  }: ResolveLabelLogoOptions
 ): Promise<ResolvedLabelLogo | null> {
   const resolved = resolveTemplate("trackingLabel", template);
   const logoBlock = resolved.blocks.find(
     (b) => b.type === "labelLogo" && b.visible
   );
-  if (!logoBlock || logoBlock.type !== "labelLogo") return null;
-  const { variant, crop } = logoBlock;
+
+  const logoBlockVisible = logoBlock?.type === "labelLogo";
+  if (!logoBlockVisible && !fallbackToCompanyLogo) {
+    return null;
+  }
+
+  const variant =
+    logoVariant ?? (logoBlockVisible ? logoBlock.variant : "mark");
+  const crop =
+    logoBlockVisible && logoBlock.variant === variant
+      ? logoBlock.crop
+      : undefined;
+
   const color =
     variant === "icon"
       ? (company?.logoLightIcon ?? company?.logoLight)
       : (company?.logoLight ?? company?.logoLightIcon);
   if (!color) return null;
 
-  // Logo width ≈ 30% of the label, in printer dots.
   const dpi = labelSize.zpl?.dpi ?? 203;
   const labelInches = labelSize.zpl?.width ?? labelSize.width;
-  const widthDots = Math.round(labelInches * dpi * 0.3);
+  const widthDots = Math.round(labelInches * dpi * logoWidthFraction);
 
   try {
     const imgRes = await fetch(color);

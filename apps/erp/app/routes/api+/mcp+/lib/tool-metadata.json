@@ -1,6 +1,6 @@
 {
-  "generated": "2026-06-24T17:49:46.057Z",
-  "totalTools": 1203,
+  "generated": "2026-06-25T21:04:12.919Z",
+  "totalTools": 1206,
   "modules": 15,
   "tools": [
     {
@@ -4639,6 +4639,40 @@
       }
     },
     {
+      "name": "inventory_getLiveInventoryQuantitiesAtLocation",
+      "module": "inventory",
+      "classification": "READ",
+      "description": "get live inventory quantities at location",
+      "paramCount": 2,
+      "serviceParams": [
+        "client",
+        "companyId",
+        "locationId",
+        "itemIds"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "locationId": {
+            "type": "string"
+          },
+          "itemIds": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "locationId",
+          "itemIds"
+        ]
+      }
+    },
+    {
       "name": "inventory_shipmentLineRequiresInventoryCheck",
       "module": "inventory",
       "classification": "WRITE",
@@ -4664,6 +4698,70 @@
         },
         "required": [
           "itemTrackingType"
+        ]
+      }
+    },
+    {
+      "name": "inventory_getUnpostedCommittedQuantityForSalesOrderLine",
+      "module": "inventory",
+      "classification": "READ",
+      "description": "get unposted committed quantity for sales order line",
+      "paramCount": 2,
+      "serviceParams": [
+        "client",
+        "salesOrderLineId",
+        "excludeShipmentId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "salesOrderLineId": {
+            "type": "string"
+          },
+          "excludeShipmentId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "salesOrderLineId"
+        ]
+      }
+    },
+    {
+      "name": "inventory_getUnpostedCommittedQuantityForItemAtLocation",
+      "module": "inventory",
+      "classification": "READ",
+      "description": "get unposted committed quantity for item at location",
+      "paramCount": 4,
+      "serviceParams": [
+        "client",
+        "{\n    companyId,\n    itemId,\n    locationId,\n    excludeShipmentId,\n    excludeShipmentLineId\n  }"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "locationId": {
+            "type": "string"
+          },
+          "excludeShipmentId": {
+            "type": "string"
+          },
+          "excludeShipmentLineId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId",
+          "locationId"
         ]
       }
     },
@@ -4706,10 +4804,10 @@
       "module": "inventory",
       "classification": "READ",
       "description": "get max shippable quantity for shipment line",
-      "paramCount": 7,
+      "paramCount": 10,
       "serviceParams": [
         "client",
-        "{\r\n    companyId,\r\n    shipmentId,\r\n    lineId,\r\n    itemId,\r\n    locationId,\r\n    itemTrackingType,\r\n    fulfillmentType,\r\n    outstandingQuantity\r\n  }"
+        "{\n    companyId,\n    shipmentId,\n    lineId,\n    itemId,\n    locationId,\n    itemTrackingType,\n    fulfillmentType,\n    outstandingQuantity,\n    salesOrderLineId,\n    saleQuantity,\n    quantitySent\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -4738,6 +4836,24 @@
           },
           "outstandingQuantity": {
             "type": "number"
+          },
+          "salesOrderLineId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "saleQuantity": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "quantitySent": {
+            "type": [
+              "number",
+              "null"
+            ]
           }
         },
         "required": [
@@ -4758,7 +4874,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    companyId,\r\n    shipmentId,\r\n    itemId,\r\n    locationId\r\n  }"
+        "{\n    companyId,\n    shipmentId,\n    itemId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -6167,7 +6283,7 @@
           "locationId": {
             "type": "string"
           },
-          "lines: Array<{\r\n      itemId: string;\r\n      fromStorageUnitId": {},
+          "lines: Array<{\n      itemId: string;\n      fromStorageUnitId": {},
           "stockTransferId": {
             "type": "string"
           },

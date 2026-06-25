@@ -7,7 +7,11 @@ export const manualPrintValidator = z.object({
   sourceDocumentId: z.string().min(1),
   locationId: z.string().optional(),
   workCenterId: z.string().optional(),
-  printerRouteId: z.string().optional()
+  printerRouteId: z.string().optional(),
+  documentTypeId: z.string().optional(),
+  lineId: z.string().optional(),
+  packageIndex: z.coerce.number().int().positive().optional(),
+  packageCount: z.coerce.number().int().positive().optional()
 });
 
 export const printerRouteValidator = z.object({

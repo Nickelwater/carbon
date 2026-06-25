@@ -51,6 +51,14 @@ export async function action({ request }: ActionFunctionArgs) {
       return { error: { message: "Shipment line not found" }, data: null };
     }
 
+    const salesOrderLine = line.data.lineId
+      ? await client
+          .from("salesOrderLine")
+          .select("saleQuantity, quantitySent")
+          .eq("id", line.data.lineId)
+          .maybeSingle()
+      : { data: null, error: null };
+
     const [shipment, item] = await Promise.all([
       client
         .from("shipment")
@@ -98,7 +106,10 @@ export async function action({ request }: ActionFunctionArgs) {
           locationId,
           itemTrackingType: item.data?.itemTrackingType,
           fulfillmentType: line.data.fulfillment?.type,
-          outstandingQuantity: line.data.outstandingQuantity ?? 0
+          outstandingQuantity: line.data.outstandingQuantity ?? 0,
+          salesOrderLineId: line.data.lineId,
+          saleQuantity: salesOrderLine.data?.saleQuantity,
+          quantitySent: salesOrderLine.data?.quantitySent
         }
       );
 

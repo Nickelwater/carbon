@@ -2724,6 +2724,9 @@ msgstr "下载 PDF"
 msgid "Download template"
 msgstr "下载模板"
 
+msgid "Download ZPL"
+msgstr ""
+
 msgid "Draft"
 msgstr "草稿"
 
@@ -4504,6 +4507,9 @@ msgstr "浅色模式"
 msgid "Likelihood"
 msgstr "可能性"
 
+msgid "Line"
+msgstr ""
+
 msgid "Line Item Comparison"
 msgstr "行项目比较"
 
@@ -5599,6 +5605,9 @@ msgstr "OEE 影响"
 msgid "of"
 msgstr "的"
 
+msgid "Of"
+msgstr ""
+
 msgid "OK"
 msgstr "确定"
 
@@ -5782,6 +5791,9 @@ msgstr "输出"
 msgid "Output never outlasts its raw materials. Falls back to the fixed duration when no input has an expiry date."
 msgstr "输出永远不会超过其原材料的保质期。当没有输入具有过期日期时，回退到固定期限。"
 
+msgid "Outstanding"
+msgstr ""
+
 msgid "Overdue"
 msgstr "逾期"
 
@@ -5826,6 +5838,9 @@ msgstr "用源方法覆盖报价方法"
 
 msgid "Overwrite the target manufacturing method with the quote method"
 msgstr "用报价方法覆盖目标制造方法"
+
+msgid "Package"
+msgstr ""
 
 msgid "Packing Slip"
 msgstr "装箱单"
@@ -6141,6 +6156,9 @@ msgstr "预览"
 
 msgid "Preview failed: {error}"
 msgstr "预览失败：{error}"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Preview Quantity"
 msgstr "预览数量"
@@ -7494,6 +7512,9 @@ msgstr "发货单"
 msgid "shipped"
 msgstr ""
 
+msgid "Shipped"
+msgstr ""
+
 msgid "Shipped Qty"
 msgstr "已发货数量"
 
@@ -7514,6 +7535,9 @@ msgstr "运费"
 
 msgid "Shipping Customer"
 msgstr "配送客户"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Shipping Location"
 msgstr "配送地点"
@@ -7616,6 +7640,9 @@ msgstr "跳过公司假期的计划维护"
 
 msgid "Skipped"
 msgstr "已跳过"
+
+msgid "SO"
+msgstr ""
 
 msgid "Something went wrong. Please try again."
 msgstr "出现问题。请重试。"

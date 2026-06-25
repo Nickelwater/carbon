@@ -61,6 +61,17 @@ export const labelSizes: LabelSize[] = [
     }
   },
   {
+    id: "label4x6",
+    name: "Label 4x6",
+    width: 6,
+    height: 4,
+    zpl: {
+      dpi: 203,
+      width: 6,
+      height: 4
+    }
+  },
+  {
     id: "label4x2",
     name: "Label 4x2",
     width: 4,

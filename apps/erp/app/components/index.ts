@@ -1,4 +1,4 @@
-import { PrintButton } from "@carbon/printing/ui";
+import { PrintButton, ShippingLabelPrintButton } from "@carbon/printing/ui";
 import Assignee, { useOptimisticAssignment } from "./Assignee";
 import Avatar from "./Avatar";
 import AvatarMenu from "./AvatarMenu";
@@ -67,6 +67,7 @@ export {
   New,
   OperationStatusIcon,
   PrintButton,
+  ShippingLabelPrintButton,
   RealtimeDataProvider,
   SearchFilter,
   SearchLandingPage,

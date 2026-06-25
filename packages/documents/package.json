@@ -34,7 +34,8 @@
     "./template": "./src/template/index.ts",
     "./zpl": "./src/zpl/index.ts",
     "./qr": "./src/qr/qr-code.ts",
-    "./labels": "./src/labels/index.ts"
+    "./labels": "./src/labels/index.ts",
+    "./shipping-label": "./src/shipping-label/index.ts"
   },
   "private": true,
   "scripts": {

@@ -294,7 +294,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
             sourceDocumentId: shipmentId,
             companyId,
             userId,
-            locationId
+            locationId,
+            documentTypeId: "productLabel"
+          });
+          await trigger("print-job", {
+            sourceDocument: "Shipment",
+            sourceDocumentId: shipmentId,
+            companyId,
+            userId,
+            locationId,
+            documentTypeId: "shippingLabel"
           });
         }
       }

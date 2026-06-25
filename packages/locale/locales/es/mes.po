@@ -210,6 +210,9 @@ msgstr "Registrar salida"
 msgid "Clocked in since {0}"
 msgstr "Registrado desde {0}"
 
+msgid "Close"
+msgstr ""
+
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -322,6 +325,9 @@ msgstr "Descargar"
 
 msgid "Download Labels"
 msgstr "Descargar Etiquetas"
+
+msgid "Download ZPL"
+msgstr ""
 
 msgid "Drag and drop a file here, or click to select a file"
 msgstr "Arrastre y suelte un archivo aquí, o haga clic para seleccionar un archivo"
@@ -713,6 +719,9 @@ msgstr "Impacto OEE"
 msgid "OEM Required"
 msgstr "Requiere OEM"
 
+msgid "Of"
+msgstr ""
+
 #. placeholder {0}: batch.quantity
 msgid "Only {0} available"
 msgstr "Solo {0} disponibles"
@@ -740,6 +749,9 @@ msgstr "Realizado por operador"
 
 msgid "Optional"
 msgstr "Opcional"
+
+msgid "Package"
+msgstr ""
 
 msgid "Parameters"
 msgstr "Parámetros"
@@ -776,6 +788,9 @@ msgstr "Anterior"
 
 msgid "Preventive"
 msgstr "Preventivo"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Print"
 msgstr "Imprimir"
@@ -966,6 +981,9 @@ msgstr "Establecer hora de salida"
 
 msgid "Setup"
 msgstr "Preparación"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Sign in with Email"
 msgstr "Iniciar sesión con correo electrónico"

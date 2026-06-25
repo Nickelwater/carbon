@@ -210,6 +210,9 @@ msgstr "Ausstempeln"
 msgid "Clocked in since {0}"
 msgstr "Eingestempelt seit {0}"
 
+msgid "Close"
+msgstr ""
+
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -322,6 +325,9 @@ msgstr "Herunterladen"
 
 msgid "Download Labels"
 msgstr "Etiketten herunterladen"
+
+msgid "Download ZPL"
+msgstr ""
 
 msgid "Drag and drop a file here, or click to select a file"
 msgstr "Datei hierher ziehen oder klicken, um eine Datei auszuwählen"
@@ -713,6 +719,9 @@ msgstr "OEE-Auswirkung"
 msgid "OEM Required"
 msgstr "OEM erforderlich"
 
+msgid "Of"
+msgstr ""
+
 #. placeholder {0}: batch.quantity
 msgid "Only {0} available"
 msgstr "Nur {0} verfügbar"
@@ -740,6 +749,9 @@ msgstr "Vom Bediener durchgeführt"
 
 msgid "Optional"
 msgstr "Optional"
+
+msgid "Package"
+msgstr ""
 
 msgid "Parameters"
 msgstr "Parameter"
@@ -776,6 +788,9 @@ msgstr "Zurück"
 
 msgid "Preventive"
 msgstr "Vorbeugend"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Print"
 msgstr "Drucken"
@@ -966,6 +981,9 @@ msgstr "Ausstempelzeit festlegen"
 
 msgid "Setup"
 msgstr "Rüsten"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Sign in with Email"
 msgstr "Mit E-Mail anmelden"

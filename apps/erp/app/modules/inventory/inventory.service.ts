@@ -788,10 +788,79 @@ export async function getShipmentLines(
   client: SupabaseClient<Database>,
   shipmentId: string
 ) {
-  return client
+  const result = await client
     .from("shipmentLines")
     .select("*, fulfillment(*, job(*))")
     .eq("shipmentId", shipmentId);
+
+  if (result.error || !result.data?.length) {
+    return result;
+  }
+
+  const salesOrderLineIds = [
+    ...new Set(
+      result.data
+        .map((line) => line.lineId)
+        .filter((lineId): lineId is string => Boolean(lineId))
+    )
+  ];
+
+  if (salesOrderLineIds.length === 0) {
+    return result;
+  }
+
+  const { data: salesOrderLines, error: salesOrderLinesError } = await client
+    .from("salesOrderLines")
+    .select("id, promisedDate, lineNumber, salesOrderReadableId, salesOrderId")
+    .in("id", salesOrderLineIds);
+
+  if (salesOrderLinesError) {
+    return { ...result, error: salesOrderLinesError };
+  }
+
+  const salesOrderIds = [
+    ...new Set(
+      (salesOrderLines ?? [])
+        .map((line) => line.salesOrderId)
+        .filter((id): id is string => Boolean(id))
+    )
+  ];
+
+  const { data: salesOrders } =
+    salesOrderIds.length > 0
+      ? await client
+          .from("salesOrders")
+          .select("id, receiptRequestedDate")
+          .in("id", salesOrderIds)
+      : { data: [] as { id: string; receiptRequestedDate: string | null }[] };
+
+  const salesOrderLineById = new Map(
+    (salesOrderLines ?? []).map((line) => [line.id, line])
+  );
+  const salesOrderById = new Map(
+    (salesOrders ?? []).map((order) => [order.id, order])
+  );
+
+  return {
+    ...result,
+    data: result.data.map((line) => {
+      const salesOrderLine = line.lineId
+        ? salesOrderLineById.get(line.lineId)
+        : undefined;
+      const salesOrder = salesOrderLine?.salesOrderId
+        ? salesOrderById.get(salesOrderLine.salesOrderId)
+        : undefined;
+
+      return {
+        ...line,
+        salesOrderReadableId: salesOrderLine?.salesOrderReadableId ?? null,
+        salesOrderId: salesOrderLine?.salesOrderId ?? null,
+        salesOrderLineNumber: salesOrderLine?.lineNumber ?? null,
+        promisedDate: salesOrderLine?.promisedDate ?? null,
+        requestedDate: salesOrder?.receiptRequestedDate ?? null
+      };
+    })
+  };
 }
 
 export async function getShipmentLinesWithDetails(
@@ -846,14 +915,46 @@ export async function getItemQuantityOnHandAtLocation(
   locationId: string
 ) {
   const { data } = await client
-    .from("itemStockQuantities")
-    .select("quantityOnHand")
-    .eq("itemId", itemId)
-    .eq("companyId", companyId)
-    .eq("locationId", locationId)
+    .rpc("get_inventory_quantities", {
+      location_id: locationId,
+      company_id: companyId
+    })
+    .eq("id", itemId)
     .maybeSingle();
 
   return Number(data?.quantityOnHand ?? 0);
+}
+
+export async function getLiveInventoryQuantitiesAtLocation(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  locationId: string,
+  itemIds: string[]
+) {
+  if (itemIds.length === 0) {
+    return { data: {} as Record<string, number>, error: null };
+  }
+
+  const { data, error } = await client
+    .rpc("get_inventory_quantities", {
+      location_id: locationId,
+      company_id: companyId
+    })
+    .in("id", itemIds)
+    .select("id, quantityOnHand");
+
+  if (error) {
+    return { data: null, error };
+  }
+
+  const quantities: Record<string, number> = {};
+  for (const row of data ?? []) {
+    if (row.id) {
+      quantities[row.id] = Number(row.quantityOnHand ?? 0);
+    }
+  }
+
+  return { data: quantities, error: null };
 }
 
 export function shipmentLineRequiresInventoryCheck(
@@ -866,6 +967,118 @@ export function shipmentLineRequiresInventoryCheck(
   if (itemTrackingType === "Non-Inventory") return false;
   if (fulfillmentType === "Job") return false;
   return true;
+}
+
+const UNPOSTED_SHIPMENT_STATUSES = new Set(["Draft", "Pending"]);
+
+async function getUnpostedShipmentIds(
+  client: SupabaseClient<Database>,
+  shipmentIds: string[]
+) {
+  if (shipmentIds.length === 0) {
+    return new Set<string>();
+  }
+
+  const { data: shipments } = await client
+    .from("shipment")
+    .select("id, status")
+    .in("id", shipmentIds);
+
+  return new Set(
+    (shipments ?? [])
+      .filter((shipment) => UNPOSTED_SHIPMENT_STATUSES.has(shipment.status))
+      .map((shipment) => shipment.id)
+  );
+}
+
+export async function getUnpostedCommittedQuantityForSalesOrderLine(
+  client: SupabaseClient<Database>,
+  salesOrderLineId: string,
+  excludeShipmentId?: string
+) {
+  const { data: lines } = await client
+    .from("shipmentLine")
+    .select("shippedQuantity, shipmentId")
+    .eq("lineId", salesOrderLineId);
+
+  if (!lines?.length) return 0;
+
+  const unpostedShipmentIds = await getUnpostedShipmentIds(client, [
+    ...new Set(lines.map((line) => line.shipmentId).filter(Boolean))
+  ] as string[]);
+
+  return lines.reduce((sum, line) => {
+    if (!line.shipmentId || !unpostedShipmentIds.has(line.shipmentId)) {
+      return sum;
+    }
+    if (excludeShipmentId && line.shipmentId === excludeShipmentId) {
+      return sum;
+    }
+    return sum + Number(line.shippedQuantity ?? 0);
+  }, 0);
+}
+
+export async function getUnpostedCommittedQuantityForItemAtLocation(
+  client: SupabaseClient<Database>,
+  {
+    companyId,
+    itemId,
+    locationId,
+    excludeShipmentId,
+    excludeShipmentLineId
+  }: {
+    companyId: string;
+    itemId: string;
+    locationId: string;
+    excludeShipmentId?: string;
+    excludeShipmentLineId?: string;
+  }
+) {
+  const { data: lines } = await client
+    .from("shipmentLine")
+    .select("id, shippedQuantity, shipmentId, locationId")
+    .eq("itemId", itemId)
+    .eq("companyId", companyId);
+
+  if (!lines?.length) return 0;
+
+  const shipmentIds = [
+    ...new Set(lines.map((line) => line.shipmentId).filter(Boolean))
+  ] as string[];
+
+  const { data: shipments } = await client
+    .from("shipment")
+    .select("id, status, locationId")
+    .in("id", shipmentIds);
+
+  const shipmentById = new Map(
+    (shipments ?? []).map((shipment) => [shipment.id, shipment])
+  );
+
+  return lines.reduce((sum, line) => {
+    if (!line.shipmentId) return sum;
+
+    const shipment = shipmentById.get(line.shipmentId);
+    if (!shipment || !UNPOSTED_SHIPMENT_STATUSES.has(shipment.status)) {
+      return sum;
+    }
+
+    const lineLocation = line.locationId ?? shipment.locationId;
+    if (lineLocation !== locationId) return sum;
+
+    if (excludeShipmentLineId && line.id === excludeShipmentLineId) {
+      return sum;
+    }
+    if (
+      excludeShipmentId &&
+      line.shipmentId === excludeShipmentId &&
+      !excludeShipmentLineId
+    ) {
+      return sum;
+    }
+
+    return sum + Number(line.shippedQuantity ?? 0);
+  }, 0);
 }
 
 export async function getReservedShipmentQuantityForItem(
@@ -901,7 +1114,10 @@ export async function getMaxShippableQuantityForShipmentLine(
     locationId,
     itemTrackingType,
     fulfillmentType,
-    outstandingQuantity
+    outstandingQuantity,
+    salesOrderLineId,
+    saleQuantity,
+    quantitySent
   }: {
     companyId: string;
     shipmentId: string;
@@ -914,19 +1130,42 @@ export async function getMaxShippableQuantityForShipmentLine(
       | undefined;
     fulfillmentType?: string | null;
     outstandingQuantity: number;
+    salesOrderLineId?: string | null;
+    saleQuantity?: number | null;
+    quantitySent?: number | null;
   }
 ) {
-  if (!shipmentLineRequiresInventoryCheck(itemTrackingType, fulfillmentType)) {
-    return outstandingQuantity;
+  let remainingOrderQuantity = outstandingQuantity;
+
+  if (salesOrderLineId && saleQuantity != null) {
+    const committedOnOtherShipments =
+      await getUnpostedCommittedQuantityForSalesOrderLine(
+        client,
+        salesOrderLineId,
+        shipmentId
+      );
+    remainingOrderQuantity = Math.max(
+      0,
+      saleQuantity - (quantitySent ?? 0) - committedOnOtherShipments
+    );
   }
 
-  const [onHand, reservedQuantity] = await Promise.all([
+  if (!shipmentLineRequiresInventoryCheck(itemTrackingType, fulfillmentType)) {
+    return remainingOrderQuantity;
+  }
+
+  const [onHand, committedInventory] = await Promise.all([
     getItemQuantityOnHandAtLocation(client, itemId, companyId, locationId),
-    getReservedShipmentQuantityForItem(client, shipmentId, itemId, lineId)
+    getUnpostedCommittedQuantityForItemAtLocation(client, {
+      companyId,
+      itemId,
+      locationId,
+      excludeShipmentLineId: lineId
+    })
   ]);
 
-  const availableInventory = Math.max(0, onHand - reservedQuantity);
-  return Math.min(outstandingQuantity, availableInventory);
+  const availableInventory = Math.max(0, onHand - committedInventory);
+  return Math.min(remainingOrderQuantity, availableInventory);
 }
 
 export async function getAvailableInventoryForShipmentItem(
@@ -943,12 +1182,17 @@ export async function getAvailableInventoryForShipmentItem(
     locationId: string;
   }
 ) {
-  const [onHand, reservedQuantity] = await Promise.all([
+  const [onHand, committedInventory] = await Promise.all([
     getItemQuantityOnHandAtLocation(client, itemId, companyId, locationId),
-    getReservedShipmentQuantityForItem(client, shipmentId, itemId)
+    getUnpostedCommittedQuantityForItemAtLocation(client, {
+      companyId,
+      itemId,
+      locationId,
+      excludeShipmentId: shipmentId
+    })
   ]);
 
-  return Math.max(0, onHand - reservedQuantity);
+  return Math.max(0, onHand - committedInventory);
 }
 
 export async function getAvailableSalesOrderLinesForCustomer(
@@ -991,11 +1235,58 @@ export async function getAvailableSalesOrderLinesForCustomer(
     .order("promisedDate", { ascending: true, nullsFirst: false });
 
   if (result.error) return result;
-  const filtered = lineIdsOnShipment.size
+
+  const rows = lineIdsOnShipment.size
     ? (result.data ?? []).filter(
         (row) => row.id && !lineIdsOnShipment.has(row.id)
       )
     : (result.data ?? []);
+
+  const lineIds = rows.map((row) => row.id).filter((id): id is string => !!id);
+
+  const commitments: Record<string, number> = {};
+  if (lineIds.length > 0) {
+    const { data: shipmentLines } = await client
+      .from("shipmentLine")
+      .select("lineId, shippedQuantity, shipmentId")
+      .in("lineId", lineIds);
+
+    if (shipmentLines?.length) {
+      const unpostedShipmentIds = await getUnpostedShipmentIds(client, [
+        ...new Set(shipmentLines.map((line) => line.shipmentId).filter(Boolean))
+      ] as string[]);
+
+      for (const shipmentLine of shipmentLines) {
+        if (
+          !shipmentLine.lineId ||
+          !shipmentLine.shipmentId ||
+          !unpostedShipmentIds.has(shipmentLine.shipmentId)
+        ) {
+          continue;
+        }
+        if (
+          options.excludeShipmentId &&
+          shipmentLine.shipmentId === options.excludeShipmentId
+        ) {
+          continue;
+        }
+        commitments[shipmentLine.lineId] =
+          (commitments[shipmentLine.lineId] ?? 0) +
+          Number(shipmentLine.shippedQuantity ?? 0);
+      }
+    }
+  }
+
+  const filtered = rows
+    .map((row) => ({
+      ...row,
+      quantityToSend: Math.max(
+        0,
+        (row.quantityToSend ?? 0) - (row.id ? (commitments[row.id] ?? 0) : 0)
+      )
+    }))
+    .filter((row) => (row.quantityToSend ?? 0) > 0);
+
   return { data: filtered, error: null };
 }
 

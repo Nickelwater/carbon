@@ -20,7 +20,11 @@ export async function action({ request }: ActionFunctionArgs) {
     sourceDocumentId,
     locationId,
     workCenterId,
-    printerRouteId
+    printerRouteId,
+    documentTypeId,
+    lineId,
+    packageIndex,
+    packageCount
   } = validation.data;
 
   try {
@@ -31,7 +35,11 @@ export async function action({ request }: ActionFunctionArgs) {
       userId,
       locationId,
       workCenterId,
-      printerRouteId
+      printerRouteId,
+      documentTypeId,
+      lineId,
+      packageIndex,
+      packageCount
     });
     return { success: true, message: "Print job queued" };
   } catch (e) {

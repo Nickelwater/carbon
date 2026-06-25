@@ -2724,6 +2724,9 @@ msgstr "Download PDF"
 msgid "Download template"
 msgstr "Download template"
 
+msgid "Download ZPL"
+msgstr "Download ZPL"
+
 msgid "Draft"
 msgstr "Draft"
 
@@ -4504,6 +4507,9 @@ msgstr "Light Mode"
 msgid "Likelihood"
 msgstr "Likelihood"
 
+msgid "Line"
+msgstr "Line"
+
 msgid "Line Item Comparison"
 msgstr "Line Item Comparison"
 
@@ -5599,6 +5605,9 @@ msgstr "OEE Impact"
 msgid "of"
 msgstr "of"
 
+msgid "Of"
+msgstr "Of"
+
 msgid "OK"
 msgstr "OK"
 
@@ -5782,6 +5791,9 @@ msgstr "Output"
 msgid "Output never outlasts its raw materials. Falls back to the fixed duration when no input has an expiry date."
 msgstr "Output never outlasts its raw materials. Falls back to the fixed duration when no input has an expiry date."
 
+msgid "Outstanding"
+msgstr "Outstanding"
+
 msgid "Overdue"
 msgstr "Overdue"
 
@@ -5826,6 +5838,9 @@ msgstr "Overwrite the quote method with the source method"
 
 msgid "Overwrite the target manufacturing method with the quote method"
 msgstr "Overwrite the target manufacturing method with the quote method"
+
+msgid "Package"
+msgstr "Package"
 
 msgid "Packing Slip"
 msgstr "Packing Slip"
@@ -6141,6 +6156,9 @@ msgstr "Preview"
 
 msgid "Preview failed: {error}"
 msgstr "Preview failed: {error}"
+
+msgid "Preview PDF"
+msgstr "Preview PDF"
 
 msgid "Preview Quantity"
 msgstr "Preview Quantity"
@@ -7494,6 +7512,9 @@ msgstr "Shipments"
 msgid "shipped"
 msgstr "shipped"
 
+msgid "Shipped"
+msgstr "Shipped"
+
 msgid "Shipped Qty"
 msgstr "Shipped Qty"
 
@@ -7514,6 +7535,9 @@ msgstr "Shipping Cost"
 
 msgid "Shipping Customer"
 msgstr "Shipping Customer"
+
+msgid "Shipping Label"
+msgstr "Shipping Label"
 
 msgid "Shipping Location"
 msgstr "Shipping Location"
@@ -7616,6 +7640,9 @@ msgstr "Skip scheduled maintenance on company holidays"
 
 msgid "Skipped"
 msgstr "Skipped"
+
+msgid "SO"
+msgstr "SO"
 
 msgid "Something went wrong. Please try again."
 msgstr "Something went wrong. Please try again."

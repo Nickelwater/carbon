@@ -18,11 +18,13 @@ import type { GeneratedContent, PrintableDocumentItem } from "./renderers";
 import { renderItemBuiltIn, renderItemWithTemplate } from "./renderers";
 import {
   resolveKanbanData,
+  resolveShippingLabelData,
   resolveStorageUnitData,
   resolveTrackedEntityData
 } from "./resolvers";
 
 const DEFAULT_MEDIA_SIZE_ID = "label2x1";
+const SHIPPING_LABEL_MEDIA_SIZE = "label4x6";
 
 type Payload = {
   sourceDocument: string;
@@ -32,6 +34,10 @@ type Payload = {
   locationId?: string;
   workCenterId?: string;
   printerRouteId?: string;
+  documentTypeId?: DocumentTypeId;
+  lineId?: string;
+  packageIndex?: number;
+  packageCount?: number;
 };
 
 export const printJobFunction = inngest.createFunction(
@@ -47,22 +53,28 @@ export const printJobFunction = inngest.createFunction(
       userId,
       locationId,
       workCenterId,
-      printerRouteId: explicitPrinterRouteId
+      printerRouteId: explicitPrinterRouteId,
+      documentTypeId,
+      lineId,
+      packageIndex,
+      packageCount
     } = payload;
 
     const thirtySecondsAgo = new Date(Date.now() - 30_000).toISOString();
-    const { count: recentJobCount } = await client
-      .from("printJob")
-      .select("id", { count: "exact", head: true })
-      .eq("sourceDocumentId", sourceDocumentId)
-      .eq("companyId", companyId)
-      .eq("origin", "auto")
-      .gte("createdAt", thirtySecondsAgo);
+    if (!documentTypeId) {
+      const { count: recentJobCount } = await client
+        .from("printJob")
+        .select("id", { count: "exact", head: true })
+        .eq("sourceDocumentId", sourceDocumentId)
+        .eq("companyId", companyId)
+        .eq("origin", "auto")
+        .gte("createdAt", thirtySecondsAgo);
 
-    if (recentJobCount && recentJobCount > 0) {
-      throw new NonRetriableError(
-        `Print jobs already exist for ${sourceDocument} ${sourceDocumentId}`
-      );
+      if (recentJobCount && recentJobCount > 0) {
+        throw new NonRetriableError(
+          `Print jobs already exist for ${sourceDocument} ${sourceDocumentId}`
+        );
+      }
     }
 
     let printerConfig: Awaited<ReturnType<typeof getCachedPrinterConfig>> =
@@ -95,15 +107,22 @@ export const printJobFunction = inngest.createFunction(
       );
     }
 
-    const documentTypeIds = getDocumentTypesForSource(sourceDocument);
+    const documentTypeIds = documentTypeId
+      ? [documentTypeId]
+      : getDocumentTypesForSource(sourceDocument);
     const allPrintJobIds: string[] = [];
 
-    for (const documentTypeId of documentTypeIds) {
-      const docType = getDocumentType(documentTypeId);
+    for (const docTypeId of documentTypeIds) {
+      const docType = getDocumentType(docTypeId);
       if (!docType) continue;
 
+      const resolvedMediaSizeId =
+        docTypeId === "shippingLabel"
+          ? (printerConfig?.mediaSizeId ?? SHIPPING_LABEL_MEDIA_SIZE)
+          : (printerConfig?.mediaSizeId ?? DEFAULT_MEDIA_SIZE_ID);
+
       const printJobIds = await processDocumentType(client, step, {
-        documentTypeId,
+        documentTypeId: docTypeId,
         hasBuiltInRenderer: docType.builtInRenderer !== null,
         sourceDocument,
         sourceDocumentId,
@@ -111,8 +130,11 @@ export const printJobFunction = inngest.createFunction(
         userId,
         printerUrl: printerConfig?.printerUrl ?? "",
         format: printerConfig?.format ?? docType.defaultFormat,
-        mediaSizeId: printerConfig?.mediaSizeId ?? DEFAULT_MEDIA_SIZE_ID,
-        templateId: printerConfig?.templateId ?? null
+        mediaSizeId: resolvedMediaSizeId,
+        templateId: printerConfig?.templateId ?? null,
+        lineId,
+        packageIndex,
+        packageCount
       });
 
       allPrintJobIds.push(...printJobIds);
@@ -127,7 +149,12 @@ async function resolveDocumentItems(
   documentTypeId: DocumentTypeId,
   sourceDocument: string,
   sourceDocumentId: string,
-  companyId: string
+  companyId: string,
+  options: {
+    lineId?: string;
+    packageIndex?: number;
+    packageCount?: number;
+  } = {}
 ): Promise<{ docs: PrintableDocumentItem[]; readableId: string | null }> {
   switch (documentTypeId) {
     case "productLabel": {
@@ -141,6 +168,22 @@ async function resolveDocumentItems(
         docs:
           resolved?.items.map((item) => ({
             type: "productLabel" as const,
+            item
+          })) ?? [],
+        readableId: resolved?.readableId ?? null
+      };
+    }
+    case "shippingLabel": {
+      const resolved = await resolveShippingLabelData(
+        client,
+        sourceDocumentId,
+        companyId,
+        options
+      );
+      return {
+        docs:
+          resolved?.items.map((item) => ({
+            type: "shippingLabel" as const,
             item
           })) ?? [],
         readableId: resolved?.readableId ?? null
@@ -183,6 +226,10 @@ function describeDocument(
       if (doc.item.itemId) parts.push(doc.item.itemId);
       if (doc.item.number) parts.push(doc.item.number);
       break;
+    case "shippingLabel":
+      if (doc.item.partNumber) parts.push(doc.item.partNumber);
+      if (doc.item.packingListNumber) parts.push(doc.item.packingListNumber);
+      break;
     case "kanbanCard":
       if (doc.item.itemId) parts.push(doc.item.itemId);
       break;
@@ -212,6 +259,9 @@ async function processDocumentType(
     format: "zpl" | "pdf";
     mediaSizeId: string;
     templateId: string | null;
+    lineId?: string;
+    packageIndex?: number;
+    packageCount?: number;
   }
 ): Promise<string[]> {
   const {
@@ -224,7 +274,10 @@ async function processDocumentType(
     printerUrl,
     format,
     mediaSizeId,
-    templateId
+    templateId,
+    lineId,
+    packageIndex,
+    packageCount
   } = ctx;
 
   const { docs, readableId } = await resolveDocumentItems(
@@ -232,7 +285,8 @@ async function processDocumentType(
     documentTypeId,
     sourceDocument,
     sourceDocumentId,
-    companyId
+    companyId,
+    { lineId, packageIndex, packageCount }
   );
   if (docs.length === 0) return [];
 

@@ -210,6 +210,9 @@ msgstr "Timbratura Uscita"
 msgid "Clocked in since {0}"
 msgstr "Timbrato in ingresso dalle {0}"
 
+msgid "Close"
+msgstr ""
+
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -322,6 +325,9 @@ msgstr "Scarica"
 
 msgid "Download Labels"
 msgstr "Scarica Etichette"
+
+msgid "Download ZPL"
+msgstr ""
 
 msgid "Drag and drop a file here, or click to select a file"
 msgstr "Trascina e rilascia un file qui, o clicca per selezionare un file"
@@ -713,6 +719,9 @@ msgstr "Impatto OEE"
 msgid "OEM Required"
 msgstr "Richiesto OEM"
 
+msgid "Of"
+msgstr ""
+
 #. placeholder {0}: batch.quantity
 msgid "Only {0} available"
 msgstr "Solo {0} disponibili"
@@ -740,6 +749,9 @@ msgstr "Eseguito dall'Operatore"
 
 msgid "Optional"
 msgstr "Facoltativo"
+
+msgid "Package"
+msgstr ""
 
 msgid "Parameters"
 msgstr "Parametri"
@@ -776,6 +788,9 @@ msgstr "Precedente"
 
 msgid "Preventive"
 msgstr "Preventivo"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Print"
 msgstr "Stampa"
@@ -966,6 +981,9 @@ msgstr "Imposta orario di uscita"
 
 msgid "Setup"
 msgstr "Attrezzaggio"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Sign in with Email"
 msgstr "Accedi con Email"

@@ -25,6 +25,14 @@ export const documentTypeRegistry = [
     description: "Labels for tracked entities (serial/batch numbers)"
   },
   {
+    id: "shippingLabel",
+    displayName: "Shipping Label",
+    sourceDocuments: ["Shipment"],
+    builtInRenderer: "zpl" as const,
+    defaultFormat: "zpl" as const,
+    description: "4x6 customer shipping labels for shipment lines"
+  },
+  {
     id: "kanbanCard",
     displayName: "Kanban Card",
     sourceDocuments: ["Kanban"],

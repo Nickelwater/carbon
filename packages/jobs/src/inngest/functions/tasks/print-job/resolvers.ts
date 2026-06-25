@@ -1,4 +1,6 @@
 import type { Database } from "@carbon/database";
+import { loadShippingLabelItems } from "@carbon/documents/shipping-label";
+import type { ShippingLabelItem } from "@carbon/documents/zpl";
 import { ERP_URL } from "@carbon/env";
 import type { ProductLabelItem } from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -28,6 +30,39 @@ export type ResolvedData<T> = {
 };
 
 type TrackedEntity = Database["public"]["Tables"]["trackedEntity"]["Row"];
+
+export type ShippingLabelPrintOptions = {
+  lineId?: string;
+  packageIndex?: number;
+  packageCount?: number;
+};
+
+export async function resolveShippingLabelData(
+  client: SupabaseClient<Database>,
+  sourceDocumentId: string,
+  companyId: string,
+  options: ShippingLabelPrintOptions = {}
+): Promise<ResolvedData<ShippingLabelItem> | null> {
+  const { data: shipment } = await client
+    .from("shipment")
+    .select("shipmentId")
+    .eq("id", sourceDocumentId)
+    .single();
+
+  const items = await loadShippingLabelItems(
+    client,
+    companyId,
+    sourceDocumentId,
+    options
+  );
+
+  if (items.length === 0) return null;
+
+  return {
+    items,
+    readableId: shipment?.shipmentId ?? null
+  };
+}
 
 export async function resolveTrackedEntityData(
   client: SupabaseClient<Database>,

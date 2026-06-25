@@ -2724,6 +2724,9 @@ msgstr "Descargar PDF"
 msgid "Download template"
 msgstr "Descargar plantilla"
 
+msgid "Download ZPL"
+msgstr ""
+
 msgid "Draft"
 msgstr "Borrador"
 
@@ -4504,6 +4507,9 @@ msgstr "Modo Claro"
 msgid "Likelihood"
 msgstr "Probabilidad"
 
+msgid "Line"
+msgstr ""
+
 msgid "Line Item Comparison"
 msgstr "Comparación de Artículos de Línea"
 
@@ -5599,6 +5605,9 @@ msgstr "Impacto OEE"
 msgid "of"
 msgstr "de"
 
+msgid "Of"
+msgstr ""
+
 msgid "OK"
 msgstr "Aceptar"
 
@@ -5782,6 +5791,9 @@ msgstr "Salida"
 msgid "Output never outlasts its raw materials. Falls back to the fixed duration when no input has an expiry date."
 msgstr "El producto nunca durará más que sus materias primas. Vuelve a la duración fija cuando ninguna entrada tiene una fecha de vencimiento."
 
+msgid "Outstanding"
+msgstr ""
+
 msgid "Overdue"
 msgstr "Vencido"
 
@@ -5826,6 +5838,9 @@ msgstr "Sobrescribir el método de cotización con el método de origen"
 
 msgid "Overwrite the target manufacturing method with the quote method"
 msgstr "Sobrescribir el método de fabricación objetivo con el método de cotización"
+
+msgid "Package"
+msgstr ""
 
 msgid "Packing Slip"
 msgstr "Albarán de Empaque"
@@ -6141,6 +6156,9 @@ msgstr "Vista previa"
 
 msgid "Preview failed: {error}"
 msgstr "Vista previa fallida: {error}"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Preview Quantity"
 msgstr "Cantidad de vista previa"
@@ -7494,6 +7512,9 @@ msgstr "Envíos"
 msgid "shipped"
 msgstr ""
 
+msgid "Shipped"
+msgstr ""
+
 msgid "Shipped Qty"
 msgstr "Cantidad Enviada"
 
@@ -7514,6 +7535,9 @@ msgstr "Costo de Envío"
 
 msgid "Shipping Customer"
 msgstr "Cliente de envío"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Shipping Location"
 msgstr "Ubicación de envío"
@@ -7616,6 +7640,9 @@ msgstr "Omitir mantenimiento programado en días festivos de la empresa"
 
 msgid "Skipped"
 msgstr "Omitido"
+
+msgid "SO"
+msgstr ""
 
 msgid "Something went wrong. Please try again."
 msgstr "Algo salió mal. Por favor, inténtalo de nuevo."

@@ -210,6 +210,9 @@ msgstr "Отметить уход"
 msgid "Clocked in since {0}"
 msgstr "На смене с {0}"
 
+msgid "Close"
+msgstr ""
+
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -322,6 +325,9 @@ msgstr "Скачать"
 
 msgid "Download Labels"
 msgstr "Загрузить этикетки"
+
+msgid "Download ZPL"
+msgstr ""
 
 msgid "Drag and drop a file here, or click to select a file"
 msgstr "Перетащите файл сюда или нажмите для выбора файла"
@@ -713,6 +719,9 @@ msgstr "Влияние на OEE"
 msgid "OEM Required"
 msgstr "Требуется OEM"
 
+msgid "Of"
+msgstr ""
+
 #. placeholder {0}: batch.quantity
 msgid "Only {0} available"
 msgstr "Доступно только {0}"
@@ -740,6 +749,9 @@ msgstr "Выполнено оператором"
 
 msgid "Optional"
 msgstr "Опционально"
+
+msgid "Package"
+msgstr ""
 
 msgid "Parameters"
 msgstr "Параметры"
@@ -776,6 +788,9 @@ msgstr "Назад"
 
 msgid "Preventive"
 msgstr "Профилактическое"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Print"
 msgstr "Печать"
@@ -966,6 +981,9 @@ msgstr "Установить время ухода"
 
 msgid "Setup"
 msgstr "Наладка"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Sign in with Email"
 msgstr "Войти по электронной почте"

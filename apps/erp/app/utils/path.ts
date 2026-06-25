@@ -352,6 +352,62 @@ export const path = {
 
         return generatePath(url);
       },
+      shipmentShippingLabelZpl: (
+        id: string,
+        {
+          labelSize,
+          lineId,
+          package: packageIndex,
+          of: packageCount
+        }: {
+          labelSize?: string;
+          lineId?: string;
+          package?: number;
+          of?: number;
+        } = {}
+      ) => {
+        let url = `${file}/shipment/${id}/shipping-label.zpl`;
+        const params = new URLSearchParams();
+
+        if (labelSize) params.append("labelSize", labelSize);
+        if (lineId) params.append("lineId", lineId);
+        if (packageIndex != null)
+          params.append("package", String(packageIndex));
+        if (packageCount != null) params.append("of", String(packageCount));
+
+        const queryString = params.toString();
+        if (queryString) url += `?${queryString}`;
+
+        return generatePath(url);
+      },
+      shipmentShippingLabelPdf: (
+        id: string,
+        {
+          labelSize,
+          lineId,
+          package: packageIndex,
+          of: packageCount
+        }: {
+          labelSize?: string;
+          lineId?: string;
+          package?: number;
+          of?: number;
+        } = {}
+      ) => {
+        let url = `${file}/shipment/${id}/shipping-label.pdf`;
+        const params = new URLSearchParams();
+
+        if (labelSize) params.append("labelSize", labelSize);
+        if (lineId) params.append("lineId", lineId);
+        if (packageIndex != null)
+          params.append("package", String(packageIndex));
+        if (packageCount != null) params.append("of", String(packageCount));
+
+        const queryString = params.toString();
+        if (queryString) url += `?${queryString}`;
+
+        return generatePath(url);
+      },
       trackedEntityLabelPdf: (
         id: string,
         { labelSize }: { labelSize?: string } = {}

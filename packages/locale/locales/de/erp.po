@@ -2724,6 +2724,9 @@ msgstr "PDF herunterladen"
 msgid "Download template"
 msgstr "Vorlage herunterladen"
 
+msgid "Download ZPL"
+msgstr ""
+
 msgid "Draft"
 msgstr "Entwurf"
 
@@ -4504,6 +4507,9 @@ msgstr "Hellmodus"
 msgid "Likelihood"
 msgstr "Wahrscheinlichkeit"
 
+msgid "Line"
+msgstr ""
+
 msgid "Line Item Comparison"
 msgstr "Vergleich der Positionen"
 
@@ -5599,6 +5605,9 @@ msgstr "OEE-Auswirkung"
 msgid "of"
 msgstr "von"
 
+msgid "Of"
+msgstr ""
+
 msgid "OK"
 msgstr "OK"
 
@@ -5782,6 +5791,9 @@ msgstr "Ausgabe"
 msgid "Output never outlasts its raw materials. Falls back to the fixed duration when no input has an expiry date."
 msgstr "Die Ausgabe überlebt ihre Rohstoffe nie. Fällt auf die feste Dauer zurück, wenn keine Eingabe ein Verfallsdatum hat."
 
+msgid "Outstanding"
+msgstr ""
+
 msgid "Overdue"
 msgstr "Überfällig"
 
@@ -5826,6 +5838,9 @@ msgstr "Überschreiben Sie die Angebotsmethode mit der Quellmethode"
 
 msgid "Overwrite the target manufacturing method with the quote method"
 msgstr "Überschreiben Sie die Zielfertigungsmethode mit der Angebotsmethode"
+
+msgid "Package"
+msgstr ""
 
 msgid "Packing Slip"
 msgstr "Packzettel"
@@ -6141,6 +6156,9 @@ msgstr "Vorschau"
 
 msgid "Preview failed: {error}"
 msgstr "Vorschau fehlgeschlagen: {error}"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Preview Quantity"
 msgstr "Vorschaumenge"
@@ -7494,6 +7512,9 @@ msgstr "Sendungen"
 msgid "shipped"
 msgstr ""
 
+msgid "Shipped"
+msgstr ""
+
 msgid "Shipped Qty"
 msgstr "Versendete Menge"
 
@@ -7514,6 +7535,9 @@ msgstr "Versandkosten"
 
 msgid "Shipping Customer"
 msgstr "Versandkunde"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Shipping Location"
 msgstr "Versandort"
@@ -7616,6 +7640,9 @@ msgstr "Geplante Wartung an Betriebsfeiertagen überspringen"
 
 msgid "Skipped"
 msgstr "Übersprungen"
+
+msgid "SO"
+msgstr ""
 
 msgid "Something went wrong. Please try again."
 msgstr "Etwas ist schief gelaufen. Bitte versuchen Sie es erneut."

@@ -210,6 +210,9 @@ msgstr "Clock Out"
 msgid "Clocked in since {0}"
 msgstr "Clocked in since {0}"
 
+msgid "Close"
+msgstr "Close"
+
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -322,6 +325,9 @@ msgstr "Download"
 
 msgid "Download Labels"
 msgstr "Download Labels"
+
+msgid "Download ZPL"
+msgstr "Download ZPL"
 
 msgid "Drag and drop a file here, or click to select a file"
 msgstr "Drag and drop a file here, or click to select a file"
@@ -713,6 +719,9 @@ msgstr "OEE Impact"
 msgid "OEM Required"
 msgstr "OEM Required"
 
+msgid "Of"
+msgstr "Of"
+
 #. placeholder {0}: batch.quantity
 msgid "Only {0} available"
 msgstr "Only {0} available"
@@ -740,6 +749,9 @@ msgstr "Operator Performed"
 
 msgid "Optional"
 msgstr "Optional"
+
+msgid "Package"
+msgstr "Package"
 
 msgid "Parameters"
 msgstr "Parameters"
@@ -776,6 +788,9 @@ msgstr "Prev"
 
 msgid "Preventive"
 msgstr "Preventive"
+
+msgid "Preview PDF"
+msgstr "Preview PDF"
 
 msgid "Print"
 msgstr "Print"
@@ -966,6 +981,9 @@ msgstr "Set clock-out time"
 
 msgid "Setup"
 msgstr "Setup"
+
+msgid "Shipping Label"
+msgstr "Shipping Label"
 
 msgid "Sign in with Email"
 msgstr "Sign in with Email"

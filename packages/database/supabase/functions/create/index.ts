@@ -7,65 +7,10 @@ import { corsHeaders } from "../lib/headers.ts";
 import { requirePermissions } from "../lib/supabase.ts";
 import { Database } from "../lib/types.ts";
 import { getNextSequence } from "../shared/get-next-sequence.ts";
+import { getInitialShippedQuantityForSalesOrderLine } from "../shared/shipment-inventory.ts";
 
 const pool = getConnectionPool(1);
 const db = getDatabaseClient<DB>(pool);
-
-async function getItemQuantityOnHandAtLocation(
-  client: Awaited<ReturnType<typeof requirePermissions>>,
-  itemId: string,
-  companyId: string,
-  locationId: string
-) {
-  const { data } = await client
-    .from("itemStockQuantities")
-    .select("quantityOnHand")
-    .eq("itemId", itemId)
-    .eq("companyId", companyId)
-    .eq("locationId", locationId)
-    .maybeSingle();
-
-  return Number(data?.quantityOnHand ?? 0);
-}
-
-async function getReservedShipmentQuantityForItem(
-  client: Awaited<ReturnType<typeof requirePermissions>>,
-  shipmentId: string,
-  itemId: string
-) {
-  const { data } = await client
-    .from("shipmentLine")
-    .select("shippedQuantity")
-    .eq("shipmentId", shipmentId)
-    .eq("itemId", itemId);
-
-  return (data ?? []).reduce(
-    (sum, line) => sum + Number(line.shippedQuantity ?? 0),
-    0
-  );
-}
-
-async function getAvailableInventoryForShipmentItem(
-  client: Awaited<ReturnType<typeof requirePermissions>>,
-  {
-    companyId,
-    shipmentId,
-    itemId,
-    locationId,
-  }: {
-    companyId: string;
-    shipmentId: string;
-    itemId: string;
-    locationId: string;
-  }
-) {
-  const [onHand, reservedQuantity] = await Promise.all([
-    getItemQuantityOnHandAtLocation(client, itemId, companyId, locationId),
-    getReservedShipmentQuantityForItem(client, shipmentId, itemId),
-  ]);
-
-  return Math.max(0, onHand - reservedQuantity);
-}
 
 const payloadValidator = z.discriminatedUnion("type", [
   z.object({
@@ -2297,9 +2242,26 @@ serve(async (req: Request) => {
                 }
               }
             } else {
-              const outstandingQuantity =
-                (salesOrderLine.saleQuantity ?? 0) -
-                  previouslyShippedQuantitiesByLine[salesOrderLine.id] ?? 0;
+              const itemTrackingType = items.data?.find(
+                (entry) => entry.id === salesOrderLine.itemId
+              )?.itemTrackingType;
+
+              const shippedQuantity =
+                await getInitialShippedQuantityForSalesOrderLine(client, {
+                  companyId,
+                  shipmentId,
+                  salesOrderLineId: salesOrderLine.id,
+                  itemId: salesOrderLine.itemId,
+                  locationId: salesOrderLine.locationId!,
+                  saleQuantity: salesOrderLine.saleQuantity ?? 0,
+                  quantitySent:
+                    previouslyShippedQuantitiesByLine[salesOrderLine.id] ?? 0,
+                  itemTrackingType,
+                });
+
+              if (shippedQuantity <= 0) {
+                continue;
+              }
 
               const shippingAndTaxUnitCost =
                 (salesOrderLine.shippingCost /
@@ -2315,8 +2277,8 @@ serve(async (req: Request) => {
                   companyId: companyId,
                   itemId: salesOrderLine.itemId,
                   orderQuantity: salesOrderLine.saleQuantity,
-                  outstandingQuantity: outstandingQuantity,
-                  shippedQuantity: outstandingQuantity ?? 0,
+                  outstandingQuantity: shippedQuantity,
+                  shippedQuantity: shippedQuantity,
                   requiresSerialTracking: isSerial,
                   requiresBatchTracking: isBatch,
                   unitPrice: shippingAndTaxUnitCost,
@@ -2605,11 +2567,21 @@ serve(async (req: Request) => {
               }
             }
           } else {
-            const outstandingQuantity = Math.max(
-              0,
-              (salesOrderLine.data.saleQuantity ?? 0) -
-                previouslyShippedQuantity
-            );
+            const shippedQuantity =
+              await getInitialShippedQuantityForSalesOrderLine(client, {
+                companyId,
+                shipmentId,
+                salesOrderLineId,
+                itemId: salesOrderLine.data.itemId,
+                locationId: salesOrderLine.data.locationId!,
+                saleQuantity: salesOrderLine.data.saleQuantity ?? 0,
+                quantitySent: previouslyShippedQuantity,
+                itemTrackingType: item.data.itemTrackingType,
+              });
+
+            if (shippedQuantity <= 0) {
+              throw new Error("Insufficient inventory to create shipment");
+            }
 
             const shippingAndTaxUnitCost =
               (salesOrderLine.data.shippingCost /
@@ -2625,8 +2597,8 @@ serve(async (req: Request) => {
                 companyId: companyId,
                 itemId: salesOrderLine.data.itemId!,
                 orderQuantity: salesOrderLine.data.saleQuantity ?? 0,
-                outstandingQuantity: outstandingQuantity,
-                shippedQuantity: outstandingQuantity,
+                outstandingQuantity: shippedQuantity,
+                shippedQuantity: shippedQuantity,
                 requiresSerialTracking: isSerial,
                 requiresBatchTracking: isBatch,
                 unitPrice: shippingAndTaxUnitCost,
@@ -2861,30 +2833,20 @@ serve(async (req: Request) => {
               }
             }
           } else {
-            let outstandingQuantity = Math.max(
-              0,
-              (salesOrderLine.data!.saleQuantity ?? 0) - previouslyShippedQuantity
-            );
+            const shippedQuantity =
+              await getInitialShippedQuantityForSalesOrderLine(client, {
+                companyId: payload.companyId,
+                shipmentId,
+                salesOrderLineId,
+                itemId: salesOrderLine.data!.itemId!,
+                locationId,
+                saleQuantity: salesOrderLine.data!.saleQuantity ?? 0,
+                quantitySent: previouslyShippedQuantity,
+                itemTrackingType: item.data.itemTrackingType,
+              });
 
-            if (item.data.itemTrackingType !== "Non-Inventory") {
-              const availableInventory = await getAvailableInventoryForShipmentItem(
-                client,
-                {
-                  companyId: payload.companyId,
-                  shipmentId,
-                  itemId: salesOrderLine.data!.itemId!,
-                  locationId,
-                }
-              );
-
-              if (availableInventory <= 0) {
-                throw new Error("Insufficient inventory to add this line");
-              }
-
-              outstandingQuantity = Math.min(
-                outstandingQuantity,
-                availableInventory
-              );
+            if (shippedQuantity <= 0) {
+              throw new Error("Insufficient inventory to add this line");
             }
 
             const shippingAndTaxUnitCost =
@@ -2901,8 +2863,8 @@ serve(async (req: Request) => {
                 companyId: payload.companyId,
                 itemId: salesOrderLine.data!.itemId!,
                 orderQuantity: salesOrderLine.data!.saleQuantity ?? 0,
-                outstandingQuantity: outstandingQuantity,
-                shippedQuantity: outstandingQuantity,
+                outstandingQuantity: shippedQuantity,
+                shippedQuantity: shippedQuantity,
                 requiresSerialTracking: isSerial,
                 requiresBatchTracking: isBatch,
                 unitPrice: shippingAndTaxUnitCost,

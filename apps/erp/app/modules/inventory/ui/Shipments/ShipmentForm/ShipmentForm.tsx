@@ -30,7 +30,11 @@ import {
 import { RiProgress8Line } from "react-icons/ri";
 import { Await, Link, useNavigate, useParams } from "react-router";
 import type { z } from "zod";
-import { DocumentHeader, PrintButton } from "~/components";
+import {
+  DocumentHeader,
+  PrintButton,
+  ShippingLabelPrintButton
+} from "~/components";
 import { useAuditLog } from "~/components/AuditLog";
 import {
   Combobox,
@@ -127,6 +131,10 @@ const ShipmentForm = ({
       shipmentLines.some((line) => (line.shippedQuantity ?? 0) !== 0)) ||
     hasShippableFaLines;
 
+  const hasShippableLines = shipmentLines.some(
+    (line) => (line.shippedQuantity ?? 0) > 0
+  );
+
   const shipmentLineTracking = routeData?.shipmentLineTracking ?? [];
   const hasTrackingLabels = shipmentLineTracking.length > 0;
 
@@ -209,6 +217,16 @@ const ShipmentForm = ({
                     <Trans>Packing Slip</Trans>
                   </a>
                 </Button>
+                {hasShippableLines && (
+                  <ShippingLabelPrintButton
+                    sourceDocumentId={shipmentId}
+                    locationId={locationId ?? undefined}
+                    fileRoutes={{
+                      pdf: path.to.file.shipmentShippingLabelPdf,
+                      zpl: path.to.file.shipmentShippingLabelZpl
+                    }}
+                  />
+                )}
                 <SourceDocumentLink
                   sourceDocument={
                     routeData?.shipment?.sourceDocument ?? undefined

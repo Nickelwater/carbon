@@ -210,6 +210,9 @@ msgstr "Pointer la sortie"
 msgid "Clocked in since {0}"
 msgstr "Pointé depuis {0}"
 
+msgid "Close"
+msgstr ""
+
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -322,6 +325,9 @@ msgstr "Télécharger"
 
 msgid "Download Labels"
 msgstr "Télécharger les étiquettes"
+
+msgid "Download ZPL"
+msgstr ""
 
 msgid "Drag and drop a file here, or click to select a file"
 msgstr "Glissez-déposez un fichier ici, ou cliquez pour sélectionner un fichier"
@@ -713,6 +719,9 @@ msgstr "Impact TRS"
 msgid "OEM Required"
 msgstr "Intervention OEM requise"
 
+msgid "Of"
+msgstr ""
+
 #. placeholder {0}: batch.quantity
 msgid "Only {0} available"
 msgstr "Seulement {0} disponible(s)"
@@ -740,6 +749,9 @@ msgstr "Effectué par l'opérateur"
 
 msgid "Optional"
 msgstr "Optionnel"
+
+msgid "Package"
+msgstr ""
 
 msgid "Parameters"
 msgstr "Paramètres"
@@ -776,6 +788,9 @@ msgstr "Précédent"
 
 msgid "Preventive"
 msgstr "Préventif"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Print"
 msgstr "Imprimer"
@@ -966,6 +981,9 @@ msgstr "Définir l'heure de sortie"
 
 msgid "Setup"
 msgstr "Réglage"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Sign in with Email"
 msgstr "Se connecter avec l'e-mail"

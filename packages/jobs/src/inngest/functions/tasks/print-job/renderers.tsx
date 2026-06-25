@@ -3,15 +3,21 @@
 // renderToStream.
 
 import type { Database } from "@carbon/database";
-import { resolveLabelLogo } from "@carbon/documents/labels";
+import {
+  type ResolveLabelLogoOptions,
+  resolveLabelLogo
+} from "@carbon/documents/labels";
 import {
   KanbanLabelPDF,
   ProductLabelPDF,
+  ShippingLabelPDF,
   StorageUnitLabelPDF
 } from "@carbon/documents/pdf";
 import { toDocumentTemplate } from "@carbon/documents/template";
+import type { ShippingLabelItem } from "@carbon/documents/zpl";
 import {
   generateProductLabelZPL,
+  generateShippingLabelZPL,
   generateStorageUnitLabelZPL
 } from "@carbon/documents/zpl";
 import { ERP_URL, SUPABASE_URL } from "@carbon/env";
@@ -23,6 +29,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ReactElement } from "react";
 import type { KanbanCardItem, StorageUnitItem } from "./resolvers";
 
+export const DEFAULT_MEDIA_SIZE_ID = "label2x1";
+export const SHIPPING_LABEL_MEDIA_SIZE = "label4x6";
+
 export type GeneratedContent = {
   content: string;
   contentType: "zpl" | "pdf";
@@ -31,6 +40,7 @@ export type GeneratedContent = {
 /** A single resolved item tagged with the document type that renders it. */
 export type PrintableDocumentItem =
   | { type: "productLabel"; item: ProductLabelItem }
+  | { type: "shippingLabel"; item: ShippingLabelItem }
   | { type: "kanbanCard"; item: KanbanCardItem }
   | { type: "storageUnitLabel"; item: StorageUnitItem };
 
@@ -87,6 +97,28 @@ export async function renderItemBuiltIn(
         contentType: "zpl"
       };
     }
+    case "shippingLabel": {
+      const mediaSize = requireMediaSize(mediaSizeId);
+      const { logo } = await loadShippingLabelContext(
+        client,
+        companyId,
+        mediaSize
+      );
+      if (format === "pdf") {
+        return renderPdfContent(
+          <ShippingLabelPDF
+            items={[doc.item]}
+            labelSize={mediaSize}
+            logo={logo}
+          />
+        );
+      }
+      requireZplCapable(mediaSize);
+      return {
+        content: generateShippingLabelZPL(doc.item, mediaSize, logo),
+        contentType: "zpl"
+      };
+    }
     case "kanbanCard":
       return renderKanbanCardPDF(client, doc.item, format);
     case "storageUnitLabel": {
@@ -124,7 +156,8 @@ const PUBLIC_STORAGE_URL_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/publ
 async function loadProductLabelContext(
   client: SupabaseClient<Database>,
   companyId: string,
-  labelSize: LabelSize
+  labelSize: LabelSize,
+  logoOptions?: Omit<ResolveLabelLogoOptions, "supabaseUrl">
 ) {
   const [templateRow, companyRow] = await Promise.all([
     client
@@ -152,10 +185,24 @@ async function loadProductLabelContext(
     : null;
 
   const logo = await resolveLabelLogo(company, template, labelSize, {
-    supabaseUrl: SUPABASE_URL ?? ""
+    supabaseUrl: SUPABASE_URL ?? "",
+    ...logoOptions
   });
 
   return { template, logo };
+}
+
+async function loadShippingLabelContext(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  labelSize: LabelSize
+) {
+  const { logo } = await loadProductLabelContext(client, companyId, labelSize, {
+    fallbackToCompanyLogo: true,
+    logoVariant: "icon",
+    logoWidthFraction: 0.2
+  });
+  return { logo };
 }
 
 function requireZplCapable(mediaSize: LabelSize): void {

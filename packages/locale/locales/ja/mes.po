@@ -210,6 +210,9 @@ msgstr "退勤打刻"
 msgid "Clocked in since {0}"
 msgstr "{0} から出勤中"
 
+msgid "Close"
+msgstr ""
+
 #. placeholder {0}: active.data.current.column.title
 #. placeholder {1}: overColumnPosition + 1
 #. placeholder {2}: columnOrder.length
@@ -322,6 +325,9 @@ msgstr "ダウンロード"
 
 msgid "Download Labels"
 msgstr "ラベルをダウンロード"
+
+msgid "Download ZPL"
+msgstr ""
 
 msgid "Drag and drop a file here, or click to select a file"
 msgstr "ファイルをここにドラッグ＆ドロップするか、クリックしてファイルを選択してください"
@@ -713,6 +719,9 @@ msgstr "OEE影響度"
 msgid "OEM Required"
 msgstr "OEM対応必要"
 
+msgid "Of"
+msgstr ""
+
 #. placeholder {0}: batch.quantity
 msgid "Only {0} available"
 msgstr "{0} のみ利用可能"
@@ -740,6 +749,9 @@ msgstr "オペレーター実施"
 
 msgid "Optional"
 msgstr "オプション"
+
+msgid "Package"
+msgstr ""
 
 msgid "Parameters"
 msgstr "パラメーター"
@@ -776,6 +788,9 @@ msgstr "前へ"
 
 msgid "Preventive"
 msgstr "予防保全"
+
+msgid "Preview PDF"
+msgstr ""
 
 msgid "Print"
 msgstr "印刷"
@@ -966,6 +981,9 @@ msgstr "退勤時間を設定"
 
 msgid "Setup"
 msgstr "段取り"
+
+msgid "Shipping Label"
+msgstr ""
 
 msgid "Sign in with Email"
 msgstr "メールでサインイン"

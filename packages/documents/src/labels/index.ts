@@ -1,2 +1,2 @@
-export type { ResolvedLabelLogo } from "./labelLogo";
+export type { ResolvedLabelLogo, ResolveLabelLogoOptions } from "./labelLogo";
 export { resolveLabelLogo } from "./labelLogo";
