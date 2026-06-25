@@ -92,7 +92,10 @@ export async function buildCompanyBackup(
   const name = opts.name ?? `${exportedAt.replace(/[:.]/g, "-")}${slug}`;
 
   const catalog = await getCompanyTableCatalog(db);
-  const secretTables = new Set(SECRET_TABLES);
+  // Secrets (credentials/tokens) never travel — they belong to the source
+  // company, not a copy. (Billing identity like companyPlan never enters the
+  // catalog: it's a company-singleton deliberately left out of the scoped set.)
+  const secretTables = new Set<string>(SECRET_TABLES);
   const excludedTables = catalog.tables
     .filter((t) => secretTables.has(t.name))
     .map((t) => t.name);
