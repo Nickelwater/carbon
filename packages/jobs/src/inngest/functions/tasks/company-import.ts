@@ -14,6 +14,7 @@ import {
   filterUnpopulated,
   getCompanyTableCatalog,
   getJobDatabaseClient,
+  isUserScopedIdentityTable,
   newIdForTable,
   RESEED_SKIPPED_TABLES,
   restoreAssetsFromBackup,
@@ -142,7 +143,10 @@ export const companyImportFunction = inngest.createFunction(
         backup.manifest.tables.map((t) => [t.name, new Set(t.columns)])
       );
       const candidateTables = catalog.tables.filter(
-        (t) => !skipped.has(t.name) && (backup.data[t.name]?.length ?? 0) > 0
+        (t) =>
+          !skipped.has(t.name) &&
+          !isUserScopedIdentityTable(t) &&
+          (backup.data[t.name]?.length ?? 0) > 0
       );
 
       // Reseed is additive into a fresh company: never touch a table the

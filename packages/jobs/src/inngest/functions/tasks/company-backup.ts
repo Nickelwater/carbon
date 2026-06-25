@@ -153,6 +153,9 @@ export const STRUCTURAL_TABLES = ["company"];
  * Additional tables skipped in `reseed` mode — memberships, invites and
  * integration state belong to the source company's users, not to a copy.
  * The importing company already has its admin membership from onboarding.
+ * (Tables whose PK is keyed by a user/employee FK — employeeJob, customer/
+ * supplierAccount — are skipped automatically via `isUserScopedIdentityTable`,
+ * so they don't need listing here.)
  */
 export const RESEED_SKIPPED_TABLES = [
   "userToCompany",
@@ -670,6 +673,24 @@ export async function canSetReplicationRole(
  * The full set is WIPED (so a table empty in the backup ends up empty, matching
  * the snapshot exactly); only the subset with rows in the backup is reloaded.
  */
+/**
+ * A table whose primary key is keyed by a `user`/`employee` FK (e.g. `employeeJob`,
+ * `customerAccount`, `supplierAccount`, `userToCompany`) is per-source-user
+ * identity. A foreign restore / reseed collapses every user FK onto the single
+ * importing user, so all such rows would land on the same `(id, companyId)` PK and
+ * collide. They can never be meaningfully copied to another company — skip them on
+ * both load paths (the source's belong to the source's users; the target keeps its
+ * own). Derived from the catalog so a new table of this shape is covered
+ * automatically rather than silently reintroducing the collision.
+ */
+export function isUserScopedIdentityTable(table: TableInfo): boolean {
+  return table.foreignKeys.some(
+    (fk) =>
+      table.pkColumns.includes(fk.column) &&
+      (fk.refTable === "user" || fk.refTable === "employee")
+  );
+}
+
 export function selectWipeableTables(
   catalog: Catalog,
   opts: { includeGroup?: boolean } = {}
@@ -678,6 +699,7 @@ export function selectWipeableTables(
   return catalog.tables.filter(
     (t) =>
       !skip.has(t.name) &&
+      !isUserScopedIdentityTable(t) &&
       (t.scopeColumn === "companyId" ||
         (opts.includeGroup === true && t.scopeColumn === "companyGroupId"))
   );

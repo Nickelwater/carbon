@@ -283,11 +283,23 @@ export default function BackupsRoute() {
     active?.mode === "export" &&
     !!active.exportBaseline &&
     files.some((f) => !active.exportBaseline!.has(f.path));
+
+  // keep / dismiss / revert finalize the run via an async Inngest job, so the
+  // marker is still present on the next revalidation. Hide the row optimistically
+  // the moment the user acts so it doesn't linger until the job lands.
+  const [resolvedRunIds, setResolvedRunIds] = useState<Set<string>>(new Set());
+  const resolveRun = (runId: string) =>
+    setResolvedRunIds((prev) => new Set(prev).add(runId));
+  const visibleRestoreRuns = restoreRuns.filter(
+    (r) => !resolvedRunIds.has(r.restoreRunId)
+  );
+
   const startRevert = (runId: string) => {
     fetcher.submit(
       { intent: "revert", restoreRunId: runId },
       { method: "post" }
     );
+    resolveRun(runId);
     setActive({ runId, mode: "revert" });
   };
 
@@ -387,7 +399,7 @@ export default function BackupsRoute() {
           </Card>
         </div>
 
-        {restoreRuns.length > 0 && (
+        {visibleRestoreRuns.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Restored — review</CardTitle>
@@ -398,23 +410,25 @@ export default function BackupsRoute() {
             </CardHeader>
             <CardContent>
               <VStack spacing={2}>
-                {restoreRuns.map((run) => (
+                {visibleRestoreRuns.map((run) => (
                   <RestoreReviewRow
                     key={run.restoreRunId}
                     run={run}
-                    onKeep={() =>
+                    onKeep={() => {
                       fetcher.submit(
                         { intent: "keep", restoreRunId: run.restoreRunId },
                         { method: "post" }
-                      )
-                    }
+                      );
+                      resolveRun(run.restoreRunId);
+                    }}
                     onRevert={() => startRevert(run.restoreRunId)}
-                    onDismiss={() =>
+                    onDismiss={() => {
                       fetcher.submit(
                         { intent: "dismiss", restoreRunId: run.restoreRunId },
                         { method: "post" }
-                      )
-                    }
+                      );
+                      resolveRun(run.restoreRunId);
+                    }}
                   />
                 ))}
               </VStack>
