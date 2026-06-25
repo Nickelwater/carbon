@@ -8,13 +8,13 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
+  Status,
   VStack
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
 import type { z } from "zod";
-import { Enumerable } from "~/components/Enumerable";
 import {
   DatePicker,
   Hidden,
@@ -36,6 +36,16 @@ const modeDescriptions: Record<SupersessionMode, string> = {
   "Prefer New": "Default to the successor; old part as fallback only",
   "Stock Only": "Hold a minimum reserve for service; no production use",
   "No Stock": "Fully obsolete — do not plan or stock"
+};
+
+const modeStatusColor: Record<
+  SupersessionMode,
+  "green" | "blue" | "orange" | "red"
+> = {
+  "Consume First": "green",
+  "Prefer New": "blue",
+  "Stock Only": "orange",
+  "No Stock": "red"
 };
 
 // Derived lifecycle status shown on the item header (PRD: Active has no badge).
@@ -123,7 +133,7 @@ const ItemSupersessionForm = ({
           <VStack spacing={4}>
             {hasChain && chainLabel && (
               <Alert variant="destructive">
-                <LuTriangleAlert className="h-4 w-4" />
+                <LuTriangleAlert className="h-4 w-4 !top-3.5" />
                 <AlertTitle>
                   <Trans>Supersession chain detected</Trans>
                 </AlertTitle>
@@ -137,7 +147,7 @@ const ItemSupersessionForm = ({
             )}
             {mode === "No Stock" && quantityOnHand > 0 && (
               <Alert>
-                <LuTriangleAlert className="h-4 w-4" />
+                <LuTriangleAlert className="h-4 w-4 !top-3.5" />
                 <AlertTitle>
                   <Trans>On-hand inventory remains</Trans>
                 </AlertTitle>
@@ -157,7 +167,9 @@ const ItemSupersessionForm = ({
                 placeholder={t`None`}
                 helperText={mode ? modeDescriptions[mode] : undefined}
                 options={supersessionModes.map((value) => ({
-                  label: <Enumerable value={value} />,
+                  label: (
+                    <Status color={modeStatusColor[value]}>{value}</Status>
+                  ),
                   value
                 }))}
                 onChange={(selected) => {
