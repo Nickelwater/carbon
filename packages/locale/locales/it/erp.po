@@ -3919,9 +3919,6 @@ msgstr "Errore nella rimozione del modello dalla riga dell'ordine di vendita"
 msgid "Error validating serial number"
 msgstr "Errore durante la convalida del numero di serie"
 
-msgid "Error!"
-msgstr "Errore!"
-
 msgid "Escalation"
 msgstr "Escalation"
 
@@ -4656,6 +4653,9 @@ msgstr "Gli ID generati sono abilitati"
 msgid "Get Method"
 msgstr "Ottieni Metodo"
 
+msgid "Get Started"
+msgstr ""
+
 msgid "GL Account"
 msgstr "Conto Contabile"
 
@@ -4769,6 +4769,9 @@ msgstr "Conto GL di spesa per acquisti non di magazzino (forniture, servizi)."
 
 msgid "GL liability account credited for sales tax collected from customers."
 msgstr "Conto GL di passività accreditato per l'IVA riscossa dai clienti."
+
+msgid "Go to implementation hub"
+msgstr ""
 
 #. placeholder {0}: user.firstName
 msgid "Good afternoon, {0}"

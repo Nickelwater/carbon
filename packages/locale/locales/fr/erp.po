@@ -3919,9 +3919,6 @@ msgstr "Erreur lors de la suppression du modèle de la ligne de commande client"
 msgid "Error validating serial number"
 msgstr "Erreur lors de la validation du numéro de série"
 
-msgid "Error!"
-msgstr "Erreur !"
-
 msgid "Escalation"
 msgstr "Escalade"
 
@@ -4656,6 +4653,9 @@ msgstr "Les IDs générés sont activés"
 msgid "Get Method"
 msgstr "Obtenir la méthode"
 
+msgid "Get Started"
+msgstr ""
+
 msgid "GL Account"
 msgstr "Compte GL"
 
@@ -4769,6 +4769,9 @@ msgstr "Compte GL de dépenses pour les achats non inventoriables (fournitures, 
 
 msgid "GL liability account credited for sales tax collected from customers."
 msgstr "Compte GL de passif crédité pour la taxe de vente collectée auprès des clients."
+
+msgid "Go to implementation hub"
+msgstr ""
 
 #. placeholder {0}: user.firstName
 msgid "Good afternoon, {0}"
