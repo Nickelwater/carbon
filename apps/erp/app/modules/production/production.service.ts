@@ -12,6 +12,7 @@ import { sanitize } from "~/utils/supabase";
 import { getDefaultStorageUnitForJob } from "../inventory";
 import { getEmployeeJob } from "../people";
 import type {
+  MethodType,
   operationParameterValidator,
   operationStepValidator,
   operationToolValidator
@@ -999,7 +1000,7 @@ type JobItemAvailability = {
 
 // Pull-from-Inventory lines consume on-hand before other (e.g. Purchase to Order)
 // lines, matching their sourcing intent.
-function methodAllocationRank(methodType: string | null): number {
+function methodAllocationRank(methodType: MethodType | null): number {
   return methodType === "Pull from Inventory" ? 0 : 1;
 }
 
@@ -1061,7 +1062,7 @@ export async function getJobMaterialShortfallByItem(
   type Line = {
     materialId: string;
     remaining: number;
-    methodType: string | null;
+    methodType: MethodType | null;
   };
   const demandByItem = new Map<string, Map<string, Demand>>();
   const thisJobLinesByItem = new Map<string, Line[]>();
@@ -1144,7 +1145,7 @@ export async function getJobMaterialShortfallByItem(
 
 type OrderStatusMaterial = {
   itemTrackingType: string | null;
-  methodType: string | null;
+  methodType: MethodType | null;
   estimatedQuantity: number | null;
   quantityIssued: number | null;
 };
