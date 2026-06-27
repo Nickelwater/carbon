@@ -3287,6 +3287,9 @@ msgstr "ドキュメント管理"
 msgid "Document Templates"
 msgstr "ドキュメントテンプレート"
 
+msgid "Document Type"
+msgstr ""
+
 msgid "Document:"
 msgstr "ドキュメント:"
 
@@ -3843,6 +3846,9 @@ msgstr "エンティティタイプ"
 
 msgid "Entity type cannot be changed"
 msgstr "エンティティタイプは変更できません"
+
+msgid "Entry Type"
+msgstr ""
 
 msgid "EORI"
 msgstr "EORI"
@@ -5623,6 +5629,9 @@ msgstr "リストパラメータ"
 
 msgid "Live reloading"
 msgstr "ライブリロード中"
+
+msgid "Load newer"
+msgstr ""
 
 msgid "Load Templates"
 msgstr "テンプレートを読み込む"
@@ -9314,6 +9323,9 @@ msgstr "ステップレコード"
 
 msgid "Steps"
 msgstr "ステップ"
+
+msgid "Stock Movements"
+msgstr ""
 
 msgid "Stock Transfer ID"
 msgstr "在庫移動ID"

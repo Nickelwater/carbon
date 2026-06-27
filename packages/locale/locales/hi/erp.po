@@ -3287,6 +3287,9 @@ msgstr "दस्तावेज़ नियंत्रण"
 msgid "Document Templates"
 msgstr "दस्तावेज़ टेम्पलेट"
 
+msgid "Document Type"
+msgstr ""
+
 msgid "Document:"
 msgstr "दस्तावेज़:"
 
@@ -3843,6 +3846,9 @@ msgstr "इकाई प्रकार"
 
 msgid "Entity type cannot be changed"
 msgstr "इकाई प्रकार को परिवर्तित नहीं किया जा सकता"
+
+msgid "Entry Type"
+msgstr ""
 
 msgid "EORI"
 msgstr "EORI"
@@ -5623,6 +5629,9 @@ msgstr "सूची पैरामीटर"
 
 msgid "Live reloading"
 msgstr "लाइव रीलोडिंग"
+
+msgid "Load newer"
+msgstr ""
 
 msgid "Load Templates"
 msgstr "टेम्पलेट लोड करें"
@@ -9314,6 +9323,9 @@ msgstr "चरण रिकॉर्ड"
 
 msgid "Steps"
 msgstr "चरण"
+
+msgid "Stock Movements"
+msgstr ""
 
 msgid "Stock Transfer ID"
 msgstr "स्टॉक ट्रांसफर आईडी"

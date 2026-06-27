@@ -3287,6 +3287,9 @@ msgstr "Kontrola dokumentów"
 msgid "Document Templates"
 msgstr "Szablony dokumentów"
 
+msgid "Document Type"
+msgstr ""
+
 msgid "Document:"
 msgstr "Dokument:"
 
@@ -3843,6 +3846,9 @@ msgstr "Typ Jednostki"
 
 msgid "Entity type cannot be changed"
 msgstr "Typ jednostki nie może być zmieniony"
+
+msgid "Entry Type"
+msgstr ""
 
 msgid "EORI"
 msgstr "EORI"
@@ -5623,6 +5629,9 @@ msgstr "Parametry listy"
 
 msgid "Live reloading"
 msgstr "Odświeżanie na żywo"
+
+msgid "Load newer"
+msgstr ""
 
 msgid "Load Templates"
 msgstr "Załaduj szablony"
@@ -9314,6 +9323,9 @@ msgstr "Rekordy Kroków"
 
 msgid "Steps"
 msgstr "Kroki"
+
+msgid "Stock Movements"
+msgstr ""
 
 msgid "Stock Transfer ID"
 msgstr "Identyfikator Transferu Zapasów"

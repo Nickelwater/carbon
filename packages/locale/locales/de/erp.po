@@ -3287,6 +3287,9 @@ msgstr "Dokumentenkontrolle"
 msgid "Document Templates"
 msgstr "Dokumentvorlagen"
 
+msgid "Document Type"
+msgstr ""
+
 msgid "Document:"
 msgstr "Dokument:"
 
@@ -3843,6 +3846,9 @@ msgstr "Entitätstyp"
 
 msgid "Entity type cannot be changed"
 msgstr "Entitätstyp kann nicht geändert werden"
+
+msgid "Entry Type"
+msgstr ""
 
 msgid "EORI"
 msgstr "EORI"
@@ -5623,6 +5629,9 @@ msgstr "Listenparameter"
 
 msgid "Live reloading"
 msgstr "Live-Neuladen"
+
+msgid "Load newer"
+msgstr ""
 
 msgid "Load Templates"
 msgstr "Vorlagen laden"
@@ -9314,6 +9323,9 @@ msgstr "Schrittdatensätze"
 
 msgid "Steps"
 msgstr "Schritte"
+
+msgid "Stock Movements"
+msgstr ""
 
 msgid "Stock Transfer ID"
 msgstr "Lagerbestandstransfer-ID"

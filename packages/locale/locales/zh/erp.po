@@ -3287,6 +3287,9 @@ msgstr "文件控制"
 msgid "Document Templates"
 msgstr "文档模板"
 
+msgid "Document Type"
+msgstr ""
+
 msgid "Document:"
 msgstr "文档："
 
@@ -3843,6 +3846,9 @@ msgstr "实体类型"
 
 msgid "Entity type cannot be changed"
 msgstr "实体类型无法更改"
+
+msgid "Entry Type"
+msgstr ""
 
 msgid "EORI"
 msgstr "EORI"
@@ -5623,6 +5629,9 @@ msgstr "列表参数"
 
 msgid "Live reloading"
 msgstr "实时重新加载"
+
+msgid "Load newer"
+msgstr ""
 
 msgid "Load Templates"
 msgstr "加载模板"
@@ -9314,6 +9323,9 @@ msgstr "步骤记录"
 
 msgid "Steps"
 msgstr "步骤"
+
+msgid "Stock Movements"
+msgstr ""
 
 msgid "Stock Transfer ID"
 msgstr "库存转移ID"

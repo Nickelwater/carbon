@@ -3287,6 +3287,9 @@ msgstr "Doküman Kontrolü"
 msgid "Document Templates"
 msgstr "Belge Şablonları"
 
+msgid "Document Type"
+msgstr ""
+
 msgid "Document:"
 msgstr "Belge:"
 
@@ -3843,6 +3846,9 @@ msgstr "Varlık Türü"
 
 msgid "Entity type cannot be changed"
 msgstr "Varlık türü değiştirilemez"
+
+msgid "Entry Type"
+msgstr ""
 
 msgid "EORI"
 msgstr "EORI"
@@ -5623,6 +5629,9 @@ msgstr "Liste Parametreleri"
 
 msgid "Live reloading"
 msgstr "Canlı yeniden yükleniyor"
+
+msgid "Load newer"
+msgstr ""
 
 msgid "Load Templates"
 msgstr "Şablonları Yükle"
@@ -9314,6 +9323,9 @@ msgstr "Adım Kayıtları"
 
 msgid "Steps"
 msgstr "Adımlar"
+
+msgid "Stock Movements"
+msgstr ""
 
 msgid "Stock Transfer ID"
 msgstr "Stok Transfer Kimliği"
