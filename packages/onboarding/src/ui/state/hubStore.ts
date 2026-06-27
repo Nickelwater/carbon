@@ -4,9 +4,16 @@
 // hydrates this store from fresh loader data (`setData`). Components read slices
 // via selector hooks (so a change to one slice doesn't re-render every consumer)
 // and write ONLY through `dispatch`, which round-trips to the `/state` server
-// action; Supabase Realtime then revalidates the loader and the cycle repeats.
-// There is no optimistic local mutation and no client-owned domain state here —
-// `setData` is the only writer of business fields, and only the provider calls it.
+// action (`serverDispatch`); Supabase Realtime then revalidates the loader and
+// the cycle repeats. `setData` is the authoritative writer of business fields —
+// only the provider calls it, and it always rebuilds from the server snapshot.
+//
+// One exception, for responsiveness: `dispatch` applies an OPTIMISTIC patch to
+// `checkMap` for `setCheck` toggles (checkboxes/gates) before the round-trip, so
+// a tick reflects instantly instead of after the full submit→revalidate cycle.
+// This is self-reconciling — the next `setData` rebuilds `checkMap` from server
+// truth, so a rejected or differing write reverts on its own. No other intent is
+// patched locally; everything else waits for the loader.
 //
 // `checkMap` / `fieldMap` are cheap derived lookups rebuilt on hydration so view
 // components do O(1) reads instead of each rebuilding a Map per render.
@@ -57,7 +64,10 @@ export type ResolveScreenUrl = (appKey: string) => string | undefined;
 export interface HubState extends HubData, HubFlags {
   checkMap: Map<string, string>;
   fieldMap: Map<string, string>;
+  // Public write path: optimistic checkMap patch (setCheck only) + round-trip.
   dispatch: (m: HubMutation) => void;
+  // The raw server round-trip the route injects; `dispatch` wraps it.
+  serverDispatch: (m: HubMutation) => void;
   resolveScreenUrl: ResolveScreenUrl;
   // Resolve a training video key to a watch URL (academy or video), via the ERP
   // trainingConfig the route injects. Same shape as resolveScreenUrl.
@@ -66,7 +76,7 @@ export interface HubState extends HubData, HubFlags {
   setData: (
     data: HubData,
     flags: HubFlags,
-    dispatch: (m: HubMutation) => void,
+    serverDispatch: (m: HubMutation) => void,
     resolveScreenUrl: ResolveScreenUrl,
     resolveVideoUrl: ResolveScreenUrl
   ) => void;
@@ -98,21 +108,32 @@ export const HUB_INITIAL: HubData & HubFlags = {
 
 export function createHubStore(initial: Partial<HubData & HubFlags> = {}) {
   const seed = { ...HUB_INITIAL, ...initial };
-  return createStore<HubState>()((set) => ({
+  return createStore<HubState>()((set, get) => ({
     ...seed,
     checkMap: stateMap(seed.checkStates),
     fieldMap: fieldMap(seed.fieldValues),
-    // Real dispatch + resolvers are injected by the provider via setData on mount.
-    dispatch: () => undefined,
+    // Stable wrapper, created once. Optimistically reflects a checkbox/gate toggle
+    // in checkMap so the UI updates instantly, then round-trips. The next setData
+    // rebuilds checkMap from server truth, reconciling (or reverting) the patch.
+    dispatch: (m) => {
+      if (m.intent === "setCheck") {
+        const checkMap = new Map(get().checkMap);
+        checkMap.set(m.itemKey, m.value);
+        set({ checkMap });
+      }
+      get().serverDispatch(m);
+    },
+    // Real server dispatch + resolvers are injected by the provider via setData.
+    serverDispatch: () => undefined,
     resolveScreenUrl: () => undefined,
     resolveVideoUrl: () => undefined,
-    setData: (data, flags, dispatch, resolveScreenUrl, resolveVideoUrl) =>
+    setData: (data, flags, serverDispatch, resolveScreenUrl, resolveVideoUrl) =>
       set({
         ...data,
         ...flags,
         checkMap: stateMap(data.checkStates),
         fieldMap: fieldMap(data.fieldValues),
-        dispatch,
+        serverDispatch,
         resolveScreenUrl,
         resolveVideoUrl
       })
