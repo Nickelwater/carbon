@@ -6,7 +6,9 @@ import { useEffect } from "react";
  * Any other return value (including a Promise from an `async` callback) is
  * ignored, so existing void/async callers are unaffected.
  */
-export default function useMount(callback: () => void | (() => void)) {
+export default function useMount(
+  callback: () => void | (() => void) | Promise<unknown>
+) {
   // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
   useEffect(() => {
     const cleanup = callback();
