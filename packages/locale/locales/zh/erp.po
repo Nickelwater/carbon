@@ -6800,7 +6800,7 @@ msgid "On order"
 msgstr "已订购"
 
 msgid "On Production Demand"
-msgstr ""
+msgstr "生产需求上"
 
 msgid "On Purchase Order"
 msgstr "采购订单上"
@@ -7419,7 +7419,7 @@ msgid "Prepayments (default)"
 msgstr "预防措施"
 
 msgid "Present Week"
-msgstr ""
+msgstr "本周"
 
 msgid "Prev"
 msgstr "上一页"
@@ -11207,7 +11207,7 @@ msgid "Week {0} ({formattedDate})"
 msgstr "第 {0} 周 ({formattedDate})"
 
 msgid "Week {weekNumber}"
-msgstr ""
+msgstr "第 {weekNumber} 周"
 
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"

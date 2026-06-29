@@ -6800,7 +6800,7 @@ msgid "On order"
 msgstr "Siparişte"
 
 msgid "On Production Demand"
-msgstr ""
+msgstr "Üretim Talebinde"
 
 msgid "On Purchase Order"
 msgstr "Satın Alma Siparişinde"
@@ -7419,7 +7419,7 @@ msgid "Prepayments (default)"
 msgstr "Önleyici İşlem"
 
 msgid "Present Week"
-msgstr ""
+msgstr "Mevcut Hafta"
 
 msgid "Prev"
 msgstr "Önceki"
@@ -11207,7 +11207,7 @@ msgid "Week {0} ({formattedDate})"
 msgstr "Hafta {0} ({formattedDate})"
 
 msgid "Week {weekNumber}"
-msgstr ""
+msgstr "Hafta {weekNumber}"
 
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"

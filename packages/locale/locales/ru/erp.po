@@ -6800,7 +6800,7 @@ msgid "On order"
 msgstr "Заказано"
 
 msgid "On Production Demand"
-msgstr ""
+msgstr "На производственном спросе"
 
 msgid "On Purchase Order"
 msgstr "На заказе покупки"
@@ -7419,7 +7419,7 @@ msgid "Prepayments (default)"
 msgstr "Предупредительное действие"
 
 msgid "Present Week"
-msgstr ""
+msgstr "Текущая неделя"
 
 msgid "Prev"
 msgstr "Пред"
@@ -11207,7 +11207,7 @@ msgid "Week {0} ({formattedDate})"
 msgstr "Неделя {0} ({formattedDate})"
 
 msgid "Week {weekNumber}"
-msgstr ""
+msgstr "Неделя {weekNumber}"
 
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
