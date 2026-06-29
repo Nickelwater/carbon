@@ -1,10 +1,14 @@
 -- Inspection document versioning: Draft / Active / Archived with documentFamilyId lineage
 
-CREATE TYPE "inspectionDocumentStatus" AS ENUM (
-  'Draft',
-  'Active',
-  'Archived'
-);
+DO $$ BEGIN
+  CREATE TYPE "inspectionDocumentStatus" AS ENUM (
+    'Draft',
+    'Active',
+    'Archived'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 ALTER TYPE "approvalDocumentType" ADD VALUE IF NOT EXISTS 'inspectionDocument';
 

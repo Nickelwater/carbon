@@ -4,12 +4,16 @@
 ALTER TABLE "itemSamplingPlan"
   ADD COLUMN IF NOT EXISTS "inspectionDocumentId" TEXT;
 
-ALTER TABLE "itemSamplingPlan"
-  ADD CONSTRAINT "itemSamplingPlan_inspectionDocumentId_fkey"
-    FOREIGN KEY ("inspectionDocumentId")
-    REFERENCES "inspectionDocument"("id")
-    ON DELETE SET NULL
-    ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "itemSamplingPlan"
+    ADD CONSTRAINT "itemSamplingPlan_inspectionDocumentId_fkey"
+      FOREIGN KEY ("inspectionDocumentId")
+      REFERENCES "inspectionDocument"("id")
+      ON DELETE SET NULL
+      ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS "itemSamplingPlan_inspectionDocumentId_idx"
   ON "itemSamplingPlan"("inspectionDocumentId");
@@ -17,12 +21,16 @@ CREATE INDEX IF NOT EXISTS "itemSamplingPlan_inspectionDocumentId_idx"
 ALTER TABLE "inboundInspection"
   ADD COLUMN IF NOT EXISTS "inspectionDocumentId" TEXT;
 
-ALTER TABLE "inboundInspection"
-  ADD CONSTRAINT "inboundInspection_inspectionDocumentId_fkey"
-    FOREIGN KEY ("inspectionDocumentId")
-    REFERENCES "inspectionDocument"("id")
-    ON DELETE SET NULL
-    ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "inboundInspection"
+    ADD CONSTRAINT "inboundInspection_inspectionDocumentId_fkey"
+      FOREIGN KEY ("inspectionDocumentId")
+      REFERENCES "inspectionDocument"("id")
+      ON DELETE SET NULL
+      ON UPDATE CASCADE;
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
 
 CREATE INDEX IF NOT EXISTS "inboundInspection_inspectionDocumentId_idx"
   ON "inboundInspection"("inspectionDocumentId");
@@ -75,6 +83,7 @@ CREATE INDEX IF NOT EXISTS "inboundInspectionSampleMeasurement_featureId_idx"
 
 ALTER TABLE "inboundInspectionSampleMeasurement" ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "SELECT" ON "inboundInspectionSampleMeasurement";
 CREATE POLICY "SELECT" ON "inboundInspectionSampleMeasurement"
 FOR SELECT USING (
   "companyId" = ANY (
@@ -82,6 +91,7 @@ FOR SELECT USING (
   )
 );
 
+DROP POLICY IF EXISTS "INSERT" ON "inboundInspectionSampleMeasurement";
 CREATE POLICY "INSERT" ON "inboundInspectionSampleMeasurement"
 FOR INSERT WITH CHECK (
   "companyId" = ANY (
@@ -89,6 +99,7 @@ FOR INSERT WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS "UPDATE" ON "inboundInspectionSampleMeasurement";
 CREATE POLICY "UPDATE" ON "inboundInspectionSampleMeasurement"
 FOR UPDATE USING (
   "companyId" = ANY (
@@ -96,6 +107,7 @@ FOR UPDATE USING (
   )
 );
 
+DROP POLICY IF EXISTS "DELETE" ON "inboundInspectionSampleMeasurement";
 CREATE POLICY "DELETE" ON "inboundInspectionSampleMeasurement"
 FOR DELETE USING (
   "companyId" = ANY (
