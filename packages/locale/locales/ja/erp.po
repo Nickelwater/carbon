@@ -321,6 +321,9 @@ msgstr "あなたの決定についてのメモを追加してください..."
 msgid "Add Approval Requirement"
 msgstr "承認要件を追加"
 
+msgid "Add batch ({remainingQuantity} remaining)"
+msgstr ""
+
 msgid "Add Calibration Record"
 msgstr "キャリブレーション記録を追加"
 
@@ -995,6 +998,9 @@ msgstr "資産クラス"
 msgid "Assets"
 msgstr "資産"
 
+msgid "Assign {remainingQuantity} more from another batch to match the shipped quantity."
+msgstr ""
+
 msgid "Assign printers to locations. Shipping, receiving, and work centers inherit the location default unless overridden."
 msgstr "プリンターをロケーションに割り当てます。配送、受け取り、ワークセンターは、オーバーライドされない限りロケーションのデフォルトを継承します。"
 
@@ -1194,6 +1200,9 @@ msgstr "BoM + BoP"
 
 msgid "BOM synced successfully"
 msgstr "BOMが正常に同期されました"
+
+msgid "Box Quantity"
+msgstr ""
 
 msgid "Breadcrumb"
 msgstr "パンくずリスト"
@@ -5899,6 +5908,9 @@ msgstr "部品は製造用に構成されています"
 msgid "Part name / Customer part number"
 msgstr ""
 
+msgid "Part Weight"
+msgstr ""
+
 msgid "Partial"
 msgstr "部分的"
 
@@ -6666,6 +6678,9 @@ msgstr "削除"
 #. placeholder {0}: item.label
 msgid "Remove {0}"
 msgstr "{0}を削除"
+
+msgid "Remove batch"
+msgstr ""
 
 msgid "Remove condition"
 msgstr "条件を削除"
@@ -7724,6 +7739,9 @@ msgstr "標準"
 
 msgid "Standard Lead Time"
 msgstr "標準リードタイム"
+
+msgid "Standard Packaging"
+msgstr ""
 
 msgid "Start"
 msgstr "開始"

@@ -19,7 +19,11 @@ import {
   useRouteData
 } from "@carbon/react";
 import type { TrackedEntityAttributes } from "@carbon/utils";
-import { getItemReadableId } from "@carbon/utils";
+import {
+  getItemReadableId,
+  getShipmentBatchTrackingsForLine,
+  sumBatchAllocatedQuantities
+} from "@carbon/utils";
 import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
@@ -142,36 +146,61 @@ const ShipmentPostModal = ({ onClose }: { onClose: () => void }) => {
 
     routeData?.shipmentLines.forEach((line: ShipmentLine) => {
       if (line.requiresBatchTracking) {
-        const trackedEntity = shipmentLineTracking.data?.find((tracking) => {
-          const attributes = tracking.attributes as TrackedEntityAttributes;
-          return attributes["Shipment Line"] === line.id;
-        });
+        const batchTrackings = getShipmentBatchTrackingsForLine(
+          shipmentLineTracking.data,
+          line.id!
+        );
 
-        if (trackedEntity?.status !== "Available") {
+        if (batchTrackings.length === 0) {
           errors.push({
             itemReadableId: getItemReadableId(items, line.itemId) ?? null,
             shippedQuantity: line.shippedQuantity ?? 0,
-            shippedQuantityError: "Tracked entity is not available"
+            shippedQuantityError: "Batch numbers are missing"
           });
         }
 
-        if (trackedEntity && isExpired(trackedEntity.expirationDate)) {
-          const itemReadableId = getItemReadableId(items, line.itemId) ?? null;
-          const readableId = trackedEntity.readableId ?? trackedEntity.id;
-          const entry = {
-            itemReadableId,
-            readableId,
-            expirationDate: trackedEntity.expirationDate as string
-          };
-          if (
-            expiredPolicy === "Block" ||
-            expiredPolicy === "BlockWithOverride"
-          ) {
-            expiredBlocked.push(entry);
-          } else {
-            expiredCollected.push(entry);
-          }
+        const allocatedQuantity = sumBatchAllocatedQuantities(
+          batchTrackings,
+          line.shippedQuantity ?? 0
+        );
+
+        if (allocatedQuantity !== (line.shippedQuantity ?? 0)) {
+          errors.push({
+            itemReadableId: getItemReadableId(items, line.itemId) ?? null,
+            shippedQuantity: line.shippedQuantity ?? 0,
+            shippedQuantityError:
+              "Batch quantities must sum to the shipped quantity"
+          });
         }
+
+        batchTrackings.forEach((trackedEntity) => {
+          if (trackedEntity.status !== "Available") {
+            errors.push({
+              itemReadableId: getItemReadableId(items, line.itemId) ?? null,
+              shippedQuantity: line.shippedQuantity ?? 0,
+              shippedQuantityError: "Tracked entity is not available"
+            });
+          }
+
+          if (isExpired(trackedEntity.expirationDate)) {
+            const itemReadableId =
+              getItemReadableId(items, line.itemId) ?? null;
+            const readableId = trackedEntity.readableId ?? trackedEntity.id;
+            const entry = {
+              itemReadableId,
+              readableId,
+              expirationDate: trackedEntity.expirationDate as string
+            };
+            if (
+              expiredPolicy === "Block" ||
+              expiredPolicy === "BlockWithOverride"
+            ) {
+              expiredBlocked.push(entry);
+            } else {
+              expiredCollected.push(entry);
+            }
+          }
+        });
       }
 
       if (line.requiresSerialTracking) {

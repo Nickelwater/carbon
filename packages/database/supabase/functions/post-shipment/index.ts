@@ -6,7 +6,7 @@ import { DB, getConnectionPool, getDatabaseClient } from "../lib/database.ts";
 import { corsHeaders } from "../lib/headers.ts";
 import { requirePermissions } from "../lib/supabase.ts";
 import type { Database, Json } from "../lib/types.ts";
-import { TrackedEntityAttributes, credit, debit, journalReference } from "../lib/utils.ts";
+import { TrackedEntityAttributes, credit, debit, journalReference, getBatchAllocatedQuantity, getShipmentBatchTrackingsForLine, isSerialShipmentAssignment } from "../lib/utils.ts";
 import { calculateCOGS } from "../shared/calculate-cogs.ts";
 import { getCurrentAccountingPeriod } from "../shared/get-accounting-period.ts";
 import { getNextSequence } from "../shared/get-next-sequence.ts";
@@ -403,27 +403,34 @@ serve(async (req: Request) => {
               }
 
               if (shipmentLine.requiresBatchTracking) {
-                itemLedgerInserts.push({
-                  postingDate: today,
-                  itemId: shipmentLine.itemId,
-                  quantity: -shippedQuantity,
-                  locationId: shipmentLine.locationId ?? locationId,
-                  storageUnitId: shipmentLine.storageUnitId,
-                  entryType: "Negative Adjmt.",
-                  documentType: "Sales Shipment",
-                  documentId: shipment.data?.id ?? undefined,
-                  trackedEntityId: shipmentLineTracking.data?.find(
-                    (tracking) =>
-                      (
-                        tracking.attributes as
-                          | TrackedEntityAttributes
-                          | undefined
-                      )?.["Shipment Line"] === shipmentLine.id
-                  )?.id,
-                  externalDocumentId: undefined,
-                  createdBy: userId,
-                  companyId,
-                });
+                const lineBatchTrackings = getShipmentBatchTrackingsForLine(
+                  shipmentLineTracking.data,
+                  shipmentLine.id
+                );
+
+                for (const tracking of lineBatchTrackings) {
+                  const allocatedQuantity = getBatchAllocatedQuantity(
+                    tracking.attributes as TrackedEntityAttributes,
+                    Number(tracking.quantity ?? 0),
+                    shippedQuantity,
+                    lineBatchTrackings.length
+                  );
+
+                  itemLedgerInserts.push({
+                    postingDate: today,
+                    itemId: shipmentLine.itemId,
+                    quantity: -allocatedQuantity,
+                    locationId: shipmentLine.locationId ?? locationId,
+                    storageUnitId: shipmentLine.storageUnitId,
+                    entryType: "Negative Adjmt.",
+                    documentType: "Sales Shipment",
+                    documentId: shipment.data?.id ?? undefined,
+                    trackedEntityId: tracking.id,
+                    externalDocumentId: undefined,
+                    createdBy: userId,
+                    companyId,
+                  });
+                }
               }
 
               if (shipmentLine.requiresSerialTracking) {
@@ -755,29 +762,47 @@ serve(async (req: Request) => {
                   Database["public"]["Tables"]["trackedEntity"]["Update"]
                 >
               >((acc, trackedEntity) => {
+                const attributes =
+                  trackedEntity.attributes as TrackedEntityAttributes;
                 const shipmentLine = shipmentLines.data?.find(
                   (shipmentLine) =>
-                    shipmentLine.id ===
-                    (trackedEntity.attributes as TrackedEntityAttributes)?.[
-                      "Shipment Line"
-                    ]
+                    shipmentLine.id === attributes?.["Shipment Line"]
+                );
+
+                if (isSerialShipmentAssignment(attributes)) {
+                  acc[trackedEntity.id] = {
+                    status: "Consumed",
+                    quantity: trackedEntity.quantity ?? 1,
+                  };
+                  return acc;
+                }
+
+                const lineBatchTrackings = shipmentLine
+                  ? getShipmentBatchTrackingsForLine(
+                      shipmentLineTracking.data,
+                      shipmentLine.id
+                    )
+                  : [];
+                const allocatedQuantity = getBatchAllocatedQuantity(
+                  attributes,
+                  Number(trackedEntity.quantity ?? 0),
+                  shipmentLine?.shippedQuantity ?? 0,
+                  lineBatchTrackings.length
                 );
 
                 if (
-                  shipmentLine?.shippedQuantity !== undefined &&
+                  allocatedQuantity !== undefined &&
                   trackedEntity.quantity !== undefined &&
-                  shipmentLine.shippedQuantity < trackedEntity.quantity
+                  allocatedQuantity < trackedEntity.quantity
                 ) {
-                  // Need to split the batch
                   trackedEntitySplits[trackedEntity.id] = {
                     originalEntityId: trackedEntity.id,
                     originalQuantity: trackedEntity.quantity,
-                    shippedQuantity: shipmentLine.shippedQuantity,
+                    shippedQuantity: allocatedQuantity,
                     remainingQuantity:
-                      trackedEntity.quantity - shipmentLine.shippedQuantity,
+                      trackedEntity.quantity - allocatedQuantity,
                     readableId: trackedEntity.readableId,
-                    attributes:
-                      trackedEntity.attributes as TrackedEntityAttributes,
+                    attributes,
                     sourceDocument: trackedEntity.sourceDocument,
                     sourceDocumentId: trackedEntity.sourceDocumentId,
                     sourceDocumentReadableId:
@@ -790,8 +815,7 @@ serve(async (req: Request) => {
 
                 acc[trackedEntity.id] = {
                   status: "Consumed",
-                  quantity:
-                    shipmentLine?.shippedQuantity ?? trackedEntity.quantity,
+                  quantity: allocatedQuantity,
                 };
 
                 return acc;
@@ -1449,29 +1473,46 @@ serve(async (req: Request) => {
                   Database["public"]["Tables"]["trackedEntity"]["Update"]
                 >
               >((acc, trackedEntity) => {
+                const attributes =
+                  trackedEntity.attributes as TrackedEntityAttributes;
                 const shipmentLine = shipmentLines.data?.find(
                   (shipmentLine) =>
-                    shipmentLine.id ===
-                    (trackedEntity.attributes as TrackedEntityAttributes)?.[
-                      "Shipment Line"
-                    ]
+                    shipmentLine.id === attributes?.["Shipment Line"]
+                );
+
+                if (isSerialShipmentAssignment(attributes)) {
+                  acc[trackedEntity.id] = {
+                    quantity: trackedEntity.quantity ?? 1,
+                  };
+                  return acc;
+                }
+
+                const lineBatchTrackings = shipmentLine
+                  ? getShipmentBatchTrackingsForLine(
+                      shipmentLineTracking.data,
+                      shipmentLine.id
+                    )
+                  : [];
+                const allocatedQuantity = getBatchAllocatedQuantity(
+                  attributes,
+                  Number(trackedEntity.quantity ?? 0),
+                  shipmentLine?.shippedQuantity ?? 0,
+                  lineBatchTrackings.length
                 );
 
                 if (
-                  shipmentLine?.shippedQuantity !== undefined &&
+                  allocatedQuantity !== undefined &&
                   trackedEntity.quantity !== undefined &&
-                  shipmentLine.shippedQuantity < trackedEntity.quantity
+                  allocatedQuantity < trackedEntity.quantity
                 ) {
-                  // Need to split the batch
                   trackedEntitySplits[trackedEntity.id] = {
                     originalEntityId: trackedEntity.id,
                     originalQuantity: trackedEntity.quantity,
-                    shippedQuantity: shipmentLine.shippedQuantity,
+                    shippedQuantity: allocatedQuantity,
                     remainingQuantity:
-                      trackedEntity.quantity - shipmentLine.shippedQuantity,
+                      trackedEntity.quantity - allocatedQuantity,
                     readableId: trackedEntity.readableId,
-                    attributes:
-                      trackedEntity.attributes as TrackedEntityAttributes,
+                    attributes,
                     sourceDocument: trackedEntity.sourceDocument,
                     sourceDocumentId: trackedEntity.sourceDocumentId,
                     sourceDocumentReadableId:
@@ -1483,8 +1524,7 @@ serve(async (req: Request) => {
                 }
 
                 acc[trackedEntity.id] = {
-                  quantity:
-                    shipmentLine?.shippedQuantity ?? trackedEntity.quantity,
+                  quantity: allocatedQuantity,
                 };
 
                 return acc;
@@ -2099,27 +2139,34 @@ serve(async (req: Request) => {
               }
 
               if (shipmentLine.requiresBatchTracking) {
-                itemLedgerInserts.push({
-                  postingDate: today,
-                  itemId: shipmentLine.itemId,
-                  quantity: shippedQuantity, // Positive to restore inventory
-                  locationId: shipmentLine.locationId ?? locationId,
-                  storageUnitId: shipmentLine.storageUnitId,
-                  entryType: "Positive Adjmt.",
-                  documentType: "Sales Shipment",
-                  documentId: shipment.data?.id ?? undefined,
-                  trackedEntityId: shipmentLineTracking.data?.find(
-                    (tracking) =>
-                      (
-                        tracking.attributes as
-                          | TrackedEntityAttributes
-                          | undefined
-                      )?.["Shipment Line"] === shipmentLine.id
-                  )?.id,
-                  externalDocumentId: undefined,
-                  createdBy: userId,
-                  companyId,
-                });
+                const lineBatchTrackings = getShipmentBatchTrackingsForLine(
+                  shipmentLineTracking.data,
+                  shipmentLine.id
+                );
+
+                for (const tracking of lineBatchTrackings) {
+                  const allocatedQuantity = getBatchAllocatedQuantity(
+                    tracking.attributes as TrackedEntityAttributes,
+                    Number(tracking.quantity ?? 0),
+                    shippedQuantity,
+                    lineBatchTrackings.length
+                  );
+
+                  itemLedgerInserts.push({
+                    postingDate: today,
+                    itemId: shipmentLine.itemId,
+                    quantity: allocatedQuantity, // Positive to restore inventory
+                    locationId: shipmentLine.locationId ?? locationId,
+                    storageUnitId: shipmentLine.storageUnitId,
+                    entryType: "Positive Adjmt.",
+                    documentType: "Sales Shipment",
+                    documentId: shipment.data?.id ?? undefined,
+                    trackedEntityId: tracking.id,
+                    externalDocumentId: undefined,
+                    createdBy: userId,
+                    companyId,
+                  });
+                }
               }
 
               if (shipmentLine.requiresSerialTracking) {
@@ -2643,27 +2690,34 @@ serve(async (req: Request) => {
               }
 
               if (shipmentLine.requiresBatchTracking) {
-                itemLedgerInserts.push({
-                  postingDate: today,
-                  itemId: shipmentLine.itemId,
-                  quantity: -shippedQuantity, // Negative to remove inventory
-                  locationId: shipmentLine.locationId ?? locationId,
-                  storageUnitId: shipmentLine.storageUnitId,
-                  entryType: "Negative Adjmt.",
-                  documentType: "Purchase Receipt",
-                  documentId: shipment.data?.id ?? undefined,
-                  trackedEntityId: shipmentLineTracking.data?.find(
-                    (tracking) =>
-                      (
-                        tracking.attributes as
-                          | TrackedEntityAttributes
-                          | undefined
-                      )?.["Shipment Line"] === shipmentLine.id
-                  )?.id,
-                  externalDocumentId: undefined,
-                  createdBy: userId,
-                  companyId,
-                });
+                const lineBatchTrackings = getShipmentBatchTrackingsForLine(
+                  shipmentLineTracking.data,
+                  shipmentLine.id
+                );
+
+                for (const tracking of lineBatchTrackings) {
+                  const allocatedQuantity = getBatchAllocatedQuantity(
+                    tracking.attributes as TrackedEntityAttributes,
+                    Number(tracking.quantity ?? 0),
+                    shippedQuantity,
+                    lineBatchTrackings.length
+                  );
+
+                  itemLedgerInserts.push({
+                    postingDate: today,
+                    itemId: shipmentLine.itemId,
+                    quantity: -allocatedQuantity,
+                    locationId: shipmentLine.locationId ?? locationId,
+                    storageUnitId: shipmentLine.storageUnitId,
+                    entryType: "Negative Adjmt.",
+                    documentType: "Purchase Receipt",
+                    documentId: shipment.data?.id ?? undefined,
+                    trackedEntityId: tracking.id,
+                    externalDocumentId: undefined,
+                    createdBy: userId,
+                    companyId,
+                  });
+                }
               }
 
               if (shipmentLine.requiresSerialTracking) {

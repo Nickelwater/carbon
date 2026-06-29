@@ -1,4 +1,9 @@
 import type { Database } from "@carbon/database";
+import {
+  getShippingLabelPackageCount,
+  isSinglePackageShippingLabelRequest,
+  splitQuantityIntoBoxes
+} from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { format } from "date-fns";
 import { buildPackListLineQrPayload } from "../qr/pack-list-qr";
@@ -318,6 +323,138 @@ async function resolveSalesOrderLineDetails(
   );
 }
 
+async function resolveItemBoxQuantities(
+  client: SupabaseClient<Database>,
+  itemIds: string[]
+) {
+  if (itemIds.length === 0) {
+    return new Map<string, number>();
+  }
+
+  const { data, error } = await client
+    .from("itemPackaging")
+    .select("itemId, boxQuantity")
+    .in("itemId", itemIds);
+
+  if (error) {
+    return new Map<string, number>();
+  }
+
+  const byItemId = new Map<string, number>();
+  for (const row of data ?? []) {
+    const boxQuantity = Number(row.boxQuantity ?? 0);
+    if (boxQuantity > 0) {
+      byItemId.set(row.itemId, boxQuantity);
+    }
+  }
+  return byItemId;
+}
+
+type LineLabelContext = {
+  partNumber: string;
+  revision: string;
+  purchaseOrder: string;
+  lineNumber: string;
+  packingListNumber: string;
+  description: string;
+  salesOrderNumber: string;
+  shipToLines: string[];
+  supplierName: string | null;
+  supplierLines: string[];
+  shipDate: string;
+  postingDate: string | null;
+  companyName: string;
+  unitOfMeasure: string | null | undefined;
+};
+
+function buildShippingLabelItem(
+  context: LineLabelContext,
+  labelQuantity: number,
+  packageIndex: number,
+  packageCount: number
+): ShippingLabelItem {
+  const qrValue = buildPackListLineQrPayload({
+    companyName: context.companyName,
+    partNumber: context.partNumber,
+    quantity: labelQuantity,
+    customerPo: context.purchaseOrder,
+    packListNumber: context.packingListNumber,
+    date: context.postingDate
+  });
+
+  return {
+    partNumber: context.partNumber,
+    revision: context.revision,
+    quantity: formatQuantity(labelQuantity, context.unitOfMeasure),
+    quantityBarcode: formatQuantityBarcode(labelQuantity),
+    purchaseOrder: context.purchaseOrder,
+    lineNumber: context.lineNumber,
+    packingListNumber: context.packingListNumber,
+    description: context.description,
+    salesOrderNumber: context.salesOrderNumber,
+    shipToLines: context.shipToLines,
+    supplierName: context.supplierName,
+    supplierLines: context.supplierLines,
+    shipDate: context.shipDate,
+    packageIndex,
+    packageCount,
+    qrValue
+  };
+}
+
+function buildLabelsForLine(
+  context: LineLabelContext,
+  shippedQuantity: number,
+  boxQuantity: number | undefined,
+  options: LoadShippingLabelItemsOptions
+): ShippingLabelItem[] {
+  const hasExplicitPackage = isSinglePackageShippingLabelRequest(
+    options.packageIndex,
+    options.packageCount
+  );
+
+  if (!boxQuantity || boxQuantity <= 0) {
+    const packageIndex = options.packageIndex ?? 1;
+    const packageCount = options.packageCount ?? 1;
+    return [
+      buildShippingLabelItem(
+        context,
+        shippedQuantity,
+        packageIndex,
+        packageCount
+      )
+    ];
+  }
+
+  const boxQuantities = splitQuantityIntoBoxes(shippedQuantity, boxQuantity);
+  const totalPackages = boxQuantities.length;
+
+  if (totalPackages === 0) {
+    return [];
+  }
+
+  if (hasExplicitPackage) {
+    const packageIndex = options.packageIndex!;
+    const labelQuantity = boxQuantities[packageIndex - 1];
+    if (labelQuantity === undefined) {
+      return [];
+    }
+
+    return [
+      buildShippingLabelItem(
+        context,
+        labelQuantity,
+        packageIndex,
+        totalPackages
+      )
+    ];
+  }
+
+  return boxQuantities.map((labelQuantity, index) =>
+    buildShippingLabelItem(context, labelQuantity, index + 1, totalPackages)
+  );
+}
+
 export async function loadShippingLabelItems(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -358,14 +495,22 @@ export async function loadShippingLabelItems(
     return [];
   }
 
+  const itemIds = [
+    ...new Set(lines.map((line) => line.itemId).filter(Boolean) as string[])
+  ];
+
   const customerId = shipment.data.customerId;
-  const [shipToLines, customerParts, salesOrderLineDetails] = await Promise.all(
-    [
-      resolveShipToLines(client, shipment.data),
-      resolveLineCustomerParts(client, companyId, customerId, lines),
-      resolveSalesOrderLineDetails(client, lines)
-    ]
-  );
+  const [
+    shipToLines,
+    customerParts,
+    salesOrderLineDetails,
+    boxQuantitiesByItemId
+  ] = await Promise.all([
+    resolveShipToLines(client, shipment.data),
+    resolveLineCustomerParts(client, companyId, customerId, lines),
+    resolveSalesOrderLineDetails(client, lines),
+    resolveItemBoxQuantities(client, itemIds)
+  ]);
 
   let salesOrderNumber = shipment.data.sourceDocumentReadableId?.trim() ?? "";
   if (
@@ -389,11 +534,9 @@ export async function loadShippingLabelItems(
     "M/d/yyyy"
   );
 
-  const packageIndex = options.packageIndex ?? 1;
-  const packageCount = options.packageCount ?? 1;
   const supplierLines = formatCompanyLines(company.data);
 
-  return lines.map((line) => {
+  return lines.flatMap((line) => {
     const customerPart = line.id ? customerParts.get(line.id) : undefined;
     const salesOrderLine = line.lineId
       ? salesOrderLineDetails.get(line.lineId)
@@ -404,28 +547,19 @@ export async function loadShippingLabelItems(
       line.itemId ??
       "";
     const revision = customerPart?.revision ?? "";
-    const quantity = formatQuantity(line.shippedQuantity, line.unitOfMeasure);
-    const quantityBarcode = formatQuantityBarcode(line.shippedQuantity);
     const purchaseOrder = salesOrderLine?.purchaseOrder ?? "";
     const lineNumber = salesOrderLine?.lineNumber ?? "";
     const packingListNumber = shipment.data.shipmentId;
     const description = line.description?.trim() ?? "";
     const soNumber = salesOrderLine?.salesOrderNumber || salesOrderNumber;
+    const shippedQuantity = Number(line.shippedQuantity ?? 0);
+    const boxQuantity = line.itemId
+      ? boxQuantitiesByItemId.get(line.itemId)
+      : undefined;
 
-    const qrValue = buildPackListLineQrPayload({
-      companyName: company.data.name ?? "",
-      partNumber,
-      quantity: Number(line.shippedQuantity ?? 0),
-      customerPo: purchaseOrder,
-      packListNumber: packingListNumber,
-      date: shipment.data.postingDate
-    });
-
-    return {
+    const context: LineLabelContext = {
       partNumber,
       revision,
-      quantity,
-      quantityBarcode,
       purchaseOrder,
       lineNumber,
       packingListNumber,
@@ -435,9 +569,13 @@ export async function loadShippingLabelItems(
       supplierName: company.data.name,
       supplierLines,
       shipDate,
-      packageIndex,
-      packageCount,
-      qrValue
+      postingDate: shipment.data.postingDate,
+      companyName: company.data.name ?? "",
+      unitOfMeasure: line.unitOfMeasure
     };
+
+    return buildLabelsForLine(context, shippedQuantity, boxQuantity, options);
   });
 }
+
+export { getShippingLabelPackageCount, splitQuantityIntoBoxes };

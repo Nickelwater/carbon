@@ -40,17 +40,17 @@ function LabelRow({
     >
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
         <Text style={{ fontSize: 7 }}>{label}:</Text>
-        {secondLabel ? (
+        {secondLabel && secondValue ? (
           <Text style={{ fontSize: 7 }}>{secondLabel}:</Text>
         ) : null}
       </View>
       <View style={{ flexDirection: "row", justifyContent: "space-between" }}>
-        <Text style={{ fontSize: 9, fontWeight: "bold" }}>{value}</Text>
-        {secondLabel ? (
+        <Text style={{ fontSize: 9, fontWeight: "bold" }}>{value || "—"}</Text>
+        {secondLabel && secondValue ? (
           <Text style={{ fontSize: 9, fontWeight: "bold" }}>{secondValue}</Text>
         ) : null}
       </View>
-      {barcodeValue ? (
+      {barcodeValue?.trim() ? (
         <Image
           style={{
             height: 14,
@@ -193,9 +193,9 @@ function ShippingLabelPage({
               height={rowH}
               label="PO"
               value={item.purchaseOrder}
-              barcodeValue={item.purchaseOrder}
-              secondLabel="Line"
-              secondValue={item.lineNumber}
+              barcodeValue={item.purchaseOrder?.trim() || undefined}
+              secondLabel={item.lineNumber?.trim() ? "Line" : undefined}
+              secondValue={item.lineNumber?.trim() || undefined}
             />
             <LabelRow
               height={rowH}
@@ -302,9 +302,9 @@ export default function ShippingLabelPDF({
 }) {
   return (
     <Document>
-      {items.map((item, index) => (
+      {items.map((item) => (
         <ShippingLabelPage
-          key={`${item.partNumber}-${index}`}
+          key={`${item.partNumber}-p${item.packageIndex}-of-${item.packageCount}-${item.quantityBarcode}`}
           item={item}
           labelSize={labelSize}
           logo={logo}

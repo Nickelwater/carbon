@@ -321,6 +321,9 @@ msgstr "अपने निर्णय के बारे में कोई 
 msgid "Add Approval Requirement"
 msgstr "अनुमोदन आवश्यकता जोड़ें"
 
+msgid "Add batch ({remainingQuantity} remaining)"
+msgstr ""
+
 msgid "Add Calibration Record"
 msgstr "कैलिब्रेशन रिकॉर्ड जोड़ें"
 
@@ -995,6 +998,9 @@ msgstr "संपत्ति वर्ग"
 msgid "Assets"
 msgstr "संपत्तियां"
 
+msgid "Assign {remainingQuantity} more from another batch to match the shipped quantity."
+msgstr ""
+
 msgid "Assign printers to locations. Shipping, receiving, and work centers inherit the location default unless overridden."
 msgstr "प्रिंटर को स्थानों को असाइन करें। शिपिंग, रिसीविंग और वर्क सेंटर स्थान डिफ़ॉल्ट को विरासत में लेते हैं जब तक कि ओवरराइड न किया जाए।"
 
@@ -1194,6 +1200,9 @@ msgstr "BoM + BoP"
 
 msgid "BOM synced successfully"
 msgstr "BOM सफलतापूर्वक सिंक हो गया"
+
+msgid "Box Quantity"
+msgstr ""
 
 msgid "Breadcrumb"
 msgstr "ब्रेडक्रम्ब"
@@ -5899,6 +5908,9 @@ msgstr "भाग विनिर्माण के लिए कॉन्फ�
 msgid "Part name / Customer part number"
 msgstr ""
 
+msgid "Part Weight"
+msgstr ""
+
 msgid "Partial"
 msgstr "आंशिक"
 
@@ -6666,6 +6678,9 @@ msgstr "हटाएं"
 #. placeholder {0}: item.label
 msgid "Remove {0}"
 msgstr "{0} को हटाएं"
+
+msgid "Remove batch"
+msgstr ""
 
 msgid "Remove condition"
 msgstr "शर्त हटाएं"
@@ -7724,6 +7739,9 @@ msgstr "मानक"
 
 msgid "Standard Lead Time"
 msgstr "मानक लीड समय"
+
+msgid "Standard Packaging"
+msgstr ""
 
 msgid "Start"
 msgstr "शुरू करें"

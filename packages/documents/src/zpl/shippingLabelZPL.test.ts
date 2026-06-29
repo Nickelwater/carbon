@@ -39,7 +39,12 @@ describe("generateShippingLabelZPL", () => {
     const zpl = generateShippingLabelZPL(sample, label4x6);
     expect(zpl).toMatch(/^\^XA/);
     expect(zpl).toMatch(/\^XZ$/);
-    expect(zpl).toContain("^PW1218^LL812");
+    expect(zpl).toContain("^PW812^LL1218");
+    expect(zpl).toContain("^PQ1");
+    expect(zpl).toContain("^PO R");
+    expect(zpl).toContain("^MNN");
+    expect(zpl).toContain("^BCN");
+    expect(zpl).toContain("^BQN");
     expect(zpl).toContain("01-0129");
     expect(zpl).toContain("546EA");
     expect(zpl).toContain("51202");
@@ -50,9 +55,9 @@ describe("generateShippingLabelZPL", () => {
     expect(zpl).toContain("ADAMS Die Cast, Inc");
     expect(zpl).toContain("Rev: 4");
     expect(zpl).toContain("123 Main St");
-    expect(zpl).toContain("^BCN");
-    expect(zpl).toContain("^BQN");
     expect(zpl).toContain("_5EP01-0129");
     expect(zpl).toContain("_5ES504236");
+    expect(zpl).not.toMatch(/BCN,-/);
+    expect(zpl).not.toMatch(/\^BY[^\\n]*,-/);
   });
 });

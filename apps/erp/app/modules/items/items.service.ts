@@ -2440,6 +2440,17 @@ export async function upsertItemShelfLife(
   });
 }
 
+export async function getItemPackaging(
+  client: SupabaseClient<Database>,
+  itemId: string
+) {
+  return client
+    .from("itemPackaging")
+    .select("boxQuantity, partWeight, standardPackagingItemId")
+    .eq("itemId", itemId)
+    .maybeSingle();
+}
+
 /**
  * Atomic counterpart to {@link upsertPickMethod} + {@link upsertItemShelfLife}.
  *
@@ -2464,6 +2475,11 @@ export async function upsertPickMethodWithShelfLife(
       triggerTiming?: (typeof shelfLifeTriggerTimings)[number];
       calculateFromBom?: boolean;
     };
+    packaging?: {
+      boxQuantity?: number;
+      partWeight?: number;
+      standardPackagingItemId?: string;
+    };
   }
 ) {
   const updatedAt = now(getLocalTimeZone()).toAbsoluteString();
@@ -2486,94 +2502,157 @@ export async function upsertPickMethodWithShelfLife(
 
     // mode undefined = caller didn't surface the field; leave any existing
     // row alone (matches upsertItemShelfLife semantics).
-    if (mode === undefined) return;
+    if (mode !== undefined) {
+      if (mode === "NotManaged") {
+        await trx
+          .deleteFrom("itemShelfLife")
+          .where("itemId", "=", args.itemId)
+          .execute();
+      } else {
+        const normalizedDays =
+          mode === "Fixed Duration" ? (days ?? null) : null;
+        const normalizedTriggerProcess =
+          mode === "Fixed Duration" ? (triggerProcessId ?? null) : null;
+        const normalizedTriggerTiming = normalizedTriggerProcess
+          ? (triggerTiming ?? "After")
+          : "After";
+        const normalizedCalcFromBom =
+          mode === "Fixed Duration" ? (calculateFromBom ?? false) : false;
 
-    if (mode === "NotManaged") {
-      await trx
-        .deleteFrom("itemShelfLife")
-        .where("itemId", "=", args.itemId)
-        .execute();
-      return;
-    }
+        // Reject trigger processes that aren't on the item's active recipe.
+        // The set-shelf-life helper gates on processId equality, so picking a
+        // process the recipe never runs would silently never set the expiry.
+        if (normalizedTriggerProcess) {
+          const recipeProcessIds = await trx
+            .selectFrom("methodOperation as mo")
+            .innerJoin("activeMakeMethods as amm", "amm.id", "mo.makeMethodId")
+            .select("mo.processId")
+            .where("amm.itemId", "=", args.itemId)
+            .where("mo.processId", "is not", null)
+            .execute();
+          const allowed = new Set(
+            recipeProcessIds
+              .map((r) => r.processId)
+              .filter((id): id is string => !!id)
+          );
+          if (!allowed.has(normalizedTriggerProcess)) {
+            throw new Error(
+              "Shelf-life trigger process must be one of the operations on this item's recipe"
+            );
+          }
+        }
 
-    const normalizedDays = mode === "Fixed Duration" ? (days ?? null) : null;
-    const normalizedTriggerProcess =
-      mode === "Fixed Duration" ? (triggerProcessId ?? null) : null;
-    const normalizedTriggerTiming = normalizedTriggerProcess
-      ? (triggerTiming ?? "After")
-      : "After";
-    const normalizedCalcFromBom =
-      mode === "Fixed Duration" ? (calculateFromBom ?? false) : false;
+        const existing = await trx
+          .selectFrom("itemShelfLife")
+          .select("itemId")
+          .where("itemId", "=", args.itemId)
+          .executeTakeFirst();
 
-    // Reject trigger processes that aren't on the item's active recipe.
-    // The set-shelf-life helper gates on processId equality, so picking a
-    // process the recipe never runs would silently never set the expiry.
-    if (normalizedTriggerProcess) {
-      const recipeProcessIds = await trx
-        .selectFrom("methodOperation as mo")
-        .innerJoin("activeMakeMethods as amm", "amm.id", "mo.makeMethodId")
-        .select("mo.processId")
-        .where("amm.itemId", "=", args.itemId)
-        .where("mo.processId", "is not", null)
-        .execute();
-      const allowed = new Set(
-        recipeProcessIds
-          .map((r) => r.processId)
-          .filter((id): id is string => !!id)
-      );
-      if (!allowed.has(normalizedTriggerProcess)) {
-        throw new Error(
-          "Shelf-life trigger process must be one of the operations on this item's recipe"
-        );
+        if (existing) {
+          await trx
+            .updateTable("itemShelfLife")
+            .set({
+              mode,
+              days: normalizedDays,
+              triggerProcessId: normalizedTriggerProcess,
+              triggerTiming: normalizedTriggerTiming,
+              calculateFromBom: normalizedCalcFromBom,
+              updatedBy: args.userId,
+              updatedAt
+            })
+            .where("itemId", "=", args.itemId)
+            .execute();
+        } else {
+          const itemRow = await trx
+            .selectFrom("item")
+            .select("companyId")
+            .where("id", "=", args.itemId)
+            .executeTakeFirstOrThrow();
+
+          if (!itemRow.companyId) {
+            throw new Error(`Item ${args.itemId} has no companyId`);
+          }
+
+          await trx
+            .insertInto("itemShelfLife")
+            .values({
+              itemId: args.itemId,
+              mode,
+              days: normalizedDays,
+              triggerProcessId: normalizedTriggerProcess,
+              triggerTiming: normalizedTriggerTiming,
+              calculateFromBom: normalizedCalcFromBom,
+              companyId: itemRow.companyId,
+              createdBy: args.userId
+            })
+            .execute();
+        }
       }
     }
 
-    const existing = await trx
-      .selectFrom("itemShelfLife")
-      .select("itemId")
-      .where("itemId", "=", args.itemId)
-      .executeTakeFirst();
+    if (args.packaging !== undefined) {
+      const boxQuantity = args.packaging.boxQuantity ?? null;
+      const partWeight = args.packaging.partWeight ?? null;
+      const standardPackagingItemId =
+        args.packaging.standardPackagingItemId?.trim() || null;
+      const hasValues =
+        boxQuantity != null ||
+        partWeight != null ||
+        standardPackagingItemId != null;
 
-    if (existing) {
-      await trx
-        .updateTable("itemShelfLife")
-        .set({
-          mode,
-          days: normalizedDays,
-          triggerProcessId: normalizedTriggerProcess,
-          triggerTiming: normalizedTriggerTiming,
-          calculateFromBom: normalizedCalcFromBom,
-          updatedBy: args.userId,
-          updatedAt
-        })
+      const existingPackaging = await trx
+        .selectFrom("itemPackaging")
+        .select("itemId")
         .where("itemId", "=", args.itemId)
+        .executeTakeFirst();
+
+      if (!hasValues) {
+        if (existingPackaging) {
+          await trx
+            .deleteFrom("itemPackaging")
+            .where("itemId", "=", args.itemId)
+            .execute();
+        }
+        return;
+      }
+
+      if (existingPackaging) {
+        await trx
+          .updateTable("itemPackaging")
+          .set({
+            boxQuantity,
+            partWeight,
+            standardPackagingItemId,
+            updatedBy: args.userId,
+            updatedAt
+          })
+          .where("itemId", "=", args.itemId)
+          .execute();
+        return;
+      }
+
+      const itemRow = await trx
+        .selectFrom("item")
+        .select("companyId")
+        .where("id", "=", args.itemId)
+        .executeTakeFirstOrThrow();
+
+      if (!itemRow.companyId) {
+        throw new Error(`Item ${args.itemId} has no companyId`);
+      }
+
+      await trx
+        .insertInto("itemPackaging")
+        .values({
+          itemId: args.itemId,
+          boxQuantity,
+          partWeight,
+          standardPackagingItemId,
+          companyId: itemRow.companyId,
+          createdBy: args.userId
+        })
         .execute();
-      return;
     }
-
-    const itemRow = await trx
-      .selectFrom("item")
-      .select("companyId")
-      .where("id", "=", args.itemId)
-      .executeTakeFirstOrThrow();
-
-    if (!itemRow.companyId) {
-      throw new Error(`Item ${args.itemId} has no companyId`);
-    }
-
-    await trx
-      .insertInto("itemShelfLife")
-      .values({
-        itemId: args.itemId,
-        mode,
-        days: normalizedDays,
-        triggerProcessId: normalizedTriggerProcess,
-        triggerTiming: normalizedTriggerTiming,
-        calculateFromBom: normalizedCalcFromBom,
-        companyId: itemRow.companyId,
-        createdBy: args.userId
-      })
-      .execute();
   });
 }
 

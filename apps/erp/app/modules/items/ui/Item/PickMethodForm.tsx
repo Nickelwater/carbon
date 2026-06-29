@@ -39,6 +39,7 @@ import { useAuditLog } from "~/components/AuditLog";
 import {
   CustomFormFields,
   Hidden,
+  Item,
   NumberControlled,
   ShelfLifeStartProcess,
   ShelfLifeStartTiming,
@@ -46,6 +47,8 @@ import {
 } from "~/components/Form";
 import { StorageUnitDrillSelectField } from "~/components/Form/StorageUnitDrillSelect";
 import { usePermissions, useSettings, useUser } from "~/hooks";
+import type { MethodItemType } from "~/modules/shared";
+import { useItems } from "~/stores";
 import type { ListItem } from "~/types";
 import { path } from "~/utils/path";
 import {
@@ -196,6 +199,10 @@ const PickMethodForm = ({
               />
             )}
 
+            {type === "Part" ? (
+              <PartPackagingFields initialValues={initialValues} />
+            ) : null}
+
             <CustomFormFields table="partInventory" />
           </div>
         </CardContent>
@@ -212,6 +219,56 @@ const PickMethodForm = ({
 };
 
 export default PickMethodForm;
+
+const PACKAGING_ITEM_TYPES: MethodItemType[] = [
+  "Material",
+  "Consumable",
+  "Part",
+  "Tool"
+];
+
+function PartPackagingFields({
+  initialValues
+}: {
+  initialValues: z.infer<typeof pickMethodWithShelfLifeValidator>;
+}) {
+  const { t } = useLingui();
+  const [items] = useItems();
+  const [packagingItemType, setPackagingItemType] = useState<
+    MethodItemType | "Item"
+  >(() => {
+    const selectedId = initialValues.standardPackagingItemId;
+    if (!selectedId) return "Item";
+    const item = items.find((entry) => entry.id === selectedId);
+    if (
+      item?.type &&
+      PACKAGING_ITEM_TYPES.includes(item.type as MethodItemType)
+    ) {
+      return item.type as MethodItemType;
+    }
+    return "Item";
+  });
+
+  return (
+    <>
+      <NumberControlled
+        name="boxQuantity"
+        label={t`Box Quantity`}
+        minValue={0}
+      />
+      <NumberControlled name="partWeight" label={t`Part Weight`} minValue={0} />
+      <Item
+        name="standardPackagingItemId"
+        label={t`Standard Packaging`}
+        type={packagingItemType}
+        typeFieldName="standardPackagingItemType"
+        validItemTypes={PACKAGING_ITEM_TYPES}
+        onTypeChange={setPackagingItemType}
+        isOptional
+      />
+    </>
+  );
+}
 
 type ManagedShelfLifeMode = Exclude<ShelfLifeMode, "NotManaged">;
 

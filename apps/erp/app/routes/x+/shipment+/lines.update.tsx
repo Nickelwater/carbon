@@ -62,7 +62,7 @@ export async function action({ request }: ActionFunctionArgs) {
     const [shipment, item] = await Promise.all([
       client
         .from("shipment")
-        .select("locationId, postedAt")
+        .select("locationId, status")
         .eq("id", line.data.shipmentId)
         .eq("companyId", companyId)
         .single(),
@@ -77,7 +77,7 @@ export async function action({ request }: ActionFunctionArgs) {
       return { error: { message: "Shipment not found" }, data: null };
     }
 
-    if (shipment.data.postedAt) {
+    if (shipment.data.status === "Posted") {
       return {
         error: { message: "Cannot update a posted shipment" },
         data: null
@@ -127,7 +127,9 @@ export async function action({ request }: ActionFunctionArgs) {
   const update = await client
     .from("shipmentLine")
     .update({
-      [field]: value ? value : null,
+      ...(field === "shippedQuantity"
+        ? { shippedQuantity: Number(value) }
+        : { storageUnitId: value ? value : null }),
       updatedBy: userId,
       updatedAt: new Date().toISOString()
     })

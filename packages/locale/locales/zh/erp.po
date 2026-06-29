@@ -321,6 +321,9 @@ msgstr "添加关于您的决定的任何备注..."
 msgid "Add Approval Requirement"
 msgstr "添加批准要求"
 
+msgid "Add batch ({remainingQuantity} remaining)"
+msgstr ""
+
 msgid "Add Calibration Record"
 msgstr "添加校准记录"
 
@@ -995,6 +998,9 @@ msgstr "资产类别"
 msgid "Assets"
 msgstr "资产"
 
+msgid "Assign {remainingQuantity} more from another batch to match the shipped quantity."
+msgstr ""
+
 msgid "Assign printers to locations. Shipping, receiving, and work centers inherit the location default unless overridden."
 msgstr "将打印机分配到位置。运输、接收和工作中心继承位置默认值，除非被覆盖。"
 
@@ -1194,6 +1200,9 @@ msgstr "BoM + BoP"
 
 msgid "BOM synced successfully"
 msgstr "物料清单同步成功"
+
+msgid "Box Quantity"
+msgstr ""
 
 msgid "Breadcrumb"
 msgstr "面包屑"
@@ -5899,6 +5908,9 @@ msgstr "零件已配置用于制造"
 msgid "Part name / Customer part number"
 msgstr ""
 
+msgid "Part Weight"
+msgstr ""
+
 msgid "Partial"
 msgstr "部分"
 
@@ -6666,6 +6678,9 @@ msgstr "移除"
 #. placeholder {0}: item.label
 msgid "Remove {0}"
 msgstr "删除 {0}"
+
+msgid "Remove batch"
+msgstr ""
 
 msgid "Remove condition"
 msgstr "移除条件"
@@ -7724,6 +7739,9 @@ msgstr "标准"
 
 msgid "Standard Lead Time"
 msgstr "标准交货期"
+
+msgid "Standard Packaging"
+msgstr ""
 
 msgid "Start"
 msgstr "开始"

@@ -58,6 +58,10 @@ const Select = ({
   const resolvedIsOptional =
     isOptional ?? (isRequired ? false : (fieldIsOptional ?? false));
 
+  const { defaultValue: _defaultValue, ...inputProps } = getInputProps({
+    id: name
+  });
+
   const onChange = (value: string) => {
     if (value) {
       props?.onChange?.(options.find((o) => o.value === value) ?? null);
@@ -84,13 +88,11 @@ const Select = ({
       )}
 
       <input
-        {...getInputProps({
-          id: name
-        })}
+        {...inputProps}
         type="hidden"
         name={name}
         id={name}
-        value={value ?? undefined}
+        value={value ?? ""}
       />
       <SelectBase
         {...props}

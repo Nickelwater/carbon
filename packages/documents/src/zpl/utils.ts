@@ -9,6 +9,14 @@ export type ZplLabelGeometry = {
   margin: number;
 };
 
+export type ZplLabelHeaderOptions = {
+  /**
+   * 4x6 stock fed with the 4" edge across the print head and 6" along feed.
+   * Sets ^PW/^LL to physical stock size and ^PO R for landscape layout coords.
+   */
+  landscapeOnStock?: boolean;
+};
+
 /**
  * Computes label dimensions in printer dots and a scale factor relative to
  * the 2"x1" baseline (406x203 dots at 203dpi).
@@ -32,9 +40,19 @@ export function getZplLabelGeometry(labelSize: LabelSize): ZplLabelGeometry {
 }
 
 /** Standard label preamble: start format, set size, no media tracking, UTF-8. */
-export function zplLabelHeader({
-  widthDots,
-  heightDots
-}: ZplLabelGeometry): string {
+export function zplLabelHeader(
+  { widthDots, heightDots }: ZplLabelGeometry,
+  options?: ZplLabelHeaderOptions
+): string {
+  if (options?.landscapeOnStock) {
+    return `^XA^PW${heightDots}^LL${widthDots}^PO R^MNN^CI28^PQ1`;
+  }
   return `^XA^PW${widthDots}^LL${heightDots}^MNW^CI28`;
+}
+
+export function isLandscapeZplLabel(labelSize: LabelSize): boolean {
+  const zpl = labelSize.zpl;
+  if (!zpl) return false;
+  if (zpl.landscape != null) return zpl.landscape;
+  return zpl.width > zpl.height;
 }

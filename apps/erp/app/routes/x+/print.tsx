@@ -1,6 +1,6 @@
 import { assertIsPost } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { trigger } from "@carbon/jobs";
+import { runPrintJob, trigger } from "@carbon/jobs";
 import { manualPrintValidator } from "@carbon/printing";
 import type { ActionFunctionArgs } from "react-router";
 
@@ -15,37 +15,28 @@ export async function action({ request }: ActionFunctionArgs) {
     return { success: false, message: "Invalid print request" };
   }
 
-  const {
-    sourceDocument,
-    sourceDocumentId,
-    locationId,
-    workCenterId,
-    printerRouteId,
-    documentTypeId,
-    lineId,
-    packageIndex,
-    packageCount
-  } = validation.data;
+  const payload = {
+    ...validation.data,
+    companyId,
+    userId
+  };
 
   try {
-    await trigger("print-job", {
-      sourceDocument,
-      sourceDocumentId,
-      companyId,
-      userId,
-      locationId,
-      workCenterId,
-      printerRouteId,
-      documentTypeId,
-      lineId,
-      packageIndex,
-      packageCount
-    });
+    if (payload.documentTypeId) {
+      const result = await runPrintJob(payload);
+      const labelWord = result.count === 1 ? "label" : "labels";
+      return {
+        success: true,
+        message: `Sent ${result.count} ${labelWord} to printer`
+      };
+    }
+
+    await trigger("print-job", payload);
     return { success: true, message: "Print job queued" };
   } catch (e) {
     return {
       success: false,
-      message: e instanceof Error ? e.message : "Failed to queue print job"
+      message: e instanceof Error ? e.message : "Failed to print"
     };
   }
 }

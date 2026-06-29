@@ -23,6 +23,8 @@ export type LabelSize = {
     dpi: number;
     width: number;
     height: number;
+    /** Landscape artwork on stock that feeds with the narrow edge first. */
+    landscape?: boolean;
   };
 };
 
@@ -68,7 +70,8 @@ export const labelSizes: LabelSize[] = [
     zpl: {
       dpi: 203,
       width: 6,
-      height: 4
+      height: 4,
+      landscape: true
     }
   },
   {

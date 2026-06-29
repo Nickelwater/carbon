@@ -1,5 +1,5 @@
 import { useCarbon } from "@carbon/auth";
-import { Number, Submit, ValidatedForm } from "@carbon/form";
+import { Number as FormNumber, Submit, ValidatedForm } from "@carbon/form";
 import {
   Button,
   Card,
@@ -33,11 +33,15 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
+  toast,
   useDisclosure,
   VStack
 } from "@carbon/react";
 import type { TrackedEntityAttributes } from "@carbon/utils";
-import { getItemReadableId } from "@carbon/utils";
+import {
+  getItemReadableId,
+  getShipmentBatchTrackingsForLine
+} from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   type ReactNode,
@@ -60,14 +64,7 @@ import {
   LuSplit,
   LuTrash
 } from "react-icons/lu";
-import {
-  Link,
-  Outlet,
-  useFetcher,
-  useFetchers,
-  useParams,
-  useSubmit
-} from "react-router";
+import { Link, Outlet, useFetcher, useFetchers, useParams } from "react-router";
 import {
   Empty,
   ItemThumbnail,
@@ -82,7 +79,6 @@ import { useDateFormatter, useRouteData, useUser } from "~/hooks";
 import type {
   getBatchNumbersForItem,
   getSerialNumbersForItem,
-  ItemTracking,
   Shipment,
   ShipmentLine,
   ShipmentLineTracking,
@@ -154,6 +150,53 @@ function ShipmentLineColgroup({
   );
 }
 
+type ShipmentBatchAssignment = {
+  index: number;
+  batchNumber: string;
+  quantity: number;
+};
+
+function buildBatchAssignmentsForLine(
+  line: ShipmentLine,
+  trackings: ShipmentLineTracking[]
+): ShipmentBatchAssignment[] {
+  const lineBatches = getShipmentBatchTrackingsForLine(trackings, line.id!);
+  if (lineBatches.length === 0) {
+    return [{ index: 0, batchNumber: "", quantity: 0 }];
+  }
+
+  return lineBatches.map((tracking, rowIndex) => {
+    const attributes = tracking.attributes as TrackedEntityAttributes;
+    const explicitAllocated = attributes["Allocated Quantity"];
+    let quantity = 0;
+    if (explicitAllocated !== undefined && explicitAllocated !== null) {
+      quantity = Number(explicitAllocated);
+    } else if (lineBatches.length === 1) {
+      quantity = Number(line.shippedQuantity ?? 0);
+    }
+
+    return {
+      index: attributes["Shipment Line Batch Index"] ?? rowIndex,
+      batchNumber: tracking.readableId ?? tracking.id,
+      quantity
+    };
+  });
+}
+
+function buildBatchAssignmentsByLineId(
+  lines: ShipmentLine[],
+  trackings: ShipmentLineTracking[]
+): Record<string, ShipmentBatchAssignment[]> {
+  return lines.reduce<Record<string, ShipmentBatchAssignment[]>>(
+    (acc, line) => {
+      if (!line.id || !line.requiresBatchTracking) return acc;
+      acc[line.id] = buildBatchAssignmentsForLine(line, trackings);
+      return acc;
+    },
+    {}
+  );
+}
+
 const ShipmentLines = ({
   selectedCustomerId,
   sourceDocument = "Sales Order"
@@ -171,6 +214,9 @@ const ShipmentLines = ({
   const addLineFetcher = useFetcher<typeof shipmentLinesAddAction>();
   const addLineDisclosure = useDisclosure();
   const [items] = useItems();
+  const [optimisticLineUpdates, setOptimisticLineUpdates] = useState<
+    Record<string, { shippedQuantity?: number; storageUnitId?: string | null }>
+  >({});
 
   const routeData = useRouteData<{
     shipment: Shipment;
@@ -190,6 +236,24 @@ const ShipmentLines = ({
       serialNumber: string | null;
     }[];
   }>(path.to.shipment(shipmentId));
+
+  const [batchAssignmentsByLineId, setBatchAssignmentsByLineId] = useState<
+    Record<string, ShipmentBatchAssignment[]>
+  >(() =>
+    buildBatchAssignmentsByLineId(
+      routeData?.shipmentLines ?? [],
+      routeData?.shipmentLineTracking ?? []
+    )
+  );
+
+  useEffect(() => {
+    setBatchAssignmentsByLineId(
+      buildBatchAssignmentsByLineId(
+        routeData?.shipmentLines ?? [],
+        routeData?.shipmentLineTracking ?? []
+      )
+    );
+  }, [routeData?.shipmentLineTracking, routeData?.shipmentLines?.length]);
 
   const shipmentLocationId = routeData?.shipment?.locationId ?? undefined;
   const { formatDate } = useDateFormatter();
@@ -396,42 +460,91 @@ const ShipmentLines = ({
     shipmentsById.set(pendingShipmentLine.id, merged as ShipmentLine);
   }
 
+  for (const [lineId, optimistic] of Object.entries(optimisticLineUpdates)) {
+    const item = shipmentsById.get(lineId);
+    if (!item) continue;
+    shipmentsById.set(lineId, {
+      ...item,
+      ...(optimistic.shippedQuantity !== undefined
+        ? { shippedQuantity: optimistic.shippedQuantity }
+        : {}),
+      ...(optimistic.storageUnitId !== undefined
+        ? { storageUnitId: optimistic.storageUnitId }
+        : {})
+    });
+  }
+
   const shipmentLines = Array.from(shipmentsById.values()).map((line) => ({
     ...line,
-    shippedQuantity: line.shippedQuantity ?? 0
+    shippedQuantity: Number(line.shippedQuantity ?? 0)
   }));
+
+  const inventoryItemIds = useMemo(
+    () => [
+      ...new Set(
+        [
+          ...(routeData?.shipmentLines ?? []).map((line) => line.itemId),
+          ...availableShipmentLines.map((line) => line.itemId)
+        ].filter((itemId): itemId is string => !!itemId)
+      )
+    ],
+    [availableShipmentLines, routeData?.shipmentLines]
+  );
 
   const refreshLiveInventory = useCallback(async () => {
     if (!carbon || !shipmentLocationId) return;
 
-    const itemIds = [
-      ...new Set(
-        [
-          ...shipmentLines.map((line) => line.itemId),
-          ...availableShipmentLines.map((line) => line.itemId)
-        ].filter((itemId): itemId is string => !!itemId)
-      )
-    ];
-
-    if (itemIds.length === 0) return;
+    if (inventoryItemIds.length === 0) return;
 
     const result = await getLiveInventoryQuantitiesAtLocation(
       carbon,
       company.id,
       shipmentLocationId,
-      itemIds
+      inventoryItemIds
     );
 
     if (result.data) {
       setLiveOnHandByItemId(result.data);
     }
-  }, [
-    availableShipmentLines,
-    carbon,
-    company.id,
-    shipmentLines,
-    shipmentLocationId
-  ]);
+  }, [carbon, company.id, inventoryItemIds, shipmentLocationId]);
+
+  useEffect(() => {
+    if (!routeData?.shipmentLines) return;
+
+    setOptimisticLineUpdates((prev) => {
+      let changed = false;
+      const next = { ...prev };
+
+      for (const [lineId, optimistic] of Object.entries(prev)) {
+        const serverLine = routeData.shipmentLines.find(
+          (line) => line.id === lineId
+        );
+        if (!serverLine) continue;
+
+        const quantityMatches =
+          optimistic.shippedQuantity === undefined ||
+          Number(serverLine.shippedQuantity ?? 0) ===
+            optimistic.shippedQuantity;
+        const storageUnitMatches =
+          optimistic.storageUnitId === undefined ||
+          (serverLine.storageUnitId ?? null) === optimistic.storageUnitId;
+
+        if (quantityMatches && storageUnitMatches) {
+          delete next[lineId];
+          changed = true;
+        }
+      }
+
+      return changed ? next : prev;
+    });
+  }, [routeData?.shipmentLines]);
+
+  useEffect(() => {
+    if (fetcher.data?.error?.message) {
+      toast.error(fetcher.data.error.message);
+      setOptimisticLineUpdates({});
+    }
+  }, [fetcher.data]);
 
   useEffect(() => {
     refreshLiveInventory();
@@ -518,7 +631,6 @@ const ShipmentLines = ({
     );
   }, [routeData?.shipment?.sourceDocumentId, routeData?.shipmentLines?.length]);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   const onUpdateShipmentLine = useCallback(
     async ({
       lineId,
@@ -535,6 +647,14 @@ const ShipmentLines = ({
           field: "storageUnitId";
           value: string;
         }) => {
+      setOptimisticLineUpdates((prev) => ({
+        ...prev,
+        [lineId]: {
+          ...prev[lineId],
+          [field]: value
+        }
+      }));
+
       const formData = new FormData();
 
       formData.append("ids", lineId);
@@ -545,8 +665,7 @@ const ShipmentLines = ({
         action: path.to.bulkUpdateShipmentLine
       });
     },
-
-    []
+    [fetcher]
   );
 
   const isPosted = routeData?.shipment?.status === "Posted";
@@ -734,13 +853,6 @@ const ShipmentLines = ({
                       a.itemReadableId.localeCompare(b.itemReadableId)
                     )
                     .map((line, index) => {
-                      const tracking = routeData?.shipmentLineTracking?.find(
-                        (t) => {
-                          const attributes =
-                            t.attributes as TrackedEntityAttributes;
-                          return attributes["Shipment Line"] === line.id;
-                        }
-                      );
                       return (
                         <ShipmentLineItem
                           key={line.id}
@@ -771,7 +883,17 @@ const ShipmentLines = ({
                               [line.id!]: newSerialNumbers
                             }));
                           }}
-                          tracking={tracking}
+                          batchAssignments={
+                            batchAssignmentsByLineId[line.id!] ?? [
+                              { index: 0, batchNumber: "", quantity: 0 }
+                            ]
+                          }
+                          onBatchAssignmentsChange={(assignments) => {
+                            setBatchAssignmentsByLineId((prev) => ({
+                              ...prev,
+                              [line.id!]: assignments
+                            }));
+                          }}
                         />
                       );
                     })}
@@ -1078,7 +1200,8 @@ function ShipmentLineItem({
   className,
   hasTrackingLabel,
   isReadOnly,
-  tracking,
+  batchAssignments,
+  onBatchAssignmentsChange,
   serialNumbers,
   onUpdate,
   onSerialNumbersChange
@@ -1092,7 +1215,8 @@ function ShipmentLineItem({
   className?: string;
   hasTrackingLabel: boolean;
   isReadOnly: boolean;
-  tracking: ItemTracking | undefined;
+  batchAssignments: ShipmentBatchAssignment[];
+  onBatchAssignmentsChange: (assignments: ShipmentBatchAssignment[]) => void;
   serialNumbers: { index: number; id: string }[];
   onSerialNumbersChange: (
     serialNumbers: { index: number; id: string }[]
@@ -1120,6 +1244,7 @@ function ShipmentLineItem({
   const unitsOfMeasure = useUnitOfMeasure();
   const splitDisclosure = useDisclosure();
   const deleteDisclosure = useDisclosure();
+  const [quantityDraft, setQuantityDraft] = useState<number | null>(null);
   const lineLocationId = line.locationId ?? shipment?.locationId ?? undefined;
 
   const maxShippableQuantity = getMaxShippableQuantityClient({
@@ -1149,6 +1274,44 @@ function ShipmentLineItem({
     !isReadOnly &&
     lineRequiresInventoryCheck(item, line.fulfillment?.type) &&
     (line.shippedQuantity || 0) > maxShippableQuantity;
+
+  const displayedShippedQuantity = quantityDraft ?? line.shippedQuantity ?? 0;
+
+  const commitShippedQuantity = (rawValue: number) => {
+    const safeValue = Number.isFinite(rawValue) ? rawValue : 0;
+    const cappedValue = Math.min(Math.max(0, safeValue), maxShippableQuantity);
+
+    setQuantityDraft(null);
+
+    if (cappedValue === (line.shippedQuantity ?? 0)) {
+      return;
+    }
+
+    onUpdate({
+      lineId: line.id!,
+      field: "shippedQuantity",
+      value: cappedValue
+    });
+
+    if (cappedValue > serialNumbers.length) {
+      onSerialNumbersChange([
+        ...serialNumbers,
+        ...Array.from(
+          { length: cappedValue - serialNumbers.length },
+          (_, index) => ({
+            index: serialNumbers.length + index,
+            id: ""
+          })
+        )
+      ]);
+    } else if (cappedValue < serialNumbers.length) {
+      onSerialNumbersChange(serialNumbers.slice(0, cappedValue));
+    }
+  };
+
+  useEffect(() => {
+    setQuantityDraft(null);
+  }, [line.id]);
 
   const lineDueDate = line.promisedDate ?? line.requestedDate ?? null;
   const salesOrderLineLabel =
@@ -1238,30 +1401,14 @@ function ShipmentLineItem({
                 </Tooltip>
               )}
               <NumberField
-                value={line.shippedQuantity || 0}
+                value={displayedShippedQuantity}
                 maxValue={maxShippableQuantity}
                 onChange={(value) => {
-                  const safeValue = isNaN(value) || value == null ? 0 : value;
-                  const cappedValue = Math.min(safeValue, maxShippableQuantity);
-                  onUpdate({
-                    lineId: line.id!,
-                    field: "shippedQuantity",
-                    value: cappedValue
-                  });
-                  if (cappedValue > serialNumbers.length) {
-                    onSerialNumbersChange([
-                      ...serialNumbers,
-                      ...Array.from(
-                        { length: cappedValue - serialNumbers.length },
-                        (_, i) => ({
-                          index: i,
-                          id: ""
-                        })
-                      )
-                    ]);
-                  } else if (cappedValue < serialNumbers.length) {
-                    onSerialNumbersChange(serialNumbers.slice(0, cappedValue));
-                  }
+                  const safeValue =
+                    value == null || Number.isNaN(value) ? 0 : value;
+                  setQuantityDraft(
+                    Math.min(Math.max(0, safeValue), maxShippableQuantity)
+                  );
                 }}
                 className="flex-1 min-w-0"
               >
@@ -1278,6 +1425,16 @@ function ShipmentLineItem({
                   }
                   size="sm"
                   min={0}
+                  onBlur={() => {
+                    if (quantityDraft !== null) {
+                      commitShippedQuantity(quantityDraft);
+                    }
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.currentTarget.blur();
+                    }
+                  }}
                 />
               </NumberField>
             </HStack>
@@ -1392,7 +1549,8 @@ function ShipmentLineItem({
                   line={line}
                   hasTrackingLabel={hasTrackingLabel}
                   isReadOnly={isReadOnly}
-                  tracking={tracking}
+                  batchAssignments={batchAssignments}
+                  onBatchAssignmentsChange={onBatchAssignmentsChange}
                   onUpdate={onUpdate}
                 />
               ) : null}
@@ -1431,15 +1589,17 @@ function BatchForm({
   line,
   shipment,
   hasTrackingLabel,
-  tracking,
   isReadOnly,
+  batchAssignments,
+  onBatchAssignmentsChange,
   onUpdate
 }: {
   line: ShipmentLine;
   shipment?: Shipment;
   hasTrackingLabel: boolean;
   isReadOnly: boolean;
-  tracking: ItemTracking | undefined;
+  batchAssignments: ShipmentBatchAssignment[];
+  onBatchAssignmentsChange: (assignments: ShipmentBatchAssignment[]) => void;
   onUpdate: ({
     lineId,
     field,
@@ -1451,184 +1611,179 @@ function BatchForm({
   }) => Promise<void>;
 }) {
   const { t } = useLingui();
-  const submit = useSubmit();
-  const [values, setValues] = useState<{
-    number: string;
-    properties: any;
-  }>(() => {
-    if (tracking) {
-      return {
-        number: tracking.readableId || "",
-        properties: Object.entries(
-          (tracking.attributes ?? {}) as TrackedEntityAttributes
-        )
-          .filter(
-            ([key]) =>
-              ![
-                "Shipment Line",
-                "Shipment",
-                "Shipment Line Index",
-                "Receipt Line",
-                "Receipt"
-              ].includes(key)
-          )
-          .reduce((acc, [key, value]) => ({ ...acc, [key]: value || "" }), {})
-      };
-    }
-    return {
-      number: "",
-      properties: {}
-    };
-  });
-
   const { data: batchNumbers } = useBatchNumbers(line.itemId!);
-  const [error, setError] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<number, string>>({});
   const { carbon } = useCarbon();
 
-  // Check if the batch number is valid and in the list
-  const resolvedBatch = values.number
-    ? resolveTrackedEntity(values.number, batchNumbers?.data ?? [])
-    : null;
-  // @ts-expect-error TS2339 - TODO: fix type
-  const isBatchNumberValid = resolvedBatch?.status === "Available";
+  const shippedQuantity = line.shippedQuantity ?? 0;
+  const assignedQuantity = batchAssignments.reduce(
+    (sum, row) => sum + (row.quantity || 0),
+    0
+  );
+  const remainingQuantity = Math.max(0, shippedQuantity - assignedQuantity);
 
-  // Verify batch quantity is sufficient for the shipped quantity
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
-  useEffect(() => {
-    if (
-      values.number &&
-      batchNumbers?.data &&
-      (line.shippedQuantity || 0) > 0
-    ) {
-      const batchNumber = resolveTrackedEntity(
-        values.number,
-        batchNumbers.data
-      );
-
-      if (
-        batchNumber &&
-        // @ts-expect-error TS2339 - TODO: fix type
-        batchNumber.status === "Available" &&
-        // @ts-expect-error TS2339 - TODO: fix type
-        (line.shippedQuantity || 0) > batchNumber.quantity
-      ) {
-        setValues({
-          ...values,
-          number: ""
-        });
-      }
-    }
-  }, [line.shippedQuantity]);
-
-  const getStorageUnitFromBatchNumber = async (trackedEntityId: string) => {
-    if (!carbon) return;
-
-    const response = await carbon
-      .from("itemLedger")
-      .select("storageUnitId")
-      .eq("trackedEntityId", trackedEntityId)
-      .order("createdAt", { ascending: false })
-      .single();
-
-    if (response?.data?.storageUnitId) {
-      onUpdate({
-        lineId: line.id!,
-        field: "storageUnitId",
-        value: response.data.storageUnitId
-      });
-    }
+  const updateRow = (
+    index: number,
+    patch: Partial<ShipmentBatchAssignment>
+  ) => {
+    onBatchAssignmentsChange(
+      batchAssignments.map((row) =>
+        row.index === index ? { ...row, ...patch } : row
+      )
+    );
   };
 
-  // Fetch the latest storage unit for the selected batch number
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
-  useEffect(() => {
-    if (values.number && values.number.trim()) {
-      const resolved = resolveTrackedEntity(
-        values.number,
-        batchNumbers?.data ?? []
-      );
-      if (resolved) {
-        getStorageUnitFromBatchNumber(resolved.id);
+  const addBatchRow = () => {
+    const nextIndex =
+      batchAssignments.reduce((max, row) => Math.max(max, row.index), -1) + 1;
+    onBatchAssignmentsChange([
+      ...batchAssignments,
+      {
+        index: nextIndex,
+        batchNumber: "",
+        quantity: remainingQuantity
       }
+    ]);
+  };
+
+  const clearBatchRow = async (index: number) => {
+    if (!shipment?.id) return;
+
+    const formData = new FormData();
+    formData.append("shipmentId", shipment.id);
+    formData.append("shipmentLineId", line.id!);
+    formData.append("trackingType", "batch");
+    formData.append("clearIndex", String(index));
+
+    await fetch(path.to.shipmentLinesTracking(shipment.id), {
+      method: "POST",
+      body: formData
+    });
+  };
+
+  const removeBatchRow = async (index: number) => {
+    await clearBatchRow(index);
+    const nextAssignments = batchAssignments.filter(
+      (row) => row.index !== index
+    );
+    onBatchAssignmentsChange(
+      nextAssignments.length > 0
+        ? nextAssignments
+        : [{ index: 0, batchNumber: "", quantity: 0 }]
+    );
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[index];
+      return next;
+    });
+  };
+
+  const commitBatchRow = async (row: ShipmentBatchAssignment) => {
+    if (!shipment?.id) return;
+
+    if (!row.batchNumber.trim()) {
+      if (batchAssignments.length > 1) {
+        await removeBatchRow(row.index);
+      }
+      return;
     }
-  }, [values.number]);
 
-  const updateBatchNumber = async (newValues: typeof values, isNew = false) => {
-    if (!shipment?.id || !newValues.number.trim()) return;
-
-    let batchMatch = null;
-    if (isNew && tracking) {
-      batchMatch = tracking.readableId;
-    }
-
-    let valuesToSubmit = newValues;
-
-    if (batchMatch) {
-      const attributes = tracking?.attributes as TrackedEntityAttributes;
-      valuesToSubmit = {
-        ...newValues,
-        properties: Object.entries(attributes)
-          .filter(([key]) => !["Receipt Line"].includes(key))
-          .reduce((acc, [key, value]) => ({ ...acc, [key]: value || "" }), {})
-      };
-
-      // Just update the local state without triggering another database write
-      setValues(valuesToSubmit);
-    }
-
-    // Check if batch number is available (by id or readableId)
     const batchNumber = resolveTrackedEntity(
-      valuesToSubmit.number.trim(),
+      row.batchNumber.trim(),
       batchNumbers?.data ?? []
     );
 
-    // @ts-expect-error TS2339 - TODO: fix type
-    if (batchNumber && batchNumber.status !== "Available") {
-      // @ts-expect-error TS2339 - TODO: fix type
-      setError(`Batch number is ${batchNumber.status}`);
-      setValues({
-        ...valuesToSubmit,
-        number: ""
-      });
+    if (!batchNumber) {
+      setErrors((prev) => ({
+        ...prev,
+        [row.index]: "Batch number not found"
+      }));
+      updateRow(row.index, { batchNumber: "" });
       return;
-    } else if (!batchNumber && valuesToSubmit.number.trim()) {
-      // If batch number is not in the list, don't proceed with the network request
-      setError("Batch number not found");
-      return;
-    } else {
-      setError(null);
     }
 
-    // Check if the shipped quantity exceeds the batch quantity
     // @ts-expect-error TS2339 - TODO: fix type
-    if (batchNumber && (line.shippedQuantity || 0) > batchNumber.quantity) {
-      setError(
+    if (batchNumber.status !== "Available") {
+      setErrors((prev) => ({
+        ...prev,
         // @ts-expect-error TS2339 - TODO: fix type
-        `Shipped quantity exceeds batch quantity (${batchNumber.quantity})`
-      );
-      setValues({
-        ...valuesToSubmit,
-        number: ""
-      });
+        [row.index]: `Batch number is ${batchNumber.status}`
+      }));
+      updateRow(row.index, { batchNumber: "" });
       return;
     }
 
+    const attributes = batchNumber.attributes as TrackedEntityAttributes;
+    if (
+      attributes["Shipment Line"] &&
+      attributes["Shipment Line"] !== line.id &&
+      attributes["Shipment"] === shipment.id
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        [row.index]: "Batch number is already used on another shipment line"
+      }));
+      updateRow(row.index, { batchNumber: "" });
+      return;
+    }
+
+    const duplicateOnLine = batchAssignments.some((other) => {
+      if (other.index === row.index || !other.batchNumber.trim()) return false;
+      const otherBatch = resolveTrackedEntity(
+        other.batchNumber.trim(),
+        batchNumbers?.data ?? []
+      );
+      return otherBatch?.id === batchNumber.id;
+    });
+
+    if (duplicateOnLine) {
+      setErrors((prev) => ({
+        ...prev,
+        [row.index]: "Batch number is already used on this line"
+      }));
+      updateRow(row.index, { batchNumber: "" });
+      return;
+    }
+
+    const otherAssignedQuantity = batchAssignments
+      .filter((assignment) => assignment.index !== row.index)
+      .reduce((sum, assignment) => sum + (assignment.quantity || 0), 0);
+    const rowRemaining = Math.max(0, shippedQuantity - otherAssignedQuantity);
+
     // @ts-expect-error TS2339 - TODO: fix type
-    if (batchNumber && batchNumber.attributes) {
-      // @ts-expect-error TS2339 - TODO: fix type
-      const attributes = batchNumber.attributes as TrackedEntityAttributes;
-      if (
-        attributes["Shipment Line"] &&
-        attributes["Shipment Line"] !== line.id &&
-        // biome-ignore lint/complexity/useLiteralKeys: suppressed due to migration
-        attributes["Shipment"] === shipment?.id
-      ) {
-        setError("Batch number is already used on another shipment line");
-        setValues({
-          ...valuesToSubmit,
-          number: ""
-        });
-      }
+    const batchAvailable = Number(batchNumber.quantity ?? 0);
+    let quantity = row.quantity;
+
+    if (quantity <= 0) {
+      quantity = Math.min(rowRemaining, batchAvailable);
+    }
+
+    if (quantity <= 0) {
+      setErrors((prev) => ({
+        ...prev,
+        [row.index]: "Quantity must be greater than zero"
+      }));
+      return;
+    }
+
+    if (quantity > batchAvailable) {
+      setErrors((prev) => ({
+        ...prev,
+        [row.index]: `Quantity exceeds batch quantity (${batchAvailable})`
+      }));
+      return;
+    }
+
+    if (quantity > rowRemaining) {
+      setErrors((prev) => ({
+        ...prev,
+        [row.index]: `Quantity exceeds remaining shipped quantity (${rowRemaining})`
+      }));
+      return;
+    }
+
+    if (quantity !== row.quantity) {
+      updateRow(row.index, { quantity });
     }
 
     const formData = new FormData();
@@ -1636,15 +1791,57 @@ function BatchForm({
     formData.append("shipmentId", shipment.id);
     formData.append("shipmentLineId", line.id!);
     formData.append("trackingType", "batch");
-    formData.append("trackedEntityId", batchNumber!.id);
-    formData.append("properties", JSON.stringify(valuesToSubmit.properties));
-    formData.append("quantity", (line.shippedQuantity || 0).toString());
+    formData.append("trackedEntityId", batchNumber.id);
+    formData.append("index", row.index.toString());
+    formData.append("quantity", quantity.toString());
 
-    submit(formData, {
-      method: "post",
-      action: path.to.shipmentLinesTracking(shipment.id),
-      navigate: false
-    });
+    try {
+      const response = await fetch(path.to.shipmentLinesTracking(shipment.id), {
+        method: "POST",
+        body: formData
+      });
+
+      if (!response.ok) {
+        const responseData = await response.json().catch(() => null);
+        setErrors((prev) => ({
+          ...prev,
+          [row.index]:
+            responseData?.message ??
+            responseData?.error ??
+            "Failed to assign batch"
+        }));
+        return;
+      }
+
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[row.index];
+        return next;
+      });
+
+      if (carbon) {
+        const ledger = await carbon
+          .from("itemLedger")
+          .select("storageUnitId")
+          .eq("trackedEntityId", batchNumber.id)
+          .order("createdAt", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (ledger.data?.storageUnitId) {
+          onUpdate({
+            lineId: line.id!,
+            field: "storageUnitId",
+            value: ledger.data.storageUnitId
+          });
+        }
+      }
+    } catch {
+      setErrors((prev) => ({
+        ...prev,
+        [row.index]: "Failed to assign batch"
+      }));
+    }
   };
 
   return (
@@ -1672,60 +1869,119 @@ function BatchForm({
           />
         )}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 ">
-        <div className="flex flex-col gap-2 w-full">
-          <label className="text-xs text-muted-foreground flex items-center gap-2">
-            <LuGroup /> Batch Number
-          </label>
 
-          <div className="flex flex-col gap-1">
-            <InputGroup isDisabled={isReadOnly}>
-              <Input
-                placeholder={t`Batch number`}
-                value={values.number}
-                onChange={(e) => {
-                  setValues({
-                    ...values,
-                    number: e.target.value
-                  });
-                }}
-                onBlur={() => {
-                  updateBatchNumber(values, true);
-                }}
-                className={cn(error && "border-destructive")}
-              />
-              <InputRightElement className="pl-2">
-                {isBatchNumberValid ? (
-                  <LuCheck className="text-emerald-500" />
-                ) : (
-                  <LuQrCode />
-                )}
-              </InputRightElement>
-            </InputGroup>
-            {error && <span className="text-xs text-destructive">{error}</span>}
-          </div>
-        </div>
-      </div>
-      {values.number &&
-        batchNumbers?.data &&
-        (() => {
-          const batchNumber = resolveTrackedEntity(
-            values.number,
-            batchNumbers.data
-          );
-          if (!batchNumber) return null;
+      <VStack spacing={3} className="w-full">
+        {batchAssignments.map((row) => {
+          const resolvedBatch = row.batchNumber
+            ? resolveTrackedEntity(row.batchNumber, batchNumbers?.data ?? [])
+            : null;
           // @ts-expect-error TS2339 - TODO: fix type
-          if ((line.shippedQuantity || 0) >= batchNumber.quantity) return null;
+          const isBatchNumberValid = resolvedBatch?.status === "Available";
+
           return (
-            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
-              <LuInfo className="h-3.5 w-3.5 flex-shrink-0" />
-              <span>
-                Shipped quantity is less than batch quantity. A new batch will
-                be created for the remaining quantity when posted.
-              </span>
+            <div
+              key={row.index}
+              className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_8rem_auto] gap-3 items-start w-full"
+            >
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground flex items-center gap-2">
+                  <LuGroup /> <Trans>Batch Number</Trans>
+                </label>
+                <InputGroup isDisabled={isReadOnly}>
+                  <Input
+                    placeholder={t`Batch number`}
+                    value={row.batchNumber}
+                    onChange={(event) => {
+                      updateRow(row.index, { batchNumber: event.target.value });
+                    }}
+                    onBlur={() => {
+                      const current =
+                        batchAssignments.find(
+                          (assignment) => assignment.index === row.index
+                        ) ?? row;
+                      commitBatchRow(current);
+                    }}
+                    className={cn(errors[row.index] && "border-destructive")}
+                  />
+                  <InputRightElement className="pl-2">
+                    {isBatchNumberValid ? (
+                      <LuCheck className="text-emerald-500" />
+                    ) : (
+                      <LuQrCode />
+                    )}
+                  </InputRightElement>
+                </InputGroup>
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-muted-foreground">
+                  <Trans>Quantity</Trans>
+                </label>
+                <NumberField
+                  value={row.quantity}
+                  minValue={0}
+                  onChange={(value) => {
+                    const safeValue =
+                      value == null || Number.isNaN(value) ? 0 : value;
+                    updateRow(row.index, { quantity: safeValue });
+                  }}
+                  isDisabled={isReadOnly}
+                >
+                  <NumberInput
+                    size="sm"
+                    onBlur={() => {
+                      const current =
+                        batchAssignments.find(
+                          (assignment) => assignment.index === row.index
+                        ) ?? row;
+                      commitBatchRow(current);
+                    }}
+                  />
+                </NumberField>
+              </div>
+
+              {!isReadOnly && batchAssignments.length > 1 ? (
+                <div className="flex items-end h-full pb-0.5">
+                  <IconButton
+                    aria-label={t`Remove batch`}
+                    variant="secondary"
+                    icon={<LuTrash />}
+                    onClick={() => removeBatchRow(row.index)}
+                  />
+                </div>
+              ) : (
+                <div />
+              )}
+
+              {errors[row.index] ? (
+                <span className="text-xs text-destructive lg:col-span-3">
+                  {errors[row.index]}
+                </span>
+              ) : null}
             </div>
           );
-        })()}
+        })}
+      </VStack>
+
+      {!isReadOnly && remainingQuantity > 0 ? (
+        <Button
+          type="button"
+          variant="secondary"
+          leftIcon={<LuCirclePlus />}
+          onClick={addBatchRow}
+        >
+          {t`Add batch (${remainingQuantity} remaining)`}
+        </Button>
+      ) : null}
+
+      {remainingQuantity > 0 && assignedQuantity > 0 ? (
+        <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5 text-xs text-muted-foreground">
+          <LuInfo className="h-3.5 w-3.5 flex-shrink-0" />
+          <span>
+            {t`Assign ${remainingQuantity} more from another batch to match the shipped quantity.`}
+          </span>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -2046,7 +2302,7 @@ function SplitShipmentLineModal({
               name="locationId"
               value={line.locationId ?? ""}
             />
-            <Number name="quantity" label={t`Quantity`} minValue={0.0001} />
+            <FormNumber name="quantity" label={t`Quantity`} minValue={0.0001} />
           </ModalBody>
           <ModalFooter>
             <Button variant="secondary" onClick={onClose}>
@@ -2096,24 +2352,40 @@ const usePendingShipmentLines = () => {
     formData: FormData;
   };
 
-  return useFetchers()
+  const pendingByLineId = useFetchers()
     .filter((fetcher): fetcher is PendingItem => {
       return fetcher.formAction === path.to.bulkUpdateShipmentLine;
     })
-    .reduce<{ id: string; [key: string]: string | null }[]>((acc, fetcher) => {
+    .reduce((map, fetcher) => {
       const lineId = fetcher.formData.get("ids") as string;
       const field = fetcher.formData.get("field") as string;
       const value = fetcher.formData.get("value") as string;
 
-      if (lineId && field && value) {
-        const newItem: { id: string; [key: string]: string | null } = {
-          id: lineId,
-          [field]: value
-        };
-        return [...acc, newItem];
+      if (!lineId || !field) {
+        return map;
       }
-      return acc;
-    }, []);
+
+      const existing = map.get(lineId) ?? { id: lineId };
+      if (field === "shippedQuantity") {
+        if (value === null || value === "") return map;
+        map.set(lineId, {
+          ...existing,
+          shippedQuantity: Number(value)
+        });
+      } else if (field === "storageUnitId") {
+        map.set(lineId, {
+          ...existing,
+          storageUnitId: value || null
+        });
+      }
+
+      return map;
+    }, new Map<
+      string,
+      { id: string; shippedQuantity?: number; storageUnitId?: string | null }
+    >());
+
+  return Array.from(pendingByLineId.values());
 };
 
 function resolveTrackedEntity(

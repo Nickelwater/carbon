@@ -17,9 +17,9 @@ import { toDocumentTemplate } from "@carbon/documents/template";
 import type { ShippingLabelItem } from "@carbon/documents/zpl";
 import {
   generateProductLabelZPL,
-  generateShippingLabelZPL,
   generateStorageUnitLabelZPL
 } from "@carbon/documents/zpl";
+import { rasterizePdfToShippingLabelZpl } from "@carbon/documents/zpl/server";
 import { ERP_URL, SUPABASE_URL } from "@carbon/env";
 import { renderWithBinderyPress } from "@carbon/printing/printing.server";
 import type { LabelSize, ProductLabelItem } from "@carbon/utils";
@@ -104,20 +104,28 @@ export async function renderItemBuiltIn(
         companyId,
         mediaSize
       );
+      const pdfElement = (
+        <ShippingLabelPDF
+          items={[doc.item]}
+          labelSize={mediaSize}
+          logo={logo}
+        />
+      );
       if (format === "pdf") {
-        return renderPdfContent(
-          <ShippingLabelPDF
-            items={[doc.item]}
-            labelSize={mediaSize}
-            logo={logo}
-          />
-        );
+        return renderPdfContent(pdfElement);
       }
       requireZplCapable(mediaSize);
-      return {
-        content: generateShippingLabelZPL(doc.item, mediaSize, logo),
-        contentType: "zpl"
-      };
+      const pdf = await renderPdfContent(pdfElement);
+      const zpl = await rasterizePdfToShippingLabelZpl(
+        Buffer.from(pdf.content, "base64"),
+        mediaSize
+      );
+      if (!zpl.includes("^GFA,")) {
+        throw new Error(
+          "Shipping label rasterization did not produce graphic ZPL (^GFA)"
+        );
+      }
+      return { content: zpl, contentType: "zpl" };
     }
     case "kanbanCard":
       return renderKanbanCardPDF(client, doc.item, format);

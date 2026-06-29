@@ -321,6 +321,9 @@ msgstr "Fügen Sie Notizen zu Ihrer Entscheidung hinzu..."
 msgid "Add Approval Requirement"
 msgstr "Genehmigungsanforderung hinzufügen"
 
+msgid "Add batch ({remainingQuantity} remaining)"
+msgstr ""
+
 msgid "Add Calibration Record"
 msgstr "Kalibrierungsdatensatz hinzufügen"
 
@@ -995,6 +998,9 @@ msgstr "Anlageklassen"
 msgid "Assets"
 msgstr "Vermögenswerte"
 
+msgid "Assign {remainingQuantity} more from another batch to match the shipped quantity."
+msgstr ""
+
 msgid "Assign printers to locations. Shipping, receiving, and work centers inherit the location default unless overridden."
 msgstr "Drucker Standorten zuweisen. Versand, Empfang und Arbeitszentren erben die Standortvorgabe, sofern nicht überschrieben."
 
@@ -1194,6 +1200,9 @@ msgstr "BoM + BoP"
 
 msgid "BOM synced successfully"
 msgstr "BOM erfolgreich synchronisiert"
+
+msgid "Box Quantity"
+msgstr ""
 
 msgid "Breadcrumb"
 msgstr "Breadcrumb-Navigation"
@@ -5899,6 +5908,9 @@ msgstr "Teil ist für die Herstellung konfiguriert"
 msgid "Part name / Customer part number"
 msgstr ""
 
+msgid "Part Weight"
+msgstr ""
+
 msgid "Partial"
 msgstr "Teilweise"
 
@@ -6666,6 +6678,9 @@ msgstr "Entfernen"
 #. placeholder {0}: item.label
 msgid "Remove {0}"
 msgstr "Entfernen {0}"
+
+msgid "Remove batch"
+msgstr ""
 
 msgid "Remove condition"
 msgstr "Bedingung entfernen"
@@ -7724,6 +7739,9 @@ msgstr "Standard"
 
 msgid "Standard Lead Time"
 msgstr "Standardisierte Lieferzeit"
+
+msgid "Standard Packaging"
+msgstr ""
 
 msgid "Start"
 msgstr "Starten"

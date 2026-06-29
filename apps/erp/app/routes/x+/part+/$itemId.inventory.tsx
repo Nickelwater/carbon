@@ -16,6 +16,7 @@ import {
 import type { PartSummary, UnitOfMeasureListItem } from "~/modules/items";
 import {
   getBomHasShelfLifeManagedInput,
+  getItemPackaging,
   getItemQuantities,
   getItemShelfLife,
   getItemStorageUnitQuantities,
@@ -115,12 +116,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     quantities,
     itemStorageUnitQuantities,
     shelfLife,
+    itemPackaging,
     bomHasShelfLifeManagedInput,
     rulesData
   ] = await Promise.all([
     getItemQuantities(client, itemId, companyId, locationId),
     getItemStorageUnitQuantities(client, itemId, companyId, locationId),
     getItemShelfLife(client, itemId),
+    getItemPackaging(client, itemId),
     getBomHasShelfLifeManagedInput(client, itemId, companyId),
     getStorageRulesDataForTarget(client, {
       targetType: "item",
@@ -159,6 +162,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     itemStorageUnitQuantities: itemStorageUnitQuantities.data,
     quantities: quantities.data,
     shelfLife: shelfLife.data,
+    itemPackaging: itemPackaging.data,
     bomHasShelfLifeManagedInput,
     trackedEntityExpirations,
     itemId,
@@ -192,6 +196,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
     shelfLifeTriggerProcessId,
     shelfLifeTriggerTiming,
     shelfLifeCalculateFromBom,
+    boxQuantity,
+    partWeight,
+    standardPackagingItemId,
     ...pickMethodFields
   } = validation.data;
 
@@ -208,6 +215,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
         triggerProcessId: shelfLifeTriggerProcessId,
         triggerTiming: shelfLifeTriggerTiming,
         calculateFromBom: shelfLifeCalculateFromBom
+      },
+      packaging: {
+        boxQuantity,
+        partWeight,
+        standardPackagingItemId
       }
     });
   } catch (err) {
@@ -234,6 +246,7 @@ export default function PartInventoryRoute() {
     itemStorageUnitQuantities,
     quantities,
     shelfLife,
+    itemPackaging,
     bomHasShelfLifeManagedInput,
     trackedEntityExpirations,
     itemId,
@@ -257,6 +270,10 @@ export default function PartInventoryRoute() {
     shelfLifeTriggerProcessId: shelfLife?.triggerProcessId ?? undefined,
     shelfLifeTriggerTiming: shelfLife?.triggerTiming ?? undefined,
     shelfLifeCalculateFromBom: shelfLife?.calculateFromBom ?? false,
+    boxQuantity: itemPackaging?.boxQuantity ?? undefined,
+    partWeight: itemPackaging?.partWeight ?? undefined,
+    standardPackagingItemId:
+      itemPackaging?.standardPackagingItemId ?? undefined,
     ...getCustomFields(partInventory.customFields ?? {})
   };
 

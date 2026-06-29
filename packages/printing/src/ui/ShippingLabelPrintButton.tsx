@@ -12,6 +12,7 @@ import {
   toast,
   useDisclosure
 } from "@carbon/react";
+import { isSinglePackageShippingLabelRequest } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import {
@@ -90,10 +91,14 @@ export function ShippingLabelPrintButton({
     }
   }, [fetcher.data, modal.onClose]);
 
-  const printOptions = {
+  const singlePackagePrint = isSinglePackageShippingLabelRequest(
+    packageIndex,
+    packageCount
+  );
+
+  const previewOptions = {
     lineId,
-    package: packageIndex,
-    of: packageCount
+    ...(singlePackagePrint ? { package: packageIndex, of: packageCount } : {})
   };
 
   const openFile = (url: string) => {
@@ -109,8 +114,7 @@ export function ShippingLabelPrintButton({
         ...(locationId ? { locationId } : {}),
         printerRouteId: selectedPrinterId,
         ...(lineId ? { lineId } : {}),
-        packageIndex,
-        packageCount
+        ...(singlePackagePrint ? { packageIndex, packageCount } : {})
       },
       {
         method: "POST",
@@ -223,7 +227,7 @@ export function ShippingLabelPrintButton({
                     type="button"
                     className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted transition-colors text-left"
                     onClick={() =>
-                      openFile(fileRoutes.pdf(sourceDocumentId, printOptions))
+                      openFile(fileRoutes.pdf(sourceDocumentId, previewOptions))
                     }
                   >
                     <LuFileText className="size-4 text-muted-foreground shrink-0" />
@@ -235,7 +239,7 @@ export function ShippingLabelPrintButton({
                     type="button"
                     className="flex items-center gap-3 rounded-lg border border-border p-3 hover:bg-muted transition-colors text-left"
                     onClick={() =>
-                      openFile(fileRoutes.zpl(sourceDocumentId, printOptions))
+                      openFile(fileRoutes.zpl(sourceDocumentId, previewOptions))
                     }
                   >
                     <LuDownload className="size-4 text-muted-foreground shrink-0" />

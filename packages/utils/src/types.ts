@@ -46,6 +46,8 @@ export interface TrackedEntityAttributes {
   Supplier?: string;
   "Serial Number"?: string;
   "Shipment Line Index"?: number;
+  "Shipment Line Batch Index"?: number;
+  "Allocated Quantity"?: number;
   "Shipment Line"?: string;
   Shipment?: string;
   "Split Entity ID"?: string;

@@ -198,7 +198,7 @@ const Item = ({
             isOptional={resolvedIsOptional}
             onConfigure={onConfigure}
           >
-            {translateItemType(type)}
+            {label ?? translateItemType(type)}
           </FormLabel>
         )}
         <input

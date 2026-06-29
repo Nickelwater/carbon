@@ -142,12 +142,15 @@ function parseZplDimensions(zplContent: string) {
   const dpi = 203;
   const dpmm = Math.round(dpi / 25.4);
 
-  const widthInches = pwMatch
-    ? Math.max(0.5, Math.round((Number(pwMatch[1]) / dpi) * 10) / 10)
-    : 2;
-  const heightInches = llMatch
-    ? Math.max(0.5, Math.round((Number(llMatch[1]) / dpi) * 10) / 10)
-    : 1;
+  const pwDots = pwMatch ? Number(pwMatch[1]) : 2 * dpi;
+  const llDots = llMatch ? Number(llMatch[1]) : 1 * dpi;
+  const rotated =
+    /\^POR\b/.test(zplContent) || (/\^A0R/.test(zplContent) && pwDots < llDots);
+  const widthDots = rotated ? Math.max(pwDots, llDots) : pwDots;
+  const heightDots = rotated ? Math.min(pwDots, llDots) : llDots;
+
+  const widthInches = Math.max(0.5, Math.round((widthDots / dpi) * 10) / 10);
+  const heightInches = Math.max(0.5, Math.round((heightDots / dpi) * 10) / 10);
 
   return { dpmm, width: widthInches, height: heightInches };
 }

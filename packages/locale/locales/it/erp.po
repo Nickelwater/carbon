@@ -321,6 +321,9 @@ msgstr "Aggiungi eventuali note sulla tua decisione..."
 msgid "Add Approval Requirement"
 msgstr "Aggiungi Requisito di Approvazione"
 
+msgid "Add batch ({remainingQuantity} remaining)"
+msgstr ""
+
 msgid "Add Calibration Record"
 msgstr "Aggiungi Record di Calibrazione"
 
@@ -995,6 +998,9 @@ msgstr "Classi di Cespiti"
 msgid "Assets"
 msgstr "Cespiti"
 
+msgid "Assign {remainingQuantity} more from another batch to match the shipped quantity."
+msgstr ""
+
 msgid "Assign printers to locations. Shipping, receiving, and work centers inherit the location default unless overridden."
 msgstr "Assegna stampanti alle posizioni. Spedizione, ricezione e centri di lavoro ereditano l'impostazione predefinita della posizione se non sovrascritti."
 
@@ -1194,6 +1200,9 @@ msgstr "BoM + BoP"
 
 msgid "BOM synced successfully"
 msgstr "BOM sincronizzato con successo"
+
+msgid "Box Quantity"
+msgstr ""
 
 msgid "Breadcrumb"
 msgstr "Breadcrumb"
@@ -5899,6 +5908,9 @@ msgstr "La parte è configurata per la produzione"
 msgid "Part name / Customer part number"
 msgstr ""
 
+msgid "Part Weight"
+msgstr ""
+
 msgid "Partial"
 msgstr "Parziale"
 
@@ -6666,6 +6678,9 @@ msgstr "Rimuovi"
 #. placeholder {0}: item.label
 msgid "Remove {0}"
 msgstr "Rimuovi {0}"
+
+msgid "Remove batch"
+msgstr ""
 
 msgid "Remove condition"
 msgstr "Rimuovi condizione"
@@ -7724,6 +7739,9 @@ msgstr "Standard"
 
 msgid "Standard Lead Time"
 msgstr "Tempo di consegna standard"
+
+msgid "Standard Packaging"
+msgstr ""
 
 msgid "Start"
 msgstr "Avvia"

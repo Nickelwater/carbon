@@ -11,15 +11,23 @@ const DEFAULT_SHIPPING_LABEL_SIZE = "label4x6";
 
 function parseShippingLabelSearchParams(url: URL) {
   const lineId = url.searchParams.get("lineId") ?? undefined;
-  const packageIndex = Number(url.searchParams.get("package") ?? "1");
-  const packageCount = Number(url.searchParams.get("of") ?? "1");
+  const packageParam = url.searchParams.get("package");
+  const ofParam = url.searchParams.get("of");
+  const packageIndex = packageParam != null ? Number(packageParam) : undefined;
+  const packageCount = ofParam != null ? Number(ofParam) : undefined;
   const labelSizeId =
     url.searchParams.get("labelSize") ?? DEFAULT_SHIPPING_LABEL_SIZE;
 
   return {
     lineId,
-    packageIndex: Number.isFinite(packageIndex) ? packageIndex : 1,
-    packageCount: Number.isFinite(packageCount) ? packageCount : 1,
+    packageIndex:
+      packageIndex !== undefined && Number.isFinite(packageIndex)
+        ? packageIndex
+        : undefined,
+    packageCount:
+      packageCount !== undefined && Number.isFinite(packageCount)
+        ? packageCount
+        : undefined,
     labelSizeId
   };
 }

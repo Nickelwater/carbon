@@ -55,8 +55,10 @@ serve(async (req: Request) => {
     const file = formData.get("file") as File;
     const widthDots = Math.max(
       16,
-      Math.min(1200, parseInt((formData.get("widthDots") as string) || "240", 10))
+      Math.min(1300, parseInt((formData.get("widthDots") as string) || "240", 10))
     );
+    const heightDots = parseInt((formData.get("heightDots") as string) || "0", 10);
+    const rotateDeg = parseInt((formData.get("rotate") as string) || "0", 10);
     const threshold = parseInt((formData.get("threshold") as string) || "50", 10);
     // Optional crop, normalized 0..1 relative to the source image.
     const num = (k: string) => {
@@ -99,8 +101,14 @@ serve(async (req: Request) => {
       // Grayscale + threshold → clean 1-bit black & white.
       img.grayscale();
       img.threshold(new Percentage(threshold));
-      // Scale to the requested dot width (height proportional).
-      img.resize(new MagickGeometry(`${widthDots}`));
+      if (heightDots > 0) {
+        img.resize(new MagickGeometry(`${widthDots}x${heightDots}!`));
+      } else {
+        img.resize(new MagickGeometry(`${widthDots}`));
+      }
+      if (rotateDeg) {
+        img.rotate(rotateDeg);
+      }
       outW = img.width;
       outH = img.height;
 

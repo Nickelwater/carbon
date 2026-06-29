@@ -14684,6 +14684,67 @@ export type Database = {
           },
         ]
       }
+      itemPackaging: {
+        Row: {
+          boxQuantity: number | null
+          companyId: string
+          createdAt: string
+          createdBy: string
+          customFields: Json | null
+          itemId: string
+          partWeight: number | null
+          standardPackagingItemId: string | null
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          boxQuantity?: number | null
+          companyId: string
+          createdAt?: string
+          createdBy: string
+          customFields?: Json | null
+          itemId: string
+          partWeight?: number | null
+          standardPackagingItemId?: string | null
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          boxQuantity?: number | null
+          companyId?: string
+          createdAt?: string
+          createdBy?: string
+          customFields?: Json | null
+          itemId?: string
+          partWeight?: number | null
+          standardPackagingItemId?: string | null
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "itemPackaging_itemId_fkey"
+            columns: ["itemId"]
+            isOneToOne: true
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itemPackaging_standardPackagingItemId_fkey"
+            columns: ["standardPackagingItemId"]
+            isOneToOne: false
+            referencedRelation: "item"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "itemPackaging_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       itemUnitSalePrice: {
         Row: {
           allowInvoiceDiscount: boolean

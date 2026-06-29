@@ -662,7 +662,10 @@ export const pickMethodWithShelfLifeValidator = pickMethodValidator
       shelfLifeDays: zfd.numeric(z.number().positive().optional()),
       shelfLifeTriggerProcessId: zfd.text(z.string().optional()),
       shelfLifeTriggerTiming: z.enum(shelfLifeTriggerTimings).optional(),
-      shelfLifeCalculateFromBom: zfd.checkbox()
+      shelfLifeCalculateFromBom: zfd.checkbox(),
+      boxQuantity: zfd.numeric(z.number().positive().optional()),
+      partWeight: zfd.numeric(z.number().positive().optional()),
+      standardPackagingItemId: zfd.text(z.string().optional())
     })
   )
   .refine(

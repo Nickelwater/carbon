@@ -48,6 +48,10 @@ const Combobox = ({
   const resolvedIsOptional =
     isOptional ?? (isRequired ? false : (fieldIsOptional ?? false));
 
+  const { defaultValue: _defaultValue, ...inputProps } = getInputProps({
+    id: name
+  });
+
   useEffect(() => {
     if (props.value !== null && props.value !== undefined)
       setValue(props.value ?? "");
@@ -69,13 +73,11 @@ const Combobox = ({
         </FormLabel>
       )}
       <input
-        {...getInputProps({
-          id: name
-        })}
+        {...inputProps}
         type="hidden"
         name={name}
         id={name}
-        value={value}
+        value={value ?? ""}
       />
       <ComboboxBase
         {...props}

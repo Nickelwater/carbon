@@ -1,6 +1,6 @@
 {
-  "generated": "2026-06-25T21:04:12.919Z",
-  "totalTools": 1206,
+  "generated": "2026-06-29T19:48:19.011Z",
+  "totalTools": 1207,
   "modules": 15,
   "tools": [
     {
@@ -8743,7 +8743,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -8779,7 +8779,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -9068,7 +9068,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -9967,7 +9967,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -9996,7 +9996,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -10025,7 +10025,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -10054,7 +10054,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -10992,11 +10992,36 @@
       }
     },
     {
+      "name": "items_getItemPackaging",
+      "module": "items",
+      "classification": "READ",
+      "description": "get item packaging",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "itemId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId"
+        ]
+      }
+    },
+    {
       "name": "items_upsertPickMethodWithShelfLife",
       "module": "items",
       "classification": "WRITE",
       "description": "upsert pick method with shelf life",
-      "paramCount": 5,
+      "paramCount": 6,
       "serviceParams": [
         "db",
         "args"
@@ -11022,8 +11047,22 @@
             ]
           },
           "customFields": {},
-          "shelfLife: {\r\n      mode": {
+          "shelfLife: {\n      mode": {
             "type": "string"
+          },
+          "packaging": {
+            "type": "object",
+            "properties": {
+              "boxQuantity": {
+                "type": "number"
+              },
+              "partWeight": {
+                "type": "number"
+              },
+              "standardPackagingItemId": {
+                "type": "string"
+              }
+            }
           }
         },
         "required": [

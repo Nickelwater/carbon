@@ -43,6 +43,10 @@ const SelectControlled = ({
     name
   );
 
+  const { defaultValue: _defaultValue, ...inputProps } = getInputProps({
+    id: name
+  });
+
   useEffect(() => {
     if (props.value !== null && props.value !== undefined)
       setControlValue(props.value);
@@ -69,13 +73,11 @@ const SelectControlled = ({
         </FormLabel>
       )}
       <input
-        {...getInputProps({
-          id: name
-        })}
+        {...inputProps}
         type="hidden"
         name={name}
         id={name}
-        value={controlValue}
+        value={controlValue ?? ""}
       />
       <SelectBase
         {...props}

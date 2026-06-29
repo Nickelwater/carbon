@@ -6,8 +6,10 @@
     "@carbon/react": "workspace:*",
     "@carbon/utils": "workspace:*",
     "@hookform/resolvers": "3.10.0",
+    "@napi-rs/canvas": "0.1.80",
     "@react-email/components": "catalog:",
     "@react-pdf/renderer": "catalog:",
+    "pdfjs-dist": "5.4.296",
     "cookie": "catalog:",
     "dompurify": "catalog:",
     "nanoid": "catalog:",
@@ -33,6 +35,7 @@
     "./pdf": "./src/pdf/index.ts",
     "./template": "./src/template/index.ts",
     "./zpl": "./src/zpl/index.ts",
+    "./zpl/server": "./src/zpl/server.ts",
     "./qr": "./src/qr/qr-code.ts",
     "./labels": "./src/labels/index.ts",
     "./shipping-label": "./src/shipping-label/index.ts"
