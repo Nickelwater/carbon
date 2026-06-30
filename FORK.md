@@ -114,7 +114,7 @@ Migrations present on this fork that may not exist upstream (or differ in conten
 20260603120000_remove-storage-unit-rules.sql
 20260603120001_complete_job_production_event_setup_rate.sql
 20260603130000_rename-custom-rule-to-storage-rule.sql
-20260604120000_tool_life_tracking.sql
+20260604115959_tool_life_tracking.sql
 20260604120001_audit_tool_life.sql
 20260605120000_fix_tool_life_accrual_auto_issue.sql
 20260605120001_fix_tool_life_machine_time_column.sql
@@ -154,7 +154,12 @@ git merge upstream/main
 
 ### Resolving conflicts
 
-1. **Migrations** — Keep both files when timestamps differ. If upstream and fork changed the same table, read both SQL files and add a new fork migration if needed to reconcile.
+1. **Migrations** — Keep both files when timestamps differ. If upstream and fork changed the same table, read both SQL files and add a new fork migration if needed to reconcile. **Never share a version prefix** — if fork and upstream collide (e.g. both `20260604120000_*`), rename the fork file to a unique timestamp that still sorts before any dependent fork migrations. If your DB already recorded the fork under the old version:
+   ```sql
+   UPDATE supabase_migrations.schema_migrations
+   SET version = '20260604115959', name = 'tool_life_tracking'
+   WHERE version = '20260604120000' AND name = 'tool_life_tracking';
+   ```
 2. **`packages/database/src/types.ts`** — Prefer upstream structure, then regen; re-apply any manual fork edits only if still required.
 3. **`pnpm-lock.yaml`** — Accept merge, then `pnpm install`.
 4. **Shared UI files** (e.g. `ShipmentLines.tsx`) — Merge carefully; preserve fork behavior listed in this doc, adopt upstream bug fixes and refactors where compatible.

@@ -351,9 +351,22 @@ export const POSTHOG_PROJECT_PUBLIC_KEY = getEnv("POSTHOG_PROJECT_PUBLIC_KEY", {
   isSecret: false
 });
 export const SUPABASE_URL = getEnv("SUPABASE_URL", { isSecret: false });
+/** Loopback Kong URL in LAN dev (`crbn up --lan`). Server-side only. */
+export const SUPABASE_INTERNAL_URL = getEnv("SUPABASE_INTERNAL_URL", {
+  isRequired: false,
+  isSecret: false
+});
 export const SUPABASE_ANON_KEY = getEnv("SUPABASE_ANON_KEY", {
   isSecret: false
 });
+
+/** Browser: public URL (Vite proxy in LAN dev). Server: internal Kong when set. */
+export function getSupabaseUrl(): string {
+  if (!isBrowser && SUPABASE_INTERNAL_URL) {
+    return SUPABASE_INTERNAL_URL;
+  }
+  return SUPABASE_URL;
+}
 
 export const DEFAULT_LANGUAGE =
   getEnv("DEFAULT_LANGUAGE", {

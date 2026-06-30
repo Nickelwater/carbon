@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@supabase/supabase-js";
 import type { MutableRefObject } from "react";
 import type { StoreApi } from "zustand";
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "../../config/env";
+import { getSupabaseUrl, SUPABASE_ANON_KEY } from "../../config/env";
 
 const PER_ATTEMPT_TIMEOUT_MS = 25_000;
 const MAX_RETRIES = 2;
@@ -46,23 +46,27 @@ export const getCarbonClient = (
     ? { Authorization: `Bearer ${accessToken}` }
     : undefined;
 
-  const client = createClient<Database, "public">(SUPABASE_URL!, supabaseKey, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    },
-    global: {
-      fetch: fetchWithRetry,
-      ...(headers ? { headers } : {})
+  const client = createClient<Database, "public">(
+    getSupabaseUrl(),
+    supabaseKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      },
+      global: {
+        fetch: fetchWithRetry,
+        ...(headers ? { headers } : {})
+      }
     }
-  });
+  );
 
   return client;
 };
 
 export const getCarbonAPIKeyClient = (apiKey: string) => {
   const client = createClient<Database, "public">(
-    SUPABASE_URL!,
+    getSupabaseUrl(),
     SUPABASE_ANON_KEY!,
     {
       global: {
@@ -80,20 +84,24 @@ export const getCarbonAPIKeyClient = (apiKey: string) => {
 export const createCarbonWithAuthGetter = (
   store: MutableRefObject<StoreApi<{ accessToken: string }>>
 ) => {
-  return createClient<Database, "public">(SUPABASE_URL!, SUPABASE_ANON_KEY!, {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    },
-    global: {
-      fetch: fetchWithRetry
-    },
-    async accessToken() {
-      if (!store.current) return null;
-      const state = store.current.getState();
-      return state.accessToken;
+  return createClient<Database, "public">(
+    getSupabaseUrl(),
+    SUPABASE_ANON_KEY!,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      },
+      global: {
+        fetch: fetchWithRetry
+      },
+      async accessToken() {
+        if (!store.current) return null;
+        const state = store.current.getState();
+        return state.accessToken;
+      }
     }
-  });
+  );
 };
 
 export const getCarbon = (accessToken?: string) => {

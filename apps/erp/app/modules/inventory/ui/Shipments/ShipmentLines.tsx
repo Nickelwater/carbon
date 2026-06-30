@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
   Checkbox,
+  Combobox,
   cn,
   DropdownMenu,
   DropdownMenuContent,
@@ -72,7 +73,7 @@ import {
   ShippingLabelPrintButton
 } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
-import { StorageUnitDrillSelect } from "~/components/Form/StorageUnitDrillSelect";
+import { useStorageUnits } from "~/components/Form/StorageUnit";
 import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";
 import { ConfirmDelete } from "~/components/Modals";
 import { useDateFormatter, useRouteData, useUser } from "~/hooks";
@@ -2319,6 +2320,7 @@ function SplitShipmentLineModal({
 function StorageUnit({
   locationId,
   storageUnitId,
+  itemId,
   isReadOnly,
   onChange
 }: {
@@ -2328,21 +2330,32 @@ function StorageUnit({
   isReadOnly: boolean;
   onChange: (storageUnit: string) => void;
 }) {
+  const { options } = useStorageUnits(
+    locationId ?? undefined,
+    itemId ?? undefined
+  );
+
   if (!locationId) return null;
 
   return (
-    <VStack spacing={1} className="w-full max-w-sm text-sm">
+    <VStack spacing={1} className="min-w-[140px] text-sm">
       <label className="text-xs text-muted-foreground">
         <Trans>Storage Unit</Trans>
       </label>
-      <StorageUnitDrillSelect
-        locationId={locationId}
-        value={storageUnitId}
-        onChange={(id) => onChange(id)}
-        isReadOnly={isReadOnly}
-        placeholder="Select storage unit"
-        className="w-full"
-      />
+      <div className="py-1">
+        <Combobox
+          value={storageUnitId ?? undefined}
+          onChange={(newValue) => {
+            onChange(newValue);
+          }}
+          options={options}
+          isReadOnly={isReadOnly}
+          inline={(value, options) => {
+            const option = options.find((o) => o.value === value);
+            return option?.label ?? "";
+          }}
+        />
+      </div>
     </VStack>
   );
 }
