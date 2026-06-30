@@ -1,8 +1,8 @@
 import { formatCityStatePostalCode } from "@carbon/utils";
 import { Image, Text, View } from "@react-pdf/renderer";
-import { createTw } from "react-pdf-tailwind";
 import { DEFAULT_HEADER_OPTIONS, type HeaderOptions } from "../../template";
 import type { Company } from "../../types";
+import { useTw } from "../blocks/tw";
 import { LogoImage } from "./LogoImage";
 
 type HeaderProps = {
@@ -24,25 +24,6 @@ type HeaderProps = {
   fixed?: boolean;
 };
 
-const tw = createTw({
-  theme: {
-    fontFamily: {
-      sans: ["Inter", "Helvetica", "Arial", "sans-serif"]
-    },
-    extend: {
-      colors: {
-        gray: {
-          50: "#f9fafb",
-          200: "#e5e7eb",
-          400: "#9ca3af",
-          600: "#4b5563",
-          800: "#1f2937"
-        }
-      }
-    }
-  }
-});
-
 const Header = ({
   company,
   title,
@@ -52,6 +33,7 @@ const Header = ({
   options,
   fixed
 }: HeaderProps) => {
+  const tw = useTw();
   const opts = { ...DEFAULT_HEADER_OPTIONS, ...options };
   // `icon` variant prefers the square logo; `mark` prefers the full logo.
   const logoSrc =

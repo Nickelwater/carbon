@@ -3246,7 +3246,7 @@ export async function getInboundInspection(
   return (client as any)
     .from("inboundInspection")
     .select(
-      "*, item(readableId, name, type), receipt(receiptId, supplierId, createdBy), job(jobId, updatedBy), supplier(name), inboundInspectionSample(*, trackedEntity(id, readableId, attributes, status, sourceDocumentReadableId))"
+      "*, item(readableId, name, type, itemTrackingType), receipt(receiptId, supplierId, createdBy), job(jobId, updatedBy), supplier(name), inboundInspectionSample(*, trackedEntity(id, readableId, attributes, status, sourceDocumentReadableId))"
     )
     .eq("id", id)
     .single();

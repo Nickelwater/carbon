@@ -138,16 +138,19 @@ const CustomerForm = ({
                   <CustomerStatus
                     name="customerStatusId"
                     label={t`Customer Status`}
+                    termId="customer-status"
                     placeholder={t`Select Customer Status`}
                   />
                   <CustomerType
                     name="customerTypeId"
                     label={t`Customer Type`}
+                    termId="customer-type-field"
                     placeholder={t`Select Customer Type`}
                   />
                   <Employee
                     name="accountManagerId"
                     label={t`Account Manager`}
+                    termId="customer-account-manager"
                   />
                   {isEditing && (
                     <>
@@ -163,6 +166,7 @@ const CustomerForm = ({
                   <Number
                     name="taxPercent"
                     label={t`Tax Percent`}
+                    termId="customer-default-tax-percent"
                     minValue={0}
                     maxValue={1}
                     step={0.0001}

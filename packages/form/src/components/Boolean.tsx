@@ -1,3 +1,4 @@
+import type { TermId } from "@carbon/glossary";
 import {
   cn,
   FormControl,
@@ -6,6 +7,7 @@ import {
   FormLabel,
   HStack,
   Label,
+  LabelWithHelp,
   Switch,
   VStack
 } from "@carbon/react";
@@ -17,6 +19,7 @@ type FormBooleanProps = {
   name: string;
   variant?: "large" | "small";
   label?: string;
+  termId?: TermId;
   value?: boolean;
   helperText?: string;
   isDisabled?: boolean;
@@ -31,6 +34,7 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
     {
       name,
       label,
+      termId,
       description,
       helperText,
       onChange,
@@ -77,7 +81,7 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
                   htmlFor={name}
                   className="text-sm text-foreground cursor-pointer"
                 >
-                  {label}
+                  <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
                 </Label>
               )}
               {description && (
@@ -116,7 +120,7 @@ const Boolean = forwardRef<HTMLInputElement, FormBooleanProps>(
       <FormControl isInvalid={!!error} className={cn("pt-2", className)}>
         {label && (
           <FormLabel htmlFor={name} isOptional={fieldIsOptional ?? false}>
-            {label}
+            <LabelWithHelp termId={termId}>{label}</LabelWithHelp>
           </FormLabel>
         )}
         <HStack>

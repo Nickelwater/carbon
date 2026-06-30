@@ -342,6 +342,7 @@ async function issueJobOperationMaterials(
 
     const journalLineDimensionsMeta: {
       itemPostingGroupId: string | null;
+      itemId: string | null;
       locationId: string | null;
     }[] = [];
 
@@ -419,6 +420,7 @@ async function issueJobOperationMaterials(
       for (let i = 0; i < 2; i++) {
         journalLineDimensionsMeta.push({
           itemPostingGroupId: consumedPostingGroupMap.get(ledger.itemId) ?? null,
+          itemId: ledger.itemId ?? null,
           locationId: jobForLocation?.locationId ?? null,
         });
       }
@@ -473,6 +475,14 @@ async function issueJobOperationMaterials(
               journalLineId: jl.id,
               dimensionId: dimensionMap.get("ItemPostingGroup")!,
               valueId: meta.itemPostingGroupId,
+              companyId,
+            });
+          }
+          if (meta.itemId && dimensionMap.has("Item")) {
+            dimensionInserts.push({
+              journalLineId: jl.id,
+              dimensionId: dimensionMap.get("Item")!,
+              valueId: meta.itemId,
               companyId,
             });
           }
@@ -535,6 +545,7 @@ async function createMaterialWipEntries(
 
   const journalLineDimensionsMeta: {
     itemPostingGroupId: string | null;
+    itemId: string | null;
     locationId: string | null;
   }[] = [];
 
@@ -651,6 +662,7 @@ async function createMaterialWipEntries(
     for (let i = 0; i < 2; i++) {
       journalLineDimensionsMeta.push({
         itemPostingGroupId: consumedPostingGroupMap.get(ledger.itemId) ?? null,
+        itemId: ledger.itemId ?? null,
         locationId: jobLocationId,
       });
     }
@@ -705,6 +717,14 @@ async function createMaterialWipEntries(
           journalLineId: jl.id,
           dimensionId: dimensionMap.get("ItemPostingGroup")!,
           valueId: meta.itemPostingGroupId,
+          companyId,
+        });
+      }
+      if (meta.itemId && dimensionMap.has("Item")) {
+        dimensionInserts.push({
+          journalLineId: jl.id,
+          dimensionId: dimensionMap.get("Item")!,
+          valueId: meta.itemId,
           companyId,
         });
       }
@@ -922,7 +942,7 @@ serve(async (req: Request) => {
               .select("id, entityType")
               .eq("companyGroupId", companyRecord.data.companyGroupId)
               .eq("active", true)
-              .in("entityType", ["ItemPostingGroup", "Location"])
+              .in("entityType", ["ItemPostingGroup", "Item", "Location"])
           : null;
 
         const dimensionMap = new Map<string, string>();
@@ -993,7 +1013,7 @@ serve(async (req: Request) => {
               .select("id, entityType")
               .eq("companyGroupId", companyRecordBatch.data.companyGroupId)
               .eq("active", true)
-              .in("entityType", ["ItemPostingGroup", "Location"])
+              .in("entityType", ["ItemPostingGroup", "Item", "Location"])
           : null;
 
         const dimensionMapBatch = new Map<string, string>();
@@ -1151,7 +1171,7 @@ serve(async (req: Request) => {
               .select("id, entityType")
               .eq("companyGroupId", companyRecordSerial.data.companyGroupId)
               .eq("active", true)
-              .in("entityType", ["ItemPostingGroup", "Location"])
+              .in("entityType", ["ItemPostingGroup", "Item", "Location"])
           : null;
 
         const dimensionMapSerial = new Map<string, string>();
@@ -1317,7 +1337,7 @@ serve(async (req: Request) => {
               .select("id, entityType")
               .eq("companyGroupId", companyRecord.data.companyGroupId)
               .eq("active", true)
-              .in("entityType", ["ItemPostingGroup", "Location"])
+              .in("entityType", ["ItemPostingGroup", "Item", "Location"])
           : null;
 
         const dimensionMap = new Map<string, string>();
@@ -1493,7 +1513,7 @@ serve(async (req: Request) => {
                 methodType: "Pull from Inventory",
                 quantity: 0,
                 quantityIssued: Number(quantity ?? 0),
-                unitCost: itemCost?.unitCost,
+                unitCost: itemCost?.unitCost ?? 0,
               })
               .executeTakeFirst();
 
@@ -1605,7 +1625,7 @@ serve(async (req: Request) => {
               .select("id, entityType")
               .eq("companyGroupId", companyRecordScrap.data.companyGroupId)
               .eq("active", true)
-              .in("entityType", ["ItemPostingGroup", "Location"])
+              .in("entityType", ["ItemPostingGroup", "Item", "Location"])
           : null;
 
         const dimensionMapScrap = new Map<string, string>();
@@ -1804,7 +1824,7 @@ serve(async (req: Request) => {
               .select("id, entityType")
               .eq("companyGroupId", companyRecordTracked.data.companyGroupId)
               .eq("active", true)
-              .in("entityType", ["ItemPostingGroup", "Location"])
+              .in("entityType", ["ItemPostingGroup", "Item", "Location"])
           : null;
 
         const dimensionMapTracked = new Map<string, string>();
@@ -1911,7 +1931,7 @@ serve(async (req: Request) => {
                   quantityIssued: totalChildQuantity,
                   requiresBatchTracking: jobMaterial.requiresBatchTracking,
                   requiresSerialTracking: jobMaterial.requiresSerialTracking,
-                  unitCost: itemCost?.unitCost,
+                  unitCost: itemCost?.unitCost ?? 0,
                 })
                 .returning("id")
                 .executeTakeFirstOrThrow();
@@ -1974,7 +1994,7 @@ serve(async (req: Request) => {
                 quantityIssued: totalChildQuantity,
                 requiresBatchTracking: item.itemTrackingType === "Batch",
                 requiresSerialTracking: item.itemTrackingType === "Serial",
-                unitCost: itemCost?.unitCost,
+                unitCost: itemCost?.unitCost ?? 0,
               })
               .returning("id")
               .executeTakeFirstOrThrow();
@@ -2411,7 +2431,7 @@ serve(async (req: Request) => {
               .select("id, entityType")
               .eq("companyGroupId", companyRecordUnconsume.data.companyGroupId)
               .eq("active", true)
-              .in("entityType", ["ItemPostingGroup", "Location"])
+              .in("entityType", ["ItemPostingGroup", "Item", "Location"])
           : null;
 
         const dimensionMapUnconsume = new Map<string, string>();

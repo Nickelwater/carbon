@@ -5,12 +5,9 @@ import {
   DEFAULT_DETAILS_OPTIONS,
   type DetailsBlock as DetailsBlockType
 } from "../../../template";
-import { tw } from "../tw";
+import { useTw } from "../tw";
 import type { PackingSlipData } from "./types";
 import { PACKING_SLIP_CODE128 } from "./utils";
-
-const labelStyle = tw("text-[8px] font-bold text-gray-600 uppercase");
-const valueStyle = tw("text-[10px] text-gray-800 mt-0.5");
 
 /** Pack list metadata: date, ship via, and tracking. */
 export function DetailsBlock({
@@ -20,6 +17,10 @@ export function DetailsBlock({
   block: DetailsBlockType;
   data: PackingSlipData;
 }) {
+  const tw = useTw();
+  const labelStyle = tw("text-[8px] font-bold text-gray-600 uppercase");
+  const valueStyle = tw("text-[10px] text-gray-800 mt-0.5");
+
   const {
     shipment,
     shippingMethod,

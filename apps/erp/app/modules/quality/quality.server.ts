@@ -135,15 +135,7 @@ export async function upsertInboundInspectionSample(
         .executeTakeFirst();
       if (!inspection) throw new Error("Inspection not found");
 
-      const trackedEntity = await trx
-        .selectFrom("trackedEntity")
-        .select(["id", "quantity"])
-        .where("id", "=", sample.trackedEntityId)
-        .where("companyId", "=", sample.companyId)
-        .executeTakeFirst();
-      if (!trackedEntity) throw new Error("Tracked entity not found");
-
-      const isBatchEntity = Number(trackedEntity.quantity ?? 1) > 1;
+      const trackedEntityId = sample.trackedEntityId || null;
 
       const resolved = await resolveInboundSampleStatus(
         trx,
@@ -153,7 +145,7 @@ export async function upsertInboundInspectionSample(
 
       const samplePayload = {
         inboundInspectionId: sample.inspectionId,
-        trackedEntityId: sample.trackedEntityId,
+        trackedEntityId,
         status: resolved.status,
         statusOverridden: resolved.statusOverridden,
         notes: sample.notes ?? null,
@@ -163,81 +155,104 @@ export async function upsertInboundInspectionSample(
       };
 
       let sampleId: string;
+      let isBatchEntity = false;
 
-      if (isBatchEntity) {
-        const [totalRow, entityRow] = await Promise.all([
-          trx
-            .selectFrom("inboundInspectionSample")
-            .select(({ fn }) => fn.count<number>("id").as("count"))
-            .where("inboundInspectionId", "=", sample.inspectionId)
-            .executeTakeFirst(),
-          trx
-            .selectFrom("inboundInspectionSample")
-            .select(({ fn }) => fn.count<number>("id").as("count"))
-            .where("inboundInspectionId", "=", sample.inspectionId)
-            .where("trackedEntityId", "=", sample.trackedEntityId)
-            .executeTakeFirst()
-        ]);
-
-        if (Number(totalRow?.count ?? 0) >= inspection.sampleSize) {
-          throw new Error(
-            "The required number of samples has already been recorded for this lot"
-          );
-        }
-
-        const sampleIndex = Number(entityRow?.count ?? 0) + 1;
-
+      if (!trackedEntityId) {
         const inserted = await trx
           .insertInto("inboundInspectionSample")
           .values({
             ...samplePayload,
-            sampleIndex,
             createdBy: sample.inspectedBy
           } as any)
           .returning(["id"])
           .executeTakeFirstOrThrow();
         sampleId = inserted.id;
       } else {
-        const existing = await trx
-          .selectFrom("inboundInspectionSample")
-          .select(["id"])
-          .where("inboundInspectionId", "=", sample.inspectionId)
-          .where("trackedEntityId", "=", sample.trackedEntityId)
+        const trackedEntity = await trx
+          .selectFrom("trackedEntity")
+          .select(["id", "quantity"])
+          .where("id", "=", trackedEntityId)
+          .where("companyId", "=", sample.companyId)
           .executeTakeFirst();
+        if (!trackedEntity) throw new Error("Tracked entity not found");
 
-        if (existing) {
-          const updated = await trx
-            .updateTable("inboundInspectionSample")
-            .set({
-              ...samplePayload,
-              updatedBy: sample.inspectedBy,
-              updatedAt: nowIso
-            })
-            .where("id", "=", existing.id)
-            .returning(["id"])
-            .executeTakeFirstOrThrow();
-          sampleId = updated.id;
-        } else {
+        isBatchEntity = Number(trackedEntity.quantity ?? 1) > 1;
+
+        if (isBatchEntity) {
+          const [totalRow, entityRow] = await Promise.all([
+            trx
+              .selectFrom("inboundInspectionSample")
+              .select(({ fn }) => fn.count<number>("id").as("count"))
+              .where("inboundInspectionId", "=", sample.inspectionId)
+              .executeTakeFirst(),
+            trx
+              .selectFrom("inboundInspectionSample")
+              .select(({ fn }) => fn.count<number>("id").as("count"))
+              .where("inboundInspectionId", "=", sample.inspectionId)
+              .where("trackedEntityId", "=", trackedEntityId)
+              .executeTakeFirst()
+          ]);
+
+          if (Number(totalRow?.count ?? 0) >= inspection.sampleSize) {
+            throw new Error(
+              "The required number of samples has already been recorded for this lot"
+            );
+          }
+
+          const sampleIndex = Number(entityRow?.count ?? 0) + 1;
+
           const inserted = await trx
             .insertInto("inboundInspectionSample")
             .values({
               ...samplePayload,
-              sampleIndex: 1,
+              sampleIndex,
               createdBy: sample.inspectedBy
             } as any)
             .returning(["id"])
             .executeTakeFirstOrThrow();
           sampleId = inserted.id;
-        }
+        } else {
+          const existing = await trx
+            .selectFrom("inboundInspectionSample")
+            .select(["id"])
+            .where("inboundInspectionId", "=", sample.inspectionId)
+            .where("trackedEntityId", "=", trackedEntityId)
+            .executeTakeFirst();
 
-        const trackedEntityStatus =
-          resolved.status === "Passed" ? "Available" : "Rejected";
-        await trx
-          .updateTable("trackedEntity")
-          .set({ status: trackedEntityStatus })
-          .where("id", "=", sample.trackedEntityId)
-          .where("companyId", "=", sample.companyId)
-          .execute();
+          if (existing) {
+            const updated = await trx
+              .updateTable("inboundInspectionSample")
+              .set({
+                ...samplePayload,
+                updatedBy: sample.inspectedBy,
+                updatedAt: nowIso
+              })
+              .where("id", "=", existing.id)
+              .returning(["id"])
+              .executeTakeFirstOrThrow();
+            sampleId = updated.id;
+          } else {
+            const inserted = await trx
+              .insertInto("inboundInspectionSample")
+              .values({
+                ...samplePayload,
+                sampleIndex: 1,
+                createdBy: sample.inspectedBy
+              } as any)
+              .returning(["id"])
+              .executeTakeFirstOrThrow();
+            sampleId = inserted.id;
+          }
+
+          const trackedEntityStatus =
+            resolved.status === "Passed" ? "Available" : "Rejected";
+          await trx
+            .updateTable("trackedEntity")
+            .set({ status: trackedEntityStatus })
+            .where("id", "=", trackedEntityId)
+            .where("companyId", "=", sample.companyId)
+            .execute();
+        }
       }
 
       if (resolved.measurements.length > 0) {
@@ -261,45 +276,47 @@ export async function upsertInboundInspectionSample(
           .execute();
       }
 
-      const activity = await trx
-        .insertInto("trackedActivity")
-        .values({
-          type: "Inspect",
-          sourceDocument: "Inbound Inspection",
-          sourceDocumentId: sample.inspectionId,
-          attributes: {
-            Result: resolved.status,
-            Receipt: inspection.receiptId,
-            Inspector: sample.inspectedBy,
-            ...(isBatchEntity ? { "Sample Unit": 1 } : {}),
-            ...(sample.notes ? { Notes: sample.notes } : {})
-          },
-          companyId: sample.companyId,
-          createdBy: sample.inspectedBy
-        })
-        .returning(["id"])
-        .executeTakeFirstOrThrow();
+      if (trackedEntityId) {
+        const activity = await trx
+          .insertInto("trackedActivity")
+          .values({
+            type: "Inspect",
+            sourceDocument: "Inbound Inspection",
+            sourceDocumentId: sample.inspectionId,
+            attributes: {
+              Result: resolved.status,
+              Receipt: inspection.receiptId,
+              Inspector: sample.inspectedBy,
+              ...(isBatchEntity ? { "Sample Unit": 1 } : {}),
+              ...(sample.notes ? { Notes: sample.notes } : {})
+            },
+            companyId: sample.companyId,
+            createdBy: sample.inspectedBy
+          })
+          .returning(["id"])
+          .executeTakeFirstOrThrow();
 
-      await trx
-        .insertInto("trackedActivityInput")
-        .values({
-          trackedActivityId: activity.id,
-          trackedEntityId: sample.trackedEntityId,
-          quantity: isBatchEntity ? 1 : 0,
-          companyId: sample.companyId,
-          createdBy: sample.inspectedBy
-        })
-        .execute();
-      await trx
-        .insertInto("trackedActivityOutput")
-        .values({
-          trackedActivityId: activity.id,
-          trackedEntityId: sample.trackedEntityId,
-          quantity: isBatchEntity ? 1 : 0,
-          companyId: sample.companyId,
-          createdBy: sample.inspectedBy
-        })
-        .execute();
+        await trx
+          .insertInto("trackedActivityInput")
+          .values({
+            trackedActivityId: activity.id,
+            trackedEntityId,
+            quantity: isBatchEntity ? 1 : 0,
+            companyId: sample.companyId,
+            createdBy: sample.inspectedBy
+          })
+          .execute();
+        await trx
+          .insertInto("trackedActivityOutput")
+          .values({
+            trackedActivityId: activity.id,
+            trackedEntityId,
+            quantity: isBatchEntity ? 1 : 0,
+            companyId: sample.companyId,
+            createdBy: sample.inspectedBy
+          })
+          .execute();
+      }
 
       const isTerminal =
         inspection.status === "Passed" ||
@@ -362,6 +379,7 @@ export async function dispositionInboundInspection(
           "receiptLineId",
           "receiptId",
           "itemId",
+          "status",
           "supplierId",
           "samplingStandard",
           "severity",
@@ -374,6 +392,20 @@ export async function dispositionInboundInspection(
         .where("companyId", "=", args.companyId)
         .executeTakeFirst();
       if (!inspection) throw new Error("Inspection not found");
+
+      const item = await trx
+        .selectFrom("item")
+        .select(["itemTrackingType"])
+        .where("id", "=", inspection.itemId)
+        .where("companyId", "=", args.companyId)
+        .executeTakeFirst();
+
+      const receiptLine = await trx
+        .selectFrom("receiptLine")
+        .select(["locationId"])
+        .where("id", "=", inspection.receiptLineId)
+        .where("companyId", "=", args.companyId)
+        .executeTakeFirst();
 
       let lotEntities = await trx
         .selectFrom("trackedEntity")
@@ -442,6 +474,35 @@ export async function dispositionInboundInspection(
           .set({ status: flipStatus })
           .where("id", "in", idsToFlip)
           .where("companyId", "=", args.companyId)
+          .execute();
+      }
+
+      // Non-tracked (Inventory) items have no tracked entities to flip, so the
+      // received quantity sits in itemLedger with no per-row status to exclude
+      // it from on-hand. Rejecting the lot must post a compensating
+      // Negative Adjmt. to reverse the full received quantity. Tracked items
+      // are already handled by the status flip above; Non-Inventory items never
+      // posted a ledger entry at receipt, so neither needs this.
+      if (
+        args.decision === "Reject" &&
+        inspection.status !== "Failed" &&
+        item?.itemTrackingType === "Inventory" &&
+        inspection.lotSize > 0
+      ) {
+        await trx
+          .insertInto("itemLedger")
+          .values({
+            itemId: inspection.itemId,
+            locationId: receiptLine?.locationId ?? null,
+            entryType: "Negative Adjmt.",
+            documentType: "Inbound Inspection",
+            documentId: inspection.id,
+            quantity: -inspection.lotSize,
+            trackedEntityId: null,
+            companyId: args.companyId,
+            createdBy: args.dispositionedBy,
+            comment: "Inbound inspection lot rejected"
+          })
           .execute();
       }
 

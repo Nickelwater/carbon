@@ -1,6 +1,7 @@
 import { ValidatedForm } from "@carbon/form";
 import {
   Badge,
+  BarProgress,
   Button,
   Checkbox,
   ClientOnly,
@@ -53,23 +54,31 @@ const InspectionDocumentViewer = lazy(
 
 type Props = {
   inspectionId: string;
+  isSerial: boolean;
   remaining: InspectionTrackedEntity[];
   batchLot?: boolean;
   samplesRemaining?: number;
-  sampleSize?: number;
   inspectionPlan?: InspectionPlanRow[];
   inspectionDocumentPdfUrl?: string | null;
+  inspected: number;
+  sampleSize: number;
+  fails: number;
+  acceptanceNumber: number;
   onClose: () => void;
 };
 
 export default function ScanInspectionSample({
   inspectionId,
+  isSerial,
   remaining,
   batchLot = false,
   samplesRemaining,
-  sampleSize,
   inspectionPlan = [],
   inspectionDocumentPdfUrl,
+  inspected,
+  sampleSize,
+  fails,
+  acceptanceNumber,
   onClose
 }: Props) {
   const { t } = useLingui();
@@ -89,6 +98,7 @@ export default function ScanInspectionSample({
     {}
   );
   const [focusedFeatureId, setFocusedFeatureId] = useState<string | null>(null);
+  const [resetKey, setResetKey] = useState(0);
 
   const findMatch = (value: string): InspectionTrackedEntity | null => {
     if (!value) return null;
@@ -115,6 +125,7 @@ export default function ScanInspectionSample({
       setFocusedFeatureId(null);
       setOverrideEnabled(false);
       setPendingStatus("Passed");
+      setResetKey((k) => k + 1);
     }
   }, [fetcher.state, fetcher.data]);
 
@@ -155,7 +166,8 @@ export default function ScanInspectionSample({
   );
 
   const isSubmitting = fetcher.state !== "idle";
-  const hasSelection = !!selected;
+  const hasSelection = isSerial ? !!selected : true;
+  const canRecord = hasSelection;
 
   return (
     <Modal
@@ -180,19 +192,21 @@ export default function ScanInspectionSample({
             {batchLot ? (
               <Trans>
                 Scan or select the batch and record each sample result.{" "}
-                {samplesRemaining ?? 0} of {sampleSize ?? 0} required samples
+                {samplesRemaining ?? 0} of {sampleSize} required samples
                 remaining.
               </Trans>
-            ) : (
+            ) : isSerial ? (
               <Trans>
                 Scan or select a tracked entity from this lot and record the
                 inspection result.
               </Trans>
+            ) : (
+              <Trans>Record the inspection result for this sample.</Trans>
             )}
           </ModalDescription>
         </ModalHeader>
         <ValidatedForm
-          key={selected?.id ?? "none"}
+          key={`${selected?.id ?? "none"}-${resetKey}`}
           fetcher={fetcher}
           method="post"
           action={`${path.to.inboundInspection(inspectionId)}/sample`}
@@ -252,115 +266,129 @@ export default function ScanInspectionSample({
                 }
               >
                 <VStack spacing={4} className="w-full min-w-0">
-                  <Tabs defaultValue="scan" className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                      <TabsTrigger value="scan">
-                        <LuQrCode className="mr-2" />
-                        <Trans>Scan</Trans>
-                      </TabsTrigger>
-                      <TabsTrigger value="select">
-                        <LuList className="mr-2" />
-                        <Trans>Select</Trans>
-                      </TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="scan" className="mt-0 w-full">
-                      <VStack spacing={3} className="w-full">
-                        <InputGroup className="w-full">
-                          <Input
-                            autoFocus
-                            placeholder={t`Scan or enter tracked entity ID, serial, or batch`}
-                            value={serial}
-                            onChange={(e) => setSerial(e.target.value)}
-                          />
-                          <InputRightElement>
-                            {serial &&
-                              (hasSelection ? (
-                                <LuCheck className="text-green-500" />
-                              ) : (
-                                <LuX className="text-red-500" />
-                              ))}
-                          </InputRightElement>
-                        </InputGroup>
+                  <BarProgress
+                    label={t`Progress`}
+                    value={`${inspected} / ${sampleSize} · ${fails} ${fails === 1 ? "failure" : "failures"} · Ac ${acceptanceNumber}`}
+                    progress={inspected}
+                    max={Math.max(1, sampleSize)}
+                    activeClassName={
+                      fails > acceptanceNumber ? "bg-red-500" : "bg-emerald-500"
+                    }
+                  />
 
-                        {selected && (
-                          <div className="w-full rounded-md border p-3">
-                            <div className="text-xs text-muted-foreground">
-                              <Trans>Tracked Entity</Trans>
-                            </div>
-                            <div className="font-mono text-sm">
-                              {selected.readableId ?? selected.id}
-                            </div>
-                            {batchLot && selected.quantity != null && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                <Trans>
-                                  Batch quantity: {selected.quantity}
-                                </Trans>
+                  {(isSerial || batchLot) && (
+                    <Tabs defaultValue="scan" className="w-full">
+                      <TabsList className="grid w-full grid-cols-2 mb-4">
+                        <TabsTrigger value="scan">
+                          <LuQrCode className="mr-2" />
+                          <Trans>Scan</Trans>
+                        </TabsTrigger>
+                        <TabsTrigger value="select">
+                          <LuList className="mr-2" />
+                          <Trans>Select</Trans>
+                        </TabsTrigger>
+                      </TabsList>
+                      <TabsContent value="scan" className="mt-0 w-full">
+                        <VStack spacing={3} className="w-full">
+                          <InputGroup className="w-full">
+                            <Input
+                              autoFocus
+                              placeholder={t`Scan or enter tracked entity ID, serial, or batch`}
+                              value={serial}
+                              onChange={(e) => setSerial(e.target.value)}
+                            />
+                            <InputRightElement>
+                              {serial &&
+                                (hasSelection ? (
+                                  <LuCheck className="text-green-500" />
+                                ) : (
+                                  <LuX className="text-red-500" />
+                                ))}
+                            </InputRightElement>
+                          </InputGroup>
+
+                          {selected && (
+                            <div className="w-full rounded-md border p-3">
+                              <div className="text-xs text-muted-foreground">
+                                <Trans>Tracked Entity</Trans>
                               </div>
-                            )}
-                            {selected.readableId && (
-                              <div className="text-xs text-muted-foreground mt-1">
-                                {selected.id}
+                              <div className="font-mono text-sm">
+                                {selected.readableId ?? selected.id}
                               </div>
-                            )}
-                          </div>
-                        )}
-                      </VStack>
-                    </TabsContent>
-                    <TabsContent value="select" className="mt-0 w-full">
-                      <ScrollArea className="h-[40dvh] w-full">
-                        <VStack spacing={2} className="w-full pr-3">
-                          {remaining.length === 0 ? (
-                            <p className="text-center text-muted-foreground w-full py-6">
-                              {batchLot ? (
-                                <Trans>
-                                  All required samples have been recorded.
-                                </Trans>
-                              ) : (
-                                <Trans>No remaining entities to inspect.</Trans>
+                              {batchLot && selected.quantity != null && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  <Trans>
+                                    Batch quantity: {selected.quantity}
+                                  </Trans>
+                                </div>
                               )}
-                            </p>
-                          ) : (
-                            remaining.map((e) => {
-                              const isSelected = selected?.id === e.id;
-                              return (
-                                <HStack
-                                  key={e.id}
-                                  className="w-full justify-between p-4 border rounded-md"
-                                >
-                                  <VStack
-                                    spacing={0}
-                                    className="w-full items-start min-w-0"
-                                  >
-                                    <p className="font-mono text-sm truncate w-full">
-                                      {e.readableId ?? e.id}
-                                    </p>
-                                    {e.readableId && (
-                                      <p className="text-xs text-muted-foreground truncate w-full">
-                                        {e.id}
-                                      </p>
-                                    )}
-                                  </VStack>
-                                  <Button
-                                    size="sm"
-                                    variant={
-                                      isSelected ? "primary" : "secondary"
-                                    }
-                                    onClick={() => setSerial(e.id)}
-                                  >
-                                    {isSelected ? (
-                                      <Trans>Selected</Trans>
-                                    ) : (
-                                      <Trans>Select</Trans>
-                                    )}
-                                  </Button>
-                                </HStack>
-                              );
-                            })
+                              {selected.readableId && (
+                                <div className="text-xs text-muted-foreground mt-1">
+                                  {selected.id}
+                                </div>
+                              )}
+                            </div>
                           )}
                         </VStack>
-                      </ScrollArea>
-                    </TabsContent>
-                  </Tabs>
+                      </TabsContent>
+                      <TabsContent value="select" className="mt-0 w-full">
+                        <ScrollArea className="h-[40dvh] w-full">
+                          <VStack spacing={2} className="w-full pr-3">
+                            {remaining.length === 0 ? (
+                              <p className="text-center text-muted-foreground w-full py-6">
+                                {batchLot ? (
+                                  <Trans>
+                                    All required samples have been recorded.
+                                  </Trans>
+                                ) : (
+                                  <Trans>
+                                    No remaining entities to inspect.
+                                  </Trans>
+                                )}
+                              </p>
+                            ) : (
+                              remaining.map((e) => {
+                                const isSelected = selected?.id === e.id;
+                                return (
+                                  <HStack
+                                    key={e.id}
+                                    className="w-full justify-between p-4 border rounded-md"
+                                  >
+                                    <VStack
+                                      spacing={0}
+                                      className="w-full items-start min-w-0"
+                                    >
+                                      <p className="font-mono text-sm truncate w-full">
+                                        {e.readableId ?? e.id}
+                                      </p>
+                                      {e.readableId && (
+                                        <p className="text-xs text-muted-foreground truncate w-full">
+                                          {e.id}
+                                        </p>
+                                      )}
+                                    </VStack>
+                                    <Button
+                                      size="sm"
+                                      variant={
+                                        isSelected ? "primary" : "secondary"
+                                      }
+                                      onClick={() => setSerial(e.id)}
+                                    >
+                                      {isSelected ? (
+                                        <Trans>Selected</Trans>
+                                      ) : (
+                                        <Trans>Select</Trans>
+                                      )}
+                                    </Button>
+                                  </HStack>
+                                );
+                              })
+                            )}
+                          </VStack>
+                        </ScrollArea>
+                      </TabsContent>
+                    </Tabs>
+                  )}
 
                   {hasDocumentPlan && hasSelection && (
                     <div className="w-full border rounded-md overflow-hidden">
@@ -504,7 +532,7 @@ export default function ScanInspectionSample({
                   <TextArea
                     name="notes"
                     label={t`Notes`}
-                    isDisabled={!hasSelection}
+                    isDisabled={!canRecord}
                   />
                 </VStack>
               </div>
@@ -518,7 +546,7 @@ export default function ScanInspectionSample({
               {hasDocumentPlan && !overrideEnabled ? (
                 <Submit
                   leftIcon={<LuCircleCheck />}
-                  isDisabled={!hasSelection || isSubmitting}
+                  isDisabled={!canRecord || isSubmitting}
                 >
                   <Trans>Save Sample</Trans>
                 </Submit>
@@ -527,14 +555,14 @@ export default function ScanInspectionSample({
                   <Submit
                     variant="destructive"
                     leftIcon={<LuCircleX />}
-                    isDisabled={!hasSelection || isSubmitting}
+                    isDisabled={!canRecord || isSubmitting}
                     onClick={() => setPendingStatus("Failed")}
                   >
                     <Trans>Fail</Trans>
                   </Submit>
                   <Submit
                     leftIcon={<LuCircleCheck />}
-                    isDisabled={!hasSelection || isSubmitting}
+                    isDisabled={!canRecord || isSubmitting}
                     onClick={() => setPendingStatus("Passed")}
                   >
                     <Trans>Pass</Trans>

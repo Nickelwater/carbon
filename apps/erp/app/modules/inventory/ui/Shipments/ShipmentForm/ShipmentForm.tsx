@@ -28,7 +28,13 @@ import {
   LuTruck
 } from "react-icons/lu";
 import { RiProgress8Line } from "react-icons/ri";
-import { Await, Link, useNavigate, useParams } from "react-router";
+import {
+  Await,
+  Link,
+  useNavigate,
+  useNavigation,
+  useParams
+} from "react-router";
 import type { z } from "zod";
 import {
   DocumentHeader,
@@ -284,6 +290,7 @@ const ShipmentForm = ({
                 <Select
                   name="sourceDocument"
                   label={t`Source Document`}
+                  termId="shipment-source-document"
                   options={shipmentSourceDocumentType.map((v) => ({
                     label: v,
                     value: v
@@ -313,6 +320,7 @@ const ShipmentForm = ({
                   <Combobox
                     name="sourceDocumentId"
                     label={t`Source Document ID`}
+                    termId="shipment-source-document-id"
                     options={sourceDocuments.map((d) => ({
                       label: d.name,
                       value: d.id
@@ -426,6 +434,11 @@ function InvoiceButtons({
   isVoided: boolean;
   onCreateInvoice: (shipment?: Shipment) => void;
 }) {
+  const navigation = useNavigation();
+  const isInvoicing =
+    navigation.state !== "idle" &&
+    navigation.location?.pathname === path.to.newSalesInvoice;
+
   if (!shipment) return null;
 
   if (shipment.sourceDocument === "Sales Order") {
@@ -465,7 +478,7 @@ function InvoiceButtons({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
                     <DropdownMenuItem
-                      disabled={!isPosted}
+                      disabled={!isPosted || isInvoicing}
                       onClick={() => onCreateInvoice(shipment)}
                     >
                       <DropdownMenuIcon icon={<LuCirclePlus />} />
@@ -490,7 +503,8 @@ function InvoiceButtons({
               <Button
                 leftIcon={<LuCreditCard />}
                 variant={isPosted && !isVoided ? "primary" : "secondary"}
-                isDisabled={!isPosted}
+                isDisabled={!isPosted || isInvoicing}
+                isLoading={isInvoicing}
                 onClick={() => onCreateInvoice(shipment)}
               >
                 <Trans>Invoice</Trans>

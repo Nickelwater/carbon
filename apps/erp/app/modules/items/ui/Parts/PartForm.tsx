@@ -285,6 +285,7 @@ const PartForm = ({ initialValues, type = "card", onClose }: PartFormProps) => {
                 <Select
                   name="replenishmentSystem"
                   label={t`Replenishment System`}
+                  termId="replenishment-system"
                   options={itemReplenishmentSystemOptions}
                   onChange={(newValue) => {
                     setReplenishmentSystem(newValue?.value ?? "Buy");
@@ -298,11 +299,13 @@ const PartForm = ({ initialValues, type = "card", onClose }: PartFormProps) => {
                 <Select
                   name="itemTrackingType"
                   label={t`Tracking Type`}
+                  termId="item-tracking-type"
                   options={itemTrackingTypeOptions}
                 />
                 <DefaultMethodType
                   name="defaultMethodType"
                   label={t`Default Method Type`}
+                  termId="item-default-method-type"
                   replenishmentSystem={replenishmentSystem}
                   value={defaultMethodType}
                   onChange={(newValue) =>
@@ -319,6 +322,7 @@ const PartForm = ({ initialValues, type = "card", onClose }: PartFormProps) => {
                   <ItemPostingGroup
                     name="postingGroupId"
                     label={t`Item Group`}
+                    termId="item-group"
                     isClearable
                   />
                 )}
@@ -334,7 +338,12 @@ const PartForm = ({ initialValues, type = "card", onClose }: PartFormProps) => {
                   />
                 )}
                 {!isEditing && replenishmentSystem !== "Buy" && (
-                  <Number name="lotSize" label={t`Batch Size`} minValue={0} />
+                  <Number
+                    name="lotSize"
+                    label={t`Batch Size`}
+                    minValue={0}
+                    termId="part-batch-size"
+                  />
                 )}
 
                 <ItemStorageFields />

@@ -9,7 +9,7 @@ import {
   type LineItemsBlock as LineItemsSectionBlock
 } from "../../../template";
 import { itemTextOverflowStyle } from "../itemText";
-import { tw } from "../tw";
+import { useTw } from "../tw";
 import type { PackingSlipData } from "./types";
 import {
   buildPackingSlipColumnStyles,
@@ -22,8 +22,6 @@ import {
 
 type ShipmentLine = Database["public"]["Views"]["shipmentLines"]["Row"];
 
-const headerLabel = tw("text-[8px] font-bold text-gray-600 uppercase");
-
 export function LineItemsBlock({
   block,
   data
@@ -31,6 +29,9 @@ export function LineItemsBlock({
   block: LineItemsSectionBlock;
   data: PackingSlipData;
 }) {
+  const tw = useTw();
+  const headerLabel = tw("text-[8px] font-bold text-gray-600 uppercase");
+
   const {
     company,
     shipment,

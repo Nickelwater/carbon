@@ -331,7 +331,6 @@ serve(async (req: Request) => {
               totalDiscount: 0,
               totalAmount: uninvoicedSubtotal ?? 0,
               totalTax: 0,
-              balance: uninvoicedSubtotal ?? 0,
               companyId,
               createdBy: userId,
             })
@@ -743,7 +742,6 @@ serve(async (req: Request) => {
               totalDiscount: 0,
               totalAmount: uninvoicedSubtotal ?? 0,
               totalTax: 0,
-              balance: uninvoicedSubtotal ?? 0,
               companyId,
               createdBy: userId,
             })
@@ -1392,7 +1390,6 @@ serve(async (req: Request) => {
               totalDiscount: 0,
               totalAmount: uninvoicedSubtotal ?? 0,
               totalTax: 0,
-              balance: uninvoicedSubtotal ?? 0,
               companyId,
               createdBy: userId,
             })

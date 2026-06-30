@@ -2127,6 +2127,7 @@ function OperationForm({
                 onWorkCenterChange(value?.value as string);
               }
             }}
+            termId="work-center"
           />
         )}
       </div>

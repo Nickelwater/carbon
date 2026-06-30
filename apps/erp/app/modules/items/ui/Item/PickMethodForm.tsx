@@ -20,6 +20,7 @@ import {
   IconButton,
   Label,
   Switch,
+  usePickOrderOptions,
   VStack
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -41,11 +42,12 @@ import {
   Hidden,
   Item,
   NumberControlled,
+  Select,
   ShelfLifeStartProcess,
   ShelfLifeStartTiming,
   Submit
 } from "~/components/Form";
-import { StorageUnitDrillSelectField } from "~/components/Form/StorageUnitDrillSelect";
+import StorageUnit from "~/components/Form/StorageUnit";
 import { usePermissions, useSettings, useUser } from "~/hooks";
 import type { MethodItemType } from "~/modules/shared";
 import { useItems } from "~/stores";
@@ -104,8 +106,12 @@ const PickMethodForm = ({
     value: location.id
   }));
 
-  const shelfLifeApplicable =
+  // Serial/Batch items have per-unit tracked entities, so both the pick-order
+  // default and the shelf-life policy only apply to them. Fungible tracking
+  // types have no lots to order or expire.
+  const isTracked =
     itemTrackingType === "Serial" || itemTrackingType === "Batch";
+  const pickOrderOptions = usePickOrderOptions();
   const { trigger: shelfLifeHistoryTrigger, drawer: shelfLifeHistoryDrawer } =
     useAuditLog({
       entityType: "itemShelfLife",
@@ -184,14 +190,23 @@ const PickMethodForm = ({
           <Hidden name="itemId" />
           <Hidden name="locationId" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-8 gap-y-4 w-full">
-            <StorageUnitDrillSelectField
+            <StorageUnit
               name="defaultStorageUnitId"
               label={t`Default Storage Unit`}
+              termId="item-default-storage-unit"
               locationId={initialValues.locationId}
-              className="w-full"
             />
 
-            {shelfLifeApplicable && (
+            {isTracked && (
+              <Select
+                name="sortMethod"
+                label={t`Pick Order`}
+                termId="item-pick-order"
+                options={pickOrderOptions}
+              />
+            )}
+
+            {isTracked && (
               <ShelfLifeFields
                 replenishmentSystem={replenishmentSystem}
                 itemId={initialValues.itemId}
@@ -457,6 +472,7 @@ function ShelfLifeFields({
           <NumberControlled
             name="shelfLifeDays"
             label={t`Shelf Life (Days)`}
+            termId="item-shelf-life-days"
             minValue={1}
             value={shelfLifeDays ?? defaultShelfLifeDays}
           />
@@ -465,6 +481,7 @@ function ShelfLifeFields({
               <ShelfLifeStartProcess
                 processName="shelfLifeTriggerProcessId"
                 label={t`Shelf Life Start Process`}
+                termId="item-shelf-life-start-process"
                 itemId={itemId}
               />
               {shelfLifeTriggerProcessId && (
@@ -472,6 +489,7 @@ function ShelfLifeFields({
                   <ShelfLifeStartTiming
                     timingName="shelfLifeTriggerTiming"
                     label={t`Start Expiration`}
+                    termId="item-shelf-life-start-timing"
                   />
                 </div>
               )}
@@ -483,6 +501,7 @@ function ShelfLifeFields({
                 <Boolean
                   name="shelfLifeCalculateFromBom"
                   label={t`Calculate from BOM`}
+                  termId="item-calculate-from-bom"
                   description={t`Output never outlasts its raw materials. Falls back to the fixed duration when no input has an expiry date.`}
                   value={!!shelfLifeCalculateFromBom}
                   onChange={(v) => setShelfLifeCalculateFromBom(v)}

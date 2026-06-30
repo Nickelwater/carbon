@@ -4,11 +4,11 @@ import { useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useMemo } from "react";
 import {
+  LuBlocks,
   LuBookMarked,
   LuCalendar,
   LuClipboardCheck,
   LuHash,
-  LuPackage,
   LuTruck
 } from "react-icons/lu";
 import { EmployeeAvatar, Hyperlink, Table } from "~/components";
@@ -113,7 +113,16 @@ const InboundInspectionsTable = memo(
               </div>
             );
           },
-          meta: { icon: <LuTruck /> }
+          meta: {
+            icon: <LuTruck />,
+            exportValue: (row) => {
+              const sourceType = (row as any).sourceType ?? "Receipt";
+              if (sourceType === "Job") {
+                return (row as any).job?.jobId ?? null;
+              }
+              return (row as any).receipt?.receiptId ?? null;
+            }
+          }
         },
         {
           accessorKey: "lotSize",
@@ -123,7 +132,7 @@ const InboundInspectionsTable = memo(
               {(row.original as any).lotSize ?? 0}
             </span>
           ),
-          meta: { icon: <LuPackage /> }
+          meta: { icon: <LuBlocks /> }
         },
         {
           accessorKey: "sampleSize",
@@ -163,7 +172,7 @@ const InboundInspectionsTable = memo(
           cell: ({ row }) => (
             <EmployeeAvatar employeeId={row.original.createdBy} />
           ),
-          meta: { icon: <LuPackage /> }
+          meta: { icon: <LuBlocks /> }
         },
         {
           accessorKey: "createdAt",

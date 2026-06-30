@@ -150,6 +150,12 @@ msgstr "Authentication Error"
 msgid "Auto-issued"
 msgstr "Auto-issued"
 
+msgid "available"
+msgstr "available"
+
+msgid "Back Home"
+msgstr "Back Home"
+
 msgid "Batch"
 msgstr "Batch"
 
@@ -178,6 +184,9 @@ msgstr "By signing in, you agree to the <0>Terms of Service</0> and <1>Privacy P
 
 msgid "Cancel"
 msgstr "Cancel"
+
+msgid "Cancelled"
+msgstr "Cancelled"
 
 msgid "Carbon Logo"
 msgstr "Carbon Logo"
@@ -286,6 +295,9 @@ msgstr "Date"
 msgid "Deadline"
 msgstr "Deadline"
 
+msgid "Default"
+msgstr "Default"
+
 msgid "Default Storage Unit"
 msgstr "Default Storage Unit"
 
@@ -329,6 +341,9 @@ msgstr "Download Labels"
 msgid "Download ZPL"
 msgstr "Download ZPL"
 
+msgid "Draft"
+msgstr "Draft"
+
 msgid "Drag and drop a file here, or click to select a file"
 msgstr "Drag and drop a file here, or click to select a file"
 
@@ -337,8 +352,8 @@ msgid "Dragging {0} cancelled."
 msgstr "Dragging {0} cancelled."
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
 msgid "Due {0}"
 msgstr "Due {0}"
 
@@ -373,8 +388,23 @@ msgstr "Enter PIN for {0}"
 msgid "Error"
 msgstr "Error"
 
+msgid "Error!"
+msgstr "Error!"
+
 msgid "Estimated"
 msgstr "Estimated"
+
+msgid "Expired"
+msgstr "Expired"
+
+msgid "Expired {date}"
+msgstr "Expired {date}"
+
+msgid "Expires {date}"
+msgstr "Expires {date}"
+
+msgid "Expiring first"
+msgstr "Expiring first"
 
 msgid "Failed to complete inventory adjustment"
 msgstr "Failed to complete inventory adjustment"
@@ -431,6 +461,9 @@ msgstr "Have a technical issue? Contact <0>Carbon Support.</0>"
 
 msgid "hours"
 msgstr "hours"
+
+msgid "How many were actually picked?"
+msgstr "How many were actually picked?"
 
 msgid "I understand and want to complete without issuing"
 msgstr "I understand and want to complete without issuing"
@@ -511,6 +544,9 @@ msgstr "Kit"
 msgid "Labor"
 msgstr "Labor"
 
+msgid "Learn more"
+msgstr "Learn more"
+
 msgid "Leave this page"
 msgstr "Leave this page"
 
@@ -522,6 +558,9 @@ msgstr "Life limit"
 
 msgid "Life remaining"
 msgstr "Life remaining"
+
+msgid "lines"
+msgstr "lines"
 
 msgid "Loading item details..."
 msgstr "Loading item details..."
@@ -574,6 +613,9 @@ msgstr "Manually add items to inventory"
 msgid "Manually remove items from inventory"
 msgstr "Manually remove items from inventory"
 
+msgid "Mark Short"
+msgstr "Mark Short"
+
 msgid "matches"
 msgstr "matches"
 
@@ -620,6 +662,9 @@ msgstr "New"
 msgid "New Record"
 msgstr "New Record"
 
+msgid "Newest first"
+msgstr "Newest first"
+
 msgid "Next"
 msgstr "Next"
 
@@ -640,6 +685,9 @@ msgstr "No available filters"
 
 msgid "No available serial numbers found"
 msgstr "No available serial numbers found"
+
+msgid "No available tracked entities found"
+msgstr "No available tracked entities found"
 
 msgid "No dispatches assigned to you"
 msgstr "No dispatches assigned to you"
@@ -668,6 +716,9 @@ msgstr "No option found."
 msgid "No options found."
 msgstr "No options found."
 
+msgid "No picking lists assigned"
+msgstr "No picking lists assigned"
+
 msgid "No printer configured"
 msgstr "No printer configured"
 
@@ -695,11 +746,17 @@ msgstr "No serial numbers found"
 msgid "No spare parts added yet"
 msgstr "No spare parts added yet"
 
+msgid "No stock"
+msgstr "No stock"
+
 msgid "No time entries for this week"
 msgstr "No time entries for this week"
 
 msgid "No tools on this operation"
 msgstr "No tools on this operation"
+
+msgid "No warehouse stock is on record for this item. You can still pick it — on-hand will go negative until the count is reconciled."
+msgstr "No warehouse stock is on record for this item. You can still pick it — on-hand will go negative until the count is reconciled."
 
 msgid "No work centers are blocked"
 msgstr "No work centers are blocked"
@@ -721,6 +778,9 @@ msgstr "OEM Required"
 
 msgid "Of"
 msgstr "Of"
+
+msgid "Oldest first"
+msgstr "Oldest first"
 
 #. placeholder {0}: batch.quantity
 msgid "Only {0} available"
@@ -765,11 +825,26 @@ msgstr "Passed Inspection"
 msgid "Pause"
 msgstr "Pause"
 
+msgid "Pick"
+msgstr "Pick"
+
+msgid "Pick tracked item"
+msgstr "Pick tracked item"
+
+msgid "Picked"
+msgstr "Picked"
+
+msgid "Picked quantity"
+msgstr "Picked quantity"
+
 #. placeholder {0}: startColumn?.title
 #. placeholder {1}: startIndex + 1
 #. placeholder {2}: columnOrder.length
 msgid "Picked up Column {0} at position: {1} of {2}"
 msgstr "Picked up Column {0} at position: {1} of {2}"
+
+msgid "Picking"
+msgstr "Picking"
 
 msgid "Pin Out"
 msgstr "Pin Out"
@@ -873,6 +948,9 @@ msgstr "Scan"
 
 msgid "Scan or enter serial number"
 msgstr "Scan or enter serial number"
+
+msgid "Scan or enter tracking number"
+msgstr "Scan or enter tracking number"
 
 msgid "Scan or search serial number..."
 msgstr "Scan or search serial number..."
@@ -985,6 +1063,12 @@ msgstr "Setup"
 msgid "Shipping Label"
 msgstr "Shipping Label"
 
+msgid "Short"
+msgstr "Short"
+
+msgid "Short pick {itemName}"
+msgstr "Short pick {itemName}"
+
 msgid "Sign in with Email"
 msgstr "Sign in with Email"
 
@@ -1005,6 +1089,9 @@ msgstr "Signed in as {stationName}"
 
 msgid "Size"
 msgstr "Size"
+
+msgid "Something went wrong"
+msgstr "Something went wrong"
 
 msgid "Source"
 msgstr "Source"
@@ -1066,6 +1153,9 @@ msgstr "The completed quantity for this operation is less than the required quan
 msgid "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
 msgstr "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
 
+msgid "This lot is expired and can't be picked."
+msgstr "This lot is expired and can't be picked."
+
 msgid "Thumbnail"
 msgstr "Thumbnail"
 
@@ -1111,6 +1201,13 @@ msgstr "Unissued serial/batch materials"
 msgid "Unknown"
 msgstr "Unknown"
 
+msgid "Unpick"
+msgstr "Unpick"
+
+#. placeholder {0}: pickedLots[0].trackedEntity.readableId
+msgid "Unpick {0}"
+msgstr "Unpick {0}"
+
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
 
@@ -1133,6 +1230,9 @@ msgstr "View maintenance dispatch"
 
 msgid "We've sent you a magic link to sign in to your account."
 msgstr "We've sent you a magic link to sign in to your account."
+
+msgid "What is {translatedTerm}?"
+msgstr "What is {translatedTerm}?"
 
 msgid "WIP"
 msgstr "WIP"

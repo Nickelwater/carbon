@@ -1,13 +1,14 @@
 import { Text, View } from "@react-pdf/renderer";
 import { AddressBlock } from "../../components";
-import { tw } from "../tw";
+import { useTw } from "../tw";
 import type { PackingSlipData } from "./types";
-
-const columnLabel = tw("text-[9px] font-bold text-gray-600 mb-1 uppercase");
-const columnBody = tw("text-[9px] text-gray-800");
 
 /** Ship To, Sold To, and Ship From addresses in three columns. */
 export function PartiesBlock({ data }: { data: PackingSlipData }) {
+  const tw = useTw();
+  const columnLabel = tw("text-[9px] font-bold text-gray-600 mb-1 uppercase");
+  const columnBody = tw("text-[9px] text-gray-800");
+
   const { customer, shippingAddress, soldToAddress, company } = data;
   const soldTo = soldToAddress ?? shippingAddress;
 

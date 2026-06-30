@@ -1,7 +1,7 @@
 "use client";
 
 import { useCarbon } from "@carbon/auth";
-import { fetchAllFromTable } from "@carbon/database";
+import { type Database, fetchAllFromTable } from "@carbon/database";
 import { useInterval, useRealtimeChannel } from "@carbon/react";
 import { useEffect, useRef } from "react";
 import { useUser } from "~/hooks";
@@ -104,56 +104,67 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
 
     if (!carbon || !accessToken || !isCurrentHydration(generation)) return;
 
-    const [items, suppliers, customers, people] = await Promise.all([
-      fetchAllFromTable<{
-        id: string;
-        readableId: string;
-        readableIdWithRevision: string;
-        unitOfMeasureCode: string;
-        name: string;
-        type: string;
-        replenishmentSystem: string;
-        active: boolean;
-        itemTrackingType: string;
-      }>(
-        carbon,
-        "item",
-        "id, readableId, readableIdWithRevision, unitOfMeasureCode, name, type, replenishmentSystem, active, itemTrackingType",
-        (query) =>
-          query
-            .eq("companyId", companyId)
-            .order("readableId", { ascending: true })
-            .order("revision", { ascending: false })
-      ),
-      fetchAllFromTable<{
-        id: string;
-        name: string;
-        website: string;
-        supplierStatus: string;
-        readableId: string | null;
-      }>(
-        carbon,
-        "supplier",
-        "id, name, website, supplierStatus, readableId",
-        (query) => query.eq("companyId", companyId).order("name")
-      ),
-      fetchAllFromTable<{
-        id: string;
-        name: string;
-        website: string;
-        readableId: string | null;
-      }>(carbon, "customer", "id, name, website, readableId", (query) =>
-        query.eq("companyId", companyId).order("name")
-      ),
-      fetchAllFromTable<{
-        id: string;
-        name: string;
-        email: string;
-        avatarUrl: string;
-      }>(carbon, "employees", "id, name, email, avatarUrl", (query) =>
-        query.eq("companyId", companyId).order("name")
-      )
-    ]);
+    const [items, suppliers, customers, people, supersessions] =
+      await Promise.all([
+        fetchAllFromTable<{
+          id: string;
+          readableId: string;
+          readableIdWithRevision: string;
+          unitOfMeasureCode: string;
+          name: string;
+          type: Database["public"]["Enums"]["itemType"];
+          replenishmentSystem: Database["public"]["Enums"]["itemReplenishmentSystem"];
+          active: boolean;
+          itemTrackingType: Database["public"]["Enums"]["itemTrackingType"];
+        }>(
+          carbon,
+          "item",
+          "id, readableId, readableIdWithRevision, unitOfMeasureCode, name, type, replenishmentSystem, active, itemTrackingType",
+          (query) =>
+            query
+              .eq("companyId", companyId)
+              .order("readableId", { ascending: true })
+              .order("revision", { ascending: false })
+        ),
+        fetchAllFromTable<{
+          id: string;
+          name: string;
+          website: string;
+          supplierStatus: string;
+          readableId: string | null;
+        }>(
+          carbon,
+          "supplier",
+          "id, name, website, supplierStatus, readableId",
+          (query) => query.eq("companyId", companyId).order("name")
+        ),
+        fetchAllFromTable<{
+          id: string;
+          name: string;
+          website: string;
+          readableId: string | null;
+        }>(carbon, "customer", "id, name, website, readableId", (query) =>
+          query.eq("companyId", companyId).order("name")
+        ),
+        fetchAllFromTable<{
+          id: string;
+          name: string;
+          email: string;
+          avatarUrl: string;
+        }>(carbon, "employees", "id, name, email, avatarUrl", (query) =>
+          query.eq("companyId", companyId).order("name")
+        ),
+        fetchAllFromTable<{
+          itemId: string;
+          supersessionMode: Database["public"]["Enums"]["supersessionMode"];
+          successorItemId: string | null;
+        }>(
+          carbon,
+          "itemSupersession",
+          "itemId, supersessionMode, successorItemId",
+          (query) => query.eq("companyId", companyId)
+        )
+      ]);
 
     if (!isCurrentHydration(generation)) return;
 
@@ -170,15 +181,21 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error("Failed to fetch people");
     }
 
-    // @ts-ignore
-    setItems(items.data ?? []);
+    const supersessionByItem = new Map(
+      (supersessions.data ?? []).map((s) => [s.itemId, s])
+    );
+    const itemsWithLifecycle = (items.data ?? []).map((i) => ({
+      ...i,
+      supersessionMode: supersessionByItem.get(i.id)?.supersessionMode ?? null,
+      successorItemId: supersessionByItem.get(i.id)?.successorItemId ?? null
+    }));
+    setItems(itemsWithLifecycle);
     setSuppliers(suppliers.data ?? []);
     setCustomers(customers.data ?? []);
-    // @ts-ignore
     setPeople(people.data ?? []);
 
     await Promise.all([
-      idb.setItem("items", items.data),
+      idb.setItem("items", itemsWithLifecycle),
       idb.setItem("suppliers", suppliers.data),
       idb.setItem("customers", customers.data),
       idb.setItem("people", people.data)
@@ -332,7 +349,7 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                       id: inserted.id,
                       name: inserted.name,
                       website: inserted.website,
-                      readableId: inserted.readableId ?? null
+                      readableId: inserted.readableId ?? undefined
                     }
                   ].sort((a, b) => a.name.localeCompare(b.name))
                 );
@@ -352,7 +369,7 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                           ...p,
                           name: updated.name,
                           website: updated.website,
-                          readableId: updated.readableId ?? p.readableId ?? null
+                          readableId: updated.readableId ?? undefined
                         };
                       }
                       return p;
@@ -395,7 +412,8 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                       id: inserted.id,
                       name: inserted.name,
                       website: inserted.website,
-                      supplierStatus: inserted.supplierStatus
+                      supplierStatus: inserted.supplierStatus,
+                      readableId: inserted.readableId ?? undefined
                     }
                   ].sort((a, b) => a.name.localeCompare(b.name))
                 );
@@ -415,7 +433,8 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                           ...p,
                           name: updated.name,
                           website: updated.website,
-                          supplierStatus: updated.supplierStatus
+                          supplierStatus: updated.supplierStatus,
+                          readableId: updated.readableId ?? undefined
                         };
                       }
                       return p;
