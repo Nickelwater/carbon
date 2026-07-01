@@ -8,6 +8,7 @@
 ALTER TABLE "public"."apiKeyRateLimit" ENABLE ROW LEVEL SECURITY;
 
 -- Read: employees who can view API keys, scoped to the parent key's company.
+DROP POLICY IF EXISTS "SELECT" ON "public"."apiKeyRateLimit";
 CREATE POLICY "SELECT" ON "public"."apiKeyRateLimit"
 FOR SELECT USING (
   EXISTS (

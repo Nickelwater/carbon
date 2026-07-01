@@ -11,7 +11,7 @@
 -- the company-templates bucket by a manual step (ci/src/upload-backup-templates.ts)
 -- — it is not tracked on this table.
 
-CREATE TABLE "industry" (
+CREATE TABLE IF NOT EXISTS "industry" (
   "id"          TEXT PRIMARY KEY,
   "name"        TEXT NOT NULL,
   "description" TEXT,
@@ -32,10 +32,12 @@ VALUES
    'cog', 2),
   ('automotive_precision', 'Motor Assembly',
    'Manufacturer producing precision motor assemblies and components',
-   'wrench', 3);
+   'wrench', 3)
+ON CONFLICT ("id") DO NOTHING;
 
 ALTER TABLE "industry" ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Authenticated users can view industries" ON "industry";
 CREATE POLICY "Authenticated users can view industries"
   ON "industry" FOR SELECT
   USING (auth.role() = 'authenticated');
@@ -59,4 +61,5 @@ CREATE INDEX IF NOT EXISTS "company_industryId_idx" ON "company"("industryId");
 -- tenants can't read each other's buckets). Access is service-role only: the
 -- manual publish script writes here, the onboarding consume step reads here.
 INSERT INTO storage.buckets (id, name, public)
-VALUES ('company-templates', 'company-templates', FALSE);
+VALUES ('company-templates', 'company-templates', FALSE)
+ON CONFLICT (id) DO NOTHING;

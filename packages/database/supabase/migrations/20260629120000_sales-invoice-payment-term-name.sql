@@ -8,7 +8,23 @@
 -- end. So the body below is the current view verbatim (newest definition:
 -- 20260604120000_invoice-totals-computed-in-views.sql) with a single LEFT JOIN
 -- to "paymentTerm" and "paymentTermName" added as the LAST select column.
+--
+-- No-op when salesInvoice.balance was already dropped by a later migration that
+-- recreated this view (schema ahead of migration history).
 
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'salesInvoice'
+      AND column_name = 'balance'
+  ) THEN
+    RETURN;
+  END IF;
+
+  EXECUTE $view$
 CREATE OR REPLACE VIEW "salesInvoices" WITH(SECURITY_INVOKER=true) AS
   SELECT
     si."id",
@@ -88,4 +104,6 @@ CREATE OR REPLACE VIEW "salesInvoices" WITH(SECURITY_INVOKER=true) AS
     GROUP BY sil."invoiceId"
   ) sil ON sil."invoiceId" = si."id"
   JOIN "salesInvoiceShipment" ss ON ss."id" = si."id"
-  LEFT JOIN "paymentTerm" pt ON pt."id" = si."paymentTermId";
+  LEFT JOIN "paymentTerm" pt ON pt."id" = si."paymentTermId"
+$view$;
+END $$;

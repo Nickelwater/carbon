@@ -45,18 +45,11 @@ export default defineConfig(({ isSsrBuild, mode }) => {
       // Avoids partial optimize passes + "file does not exist in .vite/deps"
       // when the browser loads while Vite is still rebundling (common on LAN).
       holdUntilCrawlEnd: true,
-      // Pre-bundle transitive deps of react-phone-number-input / react-dropzone
+      // Pre-bundle react-dropzone / react-phone-number-input (and their trees)
       // so the first form page does not trigger a second optimize + full reload.
       include: [
-        "attr-accept",
-        "classnames",
-        "country-flag-icons/react/3x2",
-        "country-flag-icons/unicode",
-        "file-selector",
-        "input-format/react",
-        "libphonenumber-js/core",
-        "libphonenumber-js/min/metadata",
-        "prop-types",
+        "react-dropzone",
+        "react-phone-number-input",
       ],
     },
     server: {

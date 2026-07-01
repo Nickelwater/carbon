@@ -6,21 +6,25 @@
 
 -- Enums
 
-DROP TYPE IF EXISTS "pickingListStatus";
-CREATE TYPE "pickingListStatus" AS ENUM (
-  'Draft',
-  'In Progress',
-  'Completed',
-  'Cancelled'
-);
+DO $$ BEGIN
+  CREATE TYPE "pickingListStatus" AS ENUM (
+    'Draft',
+    'In Progress',
+    'Completed',
+    'Cancelled'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
-DROP TYPE IF EXISTS "pickingListLineStatus";
-CREATE TYPE "pickingListLineStatus" AS ENUM (
-  'Pending',
-  'Picked',
-  'Short',
-  'Cancelled'
-);
+DO $$ BEGIN
+  CREATE TYPE "pickingListLineStatus" AS ENUM (
+    'Pending',
+    'Picked',
+    'Short',
+    'Cancelled'
+  );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- ============================================================================
 -- pickingList table
@@ -639,6 +643,7 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_picking_list_status_trigger ON "pickingListLine";
 CREATE TRIGGER update_picking_list_status_trigger
   AFTER UPDATE ON "pickingListLine"
   FOR EACH ROW

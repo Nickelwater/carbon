@@ -48,127 +48,150 @@ $$ LANGUAGE plpgsql;
 
 -- ─── child tables (derive companyId from parent) ────────────────────────────
 -- ─── customerContact ← customer ─────────────────────────────────────────────
-ALTER TABLE "customerContact" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "customerContact" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "customerContact" c SET "companyId" = p."companyId" FROM "customer" p WHERE c."customerId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "customerContact";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "customerContact" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('customer', 'customerId');
 ALTER TABLE "customerContact" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "customerContact_companyId_idx" ON "customerContact" ("companyId");
+CREATE INDEX IF NOT EXISTS "customerContact_companyId_idx" ON "customerContact" ("companyId");
 
 -- ─── customerLocation ← customer ────────────────────────────────────────────
-ALTER TABLE "customerLocation" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "customerLocation" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "customerLocation" c SET "companyId" = p."companyId" FROM "customer" p WHERE c."customerId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "customerLocation";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "customerLocation" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('customer', 'customerId');
 ALTER TABLE "customerLocation" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "customerLocation_companyId_idx" ON "customerLocation" ("companyId");
+CREATE INDEX IF NOT EXISTS "customerLocation_companyId_idx" ON "customerLocation" ("companyId");
 
 -- ─── supplierContact ← supplier ─────────────────────────────────────────────
-ALTER TABLE "supplierContact" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "supplierContact" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "supplierContact" c SET "companyId" = p."companyId" FROM "supplier" p WHERE c."supplierId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "supplierContact";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "supplierContact" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('supplier', 'supplierId');
 ALTER TABLE "supplierContact" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "supplierContact_companyId_idx" ON "supplierContact" ("companyId");
+CREATE INDEX IF NOT EXISTS "supplierContact_companyId_idx" ON "supplierContact" ("companyId");
 
 -- ─── supplierLocation ← supplier ────────────────────────────────────────────
-ALTER TABLE "supplierLocation" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "supplierLocation" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "supplierLocation" c SET "companyId" = p."companyId" FROM "supplier" p WHERE c."supplierId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "supplierLocation";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "supplierLocation" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('supplier', 'supplierId');
 ALTER TABLE "supplierLocation" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "supplierLocation_companyId_idx" ON "supplierLocation" ("companyId");
+CREATE INDEX IF NOT EXISTS "supplierLocation_companyId_idx" ON "supplierLocation" ("companyId");
 
 -- ─── quoteLinePrice ← quote ─────────────────────────────────────────────────
-ALTER TABLE "quoteLinePrice" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "quoteLinePrice" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "quoteLinePrice" c SET "companyId" = p."companyId" FROM "quote" p WHERE c."quoteId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "quoteLinePrice";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "quoteLinePrice" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('quote', 'quoteId');
 ALTER TABLE "quoteLinePrice" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "quoteLinePrice_companyId_idx" ON "quoteLinePrice" ("companyId");
+CREATE INDEX IF NOT EXISTS "quoteLinePrice_companyId_idx" ON "quoteLinePrice" ("companyId");
 
 -- ─── supplierQuoteLinePrice ← supplierQuote ─────────────────────────────────
-ALTER TABLE "supplierQuoteLinePrice" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "supplierQuoteLinePrice" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "supplierQuoteLinePrice" c SET "companyId" = p."companyId" FROM "supplierQuote" p WHERE c."supplierQuoteId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "supplierQuoteLinePrice";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "supplierQuoteLinePrice" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('supplierQuote', 'supplierQuoteId');
 ALTER TABLE "supplierQuoteLinePrice" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "supplierQuoteLinePrice_companyId_idx" ON "supplierQuoteLinePrice" ("companyId");
+CREATE INDEX IF NOT EXISTS "supplierQuoteLinePrice_companyId_idx" ON "supplierQuoteLinePrice" ("companyId");
 
 -- ─── purchaseInvoicePriceChange ← purchaseInvoice ───────────────────────────
-ALTER TABLE "purchaseInvoicePriceChange" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "purchaseInvoicePriceChange" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "purchaseInvoicePriceChange" c SET "companyId" = p."companyId" FROM "purchaseInvoice" p WHERE c."invoiceId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "purchaseInvoicePriceChange";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "purchaseInvoicePriceChange" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('purchaseInvoice', 'invoiceId');
 ALTER TABLE "purchaseInvoicePriceChange" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "purchaseInvoicePriceChange_companyId_idx" ON "purchaseInvoicePriceChange" ("companyId");
+CREATE INDEX IF NOT EXISTS "purchaseInvoicePriceChange_companyId_idx" ON "purchaseInvoicePriceChange" ("companyId");
 
 -- ─── purchaseInvoicePaymentRelation ← purchaseInvoice ───────────────────────
-ALTER TABLE "purchaseInvoicePaymentRelation" ADD COLUMN "companyId" TEXT;
-UPDATE "purchaseInvoicePaymentRelation" c SET "companyId" = p."companyId" FROM "purchaseInvoice" p WHERE c."invoiceId" = p."id";
-CREATE TRIGGER "set_company_id" BEFORE INSERT ON "purchaseInvoicePaymentRelation" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('purchaseInvoice', 'invoiceId');
-ALTER TABLE "purchaseInvoicePaymentRelation" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "purchaseInvoicePaymentRelation_companyId_idx" ON "purchaseInvoicePaymentRelation" ("companyId");
+-- Skipped when ar-ap-payments has already dropped this legacy table.
+DO $$ BEGIN
+  IF to_regclass('public."purchaseInvoicePaymentRelation"') IS NOT NULL THEN
+    ALTER TABLE "purchaseInvoicePaymentRelation" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
+    UPDATE "purchaseInvoicePaymentRelation" c SET "companyId" = p."companyId" FROM "purchaseInvoice" p WHERE c."invoiceId" = p."id";
+    DROP TRIGGER IF EXISTS "set_company_id" ON "purchaseInvoicePaymentRelation";
+    CREATE TRIGGER "set_company_id" BEFORE INSERT ON "purchaseInvoicePaymentRelation" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('purchaseInvoice', 'invoiceId');
+    ALTER TABLE "purchaseInvoicePaymentRelation" ALTER COLUMN "companyId" SET NOT NULL;
+    CREATE INDEX IF NOT EXISTS "purchaseInvoicePaymentRelation_companyId_idx" ON "purchaseInvoicePaymentRelation" ("companyId");
+  END IF;
+END $$;
 
 -- ─── pickingListLineTrackedEntity ← pickingListLine ─────────────────────────
-ALTER TABLE "pickingListLineTrackedEntity" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "pickingListLineTrackedEntity" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "pickingListLineTrackedEntity" c SET "companyId" = p."companyId" FROM "pickingListLine" p WHERE c."pickingListLineId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "pickingListLineTrackedEntity";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "pickingListLineTrackedEntity" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('pickingListLine', 'pickingListLineId');
 ALTER TABLE "pickingListLineTrackedEntity" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "pickingListLineTrackedEntity_companyId_idx" ON "pickingListLineTrackedEntity" ("companyId");
+CREATE INDEX IF NOT EXISTS "pickingListLineTrackedEntity_companyId_idx" ON "pickingListLineTrackedEntity" ("companyId");
 
 -- ─── employeeShift ← shift (employeeId is a global user, so derive from shift) ─
-ALTER TABLE "employeeShift" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "employeeShift" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "employeeShift" c SET "companyId" = p."companyId" FROM "shift" p WHERE c."shiftId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "employeeShift";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "employeeShift" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('shift', 'shiftId');
 ALTER TABLE "employeeShift" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "employeeShift_companyId_idx" ON "employeeShift" ("companyId");
+CREATE INDEX IF NOT EXISTS "employeeShift_companyId_idx" ON "employeeShift" ("companyId");
 
 -- ─── documentLabel ← document ───────────────────────────────────────────────
-ALTER TABLE "documentLabel" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "documentLabel" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "documentLabel" c SET "companyId" = p."companyId" FROM "document" p WHERE c."documentId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "documentLabel";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "documentLabel" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('document', 'documentId');
 ALTER TABLE "documentLabel" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "documentLabel_companyId_idx" ON "documentLabel" ("companyId");
+CREATE INDEX IF NOT EXISTS "documentLabel_companyId_idx" ON "documentLabel" ("companyId");
 
 -- ─── contractorAbility ← contractor ─────────────────────────────────────────
-ALTER TABLE "contractorAbility" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "contractorAbility" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "contractorAbility" c SET "companyId" = p."companyId" FROM "contractor" p WHERE c."contractorId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "contractorAbility";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "contractorAbility" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('contractor', 'contractorId');
 ALTER TABLE "contractorAbility" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "contractorAbility_companyId_idx" ON "contractorAbility" ("companyId");
+CREATE INDEX IF NOT EXISTS "contractorAbility_companyId_idx" ON "contractorAbility" ("companyId");
 
 -- ─── salesOrderStatusHistory ← salesOrder ───────────────────────────────────
-ALTER TABLE "salesOrderStatusHistory" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "salesOrderStatusHistory" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "salesOrderStatusHistory" c SET "companyId" = p."companyId" FROM "salesOrder" p WHERE c."salesOrderId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "salesOrderStatusHistory";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "salesOrderStatusHistory" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('salesOrder', 'salesOrderId');
 ALTER TABLE "salesOrderStatusHistory" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "salesOrderStatusHistory_companyId_idx" ON "salesOrderStatusHistory" ("companyId");
+CREATE INDEX IF NOT EXISTS "salesOrderStatusHistory_companyId_idx" ON "salesOrderStatusHistory" ("companyId");
 
 -- ─── salesOrderTransaction ← salesOrder ─────────────────────────────────────
-ALTER TABLE "salesOrderTransaction" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "salesOrderTransaction" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "salesOrderTransaction" c SET "companyId" = p."companyId" FROM "salesOrder" p WHERE c."salesOrderId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "salesOrderTransaction";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "salesOrderTransaction" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('salesOrder', 'salesOrderId');
 ALTER TABLE "salesOrderTransaction" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "salesOrderTransaction_companyId_idx" ON "salesOrderTransaction" ("companyId");
+CREATE INDEX IF NOT EXISTS "salesOrderTransaction_companyId_idx" ON "salesOrderTransaction" ("companyId");
 
 -- ─── purchaseOrderStatusHistory ← purchaseOrder ─────────────────────────────
-ALTER TABLE "purchaseOrderStatusHistory" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "purchaseOrderStatusHistory" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "purchaseOrderStatusHistory" c SET "companyId" = p."companyId" FROM "purchaseOrder" p WHERE c."purchaseOrderId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "purchaseOrderStatusHistory";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "purchaseOrderStatusHistory" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('purchaseOrder', 'purchaseOrderId');
 ALTER TABLE "purchaseOrderStatusHistory" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "purchaseOrderStatusHistory_companyId_idx" ON "purchaseOrderStatusHistory" ("companyId");
+CREATE INDEX IF NOT EXISTS "purchaseOrderStatusHistory_companyId_idx" ON "purchaseOrderStatusHistory" ("companyId");
 
 -- ─── purchaseOrderTransaction ← purchaseOrder ───────────────────────────────
-ALTER TABLE "purchaseOrderTransaction" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "purchaseOrderTransaction" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "purchaseOrderTransaction" c SET "companyId" = p."companyId" FROM "purchaseOrder" p WHERE c."purchaseOrderId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "purchaseOrderTransaction";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "purchaseOrderTransaction" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('purchaseOrder', 'purchaseOrderId');
 ALTER TABLE "purchaseOrderTransaction" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "purchaseOrderTransaction_companyId_idx" ON "purchaseOrderTransaction" ("companyId");
+CREATE INDEX IF NOT EXISTS "purchaseOrderTransaction_companyId_idx" ON "purchaseOrderTransaction" ("companyId");
 
 -- ─── purchaseInvoiceStatusHistory ← purchaseInvoice ─────────────────────────
-ALTER TABLE "purchaseInvoiceStatusHistory" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "purchaseInvoiceStatusHistory" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "purchaseInvoiceStatusHistory" c SET "companyId" = p."companyId" FROM "purchaseInvoice" p WHERE c."invoiceId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "purchaseInvoiceStatusHistory";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "purchaseInvoiceStatusHistory" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('purchaseInvoice', 'invoiceId');
 ALTER TABLE "purchaseInvoiceStatusHistory" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "purchaseInvoiceStatusHistory_companyId_idx" ON "purchaseInvoiceStatusHistory" ("companyId");
+CREATE INDEX IF NOT EXISTS "purchaseInvoiceStatusHistory_companyId_idx" ON "purchaseInvoiceStatusHistory" ("companyId");
 
 -- ─── documentTransaction ← document ─────────────────────────────────────────
-ALTER TABLE "documentTransaction" ADD COLUMN "companyId" TEXT;
+ALTER TABLE "documentTransaction" ADD COLUMN IF NOT EXISTS "companyId" TEXT;
 UPDATE "documentTransaction" c SET "companyId" = p."companyId" FROM "document" p WHERE c."documentId" = p."id";
+DROP TRIGGER IF EXISTS "set_company_id" ON "documentTransaction";
 CREATE TRIGGER "set_company_id" BEFORE INSERT ON "documentTransaction" FOR EACH ROW EXECUTE FUNCTION set_company_id_from_parent('document', 'documentId');
 ALTER TABLE "documentTransaction" ALTER COLUMN "companyId" SET NOT NULL;
-CREATE INDEX "documentTransaction_companyId_idx" ON "documentTransaction" ("companyId");
+CREATE INDEX IF NOT EXISTS "documentTransaction_companyId_idx" ON "documentTransaction" ("companyId");

@@ -9,13 +9,25 @@
 
 DROP VIEW IF EXISTS "purchasingRfqs";
 
-ALTER TABLE "purchasingRfq"
-  ALTER COLUMN "internalNotes" TYPE JSON USING
-    CASE
-      WHEN "internalNotes" IS NULL OR "internalNotes" = '' THEN '{}'::JSON
-      ELSE "internalNotes"::JSON
-    END,
-  ALTER COLUMN "internalNotes" SET DEFAULT '{}';
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'purchasingRfq'
+      AND column_name = 'internalNotes'
+      AND udt_name = 'text'
+  ) THEN
+    ALTER TABLE "purchasingRfq"
+      ALTER COLUMN "internalNotes" TYPE JSON USING
+        CASE
+          WHEN "internalNotes" IS NULL OR "internalNotes" = '' THEN '{}'::JSON
+          ELSE "internalNotes"::JSON
+        END,
+      ALTER COLUMN "internalNotes" SET DEFAULT '{}';
+  END IF;
+END $$;
 
 CREATE OR REPLACE VIEW "purchasingRfqs" WITH(SECURITY_INVOKER=true) AS
   SELECT

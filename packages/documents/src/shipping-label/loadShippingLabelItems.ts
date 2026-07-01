@@ -5,7 +5,6 @@ import {
   splitQuantityIntoBoxes
 } from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { format } from "date-fns";
 import { buildPackListLineQrPayload } from "../qr/pack-list-qr";
 import type { ShippingLabelItem } from "../zpl/shippingLabelTypes";
 
@@ -527,11 +526,14 @@ export async function loadShippingLabelItems(
     }
   }
 
-  const shipDate = format(
+  const shipDate = new Intl.DateTimeFormat("en-US", {
+    month: "numeric",
+    day: "numeric",
+    year: "numeric"
+  }).format(
     shipment.data.postingDate
       ? new Date(`${shipment.data.postingDate}T00:00:00`)
-      : new Date(),
-    "M/d/yyyy"
+      : new Date()
   );
 
   const supplierLines = formatCompanyLines(company.data);
