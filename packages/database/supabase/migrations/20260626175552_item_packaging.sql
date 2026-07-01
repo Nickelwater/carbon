@@ -1,7 +1,7 @@
 -- Per-item packaging settings for shipping labels (box quantity, weight, standard packaging item).
 -- Keyed by itemId like itemShelfLife — item-level, not per-location.
 
-CREATE TABLE "itemPackaging" (
+CREATE TABLE IF NOT EXISTS "itemPackaging" (
   "itemId" TEXT NOT NULL,
   "boxQuantity" NUMERIC,
   "partWeight" NUMERIC,
@@ -33,13 +33,14 @@ CREATE TABLE "itemPackaging" (
     CHECK ("partWeight" IS NULL OR "partWeight" > 0)
 );
 
-CREATE INDEX "itemPackaging_companyId_idx"
+CREATE INDEX IF NOT EXISTS "itemPackaging_companyId_idx"
   ON "itemPackaging" ("companyId");
-CREATE INDEX "itemPackaging_standardPackagingItemId_idx"
+CREATE INDEX IF NOT EXISTS "itemPackaging_standardPackagingItemId_idx"
   ON "itemPackaging" ("standardPackagingItemId");
 
 ALTER TABLE "itemPackaging" ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "SELECT" ON "public"."itemPackaging";
 CREATE POLICY "SELECT" ON "public"."itemPackaging"
 FOR SELECT USING (
   "companyId" = ANY (
@@ -47,6 +48,7 @@ FOR SELECT USING (
   )
 );
 
+DROP POLICY IF EXISTS "INSERT" ON "public"."itemPackaging";
 CREATE POLICY "INSERT" ON "public"."itemPackaging"
 FOR INSERT WITH CHECK (
   "companyId" = ANY (
@@ -54,6 +56,7 @@ FOR INSERT WITH CHECK (
   )
 );
 
+DROP POLICY IF EXISTS "UPDATE" ON "public"."itemPackaging";
 CREATE POLICY "UPDATE" ON "public"."itemPackaging"
 FOR UPDATE USING (
   "companyId" = ANY (
@@ -61,6 +64,7 @@ FOR UPDATE USING (
   )
 );
 
+DROP POLICY IF EXISTS "DELETE" ON "public"."itemPackaging";
 CREATE POLICY "DELETE" ON "public"."itemPackaging"
 FOR DELETE USING (
   "companyId" = ANY (

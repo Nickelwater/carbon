@@ -9,7 +9,7 @@
 -- The "sourcingType" enum already exists (20260321230229_sourcing-types.sql).
 
 ALTER TABLE "item"
-  ADD COLUMN "sourcingType" "sourcingType" NOT NULL DEFAULT 'Specified';
+  ADD COLUMN IF NOT EXISTS "sourcingType" "sourcingType" NOT NULL DEFAULT 'Specified';
 
 -- Backfill from the most common existing methodMaterial.sourcingType per item
 -- so existing BOMs keep their current sourcing instead of resetting to

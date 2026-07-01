@@ -28,6 +28,7 @@
 -- AR tie-out
 -- ============================================================
 
+DROP FUNCTION IF EXISTS get_ar_tie_out(TEXT, DATE);
 CREATE OR REPLACE FUNCTION get_ar_tie_out(
   _company_id TEXT,
   _as_of_date DATE
@@ -115,6 +116,7 @@ $$;
 -- ============================================================
 -- Active state for purchase invoices is 'Open'.
 
+DROP FUNCTION IF EXISTS get_ap_tie_out(TEXT, DATE);
 CREATE OR REPLACE FUNCTION get_ap_tie_out(
   _company_id TEXT,
   _as_of_date DATE
@@ -197,6 +199,7 @@ $$;
 -- Drill-down: open AR invoices per customer (as-of date)
 -- ============================================================
 
+DROP FUNCTION IF EXISTS get_ar_open_by_customer(TEXT, DATE);
 CREATE OR REPLACE FUNCTION get_ar_open_by_customer(
   _company_id TEXT,
   _as_of_date DATE
@@ -248,6 +251,7 @@ $$;
 -- Drill-down: open AP invoices per supplier (as-of date)
 -- ============================================================
 
+DROP FUNCTION IF EXISTS get_ap_open_by_supplier(TEXT, DATE);
 CREATE OR REPLACE FUNCTION get_ap_open_by_supplier(
   _company_id TEXT,
   _as_of_date DATE

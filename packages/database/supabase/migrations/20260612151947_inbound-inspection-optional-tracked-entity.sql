@@ -10,6 +10,6 @@ ALTER TABLE "inboundInspectionSample"
 ALTER TABLE "inboundInspectionSample"
   DROP CONSTRAINT IF EXISTS "inboundInspectionSample_trackedEntityId_unique";
 
-CREATE UNIQUE INDEX "inboundInspectionSample_trackedEntityId_key"
+CREATE UNIQUE INDEX IF NOT EXISTS "inboundInspectionSample_trackedEntityId_key"
   ON "inboundInspectionSample" ("trackedEntityId")
   WHERE "trackedEntityId" IS NOT NULL;
