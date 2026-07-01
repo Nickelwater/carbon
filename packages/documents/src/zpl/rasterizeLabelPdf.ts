@@ -63,5 +63,5 @@ export async function rasterizePdfToShippingLabelZpl(
   );
   const gfa = await pngToGfa(physicalPng);
 
-  return `^XA^PW${physicalW}^LL${physicalH}^MNN^CI28^PQ1^FO0,0${gfa}^FS^XZ`;
+  return `^XA^PW${physicalW}^LL${physicalH}^MNY^CI28^PQ1^FO0,0${gfa}^FS^XZ`;
 }

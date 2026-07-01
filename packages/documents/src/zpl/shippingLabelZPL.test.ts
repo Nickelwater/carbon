@@ -42,7 +42,7 @@ describe("generateShippingLabelZPL", () => {
     expect(zpl).toContain("^PW812^LL1218");
     expect(zpl).toContain("^PQ1");
     expect(zpl).toContain("^PO R");
-    expect(zpl).toContain("^MNN");
+    expect(zpl).toContain("^MNY");
     expect(zpl).toContain("^BCN");
     expect(zpl).toContain("^BQN");
     expect(zpl).toContain("01-0129");

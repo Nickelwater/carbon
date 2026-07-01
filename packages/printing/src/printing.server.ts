@@ -4,7 +4,10 @@ export {
   invalidatePrinterCache
 } from "./cache.server";
 export type { DeliverPrintJobResult } from "./delivery/deliverPrintJob";
-export { deliverPrintJob } from "./delivery/deliverPrintJob";
+export {
+  deliverCombinedPrintJobs,
+  deliverPrintJob
+} from "./delivery/deliverPrintJob";
 export {
   isConnectionRefusedError,
   isLikelyPrinterDeliveryCompleteError

@@ -82,6 +82,15 @@ CARBON_DEV_HOST=192.168.1.42 crbn up --lan
 
 Register OAuth redirect URIs against `http://<your-ip>:54321/auth/v1/callback` if you use Google/Azure login on LAN devices.
 
+### Troubleshooting LAN dev
+
+**Blank page with "Upgrade Required" in the corner** — Vite HMR could not open its websocket (HTTP 426). Common causes:
+
+- `CARBON_DEV_HOST` points at a stale or virtual NIC IP (e.g. Hyper-V `192.168.218.1`) while you browse `http://10.x.x.x:3000`. Pin the real LAN IP: `CARBON_DEV_HOST=10.66.77.77 crbn up --lan`, then `crbn down` and restart.
+- After changing `.env.local`, restart dev servers (`crbn down` / `crbn up --lan`).
+
+HMR uses the hostname from your browser URL; it no longer hard-codes `CARBON_DEV_HOST` for the websocket (see `packages/dev/vite.js`).
+
 ## Project naming
 
 Compose projects are prefixed `carbon-<slug>` (e.g. `carbon-feature-foo`). The slug is derived from the worktree directory name and persisted in `.carbon-worktree`.

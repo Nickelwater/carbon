@@ -16,12 +16,30 @@ const CATALOG_GLOB = "packages/locale/locales/*/*.po";
 const STRIP_DATE = /^"POT-Creation-Date: .*\\n"\n/m;
 const STRIP_ORIGIN = /^#:.*\n/gm;
 
+function writeFileWithRetry(path, content) {
+  const maxAttempts = 8;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      writeFileSync(path, content);
+      return;
+    } catch (err) {
+      const code = err && typeof err === "object" ? err.code : undefined;
+      const retriable = code === "UNKNOWN" || code === "EBUSY" || code === "EPERM";
+      if (!retriable || attempt === maxAttempts) {
+        throw err;
+      }
+      // lingui:extract may still hold handles briefly on Windows.
+      Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 50 * attempt);
+    }
+  }
+}
+
 let touched = 0;
 for await (const path of glob(CATALOG_GLOB)) {
   const src = readFileSync(path, "utf8");
   const out = src.replace(STRIP_DATE, "").replace(STRIP_ORIGIN, "");
   if (out !== src) {
-    writeFileSync(path, out);
+    writeFileWithRetry(path, out);
     touched += 1;
   }
 }

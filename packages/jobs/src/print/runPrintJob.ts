@@ -11,6 +11,7 @@ import {
   updatePrintJobStatus
 } from "@carbon/printing";
 import {
+  deliverCombinedPrintJobs,
   deliverPrintJob,
   getCachedPrinterConfig
 } from "@carbon/printing/printing.server";
@@ -291,7 +292,7 @@ function docStepKey(doc: PrintableDocumentItem, index: number): string {
   }
 }
 
-async function generateAndDeliverOne(
+async function generateOne(
   client: SupabaseClient<Database>,
   ctx: {
     documentTypeId: DocumentTypeId;
@@ -308,7 +309,8 @@ async function generateAndDeliverOne(
     readableId: string | null;
   },
   doc: PrintableDocumentItem,
-  description: string
+  description: string,
+  options: { skipDelivery?: boolean } = {}
 ): Promise<string> {
   const {
     documentTypeId,
@@ -410,12 +412,12 @@ async function generateAndDeliverOne(
     throw renderError;
   }
 
-  if (printerUrl) {
+  if (printerUrl && !options.skipDelivery) {
     const result = await deliverPrintJob(client, activeJobId, companyId);
     if (!result.success) {
       throw new Error(result.error);
     }
-  } else {
+  } else if (!printerUrl) {
     await updatePrintJobStatus(client, activeJobId, companyId, "completed");
   }
 
@@ -464,6 +466,8 @@ async function processDocumentType(
 
   const printJobIds: string[] = [];
   const runStep = step?.run ?? ((_id, fn) => fn());
+  const batchZplDelivery =
+    ctx.format === "zpl" && Boolean(ctx.printerUrl) && docs.length > 1;
 
   for (let index = 0; index < docs.length; index++) {
     const doc = docs[index]!;
@@ -473,10 +477,28 @@ async function processDocumentType(
     const jobId = (await runStep(
       `print-${documentTypeId}-${sourceDocumentId}-${stepKey}`,
       () =>
-        generateAndDeliverOne(client, { ...ctx, readableId }, doc, description)
+        generateOne(client, { ...ctx, readableId }, doc, description, {
+          skipDelivery: batchZplDelivery
+        })
     )) as string;
 
     printJobIds.push(jobId);
+  }
+
+  if (batchZplDelivery) {
+    await runStep(
+      `deliver-${documentTypeId}-${sourceDocumentId}-batch`,
+      async () => {
+        const result = await deliverCombinedPrintJobs(
+          client,
+          printJobIds,
+          companyId
+        );
+        if (!result.success) {
+          throw new Error(result.error);
+        }
+      }
+    );
   }
 
   return printJobIds;

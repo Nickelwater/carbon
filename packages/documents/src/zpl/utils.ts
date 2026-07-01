@@ -39,13 +39,14 @@ export function getZplLabelGeometry(labelSize: LabelSize): ZplLabelGeometry {
   return { widthDots, heightDots, wScale, hScale, scale, margin };
 }
 
-/** Standard label preamble: start format, set size, no media tracking, UTF-8. */
+/** Standard label preamble: start format, set size, media tracking, UTF-8. */
 export function zplLabelHeader(
   { widthDots, heightDots }: ZplLabelGeometry,
   options?: ZplLabelHeaderOptions
 ): string {
   if (options?.landscapeOnStock) {
-    return `^XA^PW${heightDots}^LL${widthDots}^PO R^MNN^CI28^PQ1`;
+    // ^MNY = non-continuous die-cut stock with gap/web sensing (^MNN = continuous, ignores gaps).
+    return `^XA^PW${heightDots}^LL${widthDots}^PO R^MNY^CI28^PQ1`;
   }
   return `^XA^PW${widthDots}^LL${heightDots}^MNW^CI28`;
 }
