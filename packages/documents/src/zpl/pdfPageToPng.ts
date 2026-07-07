@@ -1,9 +1,25 @@
+import { createRequire } from "node:module";
+import path from "node:path";
 import { createCanvas } from "@napi-rs/canvas";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+
+const require = createRequire(import.meta.url);
+
+/** pdf.js needs bundled standard-font files to draw PDF base fonts (Helvetica, etc.). */
+function getStandardFontDataUrl(): string {
+  return `${path.join(
+    path.dirname(require.resolve("pdfjs-dist/package.json")),
+    "standard_fonts"
+  )}${path.sep}`;
+}
 
 /**
  * Render the first page of a PDF to a PNG buffer at the target pixel size.
  * Uses pdfjs in Node (no Ghostscript).
+ *
+ * Shipping labels use PDF standard fonts (Helvetica). In Node, pdf.js must load
+ * the bundled standard font pack and must not fall back to system fonts, or
+ * rasterized ZPL typography diverges from the PDF preview.
  */
 export async function pdfPageToPng(
   pdfBuffer: Buffer,
@@ -12,8 +28,9 @@ export async function pdfPageToPng(
 ): Promise<Buffer> {
   const doc = await getDocument({
     data: new Uint8Array(pdfBuffer),
-    useSystemFonts: true,
-    disableFontFace: true
+    standardFontDataUrl: getStandardFontDataUrl(),
+    disableFontFace: true,
+    useSystemFonts: false
   }).promise;
 
   const page = await doc.getPage(1);
