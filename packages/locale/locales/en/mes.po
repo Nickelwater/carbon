@@ -867,6 +867,9 @@ msgstr "Preventive"
 msgid "Preview PDF"
 msgstr "Preview PDF"
 
+msgid "Previous"
+msgstr "Previous"
+
 msgid "Print"
 msgstr "Print"
 

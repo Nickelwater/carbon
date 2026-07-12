@@ -6,7 +6,7 @@ import { join } from "pathe";
 import pc from "picocolors";
 import { isAtLeastAsNew, onShutdown, readLines } from "../helpers.js";
 import { DEV_BIND_ALL, DEV_BIND_LOCAL } from "../network.js";
-import type { PortMap } from "../worktree.js";
+import { type PortMap, sameWorktreePath } from "../worktree.js";
 
 const APP_COLORS: Record<string, (s: string) => string> = {
   erp: pc.cyan,
@@ -236,6 +236,86 @@ export function spawnApps(opts: {
     });
 }
 
+export function spawnGeometry(opts: {
+  root: string;
+  ports: PortMap;
+}): ExecaChildProcess | null {
+  const { root, ports } = opts;
+  const serviceDir = join(root, "services", "geometry");
+  const venvPython = join(serviceDir, ".venv", "bin", "python");
+
+  if (!existsSync(venvPython)) {
+    const prefix = pc.yellow(pc.bold("geo | "));
+    process.stderr.write(
+      `${prefix}${pc.dim("skipped — no .venv (run: cd services/geometry && python3 -m venv .venv && .venv/bin/pip install -e .)")}\n`
+    );
+    return null;
+  }
+
+  const color = pc.yellow;
+  const port = ports.PORT_GEOMETRY;
+
+  // Trust portless's self-signed CA so the service can fetch signed URLs
+  // from the local Supabase storage (served over HTTPS via portless).
+  const caPath = join(homedir(), ".portless", "ca.pem");
+  const caEnv = existsSync(caPath)
+    ? { SSL_CERT_FILE: caPath, REQUESTS_CA_BUNDLE: caPath }
+    : {};
+
+  const child = execa(
+    venvPython,
+    [
+      "-m",
+      "uvicorn",
+      "app.main:app",
+      "--port",
+      String(port),
+      "--host",
+      "127.0.0.1",
+      "--reload"
+    ],
+    {
+      cwd: serviceDir,
+      env: {
+        ...process.env,
+        ...caEnv,
+        GEOMETRY_SERVICE_API_KEY: "dev-local-key",
+        GEOMETRY_DEV_MODE: "true"
+      },
+      reject: false,
+      stdin: "ignore",
+      detached: true
+    }
+  );
+
+  const prefix = color(pc.bold("geo | "));
+  const pipe = (
+    stream: NodeJS.ReadableStream | null,
+    sink: NodeJS.WriteStream
+  ) => {
+    if (!stream) return;
+    readLines(stream, (line) => {
+      if (isNoiseLine(line)) return;
+      sink.write(`${prefix}${line}\n`);
+    });
+  };
+  pipe(child.stdout, process.stdout);
+  pipe(child.stderr, process.stderr);
+
+  onShutdown(() => {
+    if (child.exitCode !== null || !child.pid) return;
+    try {
+      process.kill(-child.pid, "SIGTERM");
+    } catch {
+      try {
+        child.kill("SIGTERM");
+      } catch {}
+    }
+  });
+
+  return child;
+}
+
 // Detached + reject:false so the caller owns the lifecycle: kill the whole
 // process group on teardown (apps mode) or `unref()` it to outlive crbn
 // (services-only mode). Previously fire-and-forget `.unref()`, which orphaned
@@ -282,4 +362,84 @@ export async function syncEnvSymlinks(root: string) {
     process.stderr.write(r.stderr?.toString() ?? "");
     throw new Error(`setup-env-files failed (exit ${r.exitCode})`);
   }
+}
+
+// Re-link .ai/ rules and skills into the .claude/ and .codex/ harness dirs.
+// Those symlinks are gitignored, so a fresh worktree has none until this runs;
+// and `pnpm install`'s `prepare` hook only fires when the lockfile changes, so
+// `crbn up` can't lean on it to keep them fresh. The script is idempotent and
+// fast (just recreates symlinks) — safe to run on every boot. Non-fatal: skills
+// are dev tooling, so a failure warns rather than aborting the stack boot.
+export async function installSkills(root: string): Promise<boolean> {
+  const script = join(root, ".ai", "scripts", "install-skills.sh");
+  if (!existsSync(script)) return false;
+  const r = await execa("bash", [script], { cwd: root, reject: false });
+  if (r.exitCode !== 0) {
+    process.stderr.write(r.stderr?.toString() ?? "");
+    return false;
+  }
+  return true;
+}
+
+// ---------------------------------------------------------------------------
+// Orphan cleanup — used by `crbn down` to kill host processes that survived
+// a crashed `crbn up`. Dev servers and the stripe listener are spawned
+// `detached: true` so they outlive the parent; without this, orphaned
+// processes hold the worktree's ports and block the next `crbn up`.
+// ---------------------------------------------------------------------------
+
+// Kill processes listening on PORT_ERP / PORT_MES. Port-based lookup is
+// reliable since ports are unique per worktree (allocated in the slot
+// registry). Best-effort — silently skips ports with nothing listening.
+export async function killOrphanedApps(ports: PortMap): Promise<void> {
+  const appPorts = [ports.PORT_ERP, ports.PORT_MES];
+  for (const port of appPorts) {
+    const r = await execa("lsof", ["-ti", `:${port}`], { reject: false });
+    if (r.exitCode !== 0) continue;
+    const pids = r.stdout
+      .split("\n")
+      .map((s) => Number(s.trim()))
+      .filter((n) => n > 0);
+    for (const pid of pids) {
+      try {
+        process.kill(pid, "SIGKILL");
+        // biome-ignore lint/suspicious/noEmptyBlockStatements: best-effort kill
+      } catch {}
+    }
+  }
+}
+
+// Kill the stripe listener (`tsx ./stripe.dev.ts`) whose cwd matches this
+// worktree. Cloud-edition only — silently no-ops when nothing matches.
+export async function killOrphanedStripe(root: string): Promise<void> {
+  const r = await execa("pgrep", ["-f", "stripe.dev.ts"], { reject: false });
+  if (r.exitCode !== 0) return;
+  const pids = r.stdout
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  for (const pidStr of pids) {
+    const pid = Number(pidStr);
+    if (!pid) continue;
+    const cwd = await processCwd(pid);
+    if (cwd && sameWorktreePath(cwd, root)) {
+      try {
+        process.kill(pid, "SIGKILL");
+        // biome-ignore lint/suspicious/noEmptyBlockStatements: best-effort kill
+      } catch {}
+    }
+  }
+}
+
+// Resolve a process's current working directory via lsof (macOS + Linux).
+// Returns null if the process is gone or lsof isn't available.
+async function processCwd(pid: number): Promise<string | null> {
+  const r = await execa("lsof", ["-a", "-p", String(pid), "-d", "cwd", "-Fn"], {
+    reject: false
+  });
+  if (r.exitCode !== 0) return null;
+  for (const line of r.stdout.split("\n")) {
+    if (line.startsWith("n")) return line.slice(1);
+  }
+  return null;
 }

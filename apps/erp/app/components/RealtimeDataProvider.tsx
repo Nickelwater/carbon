@@ -2,12 +2,31 @@
 
 import { useCarbon } from "@carbon/auth";
 import { type Database, fetchAllFromTable } from "@carbon/database";
+import { getLogger } from "@carbon/logger";
 import { useInterval, useRealtimeChannel } from "@carbon/react";
 import { useEffect, useRef } from "react";
 import { useUser } from "~/hooks";
-import { useCustomers, useItems, usePeople, useSuppliers } from "~/stores";
+import {
+  upsertIntoListStore,
+  useCustomers,
+  useItems,
+  usePeople,
+  useSuppliers
+} from "~/stores";
 import type { Item } from "~/stores/items";
 import type { ListItem } from "~/types";
+
+const logger = getLogger("erp", "realtime-data-provider");
+
+// IndexedDB entries are keyed per company (`customers:<companyId>`) — a global
+// key let one company's cached list hydrate the pickers after switching to
+// another company, which produced cross-tenant refs (e.g. a salesOrder pointing
+// at another company's customer). `activeCompanyId` also guards the async idb /
+// fetch callbacks racing a mid-flight company switch.
+let activeCompanyId: string | null = null;
+let hydratedFromServer = false;
+
+const LEGACY_IDB_KEYS = ["customers", "items", "suppliers", "people"];
 
 const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
   const { carbon, accessToken } = useCarbon();
@@ -75,31 +94,36 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
 
   const hydrate = async (generation: number, companyChanged: boolean) => {
     const idb = (await import("localforage")).default;
+    const requestedCompanyId = companyId;
 
-    if (companyChanged) {
-      await Promise.all([
-        idb.removeItem("customers"),
-        idb.removeItem("suppliers"),
-        idb.removeItem("items"),
-        idb.removeItem("people")
-      ]);
-      if (!isCurrentHydration(generation)) return;
-    } else {
-      const [idbCustomers, idbItems, idbSuppliers, idbPeople] =
-        await Promise.all([
-          idb.getItem("customers"),
-          idb.getItem("items"),
-          idb.getItem("suppliers"),
-          idb.getItem("people")
-        ]);
+    if (companyChanged || activeCompanyId !== requestedCompanyId) {
+      activeCompanyId = requestedCompanyId;
+      hydratedFromServer = false;
+
+      for (const key of LEGACY_IDB_KEYS) {
+        void idb.removeItem(key);
+      }
 
       if (!isCurrentHydration(generation)) return;
 
-      if (idbCustomers) setCustomers(idbCustomers as ListItem[], true);
-      if (idbItems) setItems(idbItems as Item[], true);
-      if (idbSuppliers) setSuppliers(idbSuppliers as ListItem[], true);
-      // @ts-ignore
-      if (idbPeople) setPeople(idbPeople, true);
+      const fresh = () =>
+        !hydratedFromServer &&
+        isCurrentHydration(generation) &&
+        activeCompanyId === requestedCompanyId;
+
+      idb.getItem(`customers:${requestedCompanyId}`).then((data) => {
+        if (data && fresh()) setCustomers(data as ListItem[], true);
+      });
+      idb.getItem(`items:${requestedCompanyId}`).then((data) => {
+        if (data && fresh()) setItems(data as Item[], true);
+      });
+      idb.getItem(`suppliers:${requestedCompanyId}`).then((data) => {
+        if (data && fresh()) setSuppliers(data as ListItem[], true);
+      });
+      idb.getItem(`people:${requestedCompanyId}`).then((data) => {
+        // @ts-ignore
+        if (data && fresh()) setPeople(data, true);
+      });
     }
 
     if (!carbon || !accessToken || !isCurrentHydration(generation)) return;
@@ -181,6 +205,10 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
       throw new Error("Failed to fetch people");
     }
 
+    if (activeCompanyId !== requestedCompanyId) return;
+
+    hydratedFromServer = true;
+
     const supersessionByItem = new Map(
       (supersessions.data ?? []).map((s) => [s.itemId, s])
     );
@@ -195,10 +223,10 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
     setPeople(people.data ?? []);
 
     await Promise.all([
-      idb.setItem("items", itemsWithLifecycle),
-      idb.setItem("suppliers", suppliers.data),
-      idb.setItem("customers", customers.data),
-      idb.setItem("people", people.data)
+      idb.setItem(`items:${requestedCompanyId}`, itemsWithLifecycle),
+      idb.setItem(`suppliers:${requestedCompanyId}`, suppliers.data),
+      idb.setItem(`customers:${requestedCompanyId}`, customers.data),
+      idb.setItem(`people:${requestedCompanyId}`, people.data)
     ]);
 
     if (!isCurrentHydration(generation)) return;
@@ -217,7 +245,6 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
   // biome-ignore lint/correctness/useExhaustiveDependencies: hydrate closes over setters + idb
   useEffect(() => {
     if (!companyId) return;
-
     const companyChanged =
       previousCompanyId.current !== null &&
       previousCompanyId.current !== companyId;
@@ -230,7 +257,7 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
     }
 
     hydrate(generation, companyChanged).catch((err) =>
-      console.error("hydrate failed:", err)
+      logger.error("hydrate failed", { error: err })
     );
   }, [companyId, carbon, accessToken]);
 
@@ -342,16 +369,15 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                 )
                   return;
                 const { new: inserted } = payload;
+                // upsert (not append): the create-on-the-fly flow may have
+                // already added this customer synchronously.
                 setCustomers((customers) =>
-                  [
-                    ...customers,
-                    {
-                      id: inserted.id,
-                      name: inserted.name,
-                      website: inserted.website,
-                      readableId: inserted.readableId ?? undefined
-                    }
-                  ].sort((a, b) => a.name.localeCompare(b.name))
+                  upsertIntoListStore(customers, {
+                    id: inserted.id,
+                    name: inserted.name,
+                    website: inserted.website,
+                    readableId: inserted.readableId ?? undefined
+                  })
                 );
                 break;
               case "UPDATE":
@@ -404,18 +430,16 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                 )
                   return;
                 const { new: inserted } = payload;
-
+                // upsert (not append): the create-on-the-fly flow may have
+                // already added this supplier synchronously.
                 setSuppliers((suppliers) =>
-                  [
-                    ...suppliers,
-                    {
-                      id: inserted.id,
-                      name: inserted.name,
-                      website: inserted.website,
-                      supplierStatus: inserted.supplierStatus,
-                      readableId: inserted.readableId ?? undefined
-                    }
-                  ].sort((a, b) => a.name.localeCompare(b.name))
+                  upsertIntoListStore(suppliers, {
+                    id: inserted.id,
+                    name: inserted.name,
+                    website: inserted.website,
+                    supplierStatus: inserted.supplierStatus,
+                    readableId: inserted.readableId ?? undefined
+                  })
                 );
                 break;
               case "UPDATE":

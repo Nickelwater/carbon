@@ -2,6 +2,7 @@
 import { useCarbon } from "@carbon/auth";
 import type { Database } from "@carbon/database";
 import { Array as ArrayInput, Input, ValidatedForm } from "@carbon/form";
+import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
 import {
   Alert,
@@ -159,6 +160,8 @@ import { getProductionEventsPage } from "../../production.service";
 import type { Job, JobOperation } from "../../types";
 import { JobOperationStatus, JobOperationTags } from "./JobOperationStatus";
 import { OperationDueDatePicker } from "./OperationDueDatePicker";
+
+const logger = getLogger("erp", "production", "job-bill-of-process");
 
 export type Operation = z.infer<typeof jobOperationValidator> & {
   assignee: string | null;
@@ -425,12 +428,22 @@ const JobBillOfProcess = ({
   // biome-ignore lint/correctness/noUnusedVariables: suppressed due to migration
   const { carbon, accessToken } = useCarbon();
   const sortOrderFetcher = useFetcher<{}>();
-  const deleteOperationFetcher = useFetcher<{ success: boolean }>();
+  const deleteOperationFetcher = useFetcher<{
+    success: boolean;
+    error?: string;
+  }>();
   const permissions = usePermissions();
   const {
     id: userId,
     company: { id: companyId }
   } = useUser();
+
+  useEffect(() => {
+    const result = deleteOperationFetcher.data;
+    if (result && !result.success && result.error) {
+      toast.error(result.error);
+    }
+  }, [deleteOperationFetcher.data]);
 
   const [params] = useUrlParams();
   const selected = params.get("selectedOperation");
@@ -964,7 +977,6 @@ const JobBillOfProcess = ({
         onToggleItem={onToggleItem}
         onRemoveItem={onRemoveItem}
         handleDrag={onCloseOnDrag}
-        className="my-2 "
         renderExtra={(item) => (
           <div key={`${isOpen}`}>
             <motion.button
@@ -3322,7 +3334,7 @@ function OperationChat({ jobOperationId }: { jobOperationId: string }) {
       .order("createdAt", { ascending: true });
 
     if (error) {
-      console.error(error);
+      logger.error("Failed to update job bill of process", { error });
       return;
     }
     setMessages(data);
@@ -3385,7 +3397,7 @@ function OperationChat({ jobOperationId }: { jobOperationId: string }) {
       });
 
       if (!response.ok) {
-        console.error("Failed to notify user");
+        logger.error("Failed to notify user");
       }
     },
     5000,

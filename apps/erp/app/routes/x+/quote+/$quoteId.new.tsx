@@ -3,6 +3,7 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
+import { getLogger } from "@carbon/logger";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 import {
@@ -21,6 +22,8 @@ import {
 import { setCustomFields } from "~/utils/form";
 import { requireUnlocked } from "~/utils/lockedGuard.server";
 import { path } from "~/utils/path";
+
+const logger = getLogger("erp", "quote");
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
@@ -143,8 +146,8 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (d.configuration) {
     try {
       configuration = JSON.parse(d.configuration);
-    } catch (err) {
-      console.error(err);
+    } catch (error) {
+      logger.error("Failed to parse quote line configuration", { error });
     }
   }
 
@@ -158,6 +161,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
   });
 
   if (createQuotationLine.error) {
+    logger.error("Failed to create quote line", {
+      error: createQuotationLine.error
+    });
     throw redirect(
       path.to.quote(quoteId),
       await flash(

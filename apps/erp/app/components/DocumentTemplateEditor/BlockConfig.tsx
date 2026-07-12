@@ -261,9 +261,9 @@ function TypeBadge({ category }: { category: BlockCategory }) {
 }
 
 /**
- * Header & footer are global shared sections — their fields (logo, which
- * company details show) and banner content are edited in a dialog opened right
- * here. The footer also owns its page-number + registration-line settings.
+ * Header & footer are global shared sections — their config (header: logo +
+ * which company details show; footer: registration line) and content are
+ * edited in a dialog opened right here. Page numbers stay per-template below.
  */
 function ChromeConfig({ kind }: { kind: "header" | "footer" }) {
   const { sections } = useDocumentTemplate();
@@ -317,7 +317,8 @@ function ChromeConfig({ kind }: { kind: "header" | "footer" }) {
   );
 }
 
-/** Footer page-number + registration-line settings. */
+/** Footer page-number settings. The registration line is configured on the
+ * shared footer section itself (edit the footer section to change it). */
 function FooterSettings() {
   const { footerSectionId, settings, setSetting } = useDocumentTemplate();
   const hidden = footerSectionId === null;
@@ -358,13 +359,6 @@ function FooterSettings() {
             <SelectItem value="page">Page 1</SelectItem>
           </SelectContent>
         </Select>
-      </div>
-      <div className={hidden ? "pointer-events-none opacity-60" : undefined}>
-        <ToggleRow
-          label="Registration line"
-          checked={settings.showRegistrationLine}
-          onChange={(v) => setSetting("showRegistrationLine", v)}
-        />
       </div>
     </div>
   );

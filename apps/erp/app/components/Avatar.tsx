@@ -10,17 +10,14 @@ type AvatarProps = AvatarBaseProps & {
 };
 
 const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
-  (
-    { name, path, bucket = "avatars", imageUrl: imageUrlProp, ...props },
-    ref
-  ) => {
-    const imageUrl = imageUrlProp
+  ({ name, path, bucket = "avatars", imageUrl: imageUrlProp, ...props }, ref) => {
+    const finalImageUrl = imageUrlProp
       ? imageUrlProp
       : path
         ? getStoragePath(bucket, path)
         : undefined;
 
-    return <AvatarBase src={imageUrl} name={name} ref={ref} {...props} />;
+    return <AvatarBase src={finalImageUrl} name={name} ref={ref} {...props} />;
   }
 );
 Avatar.displayName = "Avatar";

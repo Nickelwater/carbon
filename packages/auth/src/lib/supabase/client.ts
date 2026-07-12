@@ -64,7 +64,9 @@ export const getCarbonClient = (
   return client;
 };
 
-export const getCarbonAPIKeyClient = (apiKey: string) => {
+export const getCarbonAPIKeyClient = (
+  apiKey: string
+): SupabaseClient<Database, "public"> => {
   const client = createClient<Database, "public">(
     getSupabaseUrl(),
     SUPABASE_ANON_KEY!,
@@ -83,7 +85,7 @@ export const getCarbonAPIKeyClient = (apiKey: string) => {
 
 export const createCarbonWithAuthGetter = (
   store: MutableRefObject<StoreApi<{ accessToken: string }>>
-) => {
+): SupabaseClient<Database, "public"> => {
   return createClient<Database, "public">(
     getSupabaseUrl(),
     SUPABASE_ANON_KEY!,
@@ -104,7 +106,9 @@ export const createCarbonWithAuthGetter = (
   );
 };
 
-export const getCarbon = (accessToken?: string) => {
+export const getCarbon = (
+  accessToken?: string
+): SupabaseClient<Database, "public"> => {
   return getCarbonClient(SUPABASE_ANON_KEY!, accessToken);
 };
 

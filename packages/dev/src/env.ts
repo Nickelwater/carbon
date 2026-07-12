@@ -36,6 +36,13 @@ export function renderEnv(opts: {
   lines.push("# Internal compose ports (apps do not read these directly)");
   for (const [k, v] of Object.entries(ports)) lines.push(`${k}=${v}`);
   lines.push("");
+  lines.push("# Postgres tuning (consumed by docker-compose.dev.yml)");
+  // Supabase's own services (PostgREST, realtime, storage, cron, ...) hold
+  // ~20 connections at idle, so the previous default of 25 left no room for
+  // GoTrue/the app and caused "remaining connection slots are reserved..."
+  // (53300) errors that surfaced as random logouts. Match the prod default.
+  lines.push(`PG_MAX_CONNECTIONS=${process.env.PG_MAX_CONNECTIONS ?? "100"}`);
+  lines.push("");
   lines.push(
     lanHost
       ? "# App-facing URLs (LAN — reachable from other devices on your network)"
@@ -61,7 +68,7 @@ export function renderEnv(opts: {
   lines.push(`ERP_URL=${erpUrl()}`);
   lines.push(`MES_URL=${mesUrl()}`);
   lines.push(`VERCEL_URL=${erpUrl()}`);
-  if (portless) lines.push(`GTM_URL=https://${host("starter")}`);
+  if (portless) lines.push(`GTM_URL=https://${host("erp")}`);
   lines.push("");
   lines.push(
     "# Supabase (per-worktree dev keys, minted from random JWT_SECRET)"
@@ -118,6 +125,12 @@ export function renderEnv(opts: {
   lines.push(
     `INNGEST_TLS_HOST=${lanHost ?? (portless ? host("erp") : "localhost")}`
   );
+  lines.push("");
+  lines.push("# Geometry service (assembly model conversion)");
+  lines.push(
+    `GEOMETRY_SERVICE_URL=${portless ? `https://${host("geometry")}` : local(ports.PORT_GEOMETRY)}`
+  );
+  lines.push("GEOMETRY_SERVICE_API_KEY=dev-local-key");
   lines.push("");
   lines.push("# Dev auth bypass");
   lines.push("DEV_BYPASS_EMAIL=test@carbon.ms");

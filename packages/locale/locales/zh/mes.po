@@ -867,6 +867,9 @@ msgstr "预防性"
 msgid "Preview PDF"
 msgstr ""
 
+msgid "Previous"
+msgstr ""
+
 msgid "Print"
 msgstr "打印"
 

@@ -2,7 +2,7 @@ import { box, intro, log, outro, progress, tasks } from "@clack/prompts";
 import { config as loadDotenv } from "dotenv";
 import { type ExecaChildProcess, execa } from "execa";
 import { join } from "pathe";
-import type { AppId } from "../constants.js";
+import { APP_CHOICES, type AppId } from "../constants.js";
 import { renderEnv, syncAppPortlessConfigs, writeEnv } from "../env.js";
 import { currentBranch } from "../git.js";
 import { onShutdown } from "../helpers.js";
@@ -10,7 +10,9 @@ import { isLanMode, resolveDevHost } from "../network.js";
 import { pickApps, pickBorrowSlug } from "../prompts.js";
 import {
   installDeps,
+  installSkills,
   spawnApps,
+  spawnGeometry,
   spawnStripeListener,
   syncEnvSymlinks
 } from "../services/apps.js";
@@ -68,6 +70,8 @@ type UpOpts = {
   migrate?: boolean;
   regen?: boolean;
   apps?: boolean;
+  /** When true, launch all apps without the interactive picker. */
+  all?: boolean;
   /** When true, always `docker compose pull` even if images exist locally. */
   pull?: boolean;
   /** When true, show a picker to borrow another worktree's running containers. */
@@ -172,7 +176,12 @@ export async function up(opts: UpOpts = {}) {
     log.info("portless disabled (CARBON_PORTLESS=0) — using localhost URLs");
   }
 
-  const selectedApps = appsRequested ? await pickApps() : [];
+  const allApps = opts.all === true;
+  const selectedApps = appsRequested
+    ? allApps
+      ? APP_CHOICES.map((c) => c.value)
+      : await pickApps()
+    : [];
   const slug = resolveSlug(root);
 
   // Resolve borrowed slot before ensureSlugAvailable (borrowing doesn't start
@@ -198,6 +207,7 @@ export async function up(opts: UpOpts = {}) {
 
   await refreshStaleCopyFiles(root);
   await ensureDepsInstalled(root);
+  await ensureSkillsInstalled(root);
 
   const ctx = await provisionSlot(root, slug, portless, borrowedEntry, lanHost);
   if (borrowedEntry) {
@@ -208,7 +218,9 @@ export async function up(opts: UpOpts = {}) {
     await waitForServices(ctx);
   }
   await runDatabaseMigrations(ctx, { shouldMigrate, shouldRegen });
-  await seedSmokeTestUser(ctx);
+  // Skip when migrations are skipped: the `user` table may not exist yet, and
+  // seeding would fail with `relation "user" does not exist`.
+  if (shouldMigrate) await seedSmokeTestUser(ctx);
   if (portless) {
     await setupPortless(ctx, selectedApps);
     await ensureHostsFile();
@@ -217,6 +229,10 @@ export async function up(opts: UpOpts = {}) {
   if (process.env.CARBON_EDITION === "cloud") {
     stripeChild = spawnStripeListener(root);
     log.info("stripe listener spawned (CARBON_EDITION=cloud)");
+  }
+
+  if (selectedApps.includes("geometry")) {
+    spawnGeometry({ root, ports: ctx.ports });
   }
 
   box(
@@ -317,6 +333,15 @@ async function ensureDepsInstalled(root: string) {
   const ran = await installDeps(root);
   if (ran) log.step("pnpm install");
   else log.info("pnpm install skipped (lockfile in sync)");
+}
+
+// Keep the .claude/.codex skill+rule symlinks in sync on every boot. They're
+// gitignored (absent in fresh worktrees) and `prepare` only runs when pnpm
+// install runs, so this is the reliable place to guarantee they exist.
+async function ensureSkillsInstalled(root: string) {
+  const ok = await installSkills(root);
+  if (ok) log.step("skills + rules linked");
+  else log.info("install-skills skipped");
 }
 
 async function provisionSlot(
@@ -623,7 +648,8 @@ async function runAppsThenTeardown(
   stripeChild?: ExecaChildProcess,
   lan = false
 ) {
-  await spawnApps({ root, apps: selectedApps, ports, portless, lan });
+  const reactRouterApps = selectedApps.filter((id) => id !== "geometry");
+  await spawnApps({ root, apps: reactRouterApps, ports, portless, lan });
 
   // Apps exit on Ctrl+C; auto-`down` so compose stack isn't orphaned.
   // Swallow further signals so a second Ctrl+C during teardown doesn't
@@ -659,28 +685,30 @@ async function appResponds(port: number): Promise<boolean> {
   }
 }
 
-/** Poll each selected app's port until it serves (or the deadline passes). */
+/** Poll each selected app's port concurrently until all serve (or deadline). */
 async function waitForApps(
   selectedApps: AppId[],
   ports: PortMap,
   timeoutMs = 180_000
 ): Promise<void> {
   const deadline = Date.now() + timeoutMs;
-  for (const id of selectedApps) {
-    const key = APP_PORT_KEY[id];
-    const port = key ? ports[key] : undefined;
-    if (port === undefined) continue;
-    let up = false;
-    while (Date.now() < deadline) {
-      if (await appResponds(port)) {
-        up = true;
-        break;
+  await Promise.all(
+    selectedApps.map(async (id) => {
+      const key = APP_PORT_KEY[id];
+      const port = key ? ports[key] : undefined;
+      if (port === undefined) return;
+      let up = false;
+      while (Date.now() < deadline) {
+        if (await appResponds(port)) {
+          up = true;
+          break;
+        }
+        await new Promise((r) => setTimeout(r, 1500));
       }
-      await new Promise((r) => setTimeout(r, 1500));
-    }
-    if (up) log.info(`${id} reachable on :${port}`);
-    else log.warn(`${id} not reachable on :${port} — running command anyway`);
-  }
+      if (up) log.info(`${id} reachable on :${port}`);
+      else log.warn(`${id} not reachable on :${port} — running command anyway`);
+    })
+  );
 }
 
 /**

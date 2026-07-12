@@ -56,7 +56,7 @@ Features:
 - [x] MCP Client/Server
 - [x] API
 - [x] Webhooks
-- [ ] Accounting
+- [x] Accounting
 - [ ] Capacity Planning
 - [ ] Simulation
 - [ ] [Full Roadmap](https://github.com/orgs/crbnos/projects/1/views/1)
@@ -347,22 +347,28 @@ $ pnpm --filter @carbon/react test
 
 For full backup/restore procedures (hosted and local), see [`llm/workflows/database-backup-restore.md`](llm/workflows/database-backup-restore.md).
 
-To restore a production database snapshot locally:
+To restore a production database snapshot locally, use the `scripts/restore-database.sh` script. It handles both plain-text `.backup` and custom-format `.dump` archives, drops and rebuilds the public schema, realigns internal sequences, and resets storage metadata.
 
 1. Export a backup from your production Supabase project (`pg_dump` or Supabase Dashboard → Database → Backups).
 2. Boot the stack **without applying migrations** so they don't fight the dump's schema state:
    ```bash
    $ crbn up --no-migrate
    ```
-3. Find the live Postgres port (`crbn status` shows it; or read `PORT_DB` from `.env.local`).
-4. Pipe the backup into the local DB as the superuser (`supabase_admin` for plain-text dumps, or use `pg_restore` for `.dump` archives):
+3. Run the restore script from your worktree root, passing the path to the backup file:
    ```bash
-   $ source .env.local
-   $ PGPASSWORD=postgres psql -h localhost -p "$PORT_DB" -U supabase_admin -d postgres < /path/to/backup.sql
+   $ ./scripts/restore-database.sh /path/to/db_cluster.backup
    # …or for .dump archives:
-   $ PGPASSWORD=postgres pg_restore -h localhost -p "$PORT_DB" -U supabase_admin -d postgres --no-owner /path/to/backup.dump
+   $ ./scripts/restore-database.sh /path/to/postgres_YYYYMMDD.dump
    ```
-5. Regenerate types so app code reflects the restored schema:
+   To also get local admin access, set `ADMIN_EMAIL` to your production email. The script will upgrade your account to Admin in all companies you already belong to and reset your password locally:
+   ```bash
+   $ ADMIN_EMAIL=you@example.com ./scripts/restore-database.sh /path/to/backup.backup
+   # Optional: set a custom local password (default: localpass)
+   $ ADMIN_EMAIL=you@example.com ADMIN_PASSWORD=mypass ./scripts/restore-database.sh /path/to/backup.backup
+   ```
+   > **Note:** Emails are not scrubbed — real production addresses will be present in the local DB. Ensure local email sending is disabled or pointed at a sandbox (e.g. Mailpit) before triggering any email flows.
+
+4. Regenerate types so app code reflects the restored schema:
    ```bash
    $ pnpm db:types
    ```
