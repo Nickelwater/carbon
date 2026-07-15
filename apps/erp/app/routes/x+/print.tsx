@@ -1,6 +1,7 @@
 import { assertIsPost } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { runPrintJob, trigger } from "@carbon/jobs";
+import { trigger } from "@carbon/jobs";
+import { runPrintJob } from "@carbon/jobs/print.server";
 import { manualPrintValidator } from "@carbon/printing";
 import type { ActionFunctionArgs } from "react-router";
 

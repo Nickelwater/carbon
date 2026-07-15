@@ -2,12 +2,6 @@
 
 export type { Events } from "./events.js";
 export {
-  PrintJobSkippedError,
-  type RunPrintJobPayload,
-  type RunPrintJobResult,
-  runPrintJob
-} from "./print/runPrintJob.js";
-export {
   syncIssueFromJiraSchema,
   syncIssueFromLinearSchema
 } from "./schemas.js";

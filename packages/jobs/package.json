@@ -48,6 +48,7 @@
     ".": "./src/index.ts",
     "./events": "./src/events.ts",
     "./inngest": "./src/inngest/index.ts",
+    "./print.server": "./src/print/runPrintJob.ts",
     "./worker": "./src/inngest/worker.ts"
   },
   "main": "./src/index.ts",
