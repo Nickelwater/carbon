@@ -18,6 +18,9 @@ const payloadValidator = z.object({
   jobId: z.string(),
   companyId: z.string(),
   userId: z.string(),
+  outputLotKey: z.string().optional().nullable(),
+  locationId: z.string().optional().nullable(),
+  storageUnitId: z.string().optional().nullable(),
 });
 
 serve(async (req: Request) => {
@@ -34,9 +37,34 @@ serve(async (req: Request) => {
       payload.companyId
     );
 
+    const outputLotKey =
+      payload.outputLotKey?.trim() ||
+      `job:${payload.jobId}:legacy:${payload.userId}`;
+
+    // Idempotent: one Lot inspection per outputLotKey.
+    const existingLot = await (client as any)
+      .from("inspectionLot")
+      .select("inspectionId")
+      .eq("outputLotKey", outputLotKey)
+      .eq("companyId", payload.companyId)
+      .maybeSingle();
+
+    if (existingLot.data?.inspectionId) {
+      return new Response(
+        JSON.stringify({
+          success: true,
+          inspectionId: existingLot.data.inspectionId,
+          idempotent: true,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
     const job = await client
       .from("job")
-      .select("id, itemId, jobId")
+      .select("id, itemId, jobId, locationId")
       .eq("id", payload.jobId)
       .eq("companyId", payload.companyId)
       .single();
@@ -45,7 +73,7 @@ serve(async (req: Request) => {
       throw new Error("Job not found");
     }
 
-    const [item, jobMakeMethod, companySettings, samplingPlan] =
+    const [item, jobMakeMethod, companySettings, lotPolicy, samplingPlan] =
       await Promise.all([
         client
           .from("item")
@@ -64,6 +92,15 @@ serve(async (req: Request) => {
           .eq("id", payload.companyId)
           .single(),
         (client as any)
+          .from("itemInspectionPolicy")
+          .select(
+            "required, type, sampleSize, percentage, aql, inspectionLevel, severity, inspectionDocumentId"
+          )
+          .eq("itemId", job.data.itemId)
+          .eq("companyId", payload.companyId)
+          .eq("inspectionType", "Lot")
+          .maybeSingle(),
+        (client as any)
           .from("itemSamplingPlan")
           .select(
             "type, sampleSize, percentage, aql, inspectionLevel, severity, inspectionDocumentId"
@@ -73,7 +110,11 @@ serve(async (req: Request) => {
           .maybeSingle(),
       ]);
 
-    if (item.error || !item.data?.requiresInspection) {
+    const lotRequired =
+      lotPolicy.data?.required === true ||
+      (lotPolicy.data == null && item.data?.requiresInspection === true);
+
+    if (item.error || !lotRequired) {
       return new Response(JSON.stringify({ success: true, skipped: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -94,7 +135,7 @@ serve(async (req: Request) => {
       throw trackedEntities.error;
     }
 
-  const lotEntities = (trackedEntities.data ?? []).filter((entity) => {
+    const lotEntities = (trackedEntities.data ?? []).filter((entity) => {
       const attrs = (entity.attributes ?? {}) as Record<string, unknown>;
       return !attrs["Inspection Lot"];
     });
@@ -113,32 +154,45 @@ serve(async (req: Request) => {
     const samplingStandard: SamplingStandard =
       (companySettings.data as any)?.samplingStandard ?? "ANSI_Z1_4";
 
-    const plan = samplingPlan.data ?? {
-      type: "All",
-      sampleSize: null,
-      percentage: null,
-      aql: null,
-      inspectionLevel: "II",
-      severity: "Normal",
-    };
+    const plan = lotPolicy.data ??
+      samplingPlan.data ?? {
+        type: "All",
+        sampleSize: null,
+        percentage: null,
+        aql: null,
+        inspectionLevel: "II",
+        severity: "Normal",
+        inspectionDocumentId: null,
+      };
 
     const snapshot = resolveSamplingPlan(plan, lotSize, samplingStandard);
+    const locationId =
+      payload.locationId ?? job.data.locationId ?? null;
+    const storageUnitId = payload.storageUnitId ?? null;
 
     const inspectionId = await db.transaction().execute(async (trx) => {
-      const inboundInspectionId = await getNextSequence(
+      // Re-check inside the transaction for races.
+      const existing = await trx
+        .selectFrom("inspectionLot" as any)
+        .select(["inspectionId"] as any)
+        .where("outputLotKey" as any, "=", outputLotKey)
+        .where("companyId" as any, "=", payload.companyId)
+        .executeTakeFirst();
+      if (existing?.inspectionId) {
+        return existing.inspectionId as string;
+      }
+
+      const readableId = await getNextSequence(
         trx,
         "lotInspection",
         payload.companyId
       );
 
       const inserted = await trx
-        .insertInto("inboundInspection")
+        .insertInto("inspection" as any)
         .values({
-          inboundInspectionId,
-          sourceType: "Job",
-          jobId: payload.jobId,
-          receiptLineId: null,
-          receiptId: null,
+          inspectionId: readableId,
+          type: "Lot",
           itemId: job.data!.itemId!,
           itemReadableId: item.data!.readableIdWithRevision ?? null,
           supplierId: null,
@@ -154,11 +208,25 @@ serve(async (req: Request) => {
           codeLetter: snapshot.codeLetter,
           inspectionDocumentId: plan.inspectionDocumentId ?? null,
           status: "Pending",
+          locationId,
+          storageUnitId,
           companyId: payload.companyId,
           createdBy: payload.userId,
         } as any)
-        .returning(["id"])
+        .returning(["id"] as any)
         .executeTakeFirstOrThrow();
+
+      await trx
+        .insertInto("inspectionLot" as any)
+        .values({
+          companyId: payload.companyId,
+          inspectionId: inserted.id,
+          jobId: payload.jobId,
+          jobOperationId: null,
+          outputLotKey,
+          createdBy: payload.userId,
+        } as any)
+        .execute();
 
       for (const entity of lotEntities) {
         const attrs = {
@@ -176,17 +244,24 @@ serve(async (req: Request) => {
           .where("id", "=", entity.id!)
           .where("companyId", "=", payload.companyId)
           .execute();
+
+        await trx
+          .insertInto("inspectionTrackedEntity" as any)
+          .values({
+            companyId: payload.companyId,
+            inspectionId: inserted.id,
+            trackedEntityId: entity.id!,
+            createdBy: payload.userId,
+          } as any)
+          .execute();
       }
 
-      return inserted.id;
+      return inserted.id as string;
     });
 
-    return new Response(
-      JSON.stringify({ success: true, inspectionId }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
-    );
+    return new Response(JSON.stringify({ success: true, inspectionId }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   } catch (err) {
     console.error("create-inspection-lot error:", err);
     return new Response(

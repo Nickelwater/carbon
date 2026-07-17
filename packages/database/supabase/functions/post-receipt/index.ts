@@ -103,7 +103,7 @@ serve(async (req: Request) => {
       }
       return acc;
     }, []);
-    const [items, itemCosts, companySettings, itemSamplingPlans] =
+    const [items, itemCosts, companySettings, itemSamplingPlans, inboundPolicies] =
       await Promise.all([
         client
           .from("item")
@@ -126,6 +126,14 @@ serve(async (req: Request) => {
           )
           .in("itemId", itemIds)
           .eq("companyId", companyId),
+        (client as any)
+          .from("itemInspectionPolicy")
+          .select(
+            "itemId, required, type, sampleSize, percentage, aql, inspectionLevel, severity, inspectionDocumentId"
+          )
+          .in("itemId", itemIds)
+          .eq("companyId", companyId)
+          .eq("inspectionType", "Inbound"),
       ]);
     if (items.error) {
       throw new Error("Failed to fetch items");
@@ -138,6 +146,9 @@ serve(async (req: Request) => {
       (companySettings.data as any)?.samplingStandard ?? "ANSI_Z1_4";
     const samplingPlansByItemId = new Map<string, any>(
       ((itemSamplingPlans.data as any[]) ?? []).map((p) => [p.itemId, p])
+    );
+    const inboundPoliciesByItemId = new Map<string, any>(
+      ((inboundPolicies.data as any[]) ?? []).map((p) => [p.itemId, p])
     );
     
     if (type === "void") {
@@ -650,14 +661,18 @@ serve(async (req: Request) => {
         }, {});
 
         // Build one inspection lot per receiptLine that belongs to an item
-        // with requiresInspection = true. Compute the sampling plan snapshot
-        // from the company's chosen standard and the item's plan (or default
-        // to "Inspect All" if no plan is configured).
+        // with Inbound inspection required. Prefer itemInspectionPolicy; fall
+        // back to legacy requiresInspection + itemSamplingPlan.
         const inboundInspectionInserts: Array<Record<string, any>> = [];
         for (const receiptLine of receiptLines.data ?? []) {
           const item = items.data?.find((i) => i.id === receiptLine.itemId);
-          if (!item?.requiresInspection) continue;
           if (!receiptLine.itemId) continue;
+
+          const inboundPolicy = inboundPoliciesByItemId.get(receiptLine.itemId);
+          const requiresInbound =
+            inboundPolicy?.required === true ||
+            (inboundPolicy == null && item?.requiresInspection === true);
+          if (!requiresInbound) continue;
 
           const safeReceivedQuantity =
             isNaN(receiptLine.receivedQuantity as any) ||
@@ -666,14 +681,15 @@ serve(async (req: Request) => {
               : receiptLine.receivedQuantity;
           if (safeReceivedQuantity <= 0) continue;
 
-          const plan = samplingPlansByItemId.get(receiptLine.itemId) ?? {
-            type: "All",
-            sampleSize: null,
-            percentage: null,
-            aql: null,
-            inspectionLevel: "II",
-            severity: "Normal",
-          };
+          const plan = inboundPolicy ??
+            samplingPlansByItemId.get(receiptLine.itemId) ?? {
+              type: "All",
+              sampleSize: null,
+              percentage: null,
+              aql: null,
+              inspectionLevel: "II",
+              severity: "Normal",
+            };
 
           const snapshot = resolveSamplingPlan(
             plan,
@@ -682,7 +698,6 @@ serve(async (req: Request) => {
           );
 
           inboundInspectionInserts.push({
-            sourceType: "Receipt",
             receiptLineId: receiptLine.id,
             receiptId,
             itemId: receiptLine.itemId,
@@ -700,6 +715,8 @@ serve(async (req: Request) => {
             codeLetter: snapshot.codeLetter,
             inspectionDocumentId: plan.inspectionDocumentId ?? null,
             status: "Pending",
+            locationId: receiptLine.locationId ?? null,
+            storageUnitId: receiptLine.storageUnitId ?? null,
             companyId,
             createdBy: userId,
           });
@@ -736,7 +753,12 @@ serve(async (req: Request) => {
             const item = items.data?.find(
               (item) => item.id === receiptLine?.itemId
             );
-            const requiresInspection = item?.requiresInspection === true;
+            const inboundPolicy = receiptLine?.itemId
+              ? inboundPoliciesByItemId.get(receiptLine.itemId)
+              : undefined;
+            const requiresInspection =
+              inboundPolicy?.required === true ||
+              (inboundPolicy == null && item?.requiresInspection === true);
 
             acc[itemTracking.id] = {
               status: requiresInspection ? "On Hold" : "Available",
@@ -1802,16 +1824,49 @@ serve(async (req: Request) => {
 
           if (inboundInspectionInserts.length > 0) {
             for (const row of inboundInspectionInserts) {
-              row.inboundInspectionId = await getNextSequence(
+              const readableId = await getNextSequence(
                 trx,
                 "inboundInspection",
                 companyId
               );
               const inserted = await trx
-                .insertInto("inboundInspection")
-                .values(row)
-                .returning(["id", "receiptLineId"])
+                .insertInto("inspection" as any)
+                .values({
+                  inspectionId: readableId,
+                  type: "Inbound",
+                  itemId: row.itemId,
+                  itemReadableId: row.itemReadableId,
+                  supplierId: row.supplierId,
+                  lotSize: row.lotSize,
+                  samplingStandard: row.samplingStandard,
+                  samplingPlanType: row.samplingPlanType,
+                  sampleSize: row.sampleSize,
+                  acceptanceNumber: row.acceptanceNumber,
+                  rejectionNumber: row.rejectionNumber,
+                  aql: row.aql,
+                  inspectionLevel: row.inspectionLevel,
+                  severity: row.severity,
+                  codeLetter: row.codeLetter,
+                  inspectionDocumentId: row.inspectionDocumentId,
+                  status: row.status,
+                  locationId: row.locationId,
+                  storageUnitId: row.storageUnitId,
+                  companyId: row.companyId,
+                  createdBy: row.createdBy,
+                } as any)
+                .returning(["id"] as any)
                 .executeTakeFirstOrThrow();
+
+              await trx
+                .insertInto("inspectionReceipt" as any)
+                .values({
+                  companyId,
+                  inspectionId: inserted.id,
+                  receiptId: row.receiptId,
+                  receiptLineId: row.receiptLineId,
+                  createdBy: userId,
+                } as any)
+                .execute();
 
               const lotEntities = await trx
                 .selectFrom("trackedEntity")
@@ -1819,7 +1874,7 @@ serve(async (req: Request) => {
                 .where(
                   sql<string>`attributes ->> 'Receipt Line'`,
                   "=",
-                  inserted.receiptLineId!
+                  row.receiptLineId!
                 )
                 .where("companyId", "=", companyId)
                 .execute();
@@ -1834,6 +1889,16 @@ serve(async (req: Request) => {
                     },
                   })
                   .where("id", "=", entity.id)
+                  .execute();
+
+                await trx
+                  .insertInto("inspectionTrackedEntity" as any)
+                  .values({
+                    companyId,
+                    inspectionId: inserted.id,
+                    trackedEntityId: entity.id,
+                    createdBy: userId,
+                  } as any)
                   .execute();
               }
             }
