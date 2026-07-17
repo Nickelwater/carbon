@@ -465,27 +465,25 @@ const ConsumableProperties = ({ data }: ConsumablePropertiesProps) => {
           }}
         />
       </ValidatedForm>
-      {routeData?.consumableSummary?.replenishmentSystem?.includes("Buy") && (
-        <ValidatedForm
-          defaultValues={{
-            requiresInspection:
-              (routeData?.consumableSummary as any)?.requiresInspection ?? false
+      <ValidatedForm
+        defaultValues={{
+          requiresInspection:
+            (routeData?.consumableSummary as any)?.requiresInspection ?? false
+        }}
+        validator={z.object({
+          requiresInspection: zfd.checkbox()
+        })}
+        className="w-full"
+      >
+        <Boolean
+          label={t`Requires Inspection`}
+          name="requiresInspection"
+          variant="small"
+          onChange={(value) => {
+            onUpdate("requiresInspection", value ? "on" : "off");
           }}
-          validator={z.object({
-            requiresInspection: zfd.checkbox()
-          })}
-          className="w-full"
-        >
-          <Boolean
-            label={t`Requires Inspection`}
-            name="requiresInspection"
-            variant="small"
-            onChange={(value) => {
-              onUpdate("requiresInspection", value ? "on" : "off");
-            }}
-          />
-        </ValidatedForm>
-      )}
+        />
+      </ValidatedForm>
       {routeData?.consumableSummary?.replenishmentSystem?.includes("Buy") && (
         <ValidatedForm
           defaultValues={{

@@ -769,6 +769,15 @@ export const itemSamplingPlanValidator = z
     }
   });
 
+export const inspectionTypes = ["Inbound", "Lot", "InProcess"] as const;
+
+export const itemInspectionPolicyValidator = itemSamplingPlanValidator.and(
+  z.object({
+    inspectionType: z.enum(["Inbound", "Lot"]),
+    required: zfd.checkbox()
+  })
+);
+
 export const inboundInspectionValidator = z.object({
   id: z.string().min(1, { message: "Id is required" }),
   status: z.enum(["Passed", "Failed"], {

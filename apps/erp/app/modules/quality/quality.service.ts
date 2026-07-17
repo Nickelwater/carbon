@@ -7,7 +7,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 import type { z } from "zod";
 import { getItemFiles } from "~/modules/items/items.service";
-import type { GenericQueryFilters } from "~/utils/query";
+import type { Filter, GenericQueryFilters, Sort } from "~/utils/query";
 import { setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
 
@@ -33,9 +33,11 @@ import type {
   gaugeTypeValidator,
   gaugeValidator,
   inspectionDocumentValidator,
+  inspectionTypes,
   issueTypeValidator,
   issueValidator,
   issueWorkflowValidator,
+  itemInspectionPolicyValidator,
   itemSamplingPlanValidator,
   nonConformanceApprovalRequirement,
   nonConformanceReviewerValidator,
@@ -3141,33 +3143,32 @@ export async function getInboundInspectionMeasurements(
 ) {
   if (sampleIds.length === 0) {
     return {
-      data: {} as Record<string, InboundInspectionSampleMeasurement[]>,
+      data: {} as Record<string, InspectionSampleMeasurement[]>,
       error: null
     };
   }
 
   const result = await (client as any)
-    .from("inboundInspectionSampleMeasurement")
+    .from("inspectionSampleMeasurement")
     .select("*")
-    .in("inboundInspectionSampleId", sampleIds);
+    .in("inspectionSampleId", sampleIds);
 
   if (result.error) {
     return { data: null, error: result.error };
   }
 
-  const bySampleId: Record<string, InboundInspectionSampleMeasurement[]> = {};
-  for (const row of (result.data ??
-    []) as InboundInspectionSampleMeasurement[]) {
-    const list = bySampleId[row.inboundInspectionSampleId] ?? [];
+  const bySampleId: Record<string, InspectionSampleMeasurement[]> = {};
+  for (const row of (result.data ?? []) as InspectionSampleMeasurement[]) {
+    const list = bySampleId[row.inspectionSampleId] ?? [];
     list.push(row);
-    bySampleId[row.inboundInspectionSampleId] = list;
+    bySampleId[row.inspectionSampleId] = list;
   }
 
   return { data: bySampleId, error: null };
 }
 
-type InboundInspectionSampleMeasurement =
-  Database["public"]["Tables"]["inboundInspectionSampleMeasurement"]["Row"];
+type InspectionSampleMeasurement =
+  Database["public"]["Tables"]["inspectionSampleMeasurement"]["Row"];
 
 export async function getItemSamplingPlan(
   client: SupabaseClient<Database>,
@@ -3179,6 +3180,33 @@ export async function getItemSamplingPlan(
     .select("*")
     .eq("itemId", itemId)
     .eq("companyId", companyId)
+    .maybeSingle();
+}
+
+export async function getItemInspectionPolicies(
+  client: SupabaseClient<Database>,
+  itemId: string,
+  companyId: string
+) {
+  return (client as any)
+    .from("itemInspectionPolicy")
+    .select("*")
+    .eq("itemId", itemId)
+    .eq("companyId", companyId);
+}
+
+export async function getItemInspectionPolicy(
+  client: SupabaseClient<Database>,
+  itemId: string,
+  companyId: string,
+  inspectionType: (typeof inspectionTypes)[number]
+) {
+  return (client as any)
+    .from("itemInspectionPolicy")
+    .select("*")
+    .eq("itemId", itemId)
+    .eq("companyId", companyId)
+    .eq("inspectionType", inspectionType)
     .maybeSingle();
 }
 
@@ -3228,26 +3256,200 @@ export async function upsertItemSamplingPlan(
   });
 }
 
-export async function getInboundInspections(
+export async function upsertItemInspectionPolicy(
+  client: SupabaseClient<Database>,
+  policy: z.infer<typeof itemInspectionPolicyValidator> & {
+    companyId: string;
+    updatedBy: string;
+  }
+) {
+  const existing = await (client as any)
+    .from("itemInspectionPolicy")
+    .select("id")
+    .eq("itemId", policy.itemId)
+    .eq("companyId", policy.companyId)
+    .eq("inspectionType", policy.inspectionType)
+    .maybeSingle();
+
+  const payload = {
+    itemId: policy.itemId,
+    companyId: policy.companyId,
+    inspectionType: policy.inspectionType,
+    required: policy.required ?? false,
+    type: policy.type,
+    sampleSize: policy.sampleSize ?? null,
+    percentage: policy.percentage ?? null,
+    aql: policy.aql ?? null,
+    inspectionLevel: policy.inspectionLevel,
+    severity: policy.severity,
+    inspectionDocumentId: policy.inspectionDocumentId?.trim()
+      ? policy.inspectionDocumentId.trim()
+      : null
+  };
+
+  let result;
+  if (existing.data) {
+    result = await (client as any)
+      .from("itemInspectionPolicy")
+      .update({
+        ...payload,
+        updatedBy: policy.updatedBy,
+        updatedAt: new Date().toISOString()
+      })
+      .eq("itemId", policy.itemId)
+      .eq("companyId", policy.companyId)
+      .eq("inspectionType", policy.inspectionType);
+  } else {
+    result = await (client as any).from("itemInspectionPolicy").insert({
+      ...payload,
+      createdBy: policy.updatedBy
+    });
+  }
+
+  if (result.error) return result;
+
+  if (policy.inspectionType === "Inbound") {
+    const samplingResult = await upsertItemSamplingPlan(client, {
+      itemId: policy.itemId,
+      type: policy.type,
+      sampleSize: policy.sampleSize,
+      percentage: policy.percentage,
+      aql: policy.aql,
+      inspectionLevel: policy.inspectionLevel,
+      severity: policy.severity,
+      inspectionDocumentId: policy.inspectionDocumentId,
+      companyId: policy.companyId,
+      updatedBy: policy.updatedBy
+    });
+    if (samplingResult.error) return samplingResult;
+  }
+
+  const siblingPolicies = await (client as any)
+    .from("itemInspectionPolicy")
+    .select("inspectionType, required")
+    .eq("itemId", policy.itemId)
+    .eq("companyId", policy.companyId)
+    .in("inspectionType", ["Inbound", "Lot"]);
+
+  const requiresInspection = (siblingPolicies.data ?? []).some(
+    (row: { required: boolean }) => row.required
+  );
+
+  const itemUpdate = await (client as any)
+    .from("item")
+    .update({
+      requiresInspection,
+      updatedBy: policy.updatedBy,
+      updatedAt: new Date().toISOString()
+    })
+    .eq("id", policy.itemId)
+    .eq("companyId", policy.companyId);
+
+  if (itemUpdate.error) return itemUpdate;
+
+  return result;
+}
+
+// -------------------------------------------------------------
+// Generic inspection reads (Phase 2.3 service cutover)
+// -------------------------------------------------------------
+// `inspection` + subtype tables (`inspectionReceipt`/`inspectionLot`) replace
+// `inboundInspection` as the source of truth; dual-write SQL triggers keep
+// the legacy tables mirrored for now. `getInboundInspection*` below stay as
+// the public/MCP-facing names but read the generic tables and normalize the
+// shape back to what the UI/routes already expect (sourceType,
+// receiptId/receiptLineId/jobId/jobOperationId, inboundInspectionSample,
+// inboundInspectionId). Direct `getInspection`/`getInspections` are exposed
+// too for callers that want the generic shape as-is.
+
+const INSPECTION_SELECT_LIST =
+  "*, item(readableId, name, type, itemTrackingType), inspectionReceipt(receiptId, receiptLineId, receipt(receiptId, supplierId)), inspectionLot(jobId, jobOperationId, job(jobId)), supplier(name), inspectionSample(status)";
+
+const INSPECTION_SELECT_DETAIL =
+  "*, item(readableId, name, type, itemTrackingType), inspectionReceipt(receiptId, receiptLineId, receipt(receiptId, supplierId, createdBy)), inspectionLot(jobId, jobOperationId, job(jobId, updatedBy)), supplier(name), inspectionSample(*, trackedEntity(id, readableId, attributes, status, sourceDocumentReadableId))";
+
+/** PostgREST may embed a to-one relationship as an object or a 1-element array depending on version/inference; normalize to a single value. */
+function firstOrSelf<T>(value: T | T[] | null | undefined): T | null {
+  if (Array.isArray(value)) return (value[0] as T) ?? null;
+  return (value as T) ?? null;
+}
+
+/**
+ * Flattens a raw `inspection` row (with `inspectionReceipt`/`inspectionLot`
+ * subtype embeds and `inspectionSample` rows) into the legacy
+ * `inboundInspection` shape the UI/routes already know how to render.
+ */
+function normalizeInspectionRow(row: any) {
+  if (!row) return row;
+
+  const receiptSub = firstOrSelf<any>(row.inspectionReceipt);
+  const lotSub = firstOrSelf<any>(row.inspectionLot);
+  const sourceType: "Receipt" | "Job" = row.type === "Lot" ? "Job" : "Receipt";
+  const samples = Array.isArray(row.inspectionSample)
+    ? row.inspectionSample.map(normalizeInspectionSampleRow)
+    : row.inspectionSample;
+
+  return {
+    ...row,
+    inboundInspectionId: row.inspectionId,
+    sourceType,
+    receiptId: receiptSub?.receiptId ?? null,
+    receiptLineId: receiptSub?.receiptLineId ?? null,
+    receipt: receiptSub?.receipt ? firstOrSelf<any>(receiptSub.receipt) : null,
+    jobId: lotSub?.jobId ?? null,
+    jobOperationId: lotSub?.jobOperationId ?? null,
+    job: lotSub?.job ? firstOrSelf<any>(lotSub.job) : null,
+    inboundInspectionSample: samples ?? []
+  };
+}
+
+function normalizeInspectionSampleRow(sample: any) {
+  if (!sample) return sample;
+  return {
+    ...sample,
+    inboundInspectionId: sample.inspectionId,
+    trackedEntity:
+      "trackedEntity" in sample
+        ? firstOrSelf<any>(sample.trackedEntity)
+        : sample.trackedEntity
+  };
+}
+
+/** The list view's saved-view filters/sorts still reference the legacy `inboundInspectionId` column name. */
+function remapInspectionColumn(column: string): string {
+  return column === "inboundInspectionId" ? "inspectionId" : column;
+}
+
+function remapInspectionFilters(filters?: Filter[]): Filter[] | undefined {
+  return filters?.map((filter) => ({
+    ...filter,
+    column: remapInspectionColumn(filter.column)
+  }));
+}
+
+function remapInspectionSorts(sorts?: Sort[]): Sort[] | undefined {
+  return sorts?.map((sort) => ({
+    ...sort,
+    sortBy: remapInspectionColumn(sort.sortBy)
+  }));
+}
+
+export async function getInspections(
   client: SupabaseClient<Database>,
   companyId: string,
   args?: GenericQueryFilters & {
-    search: string | null;
-    status: string | null;
-    /** When set, restrict to Receipt (inbound) or Job (lot) inspections. */
-    sourceType?: "Receipt" | "Job";
+    search?: string | null;
+    status?: string | null;
+    type?: (typeof inspectionTypes)[number];
   }
 ) {
   let query = (client as any)
-    .from("inboundInspection")
-    .select(
-      "*, item(readableId, name), receipt(receiptId, supplierId), job(jobId), supplier(name), inboundInspectionSample(status)",
-      { count: "exact" }
-    )
+    .from("inspection")
+    .select(INSPECTION_SELECT_LIST, { count: "exact" })
     .eq("companyId", companyId);
 
-  if (args?.sourceType) {
-    query = query.eq("sourceType", args.sourceType);
+  if (args?.type) {
+    query = query.eq("type", args.type);
   }
 
   if (args?.search) {
@@ -3270,17 +3472,60 @@ export async function getInboundInspections(
   return query;
 }
 
+export async function getInspection(
+  client: SupabaseClient<Database>,
+  id: string,
+  companyId: string
+) {
+  return (client as any)
+    .from("inspection")
+    .select(INSPECTION_SELECT_DETAIL)
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .single();
+}
+
+export async function getInboundInspections(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args?: GenericQueryFilters & {
+    search: string | null;
+    status: string | null;
+    /** When set, restrict to Receipt (inbound) or Job (lot) inspections. */
+    sourceType?: "Receipt" | "Job";
+  }
+) {
+  const { sourceType, ...rest } = args ?? {};
+  const result = await getInspections(client, companyId, {
+    ...rest,
+    type: sourceType ? (sourceType === "Job" ? "Lot" : "Inbound") : undefined,
+    filters: remapInspectionFilters(rest.filters),
+    sorts: remapInspectionSorts(rest.sorts)
+  });
+
+  if (result.error || !result.data) return result;
+
+  return {
+    ...result,
+    data: (result.data as any[]).map(normalizeInspectionRow)
+  };
+}
+
 export async function getInboundInspection(
   client: SupabaseClient<Database>,
   id: string
 ) {
-  return (client as any)
-    .from("inboundInspection")
-    .select(
-      "*, item(readableId, name, type, itemTrackingType), receipt(receiptId, supplierId, createdBy), job(jobId, updatedBy), supplier(name), inboundInspectionSample(*, trackedEntity(id, readableId, attributes, status, sourceDocumentReadableId))"
-    )
+  // Preserves the original signature (no companyId) — this relies on RLS to
+  // scope the row, matching the pre-cutover behavior.
+  const result = await (client as any)
+    .from("inspection")
+    .select(INSPECTION_SELECT_DETAIL)
     .eq("id", id)
     .single();
+
+  if (result.error || !result.data) return result;
+
+  return { ...result, data: normalizeInspectionRow(result.data) };
 }
 
 export async function getInboundInspectionLotTrackedEntities(
@@ -3289,6 +3534,21 @@ export async function getInboundInspectionLotTrackedEntities(
   companyId: string,
   receiptLineId?: string | null
 ) {
+  const linked = await (client as any)
+    .from("inspectionTrackedEntity")
+    .select("trackedEntity(*)")
+    .eq("inspectionId", inspectionId)
+    .eq("companyId", companyId);
+
+  if (!linked.error && (linked.data?.length ?? 0) > 0) {
+    return {
+      data: (linked.data as any[])
+        .map((row) => firstOrSelf<any>(row.trackedEntity))
+        .filter((entity): entity is NonNullable<typeof entity> => !!entity),
+      error: null
+    };
+  }
+
   const byLot = await client
     .from("trackedEntity")
     .select("*")

@@ -7,11 +7,11 @@ import { data, redirect, useLoaderData, useParams } from "react-router";
 import invariant from "tiny-invariant";
 import {
   getInspectionDocumentsForPart,
-  getItemSamplingPlan,
-  itemSamplingPlanValidator,
-  upsertItemSamplingPlan
+  getItemInspectionPolicies,
+  itemInspectionPolicyValidator,
+  upsertItemInspectionPolicy
 } from "~/modules/quality";
-import SamplingPlanForm from "~/modules/quality/ui/SamplingPlan/SamplingPlanForm";
+import InspectionPolicyForm from "~/modules/quality/ui/SamplingPlan/InspectionPolicyForm";
 import { getCompanySettings } from "~/modules/settings";
 import { path } from "~/utils/path";
 
@@ -22,14 +22,14 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { itemId } = params;
   invariant(itemId, "itemId is required");
 
-  const [plan, settings, documents] = await Promise.all([
-    getItemSamplingPlan(client, itemId, companyId),
+  const [policies, settings, documents] = await Promise.all([
+    getItemInspectionPolicies(client, itemId, companyId),
     getCompanySettings(client, companyId),
     getInspectionDocumentsForPart(client, companyId, itemId)
   ]);
 
   return data({
-    plan: plan.data,
+    policies: policies.data ?? [],
     documentsForPart: documents.data ?? [],
     samplingStandard:
       ((settings.data as any)?.samplingStandard as
@@ -47,12 +47,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
   invariant(itemId, "itemId is required");
 
   const formData = await request.formData();
-  const validation = await validator(itemSamplingPlanValidator).validate(
+  const validation = await validator(itemInspectionPolicyValidator).validate(
     formData
   );
   if (validation.error) return validationError(validation.error);
 
-  const result = await upsertItemSamplingPlan(client, {
+  const result = await upsertItemInspectionPolicy(client, {
     ...validation.data,
     companyId,
     updatedBy: userId
@@ -60,29 +60,32 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (result.error) {
     throw redirect(
       path.to.materialQuality(itemId),
-      await flash(request, error(result.error, "Failed to save sampling plan"))
+      await flash(
+        request,
+        error(result.error, "Failed to save inspection policy")
+      )
     );
   }
 
   throw redirect(
     path.to.materialQuality(itemId),
-    await flash(request, success("Sampling plan updated"))
+    await flash(request, success("Inspection policy updated"))
   );
 }
 
 export default function MaterialQualityRoute() {
-  const { plan, samplingStandard, documentsForPart } =
+  const { policies, samplingStandard, documentsForPart } =
     useLoaderData<typeof loader>();
   const { itemId } = useParams();
   if (!itemId) throw new Error("itemId is required");
   return (
     <div className="p-4">
-      <SamplingPlanForm
+      <InspectionPolicyForm
         action={path.to.materialQuality(itemId)}
         itemId={itemId}
         standard={samplingStandard}
         documentsForPart={documentsForPart}
-        initial={plan ?? undefined}
+        policies={policies}
       />
     </div>
   );
