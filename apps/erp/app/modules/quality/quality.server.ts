@@ -6,8 +6,14 @@ import type { z } from "zod";
 import { getDatabaseClient } from "~/services/database.server";
 import {
   computeSampleAutoStatus,
-  evaluateCharacteristicMeasurement
+  evaluateCharacteristicMeasurement,
+  parseNumericMeasurement
 } from "./evaluateCharacteristicMeasurement";
+import {
+  nextSampleIndex,
+  resolveDispositionFlip,
+  resolveRejectLedgerLocation
+} from "./inspectionDisposition";
 import { isBatchInspectionLot } from "./inspectionLot.utils";
 import type {
   inboundInspectionDispositionValidator,
@@ -104,11 +110,15 @@ async function resolveInboundSampleStatus(
 // -------------------------------------------------------------
 // 1. upsertInboundInspectionSample
 // -------------------------------------------------------------
-// Writes that must stay consistent:
-//   - inboundInspectionSample (insert or update; batch lots allow multiple rows)
+// Writes that must stay consistent (all against the generic `inspection*`
+// tables — dual-write SQL triggers mirror inserts/updates back onto the
+// legacy `inboundInspection*` tables for anything still reading those):
+//   - inspectionSample (insert or update; batch lots allow multiple rows)
+//   - inspectionSampleMeasurement (measuredValue text + measuredValueNumeric)
+//   - inspectionTrackedEntity (link the sampled entity for disposition lookups)
 //   - trackedEntity.status (serial: flip per sample; batch: only on disposition)
 //   - trackedActivity + trackedActivityInput + trackedActivityOutput
-//   - inboundInspection.status (recompute if non-terminal)
+//   - inspection.status (recompute if non-terminal)
 
 export async function upsertInboundInspectionSample(
   sample: z.infer<typeof inboundInspectionSampleValidator> & {
@@ -122,16 +132,21 @@ export async function upsertInboundInspectionSample(
   try {
     const result = await db.transaction().execute(async (trx) => {
       const inspection = await trx
-        .selectFrom("inboundInspection")
+        .selectFrom("inspection")
+        .leftJoin("inspectionReceipt", (join) =>
+          join
+            .onRef("inspectionReceipt.inspectionId", "=", "inspection.id")
+            .onRef("inspectionReceipt.companyId", "=", "inspection.companyId")
+        )
         .select([
-          "id",
-          "status",
-          "receiptId",
-          "sampleSize",
-          "inspectionDocumentId"
+          "inspection.id",
+          "inspection.status",
+          "inspection.sampleSize",
+          "inspection.inspectionDocumentId",
+          "inspectionReceipt.receiptId"
         ])
-        .where("id", "=", sample.inspectionId)
-        .where("companyId", "=", sample.companyId)
+        .where("inspection.id", "=", sample.inspectionId)
+        .where("inspection.companyId", "=", sample.companyId)
         .executeTakeFirst();
       if (!inspection) throw new Error("Inspection not found");
 
@@ -144,7 +159,7 @@ export async function upsertInboundInspectionSample(
       );
 
       const samplePayload = {
-        inboundInspectionId: sample.inspectionId,
+        inspectionId: sample.inspectionId,
         trackedEntityId,
         status: resolved.status,
         statusOverridden: resolved.statusOverridden,
@@ -159,7 +174,7 @@ export async function upsertInboundInspectionSample(
 
       if (!trackedEntityId) {
         const inserted = await trx
-          .insertInto("inboundInspectionSample")
+          .insertInto("inspectionSample")
           .values({
             ...samplePayload,
             createdBy: sample.inspectedBy
@@ -178,17 +193,34 @@ export async function upsertInboundInspectionSample(
 
         isBatchEntity = Number(trackedEntity.quantity ?? 1) > 1;
 
+        // Link the sampled entity to the inspection so disposition can
+        // resolve the lot's tracked entities without scraping attributes.
+        await trx
+          .insertInto("inspectionTrackedEntity")
+          .values({
+            inspectionId: sample.inspectionId,
+            trackedEntityId,
+            companyId: sample.companyId,
+            createdBy: sample.inspectedBy
+          })
+          .onConflict((oc) =>
+            oc
+              .columns(["inspectionId", "trackedEntityId", "companyId"])
+              .doNothing()
+          )
+          .execute();
+
         if (isBatchEntity) {
           const [totalRow, entityRow] = await Promise.all([
             trx
-              .selectFrom("inboundInspectionSample")
+              .selectFrom("inspectionSample")
               .select(({ fn }) => fn.count<number>("id").as("count"))
-              .where("inboundInspectionId", "=", sample.inspectionId)
+              .where("inspectionId", "=", sample.inspectionId)
               .executeTakeFirst(),
             trx
-              .selectFrom("inboundInspectionSample")
+              .selectFrom("inspectionSample")
               .select(({ fn }) => fn.count<number>("id").as("count"))
-              .where("inboundInspectionId", "=", sample.inspectionId)
+              .where("inspectionId", "=", sample.inspectionId)
               .where("trackedEntityId", "=", trackedEntityId)
               .executeTakeFirst()
           ]);
@@ -199,10 +231,12 @@ export async function upsertInboundInspectionSample(
             );
           }
 
-          const sampleIndex = Number(entityRow?.count ?? 0) + 1;
+          const sampleIndex = nextSampleIndex({
+            existingCountForEntity: Number(entityRow?.count ?? 0)
+          });
 
           const inserted = await trx
-            .insertInto("inboundInspectionSample")
+            .insertInto("inspectionSample")
             .values({
               ...samplePayload,
               sampleIndex,
@@ -213,15 +247,15 @@ export async function upsertInboundInspectionSample(
           sampleId = inserted.id;
         } else {
           const existing = await trx
-            .selectFrom("inboundInspectionSample")
+            .selectFrom("inspectionSample")
             .select(["id"])
-            .where("inboundInspectionId", "=", sample.inspectionId)
+            .where("inspectionId", "=", sample.inspectionId)
             .where("trackedEntityId", "=", trackedEntityId)
             .executeTakeFirst();
 
           if (existing) {
             const updated = await trx
-              .updateTable("inboundInspectionSample")
+              .updateTable("inspectionSample")
               .set({
                 ...samplePayload,
                 updatedBy: sample.inspectedBy,
@@ -233,7 +267,7 @@ export async function upsertInboundInspectionSample(
             sampleId = updated.id;
           } else {
             const inserted = await trx
-              .insertInto("inboundInspectionSample")
+              .insertInto("inspectionSample")
               .values({
                 ...samplePayload,
                 sampleIndex: 1,
@@ -256,18 +290,26 @@ export async function upsertInboundInspectionSample(
       }
 
       if (resolved.measurements.length > 0) {
+        // No delete-sync trigger exists from generic → legacy, so a re-submit
+        // that drops a feature (rare — inspection plan changed mid-lot) will
+        // leave a stale row in the legacy `inboundInspectionSampleMeasurement`
+        // table. Acceptable for Phase 2.3 since reads now come from the
+        // generic table; revisit once legacy tables are retired (Phase 2.5).
         await trx
-          .deleteFrom("inboundInspectionSampleMeasurement")
-          .where("inboundInspectionSampleId", "=", sampleId)
+          .deleteFrom("inspectionSampleMeasurement")
+          .where("inspectionSampleId", "=", sampleId)
           .execute();
 
         await trx
-          .insertInto("inboundInspectionSampleMeasurement")
+          .insertInto("inspectionSampleMeasurement")
           .values(
             resolved.measurements.map((measurement) => ({
-              inboundInspectionSampleId: sampleId,
+              inspectionSampleId: sampleId,
               inspectionFeatureId: measurement.inspectionFeatureId,
               measuredValue: measurement.measuredValue,
+              measuredValueNumeric: parseNumericMeasurement(
+                measurement.measuredValue
+              ),
               inTolerance: measurement.inTolerance,
               companyId: sample.companyId,
               createdBy: sample.inspectedBy
@@ -281,12 +323,14 @@ export async function upsertInboundInspectionSample(
           .insertInto("trackedActivity")
           .values({
             type: "Inspect",
-            sourceDocument: "Inbound Inspection",
+            sourceDocument: "Inspection",
             sourceDocumentId: sample.inspectionId,
             attributes: {
               Result: resolved.status,
-              Receipt: inspection.receiptId,
               Inspector: sample.inspectedBy,
+              ...(inspection.receiptId
+                ? { Receipt: inspection.receiptId }
+                : {}),
               ...(isBatchEntity ? { "Sample Unit": 1 } : {}),
               ...(sample.notes ? { Notes: sample.notes } : {})
             },
@@ -324,20 +368,21 @@ export async function upsertInboundInspectionSample(
         inspection.status === "Partial";
       if (!isTerminal) {
         const samples = await trx
-          .selectFrom("inboundInspectionSample")
+          .selectFrom("inspectionSample")
           .select(["status"])
-          .where("inboundInspectionId", "=", sample.inspectionId)
+          .where("inspectionId", "=", sample.inspectionId)
           .execute();
         const nextStatus = computeLotStatus(samples);
         if (nextStatus !== inspection.status) {
           await trx
-            .updateTable("inboundInspection")
+            .updateTable("inspection")
             .set({
               status: nextStatus,
               updatedBy: sample.inspectedBy,
               updatedAt: nowIso
             })
             .where("id", "=", sample.inspectionId)
+            .where("companyId", "=", sample.companyId)
             .execute();
         }
       }
@@ -356,10 +401,10 @@ export async function upsertInboundInspectionSample(
 // -------------------------------------------------------------
 // 2. dispositionInboundInspection
 // -------------------------------------------------------------
-// Writes:
+// Writes (generic tables; dual-write triggers mirror onto legacy tables):
 //   - trackedEntity.status (bulk flip for Accept/Reject; nothing for Partial)
-//   - inboundInspection (status, dispositionedBy/At, notes)
-//   - inboundInspectionHistory (1 row for future plan auto-switching)
+//   - inspection (status, dispositionedBy/At, notes)
+//   - inspectionHistory (1 row for future plan auto-switching)
 
 export async function dispositionInboundInspection(
   args: z.infer<typeof inboundInspectionDispositionValidator> & {
@@ -373,23 +418,28 @@ export async function dispositionInboundInspection(
   try {
     const result = await db.transaction().execute(async (trx) => {
       const inspection = await trx
-        .selectFrom("inboundInspection")
+        .selectFrom("inspection")
+        .leftJoin("inspectionReceipt", (join) =>
+          join
+            .onRef("inspectionReceipt.inspectionId", "=", "inspection.id")
+            .onRef("inspectionReceipt.companyId", "=", "inspection.companyId")
+        )
         .select([
-          "id",
-          "receiptLineId",
-          "receiptId",
-          "itemId",
-          "status",
-          "supplierId",
-          "samplingStandard",
-          "severity",
-          "inspectionLevel",
-          "aql",
-          "lotSize",
-          "sampleSize"
+          "inspection.id",
+          "inspection.itemId",
+          "inspection.status",
+          "inspection.supplierId",
+          "inspection.samplingStandard",
+          "inspection.severity",
+          "inspection.inspectionLevel",
+          "inspection.aql",
+          "inspection.lotSize",
+          "inspection.sampleSize",
+          "inspection.locationId",
+          "inspectionReceipt.receiptLineId"
         ])
-        .where("id", "=", args.id)
-        .where("companyId", "=", args.companyId)
+        .where("inspection.id", "=", args.id)
+        .where("inspection.companyId", "=", args.companyId)
         .executeTakeFirst();
       if (!inspection) throw new Error("Inspection not found");
 
@@ -400,19 +450,42 @@ export async function dispositionInboundInspection(
         .where("companyId", "=", args.companyId)
         .executeTakeFirst();
 
-      const receiptLine = await trx
-        .selectFrom("receiptLine")
-        .select(["locationId"])
-        .where("id", "=", inspection.receiptLineId)
-        .where("companyId", "=", args.companyId)
-        .executeTakeFirst();
+      // Snapshotted at receipt/lot-creation time (see resolveRejectLedgerLocation);
+      // receiptLine is only a fallback for rows created before the snapshot existed.
+      const receiptLine = inspection.receiptLineId
+        ? await trx
+            .selectFrom("receiptLine")
+            .select(["locationId"])
+            .where("id", "=", inspection.receiptLineId)
+            .where("companyId", "=", args.companyId)
+            .executeTakeFirst()
+        : undefined;
 
-      let lotEntities = await trx
-        .selectFrom("trackedEntity")
-        .select(["id", "quantity"])
-        .where(sql<string>`attributes ->> 'Inspection Lot'`, "=", args.id)
-        .where("companyId", "=", args.companyId)
+      // Prefer the explicit inspectionTrackedEntity links recorded while
+      // sampling; fall back to attribute scraping for lots that predate
+      // that table (or whose entities were never individually sampled).
+      const linkedEntities = await trx
+        .selectFrom("inspectionTrackedEntity")
+        .innerJoin(
+          "trackedEntity",
+          "trackedEntity.id",
+          "inspectionTrackedEntity.trackedEntityId"
+        )
+        .select(["trackedEntity.id", "trackedEntity.quantity"])
+        .where("inspectionTrackedEntity.inspectionId", "=", args.id)
+        .where("inspectionTrackedEntity.companyId", "=", args.companyId)
         .execute();
+
+      let lotEntities = linkedEntities;
+
+      if (lotEntities.length === 0) {
+        lotEntities = await trx
+          .selectFrom("trackedEntity")
+          .select(["id", "quantity"])
+          .where(sql<string>`attributes ->> 'Inspection Lot'`, "=", args.id)
+          .where("companyId", "=", args.companyId)
+          .execute();
+      }
 
       if (lotEntities.length === 0 && inspection.receiptLineId) {
         lotEntities = await trx
@@ -430,9 +503,9 @@ export async function dispositionInboundInspection(
       const batchLot = isBatchInspectionLot(lotEntities);
 
       const existingSamples = await trx
-        .selectFrom("inboundInspectionSample")
+        .selectFrom("inspectionSample")
         .select(["trackedEntityId", "status"])
-        .where("inboundInspectionId", "=", args.id)
+        .where("inspectionId", "=", args.id)
         .execute();
 
       const sampledIds = new Set(existingSamples.map((s) => s.trackedEntityId));
@@ -442,31 +515,12 @@ export async function dispositionInboundInspection(
         (s) => s.status === "Failed"
       ).length;
 
-      // Reject = entire lot non-conforming (ISO 9001:2015 §8.7). Accept only
-      // releases un-sampled entities (sampled outcomes already flipped
-      // per-sample). Partial leaves un-sampled entities On Hold.
-      // Batch lots keep the entity On Hold until disposition — Accept releases
-      // the full batch quantity once sampling requirements are met.
-      let lotStatus: "Passed" | "Failed" | "Partial";
-      let idsToFlip: string[] = [];
-      let flipStatus: "Available" | "Rejected" | null = null;
-      switch (args.decision) {
-        case "Accept":
-          lotStatus = "Passed";
-          idsToFlip = batchLot ? allLotIds : unsampledIds;
-          flipStatus = "Available";
-          break;
-        case "Reject":
-          lotStatus = "Failed";
-          idsToFlip = allLotIds;
-          flipStatus = "Rejected";
-          break;
-        case "Partial":
-          lotStatus = "Partial";
-          idsToFlip = [];
-          flipStatus = null;
-          break;
-      }
+      const { lotStatus, idsToFlip, flipStatus } = resolveDispositionFlip({
+        decision: args.decision,
+        batchLot,
+        allLotIds,
+        unsampledIds
+      });
 
       if (flipStatus && idsToFlip.length > 0) {
         await trx
@@ -489,12 +543,20 @@ export async function dispositionInboundInspection(
         item?.itemTrackingType === "Inventory" &&
         inspection.lotSize > 0
       ) {
+        const ledgerLocationId = resolveRejectLedgerLocation({
+          inspectionLocationId: inspection.locationId,
+          receiptLineLocationId: receiptLine?.locationId
+        });
+
         await trx
           .insertInto("itemLedger")
           .values({
             itemId: inspection.itemId,
-            locationId: receiptLine?.locationId ?? null,
+            locationId: ledgerLocationId,
             entryType: "Negative Adjmt.",
+            // "Inspection" doesn't exist as an itemLedgerDocumentType enum
+            // value yet — Phase 2.5 will add it and update readers to accept
+            // both; keep the legacy value until then.
             documentType: "Inbound Inspection",
             documentId: inspection.id,
             quantity: -inspection.lotSize,
@@ -507,7 +569,7 @@ export async function dispositionInboundInspection(
       }
 
       const updated = await trx
-        .updateTable("inboundInspection")
+        .updateTable("inspection")
         .set({
           status: lotStatus,
           notes: args.notes ?? null,
@@ -522,9 +584,9 @@ export async function dispositionInboundInspection(
         .executeTakeFirstOrThrow();
 
       await trx
-        .insertInto("inboundInspectionHistory")
+        .insertInto("inspectionHistory")
         .values({
-          inboundInspectionId: args.id,
+          inspectionId: args.id,
           itemId: inspection.itemId,
           supplierId: inspection.supplierId ?? null,
           samplingStandard: inspection.samplingStandard,

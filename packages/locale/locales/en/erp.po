@@ -2414,6 +2414,9 @@ msgstr "Configure the start months for your fiscal and tax years"
 msgid "Configure when purchased item costs should be updated from supplier transactions."
 msgstr "Configure when purchased item costs should be updated from supplier transactions."
 
+msgid "Configure whether inspection is required and how samples are drawn for each inspection type."
+msgstr "Configure whether inspection is required and how samples are drawn for each inspection type."
+
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "Configure who should receive notifications when a supplier submits a quote."
 
@@ -6058,11 +6061,17 @@ msgstr "In stock"
 msgid "In the loop together"
 msgstr "In the loop together"
 
+msgid "In-Process"
+msgstr "In-Process"
+
 msgid "Inactive"
 msgstr "Inactive"
 
 msgid "Inactive actions will not appear in selection lists"
 msgstr "Inactive actions will not appear in selection lists"
+
+msgid "Inbound"
+msgstr "Inbound"
 
 msgid "Inbound Inspection"
 msgstr "Inbound Inspection"
@@ -6174,6 +6183,9 @@ msgstr "Inspection drawing"
 
 msgid "Inspection Level"
 msgstr "Inspection Level"
+
+msgid "Inspection Policy"
+msgstr "Inspection Policy"
 
 msgid "Inspection Status"
 msgstr "Inspection Status"

@@ -2414,6 +2414,9 @@ msgstr "Настройте месяцы начала вашего финансо
 msgid "Configure when purchased item costs should be updated from supplier transactions."
 msgstr "Настройте, когда стоимость приобретенных товаров должна обновляться на основе операций поставщика."
 
+msgid "Configure whether inspection is required and how samples are drawn for each inspection type."
+msgstr ""
+
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "Настройте, кто должен получать уведомления при отправке поставщиком предложения."
 
@@ -6058,11 +6061,17 @@ msgstr "В наличии"
 msgid "In the loop together"
 msgstr "В курсе дела вместе"
 
+msgid "In-Process"
+msgstr ""
+
 msgid "Inactive"
 msgstr "Неактивно"
 
 msgid "Inactive actions will not appear in selection lists"
 msgstr "Неактивные действия не будут отображаться в списках выбора"
+
+msgid "Inbound"
+msgstr ""
 
 msgid "Inbound Inspection"
 msgstr "Входящая проверка"
@@ -6174,6 +6183,9 @@ msgstr ""
 
 msgid "Inspection Level"
 msgstr "Уровень проверки"
+
+msgid "Inspection Policy"
+msgstr ""
 
 msgid "Inspection Status"
 msgstr "Статус проверки"

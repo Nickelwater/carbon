@@ -1,4 +1,4 @@
-function parseNumericMeasurement(
+export function parseNumericMeasurement(
   value: string | null | undefined
 ): number | null {
   if (value == null) return null;

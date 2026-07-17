@@ -2414,6 +2414,9 @@ msgstr "Mali ve muhasebe yıllarınız için başlangıç aylarını yapılandı
 msgid "Configure when purchased item costs should be updated from supplier transactions."
 msgstr "Satın alınan ürün maliyetlerinin tedarikçi işlemlerinden ne zaman güncelleneceğini yapılandırın."
 
+msgid "Configure whether inspection is required and how samples are drawn for each inspection type."
+msgstr ""
+
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "Bir tedarikçi teklif sunduğunda kimin bildirim alacağını yapılandırın."
 
@@ -6058,11 +6061,17 @@ msgstr "Stokta"
 msgid "In the loop together"
 msgstr "Birlikte döngüde"
 
+msgid "In-Process"
+msgstr ""
+
 msgid "Inactive"
 msgstr "Pasif"
 
 msgid "Inactive actions will not appear in selection lists"
 msgstr "Etkin olmayan eylemler seçim listelerinde görünmeyecektir"
+
+msgid "Inbound"
+msgstr ""
 
 msgid "Inbound Inspection"
 msgstr "Gelen Muayene"
@@ -6174,6 +6183,9 @@ msgstr ""
 
 msgid "Inspection Level"
 msgstr "Muayene Seviyesi"
+
+msgid "Inspection Policy"
+msgstr ""
 
 msgid "Inspection Status"
 msgstr "Kontrol Durumu"

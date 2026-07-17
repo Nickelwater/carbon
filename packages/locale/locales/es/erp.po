@@ -2414,6 +2414,9 @@ msgstr "Configura los meses de inicio para tus años fiscales y tributarios"
 msgid "Configure when purchased item costs should be updated from supplier transactions."
 msgstr "Configura cuándo se deben actualizar los costos de artículos comprados a partir de transacciones de proveedores."
 
+msgid "Configure whether inspection is required and how samples are drawn for each inspection type."
+msgstr ""
+
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "Configura quién debe recibir notificaciones cuando un proveedor envía una cotización."
 
@@ -6058,11 +6061,17 @@ msgstr "En stock"
 msgid "In the loop together"
 msgstr "En el ciclo juntos"
 
+msgid "In-Process"
+msgstr ""
+
 msgid "Inactive"
 msgstr "Inactivo"
 
 msgid "Inactive actions will not appear in selection lists"
 msgstr "Las acciones inactivas no aparecerán en las listas de selección"
+
+msgid "Inbound"
+msgstr ""
 
 msgid "Inbound Inspection"
 msgstr "Inspección de Entrada"
@@ -6174,6 +6183,9 @@ msgstr ""
 
 msgid "Inspection Level"
 msgstr "Nivel de Inspección"
+
+msgid "Inspection Policy"
+msgstr ""
 
 msgid "Inspection Status"
 msgstr "Estado de Inspección"

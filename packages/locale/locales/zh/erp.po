@@ -2414,6 +2414,9 @@ msgstr "配置您的财政年度和税务年度的开始月份"
 msgid "Configure when purchased item costs should be updated from supplier transactions."
 msgstr "配置何时应从供应商交易更新采购项目成本。"
 
+msgid "Configure whether inspection is required and how samples are drawn for each inspection type."
+msgstr ""
+
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "配置供应商提交报价时谁应该收到通知。"
 
@@ -6058,11 +6061,17 @@ msgstr "有库存"
 msgid "In the loop together"
 msgstr "一起保持沟通"
 
+msgid "In-Process"
+msgstr ""
+
 msgid "Inactive"
 msgstr "未激活"
 
 msgid "Inactive actions will not appear in selection lists"
 msgstr "不活跃的操作将不会出现在选择列表中"
+
+msgid "Inbound"
+msgstr ""
 
 msgid "Inbound Inspection"
 msgstr "入站检验"
@@ -6174,6 +6183,9 @@ msgstr ""
 
 msgid "Inspection Level"
 msgstr "检验水平"
+
+msgid "Inspection Policy"
+msgstr ""
 
 msgid "Inspection Status"
 msgstr "检验状态"

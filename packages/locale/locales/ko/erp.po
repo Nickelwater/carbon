@@ -2414,6 +2414,9 @@ msgstr "회계연도 및 세무연도의 시작 월을 설정하세요"
 msgid "Configure when purchased item costs should be updated from supplier transactions."
 msgstr "공급업체 거래로부터 구매 품목 원가를 언제 업데이트할지 설정하세요."
 
+msgid "Configure whether inspection is required and how samples are drawn for each inspection type."
+msgstr ""
+
 msgid "Configure who should receive notifications when a supplier submits a quote."
 msgstr "공급업체가 견적을 제출했을 때 알림을 받을 대상을 설정하세요."
 
@@ -6058,11 +6061,17 @@ msgstr "재고 있음"
 msgid "In the loop together"
 msgstr "함께 정보 공유하기"
 
+msgid "In-Process"
+msgstr ""
+
 msgid "Inactive"
 msgstr "비활성"
 
 msgid "Inactive actions will not appear in selection lists"
 msgstr "비활성 조치는 선택 목록에 표시되지 않습니다"
+
+msgid "Inbound"
+msgstr ""
 
 msgid "Inbound Inspection"
 msgstr "입고 검사"
@@ -6174,6 +6183,9 @@ msgstr ""
 
 msgid "Inspection Level"
 msgstr "검사 수준"
+
+msgid "Inspection Policy"
+msgstr ""
 
 msgid "Inspection Status"
 msgstr "검사 상태"

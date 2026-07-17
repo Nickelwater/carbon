@@ -3495,13 +3495,25 @@ export async function getInboundInspections(
     sourceType?: "Receipt" | "Job";
   }
 ) {
-  const { sourceType, ...rest } = args ?? {};
-  const result = await getInspections(client, companyId, {
-    ...rest,
-    type: sourceType ? (sourceType === "Job" ? "Lot" : "Inbound") : undefined,
-    filters: remapInspectionFilters(rest.filters),
-    sorts: remapInspectionSorts(rest.sorts)
-  });
+  const result = await getInspections(
+    client,
+    companyId,
+    args
+      ? {
+          limit: args.limit,
+          offset: args.offset,
+          search: args.search,
+          status: args.status,
+          type: args.sourceType
+            ? args.sourceType === "Job"
+              ? "Lot"
+              : "Inbound"
+            : undefined,
+          filters: remapInspectionFilters(args.filters),
+          sorts: remapInspectionSorts(args.sorts)
+        }
+      : undefined
+  );
 
   if (result.error || !result.data) return result;
 

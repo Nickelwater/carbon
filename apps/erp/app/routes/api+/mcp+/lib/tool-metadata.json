@@ -1,6 +1,6 @@
 {
-  "generated": "2026-07-17T17:15:49.254Z",
-  "totalTools": 1324,
+  "generated": "2026-07-17T17:57:09.231Z",
+  "totalTools": 1329,
   "modules": 15,
   "tools": [
     {
@@ -27717,6 +27717,63 @@
       }
     },
     {
+      "name": "quality_getItemInspectionPolicies",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get item inspection policies",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "itemId",
+        "companyId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId"
+        ]
+      }
+    },
+    {
+      "name": "quality_getItemInspectionPolicy",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get item inspection policy",
+      "paramCount": 2,
+      "serviceParams": [
+        "client",
+        "itemId",
+        "companyId",
+        "inspectionType"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "itemId": {
+            "type": "string"
+          },
+          "inspectionType": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "itemId",
+          "inspectionType"
+        ]
+      }
+    },
+    {
       "name": "quality_upsertItemSamplingPlan",
       "module": "quality",
       "classification": "WRITE",
@@ -27738,6 +27795,80 @@
         },
         "required": [
           "plan"
+        ]
+      }
+    },
+    {
+      "name": "quality_upsertItemInspectionPolicy",
+      "module": "quality",
+      "classification": "WRITE",
+      "description": "upsert item inspection policy",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "policy"
+      ],
+      "injectAuth": [
+        "companyId",
+        "createdBy",
+        "updatedBy"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "policy": {}
+        },
+        "required": [
+          "policy"
+        ]
+      }
+    },
+    {
+      "name": "quality_getInspections",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get inspections",
+      "paramCount": 0,
+      "serviceParams": [
+        "client",
+        "companyId",
+        "args"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "args": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    {
+      "name": "quality_getInspection",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get inspection",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "id",
+        "companyId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
         ]
       }
     },
