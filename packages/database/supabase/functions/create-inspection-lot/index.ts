@@ -3,6 +3,7 @@ import { z } from "npm:zod@^3.24.1";
 
 import { DB, getConnectionPool, getDatabaseClient } from "../lib/database.ts";
 import { corsHeaders } from "../lib/headers.ts";
+import { sendInngestEvent } from "../lib/inngest.ts";
 import { getSupabaseServiceRole } from "../lib/supabase.ts";
 import { getNextSequence } from "../shared/get-next-sequence.ts";
 import {
@@ -170,6 +171,30 @@ serve(async (req: Request) => {
       payload.locationId ?? job.data.locationId ?? null;
     const storageUnitId = payload.storageUnitId ?? null;
 
+    // Phase 3.5: best-effort catch-up so any due In-Process runs required for
+    // Lot acceptance exist by the time we compute inspectionDependency rows
+    // below. Fire-and-forget (Inngest) — this cannot be awaited to
+    // completion synchronously, so a run created moments before job
+    // completion may still land after this Lot inspection is created; the
+    // Accept-time gate (dispositionInboundInspection) re-checks dependency
+    // status at disposition time, not just at Lot-creation time.
+    const jobOperationsForCatchUp = await client
+      .from("jobOperation")
+      .select("id")
+      .eq("jobId", payload.jobId)
+      .eq("companyId", payload.companyId);
+
+    for (const op of jobOperationsForCatchUp.data ?? []) {
+      sendInngestEvent("carbon/evaluate-in-process-inspections", {
+        companyId: payload.companyId,
+        jobOperationId: op.id,
+        userId: payload.userId,
+        reason: "lot-create-catch-up",
+      }).catch((err) => {
+        console.error("in-process catch-up dispatch failed:", err);
+      });
+    }
+
     const inspectionId = await db.transaction().execute(async (trx) => {
       // Re-check inside the transaction for races.
       const existing = await trx
@@ -254,6 +279,90 @@ serve(async (req: Request) => {
             createdBy: payload.userId,
           } as any)
           .execute();
+      }
+
+      // Phase 3.5: link required In-Process runs as prerequisites of this
+      // Lot inspection. Only plans marked requiredForLotAcceptance gate
+      // Accept; dependency status mirrors whatever the prerequisite's
+      // current inspection status is right now (Passed -> Satisfied, Failed
+      // -> Failed, Cancelled -> Cancelled, else Pending).
+      const jobOperations = await trx
+        .selectFrom("jobOperation" as any)
+        .select(["id"] as any)
+        .where("jobId" as any, "=", payload.jobId)
+        .where("companyId" as any, "=", payload.companyId)
+        .execute();
+      const jobOperationIds = (jobOperations as any[]).map((row) => row.id as string);
+
+      if (jobOperationIds.length > 0) {
+        const requiredPlans = await trx
+          .selectFrom("jobOperationInspectionPlan" as any)
+          .select(["id"] as any)
+          .where("jobOperationId" as any, "in", jobOperationIds)
+          .where("companyId" as any, "=", payload.companyId)
+          .where("requiredForLotAcceptance" as any, "=", true)
+          .where("active" as any, "=", true)
+          .execute();
+        const requiredPlanIds = (requiredPlans as any[]).map(
+          (row) => row.id as string
+        );
+
+        if (requiredPlanIds.length > 0) {
+          const requiredRuns = await trx
+            .selectFrom("inspectionInProcess" as any)
+            .innerJoin("inspection" as any, (join: any) =>
+              join
+                .onRef(
+                  "inspection.id" as any,
+                  "=",
+                  "inspectionInProcess.inspectionId" as any
+                )
+                .onRef(
+                  "inspection.companyId" as any,
+                  "=",
+                  "inspectionInProcess.companyId" as any
+                )
+            )
+            .select([
+              "inspectionInProcess.inspectionId" as any,
+              "inspection.status" as any,
+            ])
+            .where(
+              "inspectionInProcess.jobOperationInspectionPlanId" as any,
+              "in",
+              requiredPlanIds
+            )
+            .where(
+              "inspectionInProcess.companyId" as any,
+              "=",
+              payload.companyId
+            )
+            .execute();
+
+          for (const run of requiredRuns as any[]) {
+            const prerequisiteStatus = run.status as string;
+            const dependencyStatus =
+              prerequisiteStatus === "Passed"
+                ? "Satisfied"
+                : prerequisiteStatus === "Failed"
+                  ? "Failed"
+                  : prerequisiteStatus === "Cancelled"
+                    ? "Cancelled"
+                    : "Pending";
+
+            await trx
+              .insertInto("inspectionDependency" as any)
+              .values({
+                companyId: payload.companyId,
+                dependentInspectionId: inserted.id,
+                prerequisiteInspectionId: run.inspectionId,
+                required: true,
+                status: dependencyStatus,
+                createdBy: payload.userId,
+              } as any)
+              .execute();
+          }
+        }
       }
 
       return inserted.id as string;

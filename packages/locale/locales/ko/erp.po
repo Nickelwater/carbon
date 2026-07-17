@@ -391,6 +391,9 @@ msgstr "흡수"
 msgid "Academy"
 msgstr "아카데미"
 
+msgid "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+msgstr ""
+
 msgid "Accept Lot"
 msgstr "로트 승인"
 
@@ -6064,6 +6067,12 @@ msgstr "함께 정보 공유하기"
 msgid "In-Process"
 msgstr ""
 
+msgid "In-Process Inspection Dependencies"
+msgstr ""
+
+msgid "In-Process Inspections"
+msgstr ""
+
 msgid "Inactive"
 msgstr "비활성"
 
@@ -6498,6 +6507,9 @@ msgstr "품목: 품목 마스터, BOM, 공정(BOP), 설계 변경, CAD"
 
 msgid "Job"
 msgstr "작업"
+
+msgid "Job / Operation"
+msgstr ""
 
 msgid "Job ID"
 msgstr "작업 ID"
@@ -7214,6 +7226,9 @@ msgstr "최대 주문:"
 msgid "MCP Command"
 msgstr "MCP 명령"
 
+msgid "Mean"
+msgstr ""
+
 msgid "Mean Time Between Failures"
 msgstr "평균 고장 간격(MTBF)"
 
@@ -7221,6 +7236,9 @@ msgid "Mean Time To Repair"
 msgstr "평균 수리 시간(MTTR)"
 
 msgid "Measured"
+msgstr ""
+
+msgid "Measurement"
 msgstr ""
 
 msgid "Measurement Standard"
@@ -8040,6 +8058,9 @@ msgstr "배정된 규칙이 없습니다"
 
 msgid "No samples inspected yet."
 msgstr "아직 검사된 샘플이 없습니다."
+
+msgid "No samples recorded yet."
+msgstr ""
 
 msgid "No single, trusted number for inventory or job status"
 msgstr "재고나 작업 상태를 나타내는 신뢰할 수 있는 단일 수치가 없음"
@@ -9561,6 +9582,9 @@ msgstr "요청 제한"
 msgid "Re-keying between quoting, the floor, and finance"
 msgstr "견적, 현장, 재무 간 데이터 재입력"
 
+msgid "Reaction"
+msgstr ""
+
 msgid "Reactivate"
 msgstr "재활성화"
 
@@ -9943,6 +9967,9 @@ msgstr "필수 조치(순서대로)"
 
 msgid "Required Date"
 msgstr "필요일"
+
+msgid "Required for Lot Accept"
+msgstr ""
 
 msgid "Required for permanent tools"
 msgstr ""
@@ -10335,6 +10362,9 @@ msgstr "샘플 {0}"
 
 msgid "Sample Size"
 msgstr "샘플 크기"
+
+msgid "Samples"
+msgstr ""
 
 msgid "Sampling Plan"
 msgstr "샘플링 계획"
@@ -11200,6 +11230,10 @@ msgstr "예비 부품 소모"
 
 msgid "Spare Part Cost"
 msgstr "예비 부품 비용"
+
+#. placeholder {0}: feature.name
+msgid "SPC — {0}"
+msgstr ""
 
 msgid "Specific Customer"
 msgstr "특정 고객"
@@ -12917,6 +12951,9 @@ msgstr "휴지통"
 msgid "Trial Balance"
 msgstr "시산표"
 
+msgid "Trigger"
+msgstr ""
+
 msgid "Triggers"
 msgstr "트리거"
 
@@ -13553,6 +13590,9 @@ msgstr "이 입고를 무효화하면 다음과 같은 결과가 발생합니다
 
 msgid "Voiding this shipment will:"
 msgstr "이 출하를 무효화하면 다음과 같은 결과가 발생합니다:"
+
+msgid "Waive"
+msgstr ""
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "담당자와 함께 각 영역을 살펴보고 범위에서 벗어난 항목은 토글로 제외하세요. 코드는 모듈.영역.번호 형식입니다(ACC.GL.01 = 회계, 총계정원장, 1번 항목)."

@@ -723,7 +723,8 @@ export const inboundInspectionStatus = [
   "In Progress",
   "Passed",
   "Failed",
-  "Partial"
+  "Partial",
+  "Cancelled"
 ] as const;
 
 export const inboundInspectionSampleStatus = [

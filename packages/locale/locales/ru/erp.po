@@ -391,6 +391,9 @@ msgstr ""
 msgid "Academy"
 msgstr ""
 
+msgid "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+msgstr ""
+
 msgid "Accept Lot"
 msgstr "Принять партию"
 
@@ -6064,6 +6067,12 @@ msgstr "В курсе дела вместе"
 msgid "In-Process"
 msgstr ""
 
+msgid "In-Process Inspection Dependencies"
+msgstr ""
+
+msgid "In-Process Inspections"
+msgstr ""
+
 msgid "Inactive"
 msgstr "Неактивно"
 
@@ -6498,6 +6507,9 @@ msgstr "Товары: справочник товаров, спецификац�
 
 msgid "Job"
 msgstr "Задание"
+
+msgid "Job / Operation"
+msgstr ""
 
 msgid "Job ID"
 msgstr "ID задания"
@@ -7214,6 +7226,9 @@ msgstr "Максимальный заказ:"
 msgid "MCP Command"
 msgstr "Команда MCP"
 
+msgid "Mean"
+msgstr ""
+
 msgid "Mean Time Between Failures"
 msgstr "Среднее время между отказами"
 
@@ -7221,6 +7236,9 @@ msgid "Mean Time To Repair"
 msgstr "Среднее время на ремонт"
 
 msgid "Measured"
+msgstr ""
+
+msgid "Measurement"
 msgstr ""
 
 msgid "Measurement Standard"
@@ -8040,6 +8058,9 @@ msgstr "Нет назначенных правил"
 
 msgid "No samples inspected yet."
 msgstr "Пока нет проверенных образцов."
+
+msgid "No samples recorded yet."
+msgstr ""
 
 msgid "No single, trusted number for inventory or job status"
 msgstr "Нет единого надежного показателя для инвентаря или статуса работы"
@@ -9561,6 +9582,9 @@ msgstr "Ограничение скорости"
 msgid "Re-keying between quoting, the floor, and finance"
 msgstr "Повторный ввод данных между расчётом, цехом и финансами"
 
+msgid "Reaction"
+msgstr ""
+
 msgid "Reactivate"
 msgstr "Переактивировать"
 
@@ -9943,6 +9967,9 @@ msgstr "Требуемые действия (по порядку)"
 
 msgid "Required Date"
 msgstr "Требуемая дата"
+
+msgid "Required for Lot Accept"
+msgstr ""
 
 msgid "Required for permanent tools"
 msgstr ""
@@ -10335,6 +10362,9 @@ msgstr "Образец {0}"
 
 msgid "Sample Size"
 msgstr "Размер выборки"
+
+msgid "Samples"
+msgstr ""
 
 msgid "Sampling Plan"
 msgstr "План выборочного контроля"
@@ -11200,6 +11230,10 @@ msgstr "Потребление запасных частей"
 
 msgid "Spare Part Cost"
 msgstr "Стоимость запасных частей"
+
+#. placeholder {0}: feature.name
+msgid "SPC — {0}"
+msgstr ""
 
 msgid "Specific Customer"
 msgstr "Конкретный клиент"
@@ -12917,6 +12951,9 @@ msgstr "Корзина"
 msgid "Trial Balance"
 msgstr "Пробный баланс"
 
+msgid "Trigger"
+msgstr ""
+
 msgid "Triggers"
 msgstr "Триггеры"
 
@@ -13553,6 +13590,9 @@ msgstr "Аннулирование этого чека приведет к:"
 
 msgid "Voiding this shipment will:"
 msgstr "Отмена этой отправки приведет к:"
+
+msgid "Waive"
+msgstr ""
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "Пройдите каждую область со своим чемпионом и отключите все, что выходит за рамки. Коды читаются как Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."

@@ -391,6 +391,9 @@ msgstr ""
 msgid "Academy"
 msgstr ""
 
+msgid "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+msgstr ""
+
 msgid "Accept Lot"
 msgstr "Aceitar Lote"
 
@@ -6064,6 +6067,12 @@ msgstr "No circuito juntos"
 msgid "In-Process"
 msgstr ""
 
+msgid "In-Process Inspection Dependencies"
+msgstr ""
+
+msgid "In-Process Inspections"
+msgstr ""
+
 msgid "Inactive"
 msgstr "Inativo"
 
@@ -6498,6 +6507,9 @@ msgstr "Itens: mestre de itens, BOMs, Bill of Process, alterações de engenhari
 
 msgid "Job"
 msgstr "Trabalho"
+
+msgid "Job / Operation"
+msgstr ""
 
 msgid "Job ID"
 msgstr "ID da Tarefa"
@@ -7214,6 +7226,9 @@ msgstr "Pedido Máximo:"
 msgid "MCP Command"
 msgstr "Comando MCP"
 
+msgid "Mean"
+msgstr ""
+
 msgid "Mean Time Between Failures"
 msgstr "Tempo Médio Entre Falhas"
 
@@ -7221,6 +7236,9 @@ msgid "Mean Time To Repair"
 msgstr "Tempo Médio de Reparo"
 
 msgid "Measured"
+msgstr ""
+
+msgid "Measurement"
 msgstr ""
 
 msgid "Measurement Standard"
@@ -8040,6 +8058,9 @@ msgstr "Nenhuma regra atribuída"
 
 msgid "No samples inspected yet."
 msgstr "Nenhuma amostra inspecionada ainda."
+
+msgid "No samples recorded yet."
+msgstr ""
 
 msgid "No single, trusted number for inventory or job status"
 msgstr "Nenhum número único e confiável para inventário ou status do trabalho"
@@ -9561,6 +9582,9 @@ msgstr "Limite de Taxa"
 msgid "Re-keying between quoting, the floor, and finance"
 msgstr "Re-digitação entre orçamento, chão de fábrica e finanças"
 
+msgid "Reaction"
+msgstr ""
+
 msgid "Reactivate"
 msgstr "Reativar"
 
@@ -9943,6 +9967,9 @@ msgstr "Ações Obrigatórias (em ordem)"
 
 msgid "Required Date"
 msgstr "Data Necessária"
+
+msgid "Required for Lot Accept"
+msgstr ""
 
 msgid "Required for permanent tools"
 msgstr ""
@@ -10335,6 +10362,9 @@ msgstr "Amostra {0}"
 
 msgid "Sample Size"
 msgstr "Tamanho da Amostra"
+
+msgid "Samples"
+msgstr ""
 
 msgid "Sampling Plan"
 msgstr "Plano de Amostragem"
@@ -11200,6 +11230,10 @@ msgstr "Consumo de Peças de Reposição"
 
 msgid "Spare Part Cost"
 msgstr "Custo de Peça de Reposição"
+
+#. placeholder {0}: feature.name
+msgid "SPC — {0}"
+msgstr ""
 
 msgid "Specific Customer"
 msgstr "Cliente Específico"
@@ -12917,6 +12951,9 @@ msgstr "Lixo"
 msgid "Trial Balance"
 msgstr "Balancete de Verificação"
 
+msgid "Trigger"
+msgstr ""
+
 msgid "Triggers"
 msgstr "Acionadores"
 
@@ -13553,6 +13590,9 @@ msgstr "Anular este recibo irá:"
 
 msgid "Voiding this shipment will:"
 msgstr "Anular este envio irá:"
+
+msgid "Waive"
+msgstr ""
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "Percorra cada área com seu campeão e alterne qualquer coisa fora do escopo. Os códigos leem Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."

@@ -391,6 +391,9 @@ msgstr ""
 msgid "Academy"
 msgstr ""
 
+msgid "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+msgstr ""
+
 msgid "Accept Lot"
 msgstr "लॉट स्वीकार करें"
 
@@ -6064,6 +6067,12 @@ msgstr "एक साथ लूप में"
 msgid "In-Process"
 msgstr ""
 
+msgid "In-Process Inspection Dependencies"
+msgstr ""
+
+msgid "In-Process Inspections"
+msgstr ""
+
 msgid "Inactive"
 msgstr "निष्क्रिय"
 
@@ -6498,6 +6507,9 @@ msgstr "आइटम: आइटम मास्टर, BOMs, बिल ऑफ �
 
 msgid "Job"
 msgstr "Job"
+
+msgid "Job / Operation"
+msgstr ""
 
 msgid "Job ID"
 msgstr "जॉब आईडी"
@@ -7214,6 +7226,9 @@ msgstr "अधिकतम ऑर्डर:"
 msgid "MCP Command"
 msgstr "MCP कमांड"
 
+msgid "Mean"
+msgstr ""
+
 msgid "Mean Time Between Failures"
 msgstr "विफलताओं के बीच औसत समय"
 
@@ -7221,6 +7236,9 @@ msgid "Mean Time To Repair"
 msgstr "मरम्मत के लिए औसत समय"
 
 msgid "Measured"
+msgstr ""
+
+msgid "Measurement"
 msgstr ""
 
 msgid "Measurement Standard"
@@ -8040,6 +8058,9 @@ msgstr "कोई नियम असाइन नहीं किया गय�
 
 msgid "No samples inspected yet."
 msgstr "अभी तक कोई नमूना निरीक्षण नहीं किया गया है।"
+
+msgid "No samples recorded yet."
+msgstr ""
 
 msgid "No single, trusted number for inventory or job status"
 msgstr "इन्वेंटरी या जॉब स्थिति के लिए कोई एकल, विश्वसनीय संख्या नहीं"
@@ -9561,6 +9582,9 @@ msgstr "दर सीमा"
 msgid "Re-keying between quoting, the floor, and finance"
 msgstr "उद्धरण, फर्श और वित्त के बीच पुनः-कुंजीकरण"
 
+msgid "Reaction"
+msgstr ""
+
 msgid "Reactivate"
 msgstr "पुनः सक्रिय करें"
 
@@ -9943,6 +9967,9 @@ msgstr "आवश्यक क्रियाएं (क्रम में)"
 
 msgid "Required Date"
 msgstr "आवश्यक तारीख"
+
+msgid "Required for Lot Accept"
+msgstr ""
 
 msgid "Required for permanent tools"
 msgstr ""
@@ -10335,6 +10362,9 @@ msgstr "नमूना {0}"
 
 msgid "Sample Size"
 msgstr "नमूना आकार"
+
+msgid "Samples"
+msgstr ""
 
 msgid "Sampling Plan"
 msgstr "सैंपलिंग प्लान"
@@ -11200,6 +11230,10 @@ msgstr "स्पेयर पार्ट खपत"
 
 msgid "Spare Part Cost"
 msgstr "स्पेयर पार्ट लागत"
+
+#. placeholder {0}: feature.name
+msgid "SPC — {0}"
+msgstr ""
 
 msgid "Specific Customer"
 msgstr "विशिष्ट ग्राहक"
@@ -12917,6 +12951,9 @@ msgstr "ट्रैश"
 msgid "Trial Balance"
 msgstr "ट्रायल बैलेंस"
 
+msgid "Trigger"
+msgstr ""
+
 msgid "Triggers"
 msgstr "ट्रिगर"
 
@@ -13553,6 +13590,9 @@ msgstr "इस रसीद को रद्द करने से:"
 
 msgid "Voiding this shipment will:"
 msgstr "इस शिपमेंट को रद्द करने से:"
+
+msgid "Waive"
+msgstr ""
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "अपने चैंपियन के साथ प्रत्येक क्षेत्र को देखें और स्कोप से बाहर कुछ भी टॉगल करें। कोड Module.Area.Number पढ़ते हैं (ACC.GL.01 = Accounting, General Ledger, item 1)।"

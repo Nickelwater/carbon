@@ -391,6 +391,9 @@ msgstr "Absorption"
 msgid "Academy"
 msgstr "Academy"
 
+msgid "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+msgstr "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+
 msgid "Accept Lot"
 msgstr "Accept Lot"
 
@@ -6064,6 +6067,12 @@ msgstr "In the loop together"
 msgid "In-Process"
 msgstr "In-Process"
 
+msgid "In-Process Inspection Dependencies"
+msgstr "In-Process Inspection Dependencies"
+
+msgid "In-Process Inspections"
+msgstr "In-Process Inspections"
+
 msgid "Inactive"
 msgstr "Inactive"
 
@@ -6498,6 +6507,9 @@ msgstr "Items: item master, BOMs, Bill of Process, engineering changes, CAD"
 
 msgid "Job"
 msgstr "Job"
+
+msgid "Job / Operation"
+msgstr "Job / Operation"
 
 msgid "Job ID"
 msgstr "Job ID"
@@ -7214,6 +7226,9 @@ msgstr "Maximum Order:"
 msgid "MCP Command"
 msgstr "MCP Command"
 
+msgid "Mean"
+msgstr "Mean"
+
 msgid "Mean Time Between Failures"
 msgstr "Mean Time Between Failures"
 
@@ -7222,6 +7237,9 @@ msgstr "Mean Time To Repair"
 
 msgid "Measured"
 msgstr "Measured"
+
+msgid "Measurement"
+msgstr "Measurement"
 
 msgid "Measurement Standard"
 msgstr "Measurement Standard"
@@ -8040,6 +8058,9 @@ msgstr "No rules assigned"
 
 msgid "No samples inspected yet."
 msgstr "No samples inspected yet."
+
+msgid "No samples recorded yet."
+msgstr "No samples recorded yet."
 
 msgid "No single, trusted number for inventory or job status"
 msgstr "No single, trusted number for inventory or job status"
@@ -9561,6 +9582,9 @@ msgstr "Rate Limit"
 msgid "Re-keying between quoting, the floor, and finance"
 msgstr "Re-keying between quoting, the floor, and finance"
 
+msgid "Reaction"
+msgstr "Reaction"
+
 msgid "Reactivate"
 msgstr "Reactivate"
 
@@ -9943,6 +9967,9 @@ msgstr "Required Actions (in order)"
 
 msgid "Required Date"
 msgstr "Required Date"
+
+msgid "Required for Lot Accept"
+msgstr "Required for Lot Accept"
 
 msgid "Required for permanent tools"
 msgstr "Required for permanent tools"
@@ -10335,6 +10362,9 @@ msgstr "Sample {0}"
 
 msgid "Sample Size"
 msgstr "Sample Size"
+
+msgid "Samples"
+msgstr "Samples"
 
 msgid "Sampling Plan"
 msgstr "Sampling Plan"
@@ -11200,6 +11230,10 @@ msgstr "Spare Part Consumption"
 
 msgid "Spare Part Cost"
 msgstr "Spare Part Cost"
+
+#. placeholder {0}: feature.name
+msgid "SPC — {0}"
+msgstr "SPC — {0}"
 
 msgid "Specific Customer"
 msgstr "Specific Customer"
@@ -12917,6 +12951,9 @@ msgstr "Trash"
 msgid "Trial Balance"
 msgstr "Trial Balance"
 
+msgid "Trigger"
+msgstr "Trigger"
+
 msgid "Triggers"
 msgstr "Triggers"
 
@@ -13553,6 +13590,9 @@ msgstr "Voiding this receipt will:"
 
 msgid "Voiding this shipment will:"
 msgstr "Voiding this shipment will:"
+
+msgid "Waive"
+msgstr "Waive"
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."

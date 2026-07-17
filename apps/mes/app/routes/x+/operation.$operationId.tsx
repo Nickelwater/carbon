@@ -7,6 +7,7 @@ import { redirect, useLoaderData, useParams } from "react-router";
 import { JobOperation } from "~/components/JobOperation";
 import { getCompanySettings } from "~/services/inventory.service";
 import {
+  getInProcessRunsForOperation,
   getJobByOperationId,
   getJobFiles,
   getJobMakeMethod,
@@ -148,6 +149,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }),
     operation: makeDurations(operation.data?.[0]) as OperationWithDetails,
     expiredEntityPolicy,
+    inProcessRuns: getInProcessRunsForOperation(
+      serviceRole,
+      operation.data?.[0].id,
+      companyId
+    ),
     procedure: getJobOperationProcedure(serviceRole, operation.data?.[0].id),
     workCenter: getWorkCenter(
       serviceRole,
@@ -173,6 +179,7 @@ export default function OperationRoute() {
     events,
     expiredEntityPolicy,
     files,
+    inProcessRuns,
     job,
     jobMakeMethod,
     kanban,
@@ -191,6 +198,7 @@ export default function OperationRoute() {
       events={events}
       expiredEntityPolicy={expiredEntityPolicy}
       files={files}
+      inProcessRuns={inProcessRuns}
       kanban={kanban}
       materials={materials}
       method={jobMakeMethod}

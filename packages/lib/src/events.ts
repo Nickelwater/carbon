@@ -525,4 +525,18 @@ export type Events = {
       companyId: string;
     };
   };
+
+  // In-process (SPC) inspection evaluation — reacts to productionQuantity /
+  // productionEvent writes (via the WORKFLOW event-system handler) and to
+  // synchronous catch-up calls (job-complete, lot creation) to create/cancel
+  // due inspectionInProcess runs for a job operation's active
+  // jobOperationInspectionPlan rows.
+  "carbon/evaluate-in-process-inspections": {
+    data: {
+      companyId: string;
+      jobOperationId: string;
+      userId?: string;
+      reason?: string;
+    };
+  };
 };

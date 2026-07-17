@@ -1644,6 +1644,13 @@ export const path = {
     lotInspections: `${x}/quality/lot-inspections`,
     lotInspection: (id: string) =>
       generatePath(`${x}/quality/lot-inspections/${id}`),
+    inProcessInspections: `${x}/quality/in-process-inspections`,
+    inProcessInspection: (id: string) =>
+      generatePath(`${x}/quality/in-process-inspections/${id}`),
+    inProcessDependencyWaive: (dependencyId: string) =>
+      generatePath(
+        `${x}/quality/in-process-dependencies/${dependencyId}/waive`
+      ),
     qualityDocument: (id: string) =>
       generatePath(`${x}/quality-document/${id}`),
     qualityDocuments: `${x}/quality/documents`,

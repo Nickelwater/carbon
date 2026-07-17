@@ -1,4 +1,5 @@
 import type { Database } from "@carbon/database";
+import { trigger } from "@carbon/jobs";
 import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
 import {
@@ -156,6 +157,42 @@ export async function finishJobOperation(
     companyId: string;
   }
 ) {
+  // Catch-up (fire-and-forget) so any In-Process runs due from this
+  // operation's final quantity/time exist before the operation is marked
+  // Done, rather than waiting for the ~1 min event-queue cadence.
+  trigger("evaluate-in-process-inspections", {
+    companyId: args.companyId,
+    jobOperationId: args.jobOperationId,
+    userId: args.userId,
+    reason: "operation-finish-catch-up"
+  }).catch((err) => {
+    console.error("in-process catch-up dispatch failed:", err);
+  });
+
+  // Hard-block Finish when a BlockFinish In-Process run is still open/failed.
+  // UI disable alone is insufficient if Finish is invoked via deep-link/scan.
+  const inProcessRuns = await getInProcessRunsForOperation(
+    client,
+    args.jobOperationId,
+    args.companyId
+  );
+  const blockingRuns = inProcessRuns.filter(
+    (run) =>
+      run.reaction === "BlockFinish" &&
+      run.status !== "Passed" &&
+      run.status !== "Cancelled"
+  );
+  if (blockingRuns.length > 0) {
+    return {
+      data: null,
+      error: {
+        message: `Cannot finish: ${blockingRuns.length} required in-process inspection(s) are still open or failed (${blockingRuns
+          .map((r) => r.inspectionId)
+          .join(", ")})`
+      }
+    };
+  }
+
   const result = await client
     .from("jobOperation")
     .update({
@@ -759,6 +796,58 @@ export async function getNonConformanceActions(
     nonConformanceId: string;
     notes: JSONContent;
   }[];
+}
+
+export type InProcessInspectionRunSummary = {
+  id: string;
+  inspectionId: string;
+  status: string;
+  triggerType: string;
+  triggerOrdinal: number;
+  reaction: string | null;
+  requiredForLotAcceptance: boolean;
+};
+
+/**
+ * Phase 3.4 minimal viable BlockFinish gate: the In-Process runs due for this
+ * operation, used to (a) list runs in the operation UI and (b) disable Finish
+ * when a required run configured with reaction=BlockFinish is still
+ * open/failed. Pure read — evaluation/creation happens via the
+ * evaluate-in-process-inspections catch-up triggered elsewhere.
+ */
+export async function getInProcessRunsForOperation(
+  client: SupabaseClient<Database>,
+  jobOperationId: string,
+  companyId: string
+): Promise<InProcessInspectionRunSummary[]> {
+  const result = await (client as any)
+    .from("inspectionInProcess")
+    .select(
+      "triggerType, triggerOrdinal, reaction, requiredForLotAcceptance, inspection(id, inspectionId, status)"
+    )
+    .eq("jobOperationId", jobOperationId)
+    .eq("companyId", companyId);
+
+  if (result.error || !result.data) return [];
+
+  return (result.data as any[])
+    .map((row) => {
+      const inspection = Array.isArray(row.inspection)
+        ? row.inspection[0]
+        : row.inspection;
+      if (!inspection) return null;
+      return {
+        id: inspection.id as string,
+        inspectionId: inspection.inspectionId as string,
+        status: inspection.status as string,
+        triggerType: row.triggerType as string,
+        triggerOrdinal: row.triggerOrdinal as number,
+        reaction: (row.reaction as string | null) ?? null,
+        requiredForLotAcceptance: !!row.requiredForLotAcceptance
+      };
+    })
+    .filter((row): row is InProcessInspectionRunSummary => row != null)
+    .sort((a, b) => a.triggerOrdinal - b.triggerOrdinal);
 }
 
 export async function getProcessesList(

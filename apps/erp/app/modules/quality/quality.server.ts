@@ -10,6 +10,10 @@ import {
   parseNumericMeasurement
 } from "./evaluateCharacteristicMeasurement";
 import {
+  resolveGaugeCalibrationStatus,
+  validateGaugeForMeasurement
+} from "./gaugeValidation";
+import {
   nextSampleIndex,
   resolveDispositionFlip,
   resolveRejectLedgerLocation
@@ -428,6 +432,7 @@ export async function dispositionInboundInspection(
           "inspection.id",
           "inspection.itemId",
           "inspection.status",
+          "inspection.type",
           "inspection.supplierId",
           "inspection.samplingStandard",
           "inspection.severity",
@@ -442,6 +447,34 @@ export async function dispositionInboundInspection(
         .where("inspection.companyId", "=", args.companyId)
         .executeTakeFirst();
       if (!inspection) throw new Error("Inspection not found");
+
+      // Phase 3.5: Lot Accept is gated on required In-Process prerequisites.
+      // Blocks (transactionally, before any writes) unless every required
+      // dependency is Satisfied/Waived/Cancelled.
+      if (args.decision === "Accept" && inspection.type === "Lot") {
+        const anyTrx = trx as any;
+        const blockingDependencies: any[] = await anyTrx
+          .selectFrom("inspectionDependency")
+          .select(["id", "status", "prerequisiteInspectionId"])
+          .where("dependentInspectionId", "=", args.id)
+          .where("companyId", "=", args.companyId)
+          .where("required", "=", true)
+          .where("status", "in", ["Pending", "Failed"])
+          .execute();
+
+        if (blockingDependencies.length > 0) {
+          throw new Error(
+            JSON.stringify({
+              message: "Required In-Process inspection(s) not yet satisfied",
+              blockers: blockingDependencies.map((row) => ({
+                dependencyId: row.id,
+                status: row.status,
+                prerequisiteInspectionId: row.prerequisiteInspectionId
+              }))
+            })
+          );
+        }
+      }
 
       const item = await trx
         .selectFrom("item")
@@ -615,6 +648,16 @@ export async function dispositionInboundInspection(
 
     return { data: result, error: null };
   } catch (err) {
+    if (err instanceof Error) {
+      try {
+        const parsed = JSON.parse(err.message);
+        if (parsed?.blockers) {
+          return errResult(parsed.message, parsed.blockers);
+        }
+      } catch {
+        // Not a structured blocker error — fall through to the plain message.
+      }
+    }
     return errResult(
       err instanceof Error ? err.message : "Failed to disposition inspection"
     );
@@ -977,6 +1020,324 @@ export async function closeIssue(
   } catch (err) {
     return errResult(
       err instanceof Error ? err.message : "Failed to close NCR"
+    );
+  }
+}
+
+// -------------------------------------------------------------
+// 5. recordInProcessInspectionSample
+// -------------------------------------------------------------
+// Records one sample + its feature measurements against an In-Process
+// inspection run. Validates gauge requirements per numeric feature (see
+// gaugeValidation.ts), computes per-measurement tolerance + sample status,
+// and rolls the outcome up to the inspection header (Passed once
+// samplesPerRun samples have passed; Failed on the first failing sample) and
+// any inspectionDependency rows that gate a Lot Accept on this run.
+
+export async function recordInProcessInspectionSample(args: {
+  inspectionId: string;
+  measurements: Array<{
+    inspectionFeatureId: string;
+    measuredValue: string | null;
+    gaugeId?: string | null;
+    gaugeOverride?: boolean;
+    gaugeOverrideReason?: string | null;
+  }>;
+  notes?: string | null;
+  companyId: string;
+  userId: string;
+}): Promise<
+  Result<{ sampleId: string; status: string; inspectionStatus: string }>
+> {
+  const { inspectionId, measurements, companyId, userId } = args;
+  if (measurements.length === 0) {
+    return errResult("At least one measurement is required");
+  }
+
+  const db = getDatabaseClient();
+  const nowIso = new Date().toISOString();
+
+  try {
+    const result = await db.transaction().execute(async (trx) => {
+      const anyTrx = trx as any;
+      const inspectionHeader = await anyTrx
+        .selectFrom("inspection")
+        .select(["id", "status", "type"])
+        .where("id", "=", inspectionId)
+        .where("companyId", "=", companyId)
+        .executeTakeFirst();
+
+      if (!inspectionHeader || inspectionHeader.type !== "InProcess") {
+        throw new Error("In-Process inspection not found");
+      }
+
+      const inProcessRow = await anyTrx
+        .selectFrom("inspectionInProcess")
+        .select(["samplesPerRun"])
+        .where("inspectionId", "=", inspectionId)
+        .where("companyId", "=", companyId)
+        .executeTakeFirst();
+
+      const inspection = {
+        ...inspectionHeader,
+        samplesPerRun: inProcessRow?.samplesPerRun ?? 1
+      };
+      if ((inspection as any).status === "Cancelled") {
+        throw new Error("Cannot record samples against a cancelled run");
+      }
+
+      const featureIds = measurements.map((m) => m.inspectionFeatureId);
+      const features: Array<{
+        id: string;
+        nominalValue: string | null;
+        tolerancePlus: string | null;
+        toleranceMinus: string | null;
+      }> = await (trx as any)
+        .selectFrom("inspectionFeature")
+        .select(["id", "nominalValue", "tolerancePlus", "toleranceMinus"])
+        .where("id", "in", featureIds)
+        .where("companyId", "=", companyId)
+        .execute();
+      const featureById = new Map(
+        features.map((f) => [f.id, f] as [string, (typeof features)[number]])
+      );
+
+      const gaugeIds = [
+        ...new Set(
+          measurements.map((m) => m.gaugeId).filter((id): id is string => !!id)
+        )
+      ];
+      const gauges =
+        gaugeIds.length > 0
+          ? await trx
+              .selectFrom("gauge")
+              .select([
+                "id",
+                "gaugeStatus",
+                "gaugeCalibrationStatus",
+                "nextCalibrationDate"
+              ])
+              .where("id", "in", gaugeIds)
+              .where("companyId", "=", companyId)
+              .execute()
+          : [];
+      const gaugeById = new Map(gauges.map((g) => [g.id, g]));
+
+      const evaluations = measurements.map((m) => {
+        const feature = featureById.get(m.inspectionFeatureId);
+        if (!feature) {
+          throw new Error(
+            `Inspection feature ${m.inspectionFeatureId} not found`
+          );
+        }
+
+        const gaugeOverride = m.gaugeOverride ?? false;
+        const gaugeRow = m.gaugeId ? (gaugeById.get(m.gaugeId) ?? null) : null;
+
+        const validation = validateGaugeForMeasurement({
+          nominalValue: feature.nominalValue,
+          gaugeId: m.gaugeId ?? null,
+          gaugeOverride,
+          gaugeOverrideReason: m.gaugeOverrideReason ?? null,
+          gauge: gaugeRow
+            ? {
+                gaugeStatus: gaugeRow.gaugeStatus,
+                calibrationStatus: resolveGaugeCalibrationStatus({
+                  gaugeCalibrationStatus: gaugeRow.gaugeCalibrationStatus,
+                  nextCalibrationDate: gaugeRow.nextCalibrationDate
+                })
+              }
+            : null
+        });
+
+        if (!validation.ok) {
+          throw new Error(
+            JSON.stringify({
+              message: validation.reason,
+              blockers: [
+                {
+                  inspectionFeatureId: m.inspectionFeatureId,
+                  reason: validation.reason
+                }
+              ]
+            })
+          );
+        }
+
+        const { inTolerance } = evaluateCharacteristicMeasurement({
+          nominalValue: feature.nominalValue,
+          tolerancePlus: feature.tolerancePlus,
+          toleranceMinus: feature.toleranceMinus,
+          measuredValue: m.measuredValue
+        });
+
+        return {
+          inspectionFeatureId: m.inspectionFeatureId,
+          measuredValue: m.measuredValue,
+          measuredValueNumeric: parseNumericMeasurement(m.measuredValue),
+          inTolerance,
+          gaugeId: m.gaugeId ?? null,
+          gaugeOverride,
+          gaugeOverrideReason: m.gaugeOverrideReason ?? null
+        };
+      });
+
+      const sampleStatus = computeSampleAutoStatus(evaluations) ?? "Passed";
+
+      const existingSamples = await trx
+        .selectFrom("inspectionSample")
+        .select(["id"])
+        .where("inspectionId", "=", inspectionId)
+        .where("companyId", "=", companyId)
+        .execute();
+
+      const sample = await trx
+        .insertInto("inspectionSample")
+        .values({
+          companyId,
+          inspectionId,
+          sampleIndex: existingSamples.length + 1,
+          status: sampleStatus,
+          notes: args.notes ?? null,
+          inspectedBy: userId,
+          inspectedAt: nowIso,
+          createdBy: userId
+        })
+        .returning(["id"])
+        .executeTakeFirstOrThrow();
+
+      await trx
+        .insertInto("inspectionSampleMeasurement" as any)
+        .values(
+          evaluations.map((evaluation) => ({
+            companyId,
+            inspectionSampleId: sample.id,
+            inspectionFeatureId: evaluation.inspectionFeatureId,
+            measuredValue: evaluation.measuredValue,
+            measuredValueNumeric: evaluation.measuredValueNumeric,
+            inTolerance: evaluation.inTolerance,
+            gaugeId: evaluation.gaugeId,
+            gaugeOverride: evaluation.gaugeOverride,
+            gaugeOverrideReason: evaluation.gaugeOverrideReason,
+            createdBy: userId
+          }))
+        )
+        .execute();
+
+      const samplesPerRun = Number((inspection as any).samplesPerRun ?? 1);
+      const totalSamples = existingSamples.length + 1;
+      const inspectionStatus =
+        sampleStatus === "Failed"
+          ? "Failed"
+          : totalSamples >= samplesPerRun
+            ? "Passed"
+            : "In Progress";
+
+      const inspectionUpdate: Record<string, unknown> = {
+        status: inspectionStatus,
+        updatedBy: userId,
+        updatedAt: nowIso
+      };
+      if (inspectionStatus === "Passed" || inspectionStatus === "Failed") {
+        inspectionUpdate.dispositionedBy = userId;
+        inspectionUpdate.dispositionedAt = nowIso;
+      }
+
+      const updatedInspection = await trx
+        .updateTable("inspection")
+        .set(inspectionUpdate as any)
+        .where("id", "=", inspectionId)
+        .where("companyId", "=", companyId)
+        .returning(["id", "status"])
+        .executeTakeFirstOrThrow();
+
+      // Roll the outcome up to any Lot inspection dependency rows that gate
+      // Accept on this run.
+      if (inspectionStatus === "Passed" || inspectionStatus === "Failed") {
+        await trx
+          .updateTable("inspectionDependency" as any)
+          .set({
+            status: inspectionStatus === "Passed" ? "Satisfied" : "Failed",
+            updatedBy: userId,
+            updatedAt: nowIso
+          } as any)
+          .where("prerequisiteInspectionId" as any, "=", inspectionId)
+          .where("companyId" as any, "=", companyId)
+          .execute();
+      }
+
+      return {
+        sampleId: sample.id,
+        status: sampleStatus,
+        inspectionStatus: updatedInspection.status
+      };
+    });
+
+    return { data: result, error: null };
+  } catch (err) {
+    if (err instanceof Error) {
+      try {
+        const parsed = JSON.parse(err.message);
+        if (parsed?.blockers) {
+          return errResult(parsed.message, parsed.blockers);
+        }
+      } catch {
+        // Not a structured blocker error — fall through to the plain message.
+      }
+    }
+    return errResult(
+      err instanceof Error
+        ? err.message
+        : "Failed to record in-process inspection sample"
+    );
+  }
+}
+
+// -------------------------------------------------------------
+// 6. waiveInspectionDependency
+// -------------------------------------------------------------
+// Marks a required inspectionDependency as Waived with a reason, so the Lot
+// Accept gate no longer blocks on it. Requires quality_update permission at
+// the route level (this is a plain data mutation, no extra business rule).
+
+export async function waiveInspectionDependency(args: {
+  dependencyId: string;
+  reason: string;
+  companyId: string;
+  userId: string;
+}): Promise<Result<{ id: string }>> {
+  const { dependencyId, reason, companyId, userId } = args;
+  if (!reason?.trim()) {
+    return errResult("A reason is required to waive a dependency");
+  }
+
+  const db = getDatabaseClient();
+  const nowIso = new Date().toISOString();
+
+  try {
+    const updated = await db
+      .updateTable("inspectionDependency" as any)
+      .set({
+        status: "Waived",
+        waivedBy: userId,
+        waivedAt: nowIso,
+        waiveReason: reason,
+        updatedBy: userId,
+        updatedAt: nowIso
+      } as any)
+      .where("id" as any, "=", dependencyId)
+      .where("companyId" as any, "=", companyId)
+      .returning(["id"] as any)
+      .executeTakeFirst();
+
+    if (!updated) {
+      return errResult("Dependency not found");
+    }
+
+    return { data: { id: (updated as any).id }, error: null };
+  } catch (err) {
+    return errResult(
+      err instanceof Error ? err.message : "Failed to waive dependency"
     );
   }
 }

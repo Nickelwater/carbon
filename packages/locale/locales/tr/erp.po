@@ -391,6 +391,9 @@ msgstr ""
 msgid "Academy"
 msgstr ""
 
+msgid "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+msgstr ""
+
 msgid "Accept Lot"
 msgstr "Lotu Kabul Et"
 
@@ -6064,6 +6067,12 @@ msgstr "Birlikte döngüde"
 msgid "In-Process"
 msgstr ""
 
+msgid "In-Process Inspection Dependencies"
+msgstr ""
+
+msgid "In-Process Inspections"
+msgstr ""
+
 msgid "Inactive"
 msgstr "Pasif"
 
@@ -6498,6 +6507,9 @@ msgstr "Öğeler: öğe ana verileri, BOM'lar, İşlem Şeması, mühendislik de
 
 msgid "Job"
 msgstr "İş"
+
+msgid "Job / Operation"
+msgstr ""
 
 msgid "Job ID"
 msgstr "İş Emri Kimliği"
@@ -7214,6 +7226,9 @@ msgstr "Maksimum Sipariş:"
 msgid "MCP Command"
 msgstr "MCP Komutu"
 
+msgid "Mean"
+msgstr ""
+
 msgid "Mean Time Between Failures"
 msgstr "Arızalar Arası Ortalama Süre"
 
@@ -7221,6 +7236,9 @@ msgid "Mean Time To Repair"
 msgstr "Onarım Süresi"
 
 msgid "Measured"
+msgstr ""
+
+msgid "Measurement"
 msgstr ""
 
 msgid "Measurement Standard"
@@ -8040,6 +8058,9 @@ msgstr "Atanmış kural yok"
 
 msgid "No samples inspected yet."
 msgstr "Henüz örnek incelenmedi."
+
+msgid "No samples recorded yet."
+msgstr ""
 
 msgid "No single, trusted number for inventory or job status"
 msgstr "Envanter veya iş durumu için tek bir güvenilir sayı yok"
@@ -9561,6 +9582,9 @@ msgstr "Hız Sınırı"
 msgid "Re-keying between quoting, the floor, and finance"
 msgstr "Tekliflendirme, üretim ve muhasebe arasında veri yeniden girişi"
 
+msgid "Reaction"
+msgstr ""
+
 msgid "Reactivate"
 msgstr "Yeniden etkinleştir"
 
@@ -9943,6 +9967,9 @@ msgstr "Gerekli İşlemler (sırayla)"
 
 msgid "Required Date"
 msgstr "Gerekli Tarih"
+
+msgid "Required for Lot Accept"
+msgstr ""
 
 msgid "Required for permanent tools"
 msgstr ""
@@ -10335,6 +10362,9 @@ msgstr "Örnek {0}"
 
 msgid "Sample Size"
 msgstr "Örnek Boyutu"
+
+msgid "Samples"
+msgstr ""
 
 msgid "Sampling Plan"
 msgstr "Numune Alma Planı"
@@ -11200,6 +11230,10 @@ msgstr "Yedek Parça Tüketimi"
 
 msgid "Spare Part Cost"
 msgstr "Yedek Parça Maliyeti"
+
+#. placeholder {0}: feature.name
+msgid "SPC — {0}"
+msgstr ""
 
 msgid "Specific Customer"
 msgstr "Belirli Müşteri"
@@ -12917,6 +12951,9 @@ msgstr "Çöp Kutusu"
 msgid "Trial Balance"
 msgstr "Mizan"
 
+msgid "Trigger"
+msgstr ""
+
 msgid "Triggers"
 msgstr "Tetikleyiciler"
 
@@ -13553,6 +13590,9 @@ msgstr "Bu fişin iptali şunları yapacaktır:"
 
 msgid "Voiding this shipment will:"
 msgstr "Bu sevkiyatı geçersiz kılmak şunları yapacaktır:"
+
+msgid "Waive"
+msgstr ""
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "Her alanı şampiyon ile birlikte gözden geçirin ve kapsam dışında kalan her şeyi değiştirin. Kodlar Module.Area.Number biçiminde okunur (ACC.GL.01 = Accounting, General Ledger, item 1)."

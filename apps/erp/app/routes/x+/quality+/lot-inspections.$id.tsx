@@ -67,6 +67,7 @@ export default function LotInspectionRoute() {
       currentUserId={loaderData.currentUserId}
       enforceFourEyes={loaderData.enforceFourEyes}
       detailPath={routes.detail}
+      dependencies={loaderData.dependencies}
     />
   );
 }

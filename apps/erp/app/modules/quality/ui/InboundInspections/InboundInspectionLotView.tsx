@@ -55,6 +55,18 @@ import type {
   InspectionTrackedEntity,
   IssueTypeListItem
 } from "~/modules/quality/types";
+
+export type InProcessDependencyRow = {
+  id: string;
+  status: string;
+  required: boolean;
+  prerequisite?: {
+    id: string;
+    inspectionId: string;
+    status: string;
+  } | null;
+};
+
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";
 import { getReadableIdWithRevision } from "~/utils/string";
@@ -84,6 +96,8 @@ export type InboundInspectionLotViewProps = {
   open?: boolean;
   /** Detail path builder for disposition/sample actions (inbound vs lot). */
   detailPath?: (id: string) => string;
+  /** In-Process inspection runs gating this Lot's Accept (Phase 3.5). */
+  dependencies?: InProcessDependencyRow[];
 };
 
 export default function InboundInspectionLotView({
@@ -104,13 +118,15 @@ export default function InboundInspectionLotView({
   currentUserId,
   enforceFourEyes,
   open = true,
-  detailPath = path.to.inboundInspection
+  detailPath = path.to.inboundInspection,
+  dependencies = []
 }: InboundInspectionLotViewProps) {
   const { t } = useLingui();
   const navigate = useNavigate();
   const permissions = usePermissions();
   const canUpdate = permissions.can("update", "quality");
   const [items] = useItems();
+  const dependencyFetcher = useFetcher();
 
   // Serial parts are inspected by scanning a discrete tracked entity. Batch /
   // inventory / non-inventory parts record pass/fail for each sampled item
@@ -189,10 +205,15 @@ export default function InboundInspectionLotView({
     inspection.dispositionedAt != null &&
     (inspection.status === "Passed" || inspection.status === "Failed");
 
+  const unresolvedDependencies = dependencies.filter(
+    (d) => d.required && d.status !== "Satisfied" && d.status !== "Waived"
+  );
+
   const canAccept =
     !lotClosed &&
     inspected >= inspection.sampleSize &&
-    fails <= inspection.acceptanceNumber;
+    fails <= inspection.acceptanceNumber &&
+    unresolvedDependencies.length === 0;
   const canReject = !lotClosed && fails > inspection.acceptanceNumber;
   const canPartial = !lotClosed && inspected > 0;
 
@@ -291,6 +312,81 @@ export default function InboundInspectionLotView({
                     </Trans>
                   </AlertDescription>
                 </Alert>
+              )}
+
+              {dependencies.length > 0 && (
+                <div className="w-full border rounded-md overflow-hidden">
+                  <div className="bg-muted text-xs text-muted-foreground px-3 py-2 font-medium">
+                    <Trans>In-Process Inspection Dependencies</Trans>
+                  </div>
+                  <div className="divide-y">
+                    {dependencies.map((dep) => {
+                      const isUnresolved =
+                        dep.required &&
+                        dep.status !== "Satisfied" &&
+                        dep.status !== "Waived";
+                      return (
+                        <div
+                          key={dep.id}
+                          className="flex items-center justify-between px-3 py-2 text-sm"
+                        >
+                          <span>
+                            {dep.prerequisite?.inspectionId ??
+                              dep.prerequisite?.id}
+                          </span>
+                          <HStack spacing={2}>
+                            <Badge
+                              variant={
+                                dep.status === "Satisfied" ||
+                                dep.status === "Waived"
+                                  ? "green"
+                                  : dep.status === "Failed"
+                                    ? "red"
+                                    : "secondary"
+                              }
+                            >
+                              {dep.status}
+                            </Badge>
+                            {isUnresolved && canUpdate && (
+                              <dependencyFetcher.Form
+                                method="post"
+                                action={path.to.inProcessDependencyWaive(
+                                  dep.id
+                                )}
+                              >
+                                <input
+                                  type="hidden"
+                                  name="reason"
+                                  value="Waived from lot inspection"
+                                />
+                                <input
+                                  type="hidden"
+                                  name="redirectTo"
+                                  value={detailPath(inspection.id)}
+                                />
+                                <Button
+                                  type="submit"
+                                  size="sm"
+                                  variant="secondary"
+                                >
+                                  <Trans>Waive</Trans>
+                                </Button>
+                              </dependencyFetcher.Form>
+                            )}
+                          </HStack>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  {unresolvedDependencies.length > 0 && (
+                    <p className="px-3 py-2 text-xs text-muted-foreground border-t">
+                      <Trans>
+                        Accept is blocked until required In-Process inspections
+                        above are Satisfied or Waived.
+                      </Trans>
+                    </p>
+                  )}
+                </div>
               )}
 
               {/* Progress */}

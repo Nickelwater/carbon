@@ -47,6 +47,7 @@ import {
   companyRestoreFinalizeFunction,
   companyRestoreFunction,
   companyRestoreRevertFunction,
+  evaluateInProcessInspectionsFunction,
   modelThumbnailFunction,
   onboardFunction,
   postTransactionFunction,
@@ -89,6 +90,7 @@ export const functions = [
   onboardFunction,
   printJobFunction,
   printJobDeliverFunction,
+  evaluateInProcessInspectionsFunction,
   // Scheduled
   cleanupFunction,
   dispatchFunction,

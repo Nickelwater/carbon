@@ -104,6 +104,7 @@ import {
 } from "~/components/Icons";
 import { useDateFormatter, useUrlParams, useUser } from "~/hooks";
 import type { productionEventType } from "~/services/models";
+import type { InProcessInspectionRunSummary } from "~/services/operations.service";
 import { getFileType } from "~/services/operations.service";
 import type {
   Job,
@@ -151,6 +152,8 @@ type JobOperationProps = {
   events: ProductionEvent[];
   expiredEntityPolicy?: "Warn" | "Block" | "BlockWithOverride";
   files: Promise<StorageItem[]>;
+  /** In-Process inspection runs due for this operation (Phase 3.4 minimal viable BlockFinish gate). */
+  inProcessRuns: Promise<InProcessInspectionRunSummary[]>;
   kanban: Kanban | null;
   materials: Promise<{
     materials: JobMaterial[];
@@ -217,6 +220,7 @@ export const JobOperation = ({
   events,
   expiredEntityPolicy = "Block",
   files,
+  inProcessRuns,
   job,
   kanban,
   materials,
@@ -780,6 +784,53 @@ export const JobOperation = ({
                       </>
                     );
                   });
+                }}
+              </Await>
+            </Suspense>
+
+            <Suspense key={`in-process-runs-${operationId}`}>
+              <Await resolve={inProcessRuns}>
+                {(resolvedRuns) => {
+                  if (resolvedRuns.length === 0) return null;
+                  return (
+                    <>
+                      <Separator />
+                      <div className="flex flex-col gap-2 p-4 lg:p-6 w-full">
+                        <Heading size="h3">
+                          <Trans>In-Process Inspections</Trans>
+                        </Heading>
+                        <div className="flex flex-col gap-1">
+                          {resolvedRuns.map((run) => (
+                            <div
+                              key={run.id}
+                              className="flex items-center justify-between text-sm py-1"
+                            >
+                              <span className="text-muted-foreground">
+                                {run.inspectionId} · {run.triggerType} #
+                                {run.triggerOrdinal}
+                                {run.requiredForLotAcceptance && (
+                                  <Trans> · required for Lot</Trans>
+                                )}
+                              </span>
+                              <Badge
+                                variant={
+                                  run.status === "Passed"
+                                    ? "green"
+                                    : run.status === "Failed"
+                                      ? "red"
+                                      : run.status === "Cancelled"
+                                        ? "secondary"
+                                        : "blue"
+                                }
+                              >
+                                {run.status}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  );
                 }}
               </Await>
             </Suspense>
@@ -2390,19 +2441,63 @@ export const JobOperation = ({
                   <Trans>Rework</Trans>
                 </span>
               </button>
-              <button
-                type="button"
-                className="flex items-center gap-3 rounded-lg bg-accent px-4 py-4 text-accent-foreground ring-1 ring-black/5 active:scale-[0.98] transition-transform"
-                onClick={() => {
-                  actionsSheet.onClose();
-                  finishModal.onOpen();
-                }}
+              <Suspense
+                fallback={
+                  <button
+                    type="button"
+                    className="flex items-center gap-3 rounded-lg bg-accent px-4 py-4 text-accent-foreground ring-1 ring-black/5 active:scale-[0.98] transition-transform"
+                    onClick={() => {
+                      actionsSheet.onClose();
+                      finishModal.onOpen();
+                    }}
+                  >
+                    <LuCheck className="size-4 shrink-0 stroke-muted-foreground" />
+                    <span className="text-base/6 font-medium">
+                      <Trans>Finish</Trans>
+                    </span>
+                  </button>
+                }
               >
-                <LuCheck className="size-4 shrink-0 stroke-muted-foreground" />
-                <span className="text-base/6 font-medium">
-                  <Trans>Finish</Trans>
-                </span>
-              </button>
+                <Await resolve={inProcessRuns}>
+                  {(resolvedRuns) => {
+                    const blockingRuns = resolvedRuns.filter(
+                      (run) =>
+                        run.reaction === "BlockFinish" &&
+                        (run.status === "Pending" ||
+                          run.status === "In Progress" ||
+                          run.status === "Failed")
+                    );
+                    const isBlocked = blockingRuns.length > 0;
+                    return (
+                      <button
+                        type="button"
+                        disabled={isBlocked}
+                        className={cn(
+                          "flex items-center gap-3 rounded-lg bg-accent px-4 py-4 text-accent-foreground ring-1 ring-black/5 active:scale-[0.98] transition-transform",
+                          isBlocked && "opacity-50 cursor-not-allowed"
+                        )}
+                        onClick={() => {
+                          if (isBlocked) return;
+                          actionsSheet.onClose();
+                          finishModal.onOpen();
+                        }}
+                      >
+                        <LuCheck className="size-4 shrink-0 stroke-muted-foreground" />
+                        <span className="text-base/6 font-medium">
+                          <Trans>Finish</Trans>
+                        </span>
+                        {isBlocked && (
+                          <Badge variant="red" className="ml-auto">
+                            <Trans>
+                              {blockingRuns.length} In-Process run(s) open
+                            </Trans>
+                          </Badge>
+                        )}
+                      </button>
+                    );
+                  }}
+                </Await>
+              </Suspense>
               <Suspense>
                 <Await resolve={workCenter}>
                   {(resolvedWorkCenter) =>

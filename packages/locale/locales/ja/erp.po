@@ -391,6 +391,9 @@ msgstr ""
 msgid "Academy"
 msgstr ""
 
+msgid "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+msgstr ""
+
 msgid "Accept Lot"
 msgstr "ロットを受け入れる"
 
@@ -6064,6 +6067,12 @@ msgstr "一緒にループの中にいる"
 msgid "In-Process"
 msgstr ""
 
+msgid "In-Process Inspection Dependencies"
+msgstr ""
+
+msgid "In-Process Inspections"
+msgstr ""
+
 msgid "Inactive"
 msgstr "非アクティブ"
 
@@ -6498,6 +6507,9 @@ msgstr "アイテム: アイテムマスター、BOM、プロセス仕様書、�
 
 msgid "Job"
 msgstr "ジョブ"
+
+msgid "Job / Operation"
+msgstr ""
 
 msgid "Job ID"
 msgstr "ジョブID"
@@ -7214,6 +7226,9 @@ msgstr "最大注文数:"
 msgid "MCP Command"
 msgstr "MCPコマンド"
 
+msgid "Mean"
+msgstr ""
+
 msgid "Mean Time Between Failures"
 msgstr "平均故障間隔"
 
@@ -7221,6 +7236,9 @@ msgid "Mean Time To Repair"
 msgstr "平均修復時間"
 
 msgid "Measured"
+msgstr ""
+
+msgid "Measurement"
 msgstr ""
 
 msgid "Measurement Standard"
@@ -8040,6 +8058,9 @@ msgstr "ルールが割り当てられていません"
 
 msgid "No samples inspected yet."
 msgstr "まだサンプルが検査されていません。"
+
+msgid "No samples recorded yet."
+msgstr ""
 
 msgid "No single, trusted number for inventory or job status"
 msgstr "在庫またはジョブステータスの単一の信頼できる数値がない"
@@ -9561,6 +9582,9 @@ msgstr "レート制限"
 msgid "Re-keying between quoting, the floor, and finance"
 msgstr "見積、現場、財務間での再入力"
 
+msgid "Reaction"
+msgstr ""
+
 msgid "Reactivate"
 msgstr "再度有効化"
 
@@ -9943,6 +9967,9 @@ msgstr "必要なアクション（順番に）"
 
 msgid "Required Date"
 msgstr "必須日付"
+
+msgid "Required for Lot Accept"
+msgstr ""
 
 msgid "Required for permanent tools"
 msgstr ""
@@ -10335,6 +10362,9 @@ msgstr "サンプル {0}"
 
 msgid "Sample Size"
 msgstr "サンプルサイズ"
+
+msgid "Samples"
+msgstr ""
 
 msgid "Sampling Plan"
 msgstr "サンプリング計画"
@@ -11200,6 +11230,10 @@ msgstr "予備部品消費"
 
 msgid "Spare Part Cost"
 msgstr "スペアパーツコスト"
+
+#. placeholder {0}: feature.name
+msgid "SPC — {0}"
+msgstr ""
 
 msgid "Specific Customer"
 msgstr "特定の顧客"
@@ -12917,6 +12951,9 @@ msgstr "ゴミ箱"
 msgid "Trial Balance"
 msgstr "試算表"
 
+msgid "Trigger"
+msgstr ""
+
 msgid "Triggers"
 msgstr "トリガー"
 
@@ -13553,6 +13590,9 @@ msgstr "このレシートを無効にすると:"
 
 msgid "Voiding this shipment will:"
 msgstr "この出荷をキャンセルすると、以下のようになります:"
+
+msgid "Waive"
+msgstr ""
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "各エリアをチャンピオンと一緒に確認し、スコープ外のものはすべてトグルしてください。コードはModule.Area.Number形式で読みます（ACC.GL.01 = Accounting、General Ledger、item 1）。"

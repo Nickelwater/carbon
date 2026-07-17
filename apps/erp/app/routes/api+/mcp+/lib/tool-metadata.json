@@ -1,6 +1,6 @@
 {
-  "generated": "2026-07-17T19:19:53.707Z",
-  "totalTools": 1329,
+  "generated": "2026-07-17T19:59:49.073Z",
+  "totalTools": 1332,
   "modules": 15,
   "tools": [
     {
@@ -27946,6 +27946,103 @@
         },
         "required": [
           "id"
+        ]
+      }
+    },
+    {
+      "name": "quality_getInProcessInspections",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get in process inspections",
+      "paramCount": 4,
+      "serviceParams": [
+        "client",
+        "companyId",
+        "args"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "args": {
+            "type": "object",
+            "properties": {
+              "limit": {
+                "type": "integer",
+                "default": 100
+              },
+              "offset": {
+                "type": "integer",
+                "default": 0
+              },
+              "search": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "status": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "name": "quality_getInProcessInspection",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get in process inspection",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "id",
+        "companyId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ]
+      }
+    },
+    {
+      "name": "quality_getInProcessInspectionDependencies",
+      "module": "quality",
+      "classification": "READ",
+      "description": "get in process inspection dependencies",
+      "paramCount": 1,
+      "serviceParams": [
+        "client",
+        "dependentInspectionId",
+        "companyId"
+      ],
+      "injectAuth": [
+        "companyId"
+      ],
+      "schema": {
+        "type": "object",
+        "properties": {
+          "dependentInspectionId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "dependentInspectionId"
         ]
       }
     },

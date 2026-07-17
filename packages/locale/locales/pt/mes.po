@@ -12,6 +12,9 @@ msgstr ""
 "Language-Team: \n"
 "Plural-Forms: \n"
 
+msgid " · required for Lot"
+msgstr ""
+
 #. placeholder {0}: qty.targetParts
 msgid "{0}"
 msgstr ""
@@ -43,6 +46,10 @@ msgstr "{0} Ativo(s)"
 
 #. placeholder {0}: qty.targetCycleCount
 msgid "{0} cycles"
+msgstr ""
+
+#. placeholder {0}: blockingRuns.length
+msgid "{0} In-Process run(s) open"
 msgstr ""
 
 #. placeholder {0}: serialIndex + 1
@@ -485,6 +492,9 @@ msgstr "Imperial"
 
 msgid "In Progress"
 msgstr "Em Andamento"
+
+msgid "In-Process Inspections"
+msgstr ""
 
 msgid "Insufficient quantity"
 msgstr "Quantidade insuficiente"

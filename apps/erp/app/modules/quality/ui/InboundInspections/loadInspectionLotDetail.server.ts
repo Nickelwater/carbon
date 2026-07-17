@@ -4,6 +4,7 @@ import {
   getInboundInspection,
   getInboundInspectionLotTrackedEntities,
   getInboundInspectionMeasurements,
+  getInProcessInspectionDependencies,
   getInspectionDocument,
   getInspectionPlan,
   getIssueTypesList
@@ -80,9 +81,14 @@ export async function loadInspectionLotDetail(
 
   const isJobSource = sourceType === "Job";
 
+  const dependencies = isJobSource
+    ? await getInProcessInspectionDependencies(client, insp.id, companyId)
+    : { data: [] };
+
   return {
     data: {
       inspection: insp,
+      dependencies: dependencies.data ?? [],
       sourceType: sourceType as "Receipt" | "Job",
       inspectionDocumentId,
       inspectionPlan: inspectionPlan.data ?? [],

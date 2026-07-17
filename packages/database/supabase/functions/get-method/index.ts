@@ -45,6 +45,38 @@ import {
 const pool = getConnectionPool(1);
 const db = getDatabaseClient<DB>(pool);
 
+async function snapshotMethodOperationInspectionPlans(
+  trx: Transaction<DB>,
+  methodOperationId: string,
+  jobOperationId: string,
+  companyId: string,
+  userId: string,
+  plans?: Array<Record<string, unknown>> | null
+) {
+  const rows = Array.isArray(plans) ? plans : [];
+  if (rows.length === 0) return;
+  await trx
+    .insertInto("jobOperationInspectionPlan" as any)
+    .values(
+      rows.map((plan) => ({
+        companyId,
+        jobOperationId,
+        methodOperationInspectionPlanId: plan.id,
+        inspectionDocumentId: plan.inspectionDocumentId ?? null,
+        triggerType: plan.triggerType,
+        firstTriggerAt: plan.firstTriggerAt,
+        interval: plan.interval,
+        samplesPerRun: plan.samplesPerRun ?? 1,
+        requiredForLotAcceptance: plan.requiredForLotAcceptance ?? false,
+        reaction: plan.reaction ?? "Notify",
+        active: plan.active ?? true,
+        createdBy: userId,
+      }))
+    )
+    .execute();
+}
+
+
 const partsValidator = z.object({
   billOfMaterial: z.boolean().default(true),
   billOfProcess: z.boolean().default(true),
@@ -156,7 +188,7 @@ serve(async (req: Request) => {
             ? client
                 .from("methodOperation")
                 .select(
-                  "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*)"
+                  "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*), methodOperationInspectionPlan(*)"
                 )
                 .eq("makeMethodId", sourceMakeMethod.data.id)
                 .eq("companyId", companyId)
@@ -547,7 +579,7 @@ serve(async (req: Request) => {
             const relatedOperations = await client
               .from("methodOperation")
               .select(
-                "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*)"
+                "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*), methodOperationInspectionPlan(*)"
               )
               .eq("makeMethodId", node.data.materialMakeMethodId);
 
@@ -797,6 +829,19 @@ serve(async (req: Request) => {
                         .values(attributes)
                         .execute();
                     }
+
+                  const methodOperationInspectionPlan =
+                    (operation as any).methodOperationInspectionPlan;
+                  await snapshotMethodOperationInspectionPlans(
+                    trx,
+                    operation.id,
+                    operationId,
+                    companyId,
+                    userId,
+                    Array.isArray(methodOperationInspectionPlan)
+                      ? methodOperationInspectionPlan
+                      : null
+                  );
                   }
                 }
               }
@@ -1290,7 +1335,7 @@ serve(async (req: Request) => {
             const relatedOperations = await client
               .from("methodOperation")
               .select(
-                "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*)"
+                "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*), methodOperationInspectionPlan(*)"
               )
               .eq("makeMethodId", node.data.materialMakeMethodId);
 
@@ -1848,7 +1893,7 @@ serve(async (req: Request) => {
             const relatedOperations = await client
               .from("methodOperation")
               .select(
-                "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*)"
+                "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*), methodOperationInspectionPlan(*)"
               )
               .eq("makeMethodId", node.data.materialMakeMethodId);
 
@@ -2481,7 +2526,7 @@ serve(async (req: Request) => {
             const relatedOperations = await client
               .from("methodOperation")
               .select(
-                "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*)"
+                "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*), methodOperationInspectionPlan(*)"
               )
               .eq("makeMethodId", node.data.materialMakeMethodId);
 
@@ -3345,7 +3390,7 @@ serve(async (req: Request) => {
             ? client
                 .from("methodOperation")
                 .select(
-                  "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*)"
+                  "*, methodOperationTool(*), methodOperationParameter(*), methodOperationStep(*), methodOperationInspectionPlan(*)"
                 )
                 .eq("makeMethodId", sourceMakeMethod.data.id)
                 .eq("companyId", companyId)

@@ -391,6 +391,9 @@ msgstr ""
 msgid "Academy"
 msgstr ""
 
+msgid "Accept is blocked until required In-Process inspections above are Satisfied or Waived."
+msgstr ""
+
 msgid "Accept Lot"
 msgstr "接受批次"
 
@@ -6064,6 +6067,12 @@ msgstr "一起保持沟通"
 msgid "In-Process"
 msgstr ""
 
+msgid "In-Process Inspection Dependencies"
+msgstr ""
+
+msgid "In-Process Inspections"
+msgstr ""
+
 msgid "Inactive"
 msgstr "未激活"
 
@@ -6498,6 +6507,9 @@ msgstr "项目：项目主数据、物料清单、工艺流程、工程变更、
 
 msgid "Job"
 msgstr "工作"
+
+msgid "Job / Operation"
+msgstr ""
 
 msgid "Job ID"
 msgstr "工作ID"
@@ -7214,6 +7226,9 @@ msgstr "最大订单："
 msgid "MCP Command"
 msgstr "MCP 命令"
 
+msgid "Mean"
+msgstr ""
+
 msgid "Mean Time Between Failures"
 msgstr "平均故障间隔时间"
 
@@ -7221,6 +7236,9 @@ msgid "Mean Time To Repair"
 msgstr "平均修复时间"
 
 msgid "Measured"
+msgstr ""
+
+msgid "Measurement"
 msgstr ""
 
 msgid "Measurement Standard"
@@ -8040,6 +8058,9 @@ msgstr "未分配规则"
 
 msgid "No samples inspected yet."
 msgstr "还没有检查任何样品。"
+
+msgid "No samples recorded yet."
+msgstr ""
 
 msgid "No single, trusted number for inventory or job status"
 msgstr "没有单一的、可信的库存或工作状态数字"
@@ -9561,6 +9582,9 @@ msgstr "速率限制"
 msgid "Re-keying between quoting, the floor, and finance"
 msgstr "在报价、车间和财务之间重复输入数据"
 
+msgid "Reaction"
+msgstr ""
+
 msgid "Reactivate"
 msgstr "重新激活"
 
@@ -9943,6 +9967,9 @@ msgstr "必需的操作（按顺序）"
 
 msgid "Required Date"
 msgstr "所需日期"
+
+msgid "Required for Lot Accept"
+msgstr ""
 
 msgid "Required for permanent tools"
 msgstr ""
@@ -10335,6 +10362,9 @@ msgstr "样本 {0}"
 
 msgid "Sample Size"
 msgstr "样本量"
+
+msgid "Samples"
+msgstr ""
 
 msgid "Sampling Plan"
 msgstr "抽样计划"
@@ -11200,6 +11230,10 @@ msgstr "备件消耗"
 
 msgid "Spare Part Cost"
 msgstr "备件成本"
+
+#. placeholder {0}: feature.name
+msgid "SPC — {0}"
+msgstr ""
 
 msgid "Specific Customer"
 msgstr "特定客户"
@@ -12917,6 +12951,9 @@ msgstr "垃圾桶"
 msgid "Trial Balance"
 msgstr "试算平衡表"
 
+msgid "Trigger"
+msgstr ""
+
 msgid "Triggers"
 msgstr "触发器"
 
@@ -13553,6 +13590,9 @@ msgstr "作废此收据将："
 
 msgid "Voiding this shipment will:"
 msgstr "取消此货运将会："
+
+msgid "Waive"
+msgstr ""
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "与您的项目冠军一起逐个领域进行审查，并切换任何超出范围的内容。代码格式为 Module.Area.Number（ACC.GL.01 = 会计、总账、项目 1）。"

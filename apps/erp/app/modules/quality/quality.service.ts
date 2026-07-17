@@ -3540,6 +3540,129 @@ export async function getInboundInspection(
   return { ...result, data: normalizeInspectionRow(result.data) };
 }
 
+const IN_PROCESS_INSPECTION_SELECT_LIST =
+  "*, item(readableId, name, type), inspectionInProcess(jobOperationId, triggerType, triggerOrdinal, triggerThreshold, samplesPerRun, requiredForLotAcceptance, reaction, jobOperation(jobId, description)), inspectionSample(status)";
+
+const IN_PROCESS_INSPECTION_SELECT_DETAIL =
+  "*, item(readableId, name, type), inspectionInProcess(jobOperationId, triggerType, triggerOrdinal, triggerThreshold, samplesPerRun, requiredForLotAcceptance, reaction, jobOperation(jobId, description)), inspectionSample(*, inspectionSampleMeasurement(*, inspectionFeature(name, nominalValue, tolerancePlus, toleranceMinus, unit)))";
+
+/** Flattens an In-Process `inspection` row's `inspectionInProcess` subtype embed onto the row. */
+function normalizeInProcessInspectionRow(row: any) {
+  if (!row) return row;
+  const sub = firstOrSelf<any>(row.inspectionInProcess);
+  const jobOperation = sub?.jobOperation
+    ? firstOrSelf<any>(sub.jobOperation)
+    : null;
+  return {
+    ...row,
+    jobOperationId: sub?.jobOperationId ?? null,
+    triggerType: sub?.triggerType ?? null,
+    triggerOrdinal: sub?.triggerOrdinal ?? null,
+    triggerThreshold: sub?.triggerThreshold ?? null,
+    samplesPerRun: sub?.samplesPerRun ?? null,
+    requiredForLotAcceptance: sub?.requiredForLotAcceptance ?? null,
+    reaction: sub?.reaction ?? null,
+    jobId: jobOperation?.jobId ?? null,
+    jobOperationDescription: jobOperation?.description ?? null
+  };
+}
+
+export async function getInProcessInspections(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args?: GenericQueryFilters & {
+    search?: string | null;
+    status?: string | null;
+  }
+) {
+  let query = (client as any)
+    .from("inspection")
+    .select(IN_PROCESS_INSPECTION_SELECT_LIST, { count: "exact" })
+    .eq("companyId", companyId)
+    .eq("type", "InProcess");
+
+  if (args?.status) {
+    query = query.eq("status", args.status);
+  }
+
+  if (args?.search) {
+    query = query.or(
+      `itemReadableId.ilike.%${args.search}%,notes.ilike.%${args.search}%`
+    );
+  }
+
+  if (args) {
+    query = setGenericQueryFilters(query, args, [
+      { column: "createdAt", ascending: false }
+    ]);
+  }
+
+  const result = await query;
+  if (result.error || !result.data) return result;
+
+  return {
+    ...result,
+    data: (result.data as any[]).map(normalizeInProcessInspectionRow)
+  };
+}
+
+export async function getInProcessInspection(
+  client: SupabaseClient<Database>,
+  id: string,
+  companyId: string
+) {
+  const result = await (client as any)
+    .from("inspection")
+    .select(IN_PROCESS_INSPECTION_SELECT_DETAIL)
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .eq("type", "InProcess")
+    .single();
+
+  if (result.error || !result.data) return result;
+
+  return { ...result, data: normalizeInProcessInspectionRow(result.data) };
+}
+
+/**
+ * Returns the `inspectionDependency` rows gating a Lot inspection's Accept,
+ * each enriched with its prerequisite inspection's readable id + status.
+ */
+export async function getInProcessInspectionDependencies(
+  client: SupabaseClient<Database>,
+  dependentInspectionId: string,
+  companyId: string
+) {
+  const deps = await (client as any)
+    .from("inspectionDependency")
+    .select("*")
+    .eq("dependentInspectionId", dependentInspectionId)
+    .eq("companyId", companyId);
+
+  if (deps.error || !deps.data || deps.data.length === 0) return deps;
+
+  const prerequisiteIds = (deps.data as any[]).map(
+    (row) => row.prerequisiteInspectionId
+  );
+  const prerequisites = await (client as any)
+    .from("inspection")
+    .select("id, inspectionId, status, type")
+    .in("id", prerequisiteIds)
+    .eq("companyId", companyId);
+
+  const prerequisiteById = new Map(
+    (prerequisites.data ?? []).map((row: any) => [row.id, row])
+  );
+
+  return {
+    ...deps,
+    data: (deps.data as any[]).map((row) => ({
+      ...row,
+      prerequisite: prerequisiteById.get(row.prerequisiteInspectionId) ?? null
+    }))
+  };
+}
+
 export async function getInboundInspectionLotTrackedEntities(
   client: SupabaseClient<Database>,
   inspectionId: string,
