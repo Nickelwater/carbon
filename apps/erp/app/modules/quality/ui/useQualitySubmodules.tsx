@@ -73,6 +73,12 @@ export default function useQualitySubmodules() {
           table: "inboundInspection"
         },
         {
+          name: t`Lot Inspections`,
+          to: path.to.lotInspections,
+          icon: <LuClipboardCheck />,
+          table: "lotInspection"
+        },
+        {
           name: t`Inspection Documents`,
           to: path.to.inspectionDocuments,
           icon: <IoBalloonOutline />

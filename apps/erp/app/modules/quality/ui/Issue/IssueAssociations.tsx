@@ -1069,7 +1069,9 @@ function getAssociationLink(
     case "suppliers":
       return path.to.supplier(child.documentId);
     case "inboundInspections":
-      return path.to.inboundInspection(child.documentId);
+      return (child as { sourceType?: string }).sourceType === "Job"
+        ? path.to.lotInspection(child.documentId)
+        : path.to.inboundInspection(child.documentId);
     default:
       return "#";
   }

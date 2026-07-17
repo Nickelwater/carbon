@@ -18,9 +18,12 @@ import type { InboundInspection } from "~/modules/quality/types";
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";
 
+export type InspectionListVariant = "inbound" | "lot";
+
 type InboundInspectionsTableProps = {
   data: InboundInspection[];
   count: number;
+  variant?: InspectionListVariant;
 };
 
 function getStatusVariant(status: string) {
@@ -35,8 +38,6 @@ function computeProgress(row: InboundInspection): {
   inspected: number;
   total: number;
 } {
-  // The list loader selects `inboundInspectionSample(status)` as an array of
-  // child rows; count the non-Pending ones.
   const samples: { status: string }[] =
     ((row as any).inboundInspectionSample as { status: string }[]) ?? [];
   const inspected = samples.filter((s) => s.status !== "Pending").length;
@@ -44,11 +45,19 @@ function computeProgress(row: InboundInspection): {
 }
 
 const InboundInspectionsTable = memo(
-  ({ data, count }: InboundInspectionsTableProps) => {
+  ({ data, count, variant = "inbound" }: InboundInspectionsTableProps) => {
     const { t } = useLingui();
     const { formatDate } = useDateFormatter();
     const [params] = useUrlParams();
     const [items] = useItems();
+    const isLot = variant === "lot";
+    const detailPath = isLot
+      ? path.to.lotInspection
+      : path.to.inboundInspection;
+    const title = isLot ? t`Lot Inspections` : t`Inbound Inspections`;
+    const byHeader = isLot ? t`Produced By` : t`Received By`;
+    const atHeader = isLot ? t`Produced At` : t`Received At`;
+    const savedViewTable = isLot ? "lotInspection" : "inboundInspection";
 
     const columns = useMemo<ColumnDef<InboundInspection>[]>(() => {
       return [
@@ -57,7 +66,7 @@ const InboundInspectionsTable = memo(
           header: t`Inspection`,
           cell: ({ row }) => (
             <Hyperlink
-              to={`${path.to.inboundInspection(row.original.id!)}?${params.toString()}`}
+              to={`${detailPath(row.original.id!)}?${params.toString()}`}
             >
               {(row.original as any).inboundInspectionId}
             </Hyperlink>
@@ -94,10 +103,9 @@ const InboundInspectionsTable = memo(
         },
         {
           id: "source",
-          header: t`Source`,
+          header: isLot ? t`Job` : t`Source`,
           cell: ({ row }) => {
-            const sourceType = (row.original as any).sourceType ?? "Receipt";
-            if (sourceType === "Job") {
+            if (isLot) {
               return (
                 <span className="text-sm">
                   {(row.original as any).job?.jobId ?? ""}
@@ -116,8 +124,7 @@ const InboundInspectionsTable = memo(
           meta: {
             icon: <LuTruck />,
             exportValue: (row) => {
-              const sourceType = (row as any).sourceType ?? "Receipt";
-              if (sourceType === "Job") {
+              if (isLot) {
                 return (row as any).job?.jobId ?? null;
               }
               return (row as any).receipt?.receiptId ?? null;
@@ -168,7 +175,7 @@ const InboundInspectionsTable = memo(
         },
         {
           accessorKey: "createdBy",
-          header: t`Received By`,
+          header: byHeader,
           cell: ({ row }) => (
             <EmployeeAvatar employeeId={row.original.createdBy} />
           ),
@@ -176,21 +183,21 @@ const InboundInspectionsTable = memo(
         },
         {
           accessorKey: "createdAt",
-          header: t`Received At`,
+          header: atHeader,
           cell: ({ row }) =>
             row.original.createdAt ? formatDate(row.original.createdAt) : "",
           meta: { icon: <LuCalendar /> }
         }
       ];
-    }, [items, t, params, formatDate]);
+    }, [items, t, params, formatDate, detailPath, isLot, byHeader, atHeader]);
 
     return (
       <Table<InboundInspection>
         data={data}
         columns={columns}
         count={count ?? 0}
-        title={t`Inbound Inspections`}
-        table="inboundInspection"
+        title={title}
+        table={savedViewTable}
         withSavedView
       />
     );

@@ -4,17 +4,24 @@ import { flash } from "@carbon/auth/session.server";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 import invariant from "tiny-invariant";
+import { getInboundInspection } from "~/modules/quality";
+import { inspectionRouteFamily } from "~/modules/quality/inspectionRoutes";
 import { dispositionInboundInspection } from "~/modules/quality/quality.server";
-import { path } from "~/utils/path";
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { companyId, userId } = await requirePermissions(request, {
+  const { client, companyId, userId } = await requirePermissions(request, {
     update: "quality",
     role: "employee"
   });
   const { id } = params;
   invariant(id, "id is required");
+
+  const inspection = await getInboundInspection(client, id);
+  const sourceType =
+    (inspection.data as { sourceType?: string } | null)?.sourceType ??
+    "Receipt";
+  const routes = inspectionRouteFamily(sourceType);
 
   const result = await dispositionInboundInspection({
     id,
@@ -25,13 +32,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (result.error) {
     throw redirect(
-      path.to.inboundInspection(id),
+      routes.detail(id),
       await flash(request, error(result.error, "Failed to mark partial"))
     );
   }
 
   throw redirect(
-    path.to.inboundInspection(id),
+    routes.detail(id),
     await flash(request, success("Lot marked partial"))
   );
 }

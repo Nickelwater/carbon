@@ -75,11 +75,19 @@ status to flip, so a Reject posts a compensating ledger entry instead (see dispo
   mounted on `routes/x+/{part,material,tool,consumable}+/$itemId.quality.tsx`.
 - **Inspection detail drawer**: `.../ui/InboundInspections/InboundInspectionLotView.tsx` — progress,
   samples table, Accept/Reject/Partial. Branches on `isSerial = itemTrackingType === "Serial"`.
-  Reject modal has an "Open an NCR" checkbox (`createNcr`, defaults on).
+  Reject modal has an "Open an NCR" checkbox (`createNcr`, defaults on). When a linked
+  inspection document has recorded `inboundInspectionSampleMeasurement` rows, the Measurements
+  cell is expandable and shows the characteristic table (nominal / ± / unit / measured / In|Out).
 - **Sample modal**: `.../ui/InboundInspections/ScanInspectionSample.tsx` — `isSerial` prop; serial
   shows Scan/Select tabs (entity required), non-serial shows just Notes + Pass/Fail.
-- **Routes** `apps/erp/app/routes/x+/quality+/`: `inbound-inspections.tsx` (list),
-  `.$id.tsx` (loader passes `itemTrackingType`), `.$id.sample.tsx`, `.$id.{accept,reject,partial}.tsx`.
+- **Routes** `apps/erp/app/routes/x+/quality+/`:
+  - `inbound-inspections.tsx` — list filtered `sourceType = Receipt`
+  - `lot-inspections.tsx` — list filtered `sourceType = Job` (Lot Inspections nav)
+  - Detail/actions under both path families; Job ids opened under inbound URLs redirect to
+    `/quality/lot-inspections/:id`. Shared detail loader:
+    `ui/InboundInspections/loadInspectionLotDetail.server.ts`.
+  - New job lots allocate readable ids from the `lotInspection` sequence (`LI…`); inbound still
+    uses `inboundInspection` (`II…`). Historical Job rows may still show `II…`.
 - **Server** `quality.server.ts`:
   - `upsertInboundInspectionSample` — flips entity status + writes `trackedActivity` input/output
     only when `trackedEntityId` is present; anonymous (null) samples are always inserts (no dedupe).
@@ -88,11 +96,15 @@ status to flip, so a Reject posts a compensating ledger entry instead (see dispo
     `Inbound Inspection` negative adjustment, doc-type added `20260619142853`); Partial leaves
     entities; always writes `inboundInspectionHistory`.
   - NCR auto-creation lives in the **reject route** (`.$id.reject.tsx`), optional via `createNcr`,
-    linking through `nonConformanceInboundInspection`.
-- **Service** `quality.service.ts`: `getInboundInspections` (list), `getInboundInspection` (selects
-  `item(... itemTrackingType)`), `getInboundInspectionLotTrackedEntities`.
+    linking through `nonConformanceInboundInspection`. Redirects are source-aware via
+    `inspectionRouteFamily`.
+- **Service** `quality.service.ts`: `getInboundInspections` (list; optional `sourceType`),
+  `getInboundInspection` (selects `item(... itemTrackingType)`),
+  `getInboundInspectionLotTrackedEntities`.
 - **Validators** `quality.models.ts`: `inboundInspectionSampleValidator` (`trackedEntityId`
   optional), `itemSamplingPlanValidator`, `inboundInspectionDispositionValidator`.
+- **Architecture (forward):** `.ai/specs/2026-07-16-three-type-inspections.md` — Inbound / Lot /
+  In-Process; Phase 1 is the dual-tab split above.
 
 ## Gotchas
 

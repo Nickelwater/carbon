@@ -12,8 +12,8 @@ import { path } from "~/utils/path";
 import { getGenericQueryFilters } from "~/utils/query";
 
 export const handle: Handle = {
-  breadcrumb: msg`Inbound Inspections`,
-  to: path.to.inboundInspections
+  breadcrumb: msg`Lot Inspections`,
+  to: path.to.lotInspections
 };
 
 export async function loader({ request }: LoaderFunctionArgs) {
@@ -32,7 +32,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const inspections = await getInboundInspections(client, companyId, {
     search,
     status,
-    sourceType: "Receipt",
+    sourceType: "Job",
     limit,
     offset,
     sorts,
@@ -44,7 +44,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       path.to.quality,
       await flash(
         request,
-        error(inspections.error, "Failed to load inspections")
+        error(inspections.error, "Failed to load lot inspections")
       )
     );
   }
@@ -55,16 +55,12 @@ export async function loader({ request }: LoaderFunctionArgs) {
   };
 }
 
-export default function InboundInspectionsRoute() {
+export default function LotInspectionsRoute() {
   const { inspections, count } = useLoaderData<typeof loader>();
 
   return (
     <VStack spacing={0} className="h-full">
-      <InboundInspectionsTable
-        data={inspections}
-        count={count}
-        variant="inbound"
-      />
+      <InboundInspectionsTable data={inspections} count={count} variant="lot" />
       <Outlet />
     </VStack>
   );

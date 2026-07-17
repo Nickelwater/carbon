@@ -6,6 +6,7 @@ import {
   BarProgress,
   Button,
   Checkbox,
+  cn,
   HStack,
   Label,
   Modal,
@@ -31,8 +32,10 @@ import {
   VStack
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import {
+  LuChevronDown,
+  LuChevronRight,
   LuCircleCheck,
   LuCircleX,
   LuScan,
@@ -79,6 +82,8 @@ export type InboundInspectionLotViewProps = {
   currentUserId: string;
   enforceFourEyes: boolean;
   open?: boolean;
+  /** Detail path builder for disposition/sample actions (inbound vs lot). */
+  detailPath?: (id: string) => string;
 };
 
 export default function InboundInspectionLotView({
@@ -98,7 +103,8 @@ export default function InboundInspectionLotView({
   issueTypes,
   currentUserId,
   enforceFourEyes,
-  open = true
+  open = true,
+  detailPath = path.to.inboundInspection
 }: InboundInspectionLotViewProps) {
   const { t } = useLingui();
   const navigate = useNavigate();
@@ -115,6 +121,16 @@ export default function InboundInspectionLotView({
   const rejectConfirmDisclosure = useDisclosure();
   const acceptConfirmDisclosure = useDisclosure();
   const partialConfirmDisclosure = useDisclosure();
+  const [expandedSampleIds, setExpandedSampleIds] = useState<
+    Record<string, boolean>
+  >({});
+
+  const toggleSampleMeasurements = (sampleId: string) => {
+    setExpandedSampleIds((prev) => ({
+      ...prev,
+      [sampleId]: !prev[sampleId]
+    }));
+  };
 
   // Look up the item in the live items store so we show the current
   // readable id (and revision) even if the snapshot stored on the
@@ -142,6 +158,7 @@ export default function InboundInspectionLotView({
   const inspected = passes + fails;
 
   const batchLot = isBatchInspectionLot(lotEntities);
+  const sampleColumnCount = (batchLot ? 5 : 4) + (inspectionDocumentId ? 1 : 0);
   const samplesRemaining = batchSamplesRemaining(
     inspection.sampleSize,
     inspected
@@ -185,9 +202,10 @@ export default function InboundInspectionLotView({
 
   const newIssueHref = `/x/issue/new?itemId=${encodeURIComponent(inspection.itemId)}&trackedEntityIds=${encodeURIComponent(failedTrackedEntityIds.join(","))}&sourceInspectionId=${encodeURIComponent(inspection.id)}`;
 
-  const acceptUrl = `${path.to.inboundInspection(inspection.id)}/accept`;
-  const rejectUrl = `${path.to.inboundInspection(inspection.id)}/reject`;
-  const partialUrl = `${path.to.inboundInspection(inspection.id)}/partial`;
+  const acceptUrl = `${detailPath(inspection.id)}/accept`;
+  const rejectUrl = `${detailPath(inspection.id)}/reject`;
+  const partialUrl = `${detailPath(inspection.id)}/partial`;
+  const sampleActionUrl = `${detailPath(inspection.id)}/sample`;
 
   return (
     <ModalDrawerProvider type="drawer">
@@ -339,9 +357,7 @@ export default function InboundInspectionLotView({
                     {samples.length === 0 && (
                       <tr>
                         <td
-                          colSpan={
-                            (batchLot ? 5 : 4) + (inspectionDocumentId ? 1 : 0)
-                          }
+                          colSpan={sampleColumnCount}
                           className="px-3 py-6 text-center text-muted-foreground"
                         >
                           <Trans>No samples inspected yet.</Trans>
@@ -357,62 +373,102 @@ export default function InboundInspectionLotView({
                         measurements,
                         inspectionPlan.length
                       );
+                      const canExpand =
+                        !!inspectionDocumentId && measurements.length > 0;
+                      const isExpanded = !!expandedSampleIds[s.id];
                       return (
-                        <tr key={s.id} className="border-t">
-                          <td className="px-3 py-2">
-                            <div className="flex flex-col">
-                              <span className="font-mono text-sm">
-                                {readable ??
-                                  s.trackedEntityId ??
-                                  t`Sample ${idx + 1}`}
-                              </span>
-                              {readable && (
-                                <span className="text-xs text-muted-foreground">
-                                  {s.trackedEntityId}
+                        <Fragment key={s.id}>
+                          <tr className="border-t">
+                            <td className="px-3 py-2">
+                              <div className="flex flex-col">
+                                <span className="font-mono text-sm">
+                                  {readable ??
+                                    s.trackedEntityId ??
+                                    t`Sample ${idx + 1}`}
+                                </span>
+                                {readable && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {s.trackedEntityId}
+                                  </span>
+                                )}
+                              </div>
+                            </td>
+                            {batchLot && (
+                              <td className="px-3 py-2 text-muted-foreground">
+                                {sampleNum}
+                              </td>
+                            )}
+                            <td className="px-3 py-2">
+                              {s.status === "Passed" ? (
+                                <Badge variant="green">
+                                  <LuCircleCheck className="size-3 mr-1" />{" "}
+                                  Passed
+                                </Badge>
+                              ) : s.status === "Failed" ? (
+                                <Badge variant="red">
+                                  <LuCircleX className="size-3 mr-1" /> Failed
+                                </Badge>
+                              ) : (
+                                <Badge variant="secondary">{s.status}</Badge>
+                              )}
+                              {(s as { statusOverridden?: boolean })
+                                .statusOverridden && (
+                                <span className="ml-2 text-xs text-muted-foreground">
+                                  <Trans>overridden</Trans>
                                 </span>
                               )}
-                            </div>
-                          </td>
-                          {batchLot && (
+                            </td>
+                            {inspectionDocumentId && (
+                              <td className="px-3 py-2 text-xs text-muted-foreground">
+                                {canExpand ? (
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      toggleSampleMeasurements(s.id)
+                                    }
+                                    className={cn(
+                                      "inline-flex items-center gap-1 text-left hover:text-foreground transition-colors",
+                                      isExpanded && "text-foreground"
+                                    )}
+                                    aria-expanded={isExpanded}
+                                  >
+                                    {isExpanded ? (
+                                      <LuChevronDown className="size-3.5 shrink-0" />
+                                    ) : (
+                                      <LuChevronRight className="size-3.5 shrink-0" />
+                                    )}
+                                    <span>{measurementSummary}</span>
+                                  </button>
+                                ) : (
+                                  (measurementSummary ?? "—")
+                                )}
+                              </td>
+                            )}
+                            <td className="px-3 py-2">
+                              {s.inspectedBy ? (
+                                <EmployeeAvatar employeeId={s.inspectedBy} />
+                              ) : (
+                                ""
+                              )}
+                            </td>
                             <td className="px-3 py-2 text-muted-foreground">
-                              {sampleNum}
+                              {s.notes ?? ""}
                             </td>
+                          </tr>
+                          {isExpanded && (
+                            <tr className="border-t">
+                              <td
+                                colSpan={sampleColumnCount}
+                                className="px-3 py-3 bg-muted/30"
+                              >
+                                <SampleMeasurementsDetail
+                                  plan={inspectionPlan}
+                                  measurements={measurements}
+                                />
+                              </td>
+                            </tr>
                           )}
-                          <td className="px-3 py-2">
-                            {s.status === "Passed" ? (
-                              <Badge variant="green">
-                                <LuCircleCheck className="size-3 mr-1" /> Passed
-                              </Badge>
-                            ) : s.status === "Failed" ? (
-                              <Badge variant="red">
-                                <LuCircleX className="size-3 mr-1" /> Failed
-                              </Badge>
-                            ) : (
-                              <Badge variant="secondary">{s.status}</Badge>
-                            )}
-                            {(s as { statusOverridden?: boolean })
-                              .statusOverridden && (
-                              <span className="ml-2 text-xs text-muted-foreground">
-                                <Trans>overridden</Trans>
-                              </span>
-                            )}
-                          </td>
-                          {inspectionDocumentId && (
-                            <td className="px-3 py-2 text-xs text-muted-foreground">
-                              {measurementSummary ?? "—"}
-                            </td>
-                          )}
-                          <td className="px-3 py-2">
-                            {s.inspectedBy ? (
-                              <EmployeeAvatar employeeId={s.inspectedBy} />
-                            ) : (
-                              ""
-                            )}
-                          </td>
-                          <td className="px-3 py-2 text-muted-foreground">
-                            {s.notes ?? ""}
-                          </td>
-                        </tr>
+                        </Fragment>
                       );
                     })}
                   </tbody>
@@ -472,6 +528,7 @@ export default function InboundInspectionLotView({
           inspected={inspected}
           fails={fails}
           acceptanceNumber={inspection.acceptanceNumber}
+          sampleActionUrl={sampleActionUrl}
           onClose={scannerDisclosure.onClose}
         />
       )}
@@ -669,6 +726,115 @@ function summarizeMeasurements(
     return `${label} · incomplete`;
   }
   return label;
+}
+
+function SampleMeasurementsDetail({
+  plan,
+  measurements
+}: {
+  plan: InspectionPlanRow[];
+  measurements: InboundInspectionSampleMeasurementRow[];
+}) {
+  const byFeatureId = new Map(
+    measurements.map((m) => [m.inspectionFeatureId, m] as const)
+  );
+
+  const rows =
+    plan.length > 0
+      ? plan.map((row) => {
+          const measurement = byFeatureId.get(row.featureId);
+          return {
+            key: row.featureId,
+            characteristic: row.characteristic,
+            description: row.description,
+            nominalValue: row.nominalValue,
+            tolerancePlus: row.tolerancePlus,
+            toleranceMinus: row.toleranceMinus,
+            unit: row.unit,
+            measuredValue: measurement?.measuredValue ?? null,
+            inTolerance: measurement?.inTolerance ?? null
+          };
+        })
+      : // Plan missing (deleted document / stale link) — still show stored values.
+        measurements.map((m) => ({
+          key: m.id,
+          characteristic: m.inspectionFeatureId,
+          description: null as string | null,
+          nominalValue: null as string | null,
+          tolerancePlus: null as string | null,
+          toleranceMinus: null as string | null,
+          unit: null as string | null,
+          measuredValue: m.measuredValue,
+          inTolerance: m.inTolerance
+        }));
+
+  return (
+    <div className="w-full border rounded-md overflow-hidden bg-background">
+      <table className="text-sm w-full">
+        <thead className="bg-muted text-xs text-muted-foreground">
+          <tr>
+            <th className="text-left px-3 py-2 font-medium">
+              <Trans>Characteristic</Trans>
+            </th>
+            <th className="text-left px-3 py-2 font-medium">
+              <Trans>Nominal</Trans>
+            </th>
+            <th className="text-left px-3 py-2 font-medium">+</th>
+            <th className="text-left px-3 py-2 font-medium">−</th>
+            <th className="text-left px-3 py-2 font-medium">
+              <Trans>Unit</Trans>
+            </th>
+            <th className="text-left px-3 py-2 font-medium">
+              <Trans>Measured</Trans>
+            </th>
+            <th className="text-left px-3 py-2 font-medium">
+              <Trans>Status</Trans>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr key={row.key} className="border-t">
+              <td className="px-3 py-2">
+                <div className="font-medium">{row.characteristic}</div>
+                {row.description && (
+                  <div className="text-xs text-muted-foreground">
+                    {row.description}
+                  </div>
+                )}
+              </td>
+              <td className="px-3 py-2 font-mono text-xs">
+                {row.nominalValue ?? "—"}
+              </td>
+              <td className="px-3 py-2 font-mono text-xs">
+                {row.tolerancePlus ?? "—"}
+              </td>
+              <td className="px-3 py-2 font-mono text-xs">
+                {row.toleranceMinus ?? "—"}
+              </td>
+              <td className="px-3 py-2 text-xs">{row.unit ?? "—"}</td>
+              <td className="px-3 py-2 font-mono text-xs">
+                {row.measuredValue?.trim() ? row.measuredValue : "—"}
+              </td>
+              <td className="px-3 py-2">
+                {row.inTolerance === true ? (
+                  <Badge variant="green">
+                    <Trans>In</Trans>
+                  </Badge>
+                ) : row.inTolerance === false ? (
+                  <Badge variant="red">
+                    <Trans>Out</Trans>
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary">—</Badge>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function Kv({

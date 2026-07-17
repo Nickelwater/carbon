@@ -6856,6 +6856,9 @@ msgstr "失った"
 msgid "Lot"
 msgstr "ロット"
 
+msgid "Lot Inspections"
+msgstr ""
+
 msgid "Lot size"
 msgstr "ロットサイズ"
 
@@ -9127,6 +9130,12 @@ msgstr "プロセス"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
 msgstr "調達ステータス — 発注が必要、計画済み、発注済み、または入荷済み。BoM ツリーに表示されるものと同じインジケーター。"
+
+msgid "Produced At"
+msgstr ""
+
+msgid "Produced By"
+msgstr ""
 
 msgid "Product issues during hypercare"
 msgstr "ハイパーケア中の製品の問題"

@@ -64,6 +64,7 @@ type Props = {
   sampleSize: number;
   fails: number;
   acceptanceNumber: number;
+  sampleActionUrl?: string;
   onClose: () => void;
 };
 
@@ -79,6 +80,7 @@ export default function ScanInspectionSample({
   sampleSize,
   fails,
   acceptanceNumber,
+  sampleActionUrl,
   onClose
 }: Props) {
   const { t } = useLingui();
@@ -209,7 +211,10 @@ export default function ScanInspectionSample({
           key={`${selected?.id ?? "none"}-${resetKey}`}
           fetcher={fetcher}
           method="post"
-          action={`${path.to.inboundInspection(inspectionId)}/sample`}
+          action={
+            sampleActionUrl ??
+            `${path.to.inboundInspection(inspectionId)}/sample`
+          }
           validator={inboundInspectionSampleValidator}
           className={showDrawing ? "flex flex-col flex-1 min-h-0" : undefined}
           defaultValues={{

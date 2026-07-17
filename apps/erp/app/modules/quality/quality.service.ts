@@ -717,7 +717,8 @@ export async function getIssueAssociations(
           lotSize,
           status,
           sampleSize,
-          acceptanceNumber
+          acceptanceNumber,
+          sourceType
         )
       `
       )
@@ -825,7 +826,8 @@ export async function getIssueAssociations(
         documentLineId: "",
         documentReadableId: link.inboundInspection?.inboundInspectionId ?? "",
         quantity: link.inboundInspection?.lotSize ?? 0,
-        status: link.inboundInspection?.status ?? null
+        status: link.inboundInspection?.status ?? null,
+        sourceType: link.inboundInspection?.sourceType ?? "Receipt"
       })
     )
   };
@@ -3232,6 +3234,8 @@ export async function getInboundInspections(
   args?: GenericQueryFilters & {
     search: string | null;
     status: string | null;
+    /** When set, restrict to Receipt (inbound) or Job (lot) inspections. */
+    sourceType?: "Receipt" | "Job";
   }
 ) {
   let query = (client as any)
@@ -3241,6 +3245,10 @@ export async function getInboundInspections(
       { count: "exact" }
     )
     .eq("companyId", companyId);
+
+  if (args?.sourceType) {
+    query = query.eq("sourceType", args.sourceType);
+  }
 
   if (args?.search) {
     query = query.or(

@@ -31,22 +31,22 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   if (result.error || !result.data) {
     throw redirect(
-      path.to.inboundInspections,
-      await flash(request, error(result.error, "Failed to load inspection"))
+      path.to.lotInspections,
+      await flash(request, error(result.error, "Failed to load lot inspection"))
     );
   }
 
   const url = new URL(request.url);
-  if (result.data.sourceType === "Job") {
-    throw redirect(`${path.to.lotInspection(id)}${url.search}`);
+  if (result.data.sourceType !== "Job") {
+    throw redirect(`${path.to.inboundInspection(id)}${url.search}`);
   }
 
   return data(result.data);
 }
 
-export default function InboundInspectionRoute() {
+export default function LotInspectionRoute() {
   const loaderData = useLoaderData<typeof loader>();
-  const routes = inspectionRouteFamily("Receipt");
+  const routes = inspectionRouteFamily("Job");
 
   return (
     <InboundInspectionLotView

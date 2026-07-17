@@ -1,5 +1,5 @@
 {
-  "generated": "2026-07-12T21:18:18.316Z",
+  "generated": "2026-07-17T17:15:49.254Z",
   "totalTools": 1324,
   "modules": 15,
   "tools": [
@@ -427,7 +427,7 @@
               "null"
             ]
           },
-          "// Balance sheet only: append a computed \"Net Income\" equity line.\r\n    includeCurrentYearEarnings": {
+          "// Balance sheet only: append a computed \"Net Income\" equity line.\n    includeCurrentYearEarnings": {
             "type": "boolean"
           }
         },
@@ -2142,7 +2142,7 @@
           "description": {
             "type": "string"
           },
-          "lines: Array<{\r\n      accountId: string;\r\n      description": {}
+          "lines: Array<{\n      accountId: string;\n      description": {}
         },
         "required": [
           "journalEntryId",
@@ -2719,7 +2719,7 @@
           "periodEnd": {
             "type": "string"
           },
-          "lines: Array<{\r\n      fixedAssetId: string;\r\n      amount: number;\r\n      taxAmount": {}
+          "lines: Array<{\n      fixedAssetId: string;\n      amount: number;\n      taxAmount": {}
         },
         "required": [
           "periodEnd"
@@ -3776,7 +3776,7 @@
           "locationId": {
             "type": "string"
           },
-          "omit to start from the newest entry. */\r\n    entryNumber": {
+          "omit to start from the newest entry. */\n    entryNumber": {
             "type": "number"
           },
           "direction": {
@@ -3786,7 +3786,7 @@
               "newer"
             ]
           },
-          "/** include the cursor row itself (used for the anchored first load). */\r\n    inclusive": {
+          "/** include the cursor row itself (used for the anchored first load). */\n    inclusive": {
             "type": "boolean"
           }
         },
@@ -4328,7 +4328,7 @@
           "receiptId": {
             "type": "string"
           },
-          "lines: {\r\n      id: string;\r\n      receivedQuantity: number | null;\r\n      requiresSerialTracking": {
+          "lines: {\n      id: string;\n      receivedQuantity: number | null;\n      requiresSerialTracking": {
             "type": "array",
             "items": {}
           }
@@ -5138,7 +5138,7 @@
       "paramCount": 4,
       "serviceParams": [
         "client",
-        "{\r\n    companyId,\r\n    itemId,\r\n    locationId,\r\n    excludeShipmentId,\r\n    excludeShipmentLineId\r\n  }"
+        "{\n    companyId,\n    itemId,\n    locationId,\n    excludeShipmentId,\n    excludeShipmentLineId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -5207,7 +5207,7 @@
       "paramCount": 10,
       "serviceParams": [
         "client",
-        "{\r\n    companyId,\r\n    shipmentId,\r\n    lineId,\r\n    itemId,\r\n    locationId,\r\n    itemTrackingType,\r\n    fulfillmentType,\r\n    outstandingQuantity,\r\n    salesOrderLineId,\r\n    saleQuantity,\r\n    quantitySent\r\n  }"
+        "{\n    companyId,\n    shipmentId,\n    lineId,\n    itemId,\n    locationId,\n    itemTrackingType,\n    fulfillmentType,\n    outstandingQuantity,\n    salesOrderLineId,\n    saleQuantity,\n    quantitySent\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -5274,7 +5274,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    companyId,\r\n    shipmentId,\r\n    itemId,\r\n    locationId\r\n  }"
+        "{\n    companyId,\n    shipmentId,\n    itemId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -6144,7 +6144,7 @@
             "type": "string"
           },
           "status": {},
-          "// When set, the transition only applies if the row is still in this status.\r\n    // The `.eq(\"status\", expectedStatus)` makes the read-then-write atomic, so a\r\n    // concurrent transition can't be clobbered (0 rows matched → `.single()`\r\n    // errors and the caller surfaces a failure).\r\n    expectedStatus": {}
+          "// When set, the transition only applies if the row is still in this status.\n    // The `.eq(\"status\", expectedStatus)` makes the read-then-write atomic, so a\n    // concurrent transition can't be clobbered (0 rows matched → `.single()`\n    // errors and the caller surfaces a failure).\n    expectedStatus": {}
         },
         "required": [
           "id",
@@ -7521,7 +7521,7 @@
           "locationId": {
             "type": "string"
           },
-          "lines: Array<{\r\n      itemId: string;\r\n      fromStorageUnitId": {},
+          "lines: Array<{\n      itemId: string;\n      fromStorageUnitId": {},
           "stockTransferId": {
             "type": "string"
           },
@@ -9180,7 +9180,7 @@
                   "null"
                 ]
               },
-              "// Combined counterparty filter (customer OR supplier ids) from the table's\r\n    // \"Counterparty\" filter, which sources options from both stores.\r\n    counterpartyIds": {
+              "// Combined counterparty filter (customer OR supplier ids) from the table's\n    // \"Counterparty\" filter, which sources options from both stores.\n    counterpartyIds": {
                 "type": [
                   "array",
                   "null"
@@ -9641,8 +9641,8 @@
         "companyId",
         "party",
         "// When editing a Draft payment's composer",
-        "that payment's own staged credits\r\n  // should NOT count as used — they show as staged",
-        "not consumed.\r\n  excludePaymentId"
+        "that payment's own staged credits\n  // should NOT count as used — they show as staged",
+        "not consumed.\n  excludePaymentId"
       ],
       "injectAuth": [
         "companyId"
@@ -9652,15 +9652,15 @@
         "properties": {
           "party": {},
           "// When editing a Draft payment's composer": {},
-          "that payment's own staged credits\r\n  // should NOT count as used — they show as staged": {},
-          "not consumed.\r\n  excludePaymentId": {
+          "that payment's own staged credits\n  // should NOT count as used — they show as staged": {},
+          "not consumed.\n  excludePaymentId": {
             "type": "string"
           }
         },
         "required": [
           "party",
           "// When editing a Draft payment's composer",
-          "that payment's own staged credits\r\n  // should NOT count as used — they show as staged"
+          "that payment's own staged credits\n  // should NOT count as used — they show as staged"
         ]
       }
     },
@@ -10874,7 +10874,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -10910,7 +10910,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -11277,7 +11277,7 @@
       "paramCount": 3,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    locationId,\r\n    periods,\r\n    companyId\r\n  }"
+        "{\n    itemId,\n    locationId,\n    periods,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -12176,7 +12176,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -12205,7 +12205,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -12234,7 +12234,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -12263,7 +12263,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    itemId,\r\n    companyId,\r\n    locationId\r\n  }"
+        "{\n    itemId,\n    companyId,\n    locationId\n  }"
       ],
       "injectAuth": [
         "companyId"
@@ -13277,7 +13277,7 @@
             "type": "string"
           },
           "customFields": {},
-          "shelfLife: {\r\n      mode": {
+          "shelfLife: {\n      mode": {
             "type": "string"
           },
           "packaging": {
@@ -13354,8 +13354,8 @@
               "type": "string"
             }
           },
-          "itemUpdate: {\r\n      replenishmentSystem": {},
-          "cascade: {\r\n      sourcingType": {}
+          "itemUpdate: {\n      replenishmentSystem": {},
+          "cascade: {\n      sourcingType": {}
         },
         "required": [
           "itemIds"
@@ -15935,7 +15935,7 @@
       "paramCount": 1,
       "serviceParams": [
         "client",
-        "{\r\n    orderId,\r\n    companyId,\r\n    userId\r\n  }"
+        "{\n    orderId,\n    companyId,\n    userId\n  }"
       ],
       "injectAuth": [
         "companyId",
@@ -15972,7 +15972,7 @@
           "jobId": {
             "type": "string"
           },
-          "// Optional - if updating an existing job\r\n    dueDate": {
+          "// Optional - if updating an existing job\n    dueDate": {
             "type": [
               "string",
               "null"
@@ -15986,7 +15986,7 @@
           }
         },
         "required": [
-          "// Optional - if updating an existing job\r\n    dueDate",
+          "// Optional - if updating an existing job\n    dueDate",
           "deadlineType",
           "locationId"
         ]
@@ -18609,13 +18609,13 @@
           "id": {
             "type": "string"
           },
-          "// job id\r\n    companyId": {
+          "// job id\n    companyId": {
             "type": "string"
           }
         },
         "required": [
           "id",
-          "// job id\r\n    companyId"
+          "// job id\n    companyId"
         ]
       }
     },
@@ -18639,13 +18639,13 @@
           "id": {
             "type": "string"
           },
-          "// job make method id\r\n    companyId": {
+          "// job make method id\n    companyId": {
             "type": "string"
           }
         },
         "required": [
           "id",
-          "// job make method id\r\n    companyId"
+          "// job make method id\n    companyId"
         ]
       }
     },
@@ -21064,19 +21064,19 @@
           "assemblyInstructionId": {
             "type": "string"
           },
-          "/** Limit to these steps (default: every step of the instruction) */\r\n    stepIds": {
+          "/** Limit to these steps (default: every step of the instruction) */\n    stepIds": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "/** Limit to these mappings (e.g. one just created) */\r\n    geometryHashes": {
+          "/** Limit to these mappings (e.g. one just created) */\n    geometryHashes": {
             "type": "array",
             "items": {
               "type": "string"
             }
           },
-          "/** Limit to component groups containing one of these instances */\r\n    onlyComponentNodeIds": {
+          "/** Limit to component groups containing one of these instances */\n    onlyComponentNodeIds": {
             "type": "array",
             "items": {
               "type": "string"
@@ -21532,7 +21532,7 @@
           "assemblyInstructionId": {
             "type": "string"
           },
-          "/**\r\n     * \"regenerate\" replaces the existing steps with fresh drafts from the\r\n     * latest plan — refused while any step is manually authored\r\n     * (planConfidence \"manual\") or already Done.\r\n     */\r\n    mode": {
+          "/**\n     * \"regenerate\" replaces the existing steps with fresh drafts from the\n     * latest plan — refused while any step is manually authored\n     * (planConfidence \"manual\") or already Done.\n     */\n    mode": {
             "type": "string",
             "enum": [
               "generate",
@@ -21737,7 +21737,7 @@
       "paramCount": 1,
       "serviceParams": [
         "client",
-        "{\r\n    sourcePurchaseOrderId,\r\n    companyId,\r\n    companyGroupId,\r\n    userId\r\n  }"
+        "{\n    sourcePurchaseOrderId,\n    companyId,\n    companyGroupId,\n    userId\n  }"
       ],
       "injectAuth": [
         "companyId",
@@ -23145,7 +23145,7 @@
           "name": {
             "type": "string"
           },
-          "address: {\r\n      addressLine1": {},
+          "address: {\n      addressLine1": {},
           "customFields": {}
         },
         "required": [
@@ -23405,7 +23405,7 @@
           "name": {
             "type": "string"
           },
-          "address: {\r\n      addressLine1": {},
+          "address: {\n      addressLine1": {},
           "customFields": {}
         },
         "required": [
@@ -26286,7 +26286,7 @@
               },
               "status": {},
               "source": {},
-              "// might be needed later for filtering by assignee\r\n    assignee": {
+              "// might be needed later for filtering by assignee\n    assignee": {
                 "type": "array",
                 "items": {
                   "type": "string"
@@ -27746,7 +27746,7 @@
       "module": "quality",
       "classification": "READ",
       "description": "get inbound inspections",
-      "paramCount": 4,
+      "paramCount": 5,
       "serviceParams": [
         "client",
         "companyId",
@@ -27779,6 +27779,13 @@
                 "type": [
                   "string",
                   "null"
+                ]
+              },
+              "/** When set, restrict to Receipt (inbound) or Job (lot) inspections. */\n    sourceType": {
+                "type": "string",
+                "enum": [
+                  "Receipt",
+                  "Job"
                 ]
               }
             }
@@ -33986,7 +33993,7 @@
           "name": {
             "type": "string"
           },
-          "address: {\r\n      addressLine1": {},
+          "address: {\n      addressLine1": {},
           "customFields": {}
         },
         "required": [
@@ -34471,7 +34478,7 @@
           "name": {
             "type": "string"
           },
-          "address: {\r\n      addressLine1": {},
+          "address: {\n      addressLine1": {},
           "customFields": {}
         },
         "required": [
@@ -41167,7 +41174,7 @@
       "paramCount": 2,
       "serviceParams": [
         "client",
-        "{\r\n    id,\r\n    name,\r\n    companyId\r\n  }"
+        "{\n    id,\n    name,\n    companyId\n  }"
       ],
       "injectAuth": [
         "companyId",

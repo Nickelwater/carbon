@@ -6856,6 +6856,9 @@ msgstr "Потеряно"
 msgid "Lot"
 msgstr "Партия"
 
+msgid "Lot Inspections"
+msgstr ""
+
 msgid "Lot size"
 msgstr "Размер партии"
 
@@ -9127,6 +9130,12 @@ msgstr "Процессы"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
 msgstr "Статус снабжения — требуется заказ, запланировано, заказано или получено. Тот же индикатор, что показан в дереве BoM."
+
+msgid "Produced At"
+msgstr ""
+
+msgid "Produced By"
+msgstr ""
 
 msgid "Product issues during hypercare"
 msgstr "Проблемы с продуктом во время гиперпомощи"

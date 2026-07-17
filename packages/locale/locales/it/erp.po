@@ -6856,6 +6856,9 @@ msgstr "Perso"
 msgid "Lot"
 msgstr "Lotto"
 
+msgid "Lot Inspections"
+msgstr ""
+
 msgid "Lot size"
 msgstr "Dimensione lotto"
 
@@ -9127,6 +9130,12 @@ msgstr "Processi"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
 msgstr "Stato di approvvigionamento: da ordinare, pianificato, in ordine o ricevuto. Lo stesso indicatore mostrato nell'albero della BoM."
+
+msgid "Produced At"
+msgstr ""
+
+msgid "Produced By"
+msgstr ""
 
 msgid "Product issues during hypercare"
 msgstr "Problemi di prodotto durante l'hypercare"

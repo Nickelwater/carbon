@@ -6856,6 +6856,9 @@ msgstr "已失败"
 msgid "Lot"
 msgstr "批次"
 
+msgid "Lot Inspections"
+msgstr ""
+
 msgid "Lot size"
 msgstr "批量大小"
 
@@ -9127,6 +9130,12 @@ msgstr "流程"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
 msgstr "采购状态——需要订购、已计划、已订购或已收货。与 BoM 树中显示的指示器相同。"
+
+msgid "Produced At"
+msgstr ""
+
+msgid "Produced By"
+msgstr ""
 
 msgid "Product issues during hypercare"
 msgstr "超级护理期间的产品问题"

@@ -6856,6 +6856,9 @@ msgstr "खो गया"
 msgid "Lot"
 msgstr "लॉट"
 
+msgid "Lot Inspections"
+msgstr ""
+
 msgid "Lot size"
 msgstr "लॉट आकार"
 
@@ -9127,6 +9130,12 @@ msgstr "प्रक्रियाएं"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
 msgstr "खरीद स्थिति — ऑर्डर करने की आवश्यकता, नियोजित, ऑर्डर पर, या प्राप्त। वही संकेतक जो BoM ट्री में दिखाया जाता है।"
+
+msgid "Produced At"
+msgstr ""
+
+msgid "Produced By"
+msgstr ""
 
 msgid "Product issues during hypercare"
 msgstr "हाइपरकेयर के दौरान उत्पाद समस्याएं"

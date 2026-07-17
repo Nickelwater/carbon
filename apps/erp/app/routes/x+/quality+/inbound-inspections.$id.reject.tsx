@@ -15,6 +15,7 @@ import {
   getIssueTypesList,
   insertIssue
 } from "~/modules/quality";
+import { inspectionRouteFamily } from "~/modules/quality/inspectionRoutes";
 import { dispositionInboundInspection } from "~/modules/quality/quality.server";
 import { getCompanyIntegrations } from "~/modules/settings/settings.server";
 import { getUserDefaults } from "~/modules/users/users.server";
@@ -39,6 +40,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const createNcr =
     ((formData.get("createNcr") as string | null) ?? "true") !== "false";
 
+  const existing = await getInboundInspection(client, id);
+  const sourceType =
+    (existing.data as { sourceType?: string } | null)?.sourceType ?? "Receipt";
+  const routes = inspectionRouteFamily(sourceType);
+  const detailPath = routes.detail(id);
+
   // 1. Cascade reject — mark every tracked entity in the lot as Rejected
   //    and flip the lot's status to Failed (ISO 9001:2015 §8.7).
   const dispositionResult = await dispositionInboundInspection({
@@ -49,7 +56,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   });
   if (dispositionResult.error) {
     throw redirect(
-      path.to.inboundInspection(id),
+      detailPath,
       await flash(
         request,
         error(dispositionResult.error, "Failed to reject lot")
@@ -59,10 +66,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   // If the inspector opted out of an NCR, we're done — the lot is rejected.
   if (!createNcr) {
-    throw redirect(
-      path.to.inboundInspection(id),
-      await flash(request, success("Lot rejected"))
-    );
+    throw redirect(detailPath, await flash(request, success("Lot rejected")));
   }
 
   // 2. Auto-create an NCR and navigate the user straight to it so MRB can
@@ -70,14 +74,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const serviceRole = await getCarbonServiceRole();
 
   const [inspection, userDefaults, issueTypes] = await Promise.all([
-    getInboundInspection(client, id),
+    existing.error || !existing.data
+      ? getInboundInspection(client, id)
+      : Promise.resolve(existing),
     getUserDefaults(client, userId, companyId),
     getIssueTypesList(client, companyId)
   ]);
 
   if (inspection.error || !inspection.data) {
     throw redirect(
-      path.to.inboundInspection(id),
+      detailPath,
       await flash(
         request,
         error(inspection.error, "Lot rejected, but failed to load it for NCR")
@@ -93,7 +99,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (!issueType || !locationId) {
     throw redirect(
-      path.to.inboundInspection(id),
+      detailPath,
       await flash(
         request,
         error(
@@ -106,22 +112,30 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const supplierName = insp.supplier?.name ?? "supplier";
   const receiptReadableId = insp.receipt?.receiptId ?? "";
+  const jobReadableId = insp.job?.jobId ?? "";
   const itemReadableId =
     insp.item?.readableId ?? insp.itemReadableId ?? insp.itemId;
   const inspectionReadableId = insp.inboundInspectionId ?? "";
+  const sourceLabel =
+    sourceType === "Job"
+      ? jobReadableId && `on job ${jobReadableId}`
+      : receiptReadableId && `on ${receiptReadableId}`;
 
   const issueTitle = [
     "Rejected lot",
     inspectionReadableId,
     itemReadableId && `— ${itemReadableId}`,
-    receiptReadableId && `on ${receiptReadableId}`
+    sourceLabel
   ]
     .filter(Boolean)
     .join(" ");
 
   const createResult = await insertIssue(serviceRole, {
     name: issueTitle,
-    description: `Auto-created from inbound inspection ${inspectionReadableId}. Lot size ${insp.lotSize}, sample ${insp.sampleSize}, Ac ${insp.acceptanceNumber} / Re ${insp.rejectionNumber}. Supplier: ${supplierName}.`,
+    description:
+      sourceType === "Job"
+        ? `Auto-created from lot inspection ${inspectionReadableId}. Lot size ${insp.lotSize}, sample ${insp.sampleSize}, Ac ${insp.acceptanceNumber} / Re ${insp.rejectionNumber}. Job: ${jobReadableId}.`
+        : `Auto-created from inbound inspection ${inspectionReadableId}. Lot size ${insp.lotSize}, sample ${insp.sampleSize}, Ac ${insp.acceptanceNumber} / Re ${insp.rejectionNumber}. Supplier: ${supplierName}.`,
     priority: "Medium",
     source: "Internal",
     locationId,
@@ -135,7 +149,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (createResult.error || !createResult.data) {
     throw redirect(
-      path.to.inboundInspection(id),
+      detailPath,
       await flash(
         request,
         error(createResult.error, "Lot rejected, but failed to create NCR")
@@ -199,15 +213,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
     .map((s) => s.trackedEntityId as string)
     .filter(Boolean);
   // Include un-sampled entities too (they were also Rejected by the cascade).
-  const receiptLineEntities = await client
-    .from("trackedEntity")
-    .select("id")
-    .eq("attributes ->> Receipt Line", insp.receiptLineId)
-    .eq("companyId", companyId);
+  const lotEntities = insp.receiptLineId
+    ? await client
+        .from("trackedEntity")
+        .select("id")
+        .eq("attributes ->> Receipt Line", insp.receiptLineId)
+        .eq("companyId", companyId)
+    : await client
+        .from("trackedEntity")
+        .select("id")
+        .eq("attributes ->> Inspection Lot", insp.id)
+        .eq("companyId", companyId);
   const allLotEntityIds = Array.from(
     new Set([
       ...trackedEntityIds,
-      ...(receiptLineEntities.data ?? []).map((r: any) => r.id as string)
+      ...(lotEntities.data ?? []).map((r: any) => r.id as string)
     ])
   );
 
@@ -257,7 +277,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (tasks.error) {
     await deleteIssue(serviceRole, ncrId);
     throw redirect(
-      path.to.inboundInspection(id),
+      detailPath,
       await flash(
         request,
         error(tasks.error, "Lot rejected, but failed to create NCR tasks")
@@ -275,7 +295,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         id: ncrId,
         nonConformanceId: createResult.data.nonConformanceId,
         title: issueTitle,
-        description: `Auto-created from inbound inspection ${inspectionReadableId || id}`,
+        description: `Auto-created from ${sourceType === "Job" ? "lot" : "inbound"} inspection ${inspectionReadableId || id}`,
         severity: "Medium"
       }
     });

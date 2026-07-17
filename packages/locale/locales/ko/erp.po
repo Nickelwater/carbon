@@ -6856,6 +6856,9 @@ msgstr "실주"
 msgid "Lot"
 msgstr "로트"
 
+msgid "Lot Inspections"
+msgstr ""
+
 msgid "Lot size"
 msgstr "로트 크기"
 
@@ -9127,6 +9130,12 @@ msgstr "공정"
 
 msgid "Procurement status — needs ordering, planned, on order, or received. The same indicator shown in the BoM tree."
 msgstr "조달 상태 — 주문 필요, 계획됨, 주문됨, 입고됨 중 하나입니다. BOM 트리에 표시되는 것과 동일한 지표입니다."
+
+msgid "Produced At"
+msgstr ""
+
+msgid "Produced By"
+msgstr ""
 
 msgid "Product issues during hypercare"
 msgstr "하이퍼케어 기간 중 발생한 제품 이슈"

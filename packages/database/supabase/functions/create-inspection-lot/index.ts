@@ -127,7 +127,7 @@ serve(async (req: Request) => {
     const inspectionId = await db.transaction().execute(async (trx) => {
       const inboundInspectionId = await getNextSequence(
         trx,
-        "inboundInspection",
+        "lotInspection",
         payload.companyId
       );
 
