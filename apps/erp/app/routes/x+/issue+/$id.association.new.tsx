@@ -307,9 +307,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
       break;
     case "inboundInspections": {
       const inspection = await (client as any)
-        .from("inboundInspection")
+        .from("inspection")
         .select(
-          "id, itemId, lotSize, receiptLineId, inboundInspectionSample(trackedEntityId)"
+          "id, itemId, lotSize, inspectionReceipt(receiptLineId), inspectionSample(trackedEntityId)"
         )
         .eq("id", id)
         .single();
@@ -324,10 +324,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
       }
 
       const linkResult = await (client as any)
-        .from("nonConformanceInboundInspection")
+        .from("nonConformanceInspection")
         .insert({
           nonConformanceId,
-          inboundInspectionId: inspection.data.id,
+          inspectionId: inspection.data.id,
           createdBy: userId,
           companyId: companyId
         });
@@ -341,8 +341,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
         };
       }
 
+      // `inspectionReceipt` is a to-one subtype join but PostgREST may embed it
+      // as a single-element array depending on inference — normalize either way.
+      const receiptSub = Array.isArray(inspection.data.inspectionReceipt)
+        ? inspection.data.inspectionReceipt[0]
+        : inspection.data.inspectionReceipt;
+      const receiptLineId: string | null = receiptSub?.receiptLineId ?? null;
+
       const sampledIds = (
-        (inspection.data.inboundInspectionSample ?? []) as {
+        (inspection.data.inspectionSample ?? []) as {
           trackedEntityId: string;
         }[]
       )
@@ -351,11 +358,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
       // Pull the rest of the lot too — un-sampled entities are still part of
       // the lot the MRB needs to disposition.
       let lotEntityIds: string[] = sampledIds;
-      if (inspection.data.receiptLineId) {
+      if (receiptLineId) {
         const receiptLineEntities = await client
           .from("trackedEntity")
           .select("id")
-          .eq("attributes ->> Receipt Line", inspection.data.receiptLineId)
+          .eq("attributes ->> Receipt Line", receiptLineId)
           .eq("companyId", companyId);
         lotEntityIds = Array.from(
           new Set([

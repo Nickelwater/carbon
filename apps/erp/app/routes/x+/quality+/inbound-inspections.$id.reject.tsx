@@ -188,9 +188,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   // Link the source inspection to the NCR so the issue explorer can surface
   // the origin and deep-link back to the inspection lot.
-  await serviceRole.from("nonConformanceInboundInspection").insert({
+  await serviceRole.from("nonConformanceInspection").insert({
     nonConformanceId: ncrId,
-    inboundInspectionId: insp.id,
+    inspectionId: insp.id,
     companyId,
     createdBy: userId
   });

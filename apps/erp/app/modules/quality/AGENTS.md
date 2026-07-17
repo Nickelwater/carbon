@@ -7,8 +7,7 @@ Non-conformances (issues/NCRs), corrective/preventive actions (CAPAs), gauge man
 - **Issue (NCR)** — non-conformance record. Statuses: Registered → In Progress → Closed. `isIssueLocked(status)` returns true for Closed. Has 10+ association types (items, customers, suppliers, job operations, PO/SO lines, shipment/receipt lines, tracked entities, inbound inspections).
 - **Issue Workflow** — configurable multi-step workflow with action tasks (`nonConformanceActionTask`) and approval tasks (`nonConformanceApprovalTask`). Required actions have `systemType` (Containment, Corrective, Preventive, Verification, Communication) — system actions are protected by trigger.
 - **Inspection Document** — PDF-based drawing with balloon annotations linking to inspection features (dimensions with nominal/tolerance values). Used for FAI and in-process inspection. MUST use `saveInspectionDocumentAtomic` RPC for atomic saves.
-- **Inbound Inspection** — receipt-sourced lot (`sourceType = Receipt`) for purchased items with `requiresInspection = true`. Nav: Quality → Inbound Inspections. Uses AQL sampling; tracked entities post `On Hold` until disposition.
-- **Lot Inspection** — job-completion lot (`sourceType = Job`) listed under Quality → Lot Inspections (`/quality/lot-inspections`). New lots use the `LI` sequence; same sample/disposition UI as inbound. See `.ai/specs/2026-07-16-three-type-inspections.md` for the three-type roadmap (In-Process later).
+- **Inspection (generic, three types)** — a single `inspection` header table now backs all three inspection types (`inspectionType`: Inbound/Lot/InProcess), with a 1:1 subtype row (`inspectionReceipt`, `inspectionLot`, `inspectionInProcess` — shell only, dormant until Phase 3) carrying the type-specific FKs. **Inbound** (receipt-sourced, purchased items, `II` sequence) and **Lot** (job-completion, `LI` sequence) share the sample/disposition UI under Quality → Inbound/Lot Inspections. `itemInspectionPolicy` (per item + type: required, sampling plan) is the current source of truth, checked before the legacy `item.requiresInspection` + `itemSamplingPlan` fallback. Legacy `inboundInspection*` tables are kept in sync by DB triggers for backward compatibility — `getInboundInspection`/`getInboundInspections` still read the generic tables and normalize the shape back. See `.ai/rules/inbound-inspection-system.md` and `.ai/specs/2026-07-16-three-type-inspections.md` (In-Process is Phase 3).
 - **Gauge** — measurement instrument with calibration tracking. Statuses: Active/Inactive. Roles: Master/Standard.
 - **Disposition** — per-item outcome on an NCR. Values include Pending, Return to Supplier, Rework, Scrap, Use As Is (subset active in UI).
 - **Risk Register** — risks and opportunities tracked by source (Customer, Supplier, Item, Job, etc.). Severity and likelihood are independent 1–5 ratings with no computed score.
@@ -48,10 +47,16 @@ pnpm --filter @carbon/erp test
 | `nonConformanceRequiredAction` | Actions required before closure (with `systemType`) |
 | `nonConformanceActionTask` / `nonConformanceApprovalTask` | Workflow task instances |
 | `nonConformanceItem` | Issue-to-item junction with `disposition` |
-| `nonConformanceCustomer` / `...Supplier` / `...JobOperation` / `...PurchaseOrderLine` / `...ReceiptLine` / `...ShipmentLine` / `...TrackedEntity` / `...InboundInspection` | Association tables (10+ types) |
+| `nonConformanceCustomer` / `...Supplier` / `...JobOperation` / `...PurchaseOrderLine` / `...ReceiptLine` / `...ShipmentLine` / `...TrackedEntity` | Association tables (10+ types) |
+| `nonConformanceInspection` | NCR ↔ `inspection` link (replaces legacy `nonConformanceInboundInspection`, which is trigger-mirrored) |
 | `inspectionDocument` | PDF drawing with balloon overlay |
-| `inboundInspection` / `inboundInspectionSample` | Lot-level receipt inspection with sampling |
-| `itemSamplingPlan` | AQL sampling plan per item |
+| `inspection` | Generic inspection header (Inbound/Lot/InProcess) — `inspectionId` readable id, sampling-plan snapshot, `status`/disposition |
+| `inspectionReceipt` / `inspectionLot` / `inspectionInProcess` | 1:1 subtype rows: receipt+line (Inbound), job+operation (Lot), job+operation shell (InProcess, dormant) |
+| `inspectionSample` / `inspectionSampleMeasurement` | Per-sample result + per-feature measurements (generic; replaces `inboundInspectionSample*`) |
+| `inspectionHistory` / `inspectionTrackedEntity` / `inspectionDependency` | Disposition history, sampled-entity links, cross-inspection prerequisites (dormant until Phase 3) |
+| `itemInspectionPolicy` | Per item + `inspectionType` policy (required, sampling plan) — supersedes `item.requiresInspection` / `itemSamplingPlan` |
+| `inboundInspection` / `inboundInspectionSample` / `inboundInspectionHistory` / `nonConformanceInboundInspection` | Legacy Inbound-only tables, still readable — kept mirrored by DB triggers off `inspection`/subtypes |
+| `itemSamplingPlan` | AQL sampling plan per item (Inbound; legacy fallback when no `itemInspectionPolicy` row) |
 | `gauge` / `gaugeCalibrationRecord` / `gaugeType` | Measurement instrument tracking |
 | `qualityDocument` / `qualityDocumentStep` | Versioned SOPs with ordered steps |
 | `riskRegister` / `riskRegisters` (view) | Risk/opportunity tracking by source |
@@ -63,7 +68,9 @@ pnpm --filter @carbon/erp test
 - `getIssueWorkflow` / `getIssueActionTasks` / `getIssueApprovalTasks` — workflow state
 - `updateIssueStatus` / `updateIssueTaskStatus` — status transitions
 - `getInspectionDocument` / `getBalloons` / `getInspectionFeatures` / `getInspectionPlan` — drawing inspection
-- `getInboundInspection` / `getInboundInspections` / `getInboundInspectionLotTrackedEntities` — receipt inspections
+- `getInboundInspection` / `getInboundInspections` / `getInboundInspectionLotTrackedEntities` — legacy-shaped reads over the generic `inspection` tables (kept as the public/MCP names for stability)
+- `getInspection` / `getInspections` — generic-shaped reads (any type); pass `type: "Inbound" | "Lot" | "InProcess"` to filter
+- `getItemInspectionPolicy` / `getItemInspectionPolicies` / `upsertItemInspectionPolicy` — per item + type inspection policy
 - `getGauge` / `getGauges` / `getGaugeCalibrationRecords` — gauge management
 - `getRisk` / `getRisks` / `upsertRisk` / `updateRiskStatus` — risk register
 - `getQualityDocument` / `getQualityDocumentSteps` — versioned SOPs

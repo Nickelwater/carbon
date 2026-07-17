@@ -244,6 +244,107 @@ describe("findDanglingReferences", () => {
     });
     expect(result).toEqual([]);
   });
+
+  // Phase 2.5 generic inspection tables (inspection/inspectionReceipt/
+  // inspectionLot/.../nonConformanceInspection) all key off `("id", "companyId")`
+  // composite PKs and reference the generic `inspection` header the same way
+  // stockTransferLine references stockTransfer — the introspection query emits
+  // TWO FK rows per composite constraint (one per column pair), so these pin
+  // that the closure check still resolves cleanly instead of double-counting
+  // or falsely flagging the `companyId` half of the pair as a gap.
+  it("resolves a subtype table's composite FK into the generic inspection header (inspectionReceipt shape)", () => {
+    const inspection = table("inspection", [col("id"), col("companyId")], [], {
+      pkColumns: ["id", "companyId"]
+    });
+    const inspectionReceipt = table(
+      "inspectionReceipt",
+      [col("id"), col("inspectionId"), col("companyId")],
+      [
+        fk("inspectionId", "inspection"),
+        // The introspection query unnests both columns of the composite FK
+        // constraint, so `companyId` also shows up as its own FK row — but
+        // pointed at inspection.companyId, not inspection.id. The closure
+        // check only ever looks at refColumn === "id" edges, so this one is
+        // inert; modeled explicitly (not via the `fk()` helper, which always
+        // targets "id") to match real introspection output.
+        { column: "companyId", refTable: "inspection", refColumn: "companyId" }
+      ],
+      { pkColumns: ["id", "companyId"] }
+    );
+    const result = findDanglingReferences(
+      catalog([inspection, inspectionReceipt]),
+      {
+        inspection: [{ id: "insp1", companyId: "c1" }],
+        inspectionReceipt: [
+          { id: "inspr1", inspectionId: "insp1", companyId: "c1" }
+        ]
+      }
+    );
+    expect(result).toEqual([]);
+  });
+
+  it("resolves a table with two FKs to the SAME parent (inspectionDependency's dependent/prerequisite shape)", () => {
+    const inspection = table("inspection", [col("id"), col("companyId")], [], {
+      pkColumns: ["id", "companyId"]
+    });
+    const inspectionDependency = table(
+      "inspectionDependency",
+      [
+        col("id"),
+        col("dependentInspectionId"),
+        col("prerequisiteInspectionId"),
+        col("companyId")
+      ],
+      [
+        fk("dependentInspectionId", "inspection"),
+        fk("prerequisiteInspectionId", "inspection")
+      ],
+      { pkColumns: ["id", "companyId"] }
+    );
+    const cat = catalog([inspection, inspectionDependency]);
+
+    // Both resolve — no gap.
+    expect(
+      findDanglingReferences(cat, {
+        inspection: [
+          { id: "insp1", companyId: "c1" },
+          { id: "insp2", companyId: "c1" }
+        ],
+        inspectionDependency: [
+          {
+            id: "ispd1",
+            dependentInspectionId: "insp2",
+            prerequisiteInspectionId: "insp1",
+            companyId: "c1"
+          }
+        ]
+      })
+    ).toEqual([]);
+
+    // Each column is tracked independently — a dangling prerequisite doesn't
+    // mask (or get masked by) a valid dependent, and vice versa.
+    const result = findDanglingReferences(cat, {
+      inspection: [{ id: "insp2", companyId: "c1" }],
+      inspectionDependency: [
+        {
+          id: "ispd1",
+          dependentInspectionId: "insp2",
+          prerequisiteInspectionId: "missing",
+          companyId: "c1"
+        }
+      ]
+    });
+    expect(result).toEqual([
+      {
+        table: "inspectionDependency",
+        column: "prerequisiteInspectionId",
+        refTable: "inspection",
+        fatal: true,
+        sampleValue: "missing",
+        count: 1
+      }
+    ]);
+  });
 });
 
 describe("assertReferentiallyClosed", () => {

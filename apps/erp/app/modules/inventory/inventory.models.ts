@@ -49,7 +49,11 @@ export const itemLedgerDocumentTypes = [
   "Purchase Order",
   "Maintenance Consumption",
   "Non-Conformance",
-  "Inbound Inspection"
+  // "Inspection" is the Phase 2.5 label (Inbound + Lot inspections share the
+  // generic `inspection` table now); "Inbound Inspection" stays for reading
+  // ledger rows written before the cutover.
+  "Inbound Inspection",
+  "Inspection"
 ] as const;
 
 export const trackedEntityStatus = [

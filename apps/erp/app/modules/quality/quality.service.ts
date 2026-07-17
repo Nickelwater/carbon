@@ -152,7 +152,7 @@ export async function deleteIssueAssociation(
         .eq("id", associationId);
     case "inboundInspections":
       return await (client as any)
-        .from("nonConformanceInboundInspection")
+        .from("nonConformanceInspection")
         .delete()
         .eq("id", associationId);
     default:
@@ -705,22 +705,22 @@ export async function getIssueAssociations(
       .eq("nonConformanceId", nonConformanceId)
       .eq("companyId", companyId),
 
-    // Inbound Inspections
+    // Inbound Inspections (nonConformanceInspection → generic inspection header)
     (client as any)
-      .from("nonConformanceInboundInspection")
+      .from("nonConformanceInspection")
       .select(
         `
         id,
-        inboundInspectionId,
-        inboundInspection:inboundInspection (
+        inspectionId,
+        inspection:inspection (
           id,
-          inboundInspectionId,
+          inspectionId,
           itemReadableId,
           lotSize,
           status,
           sampleSize,
           acceptanceNumber,
-          sourceType
+          type
         )
       `
       )
@@ -824,12 +824,12 @@ export async function getIssueAssociations(
       (link: any) => ({
         id: link.id,
         type: "inboundInspections",
-        documentId: link.inboundInspectionId ?? "",
+        documentId: link.inspectionId ?? "",
         documentLineId: "",
-        documentReadableId: link.inboundInspection?.inboundInspectionId ?? "",
-        quantity: link.inboundInspection?.lotSize ?? 0,
-        status: link.inboundInspection?.status ?? null,
-        sourceType: link.inboundInspection?.sourceType ?? "Receipt"
+        documentReadableId: link.inspection?.inspectionId ?? "",
+        quantity: link.inspection?.lotSize ?? 0,
+        status: link.inspection?.status ?? null,
+        sourceType: link.inspection?.type === "Lot" ? "Job" : "Receipt"
       })
     )
   };

@@ -3,117 +3,162 @@ paths:
   - "apps/erp/app/modules/quality/ui/InboundInspections/**"
   - "apps/erp/app/modules/quality/quality.{server,service,models}.ts"
   - "packages/database/supabase/migrations/*inbound-inspection*.sql"
+  - "packages/database/supabase/migrations/*generic-inspection*.sql"
   - "packages/database/supabase/functions/post-receipt/index.ts"
+  - "packages/database/supabase/functions/create-inspection-lot/index.ts"
 ---
 
-# Inbound Inspection System
+# Inbound / Lot / In-Process Inspection System
 
-Receiving-side quality gate. When a receipt is posted, a **lot-level** inspection is
-created for each received line whose item has `requiresInspection = true`. Inspectors
-record per-sample pass/fail, then disposition the lot Accept / Reject / Partial.
+Receiving- and production-side quality gate, unified onto one generic model
+(Phase 2, `20260717170708_generic-inspection-model.sql`). When a receipt posts
+(purchased items) or a job completion creates a held output lot (make items),
+an inspection is created for items whose `itemInspectionPolicy` (or legacy
+`requiresInspection`) requires it. Inspectors record per-sample pass/fail,
+then disposition Accept / Reject / Partial.
 
-## Data model (newest migration wins)
+## Three types, one header
 
-The shipped schema is the **Phase 2 rebuild** in `20260419163058_inbound-inspection-sampling.sql`,
-which `DROP ... CASCADE`s the original Phase-1 `inboundInspection` table from
-`20260419094132_inbound-inspections.sql` and recreates it lot-based. Don't trust the
-Phase-1 shape (it was per-tracked-entity with `trackedEntityId`/`inspectedBy` columns).
+`inspectionType` enum: **Inbound** (receipt line), **Lot** (job completion),
+**InProcess** (operation-scoped SPC — table shell only, dormant until Phase 3;
+see `.ai/specs/2026-07-16-three-type-inspections.md`).
 
-- `item.requiresInspection` BOOLEAN (default false) — added `20260419094132`.
-- `companySettings.samplingStandard` enum `samplingStandard` (`ANSI_Z1_4` | `ISO_2859_1`,
-  default `ANSI_Z1_4`) and `companySettings.enforceInspectionFourEyes` BOOLEAN.
-- `itemSamplingPlan` (PK = **`itemId`** only, not composite) — per-item plan, created lazily:
-  `type` (`samplingPlanType`: All/First/Percentage/AQL), `sampleSize`, `percentage`,
-  `aql`, `inspectionLevel` (I/II/III/S1–S4), `severity` (Normal/Tightened/Reduced).
-- `inboundInspection` (lot level, PK = `id`) — `inboundInspectionId` (human id, `II` seq,
-  unique per company), `receiptLineId` (**unique** — one lot per receipt line), `receiptId`,
-  `itemId`, `itemReadableId`, `supplierId`, `lotSize`, snapshot of the resolved plan
-  (`samplingStandard`, `samplingPlanType`, `sampleSize`, `acceptanceNumber`,
-  `rejectionNumber`, `aql`, `inspectionLevel`, `severity`, `codeLetter`),
-  `status` (`inboundInspectionStatus`: Pending/In Progress/Passed/Failed/Partial),
-  `dispositionedBy`/`dispositionedAt`. **No `itemTrackingType` column** — joined from `item`.
-- `inboundInspectionSample` — one row per recorded result: `inboundInspectionId`,
-  `trackedEntityId` (**nullable** since `20260612151947`), `status`
-  (`inboundInspectionSampleStatus`: Pending/Passed/Failed), `inspectedBy`/`inspectedAt`.
-  A **partial** unique index `inboundInspectionSample_trackedEntityId_key WHERE trackedEntityId
-  IS NOT NULL` keeps a serial entity sampleable once while allowing many anonymous samples.
-- `inboundInspectionHistory` — one row per disposition (skeleton for future plan auto-switching).
-- `nonConformanceInboundInspection` (`20260421091238`) — links an auto-created NCR back to
-  the inspection (unique `(nonConformanceId, inboundInspectionId)`).
+- `inspection` (PK `("id", "companyId")`) — the generic header. `inspectionId`
+  (human id), `type`, `itemId`/`itemReadableId`, `supplierId`, `lotSize`,
+  sampling-plan snapshot (`samplingStandard`, `samplingPlanType`, `sampleSize`,
+  `acceptanceNumber`, `rejectionNumber`, `aql`, `inspectionLevel`, `severity`,
+  `codeLetter`), `status` (`inboundInspectionStatus`: Pending/In Progress/
+  Passed/Failed/Partial), `dispositionedBy`/`dispositionedAt`,
+  `locationId`/`storageUnitId` (snapshot for the reject ledger entry).
+- `inspectionReceipt` — Inbound subtype: `receiptId`, `receiptLineId`
+  (**unique** — one lot per received line).
+- `inspectionLot` — Lot subtype: `jobId`, `jobOperationId`, `outputLotKey`
+  (**unique** — idempotency key so a re-run of `create-inspection-lot` for the
+  same completion doesn't create a second lot).
+- `inspectionInProcess` — InProcess subtype shell: `jobId`, `jobOperationId`.
+- `inspectionSample` / `inspectionSampleMeasurement` — one row per recorded
+  result (`trackedEntityId` **nullable**; a *partial* unique index keeps a
+  serial entity sampleable once while allowing many anonymous samples) and
+  per-feature measurements.
+- `inspectionHistory` — one row per disposition (skeleton for future plan
+  auto-switching). `inspectionTrackedEntity` — explicit sampled/lot-entity
+  links (preferred over scraping `trackedEntity.attributes` on newer rows).
+- `inspectionDependency` — cross-inspection prerequisite edges (dormant until
+  Phase 3's Lot ↔ In-Process gating).
+- `nonConformanceInspection` — links an auto-created NCR back to the
+  inspection (unique `(nonConformanceId, inspectionId)`); replaces
+  `nonConformanceInboundInspection`.
+- `itemInspectionPolicy` (unique `(itemId, companyId, inspectionType)`) — per
+  item + type: `required`, sampling plan (`type`/`sampleSize`/`percentage`/
+  `aql`/`inspectionLevel`/`severity`/`inspectionDocumentId`). Checked first;
+  falls back to `item.requiresInspection` + `itemSamplingPlan` (Inbound-only,
+  legacy) when no policy row exists.
 
-RLS on all tables: standard SELECT/INSERT/UPDATE/DELETE gated by `quality_view/create/update/delete`.
+RLS on all tables: standard SELECT/INSERT/UPDATE/DELETE gated by
+`quality_view/create/update/delete`.
 
-## Receipt → inspection flow (`post-receipt/index.ts`, Supabase edge fn)
+### Legacy tables — still readable, trigger-mirrored
 
-`packages/database/supabase/functions/post-receipt/index.ts` (inserts ~line 630):
-1. Loads items (`id, itemTrackingType, requiresInspection`), company `samplingStandard`, and
-   `itemSamplingPlan` rows for the receipt.
-2. Per receipt line whose item `requiresInspection` and `receivedQuantity > 0`: resolves the
-   plan via `resolveSamplingPlan(plan, lotSize, standard)` from
-   `packages/database/supabase/functions/shared/sampling-engine.ts` (ANSI Z1.4 / ISO 2859-1
-   tables; returns `{ sampleSize, acceptance, rejection, codeLetter }`). No configured plan →
-   defaults to `type: "All"`, level `II`, `Normal`. Pushes an `inboundInspection` insert (with
-   `inboundInspectionId` from `getNextSequence`).
-3. **Tracked entities for inspection-required items are set to `"On Hold"` at receipt** (not
-   Available); everything else flips to `Available`. They are released individually by sample
-   inspection or en masse by lot disposition.
+`inboundInspection` / `inboundInspectionSample` / `inboundInspectionSampleMeasurement`
+/ `inboundInspectionHistory` / `nonConformanceInboundInspection` are **not**
+dropped. SQL triggers (`sync_*_to_generic` / `sync_*_to_inbound` in the Phase 2
+migration) dual-write both directions so either side stays consistent during
+the cutover. New code should read/write the generic tables; the legacy ones
+exist for anything not yet migrated and for old saved views/readable ids.
+
+## Sequences
+
+`II` (Inbound, oldest), `LI` (Lot, added Phase 1), `IP` (In-Process, seeded
+Phase 2 but unused until Phase 3 ships producers). New rows of each type
+allocate from their own sequence via `getNextSequence`; historical Job rows
+created before Phase 1 may still show `II…` readable ids.
+
+## Producers
+
+- **`post-receipt/index.ts`** (Supabase edge fn) — per receipt line whose item
+  requires Inbound inspection (prefer `itemInspectionPolicy`, else
+  `item.requiresInspection` + `itemSamplingPlan`) and `receivedQuantity > 0`:
+  resolves the plan via `resolveSamplingPlan` (ANSI Z1.4 / ISO 2859-1 tables,
+  `packages/database/supabase/functions/shared/sampling-engine.ts`), then
+  inserts directly into `inspection` + `inspectionReceipt` (readable id from
+  the `inboundInspection` sequence). Tracked entities for inspection-required
+  items are set `"On Hold"` at receipt; everything else flips `Available`.
+- **`create-inspection-lot/index.ts`** — invoked on job completion. Idempotent
+  on `inspectionLot.outputLotKey`: if a lot already exists for the key,
+  returns its `inspectionId`. Otherwise resolves the Lot policy
+  (`itemInspectionPolicy` type=Lot, else legacy defaults), allocates a
+  readable id from the `lotInspection` sequence, and inserts `inspection` +
+  `inspectionLot` + `inspectionTrackedEntity` links, holding the output lot
+  `"On Hold"` — all in one transaction (atomic with the inventory hold).
 
 ## Tracking types
 
-All four `itemTrackingType` values support inbound inspection (the only UI gate is purchased
-items — see Code map). Serial parts produce N tracked entities and the inspector scans/selects a
-discrete entity per sample; non-serial (Batch/Inventory/Non-Inventory) record pass/fail with
-`trackedEntityId = NULL` (same UI, no scan). Inventory items that aren't tracked have no per-row
-status to flip, so a Reject posts a compensating ledger entry instead (see disposition).
+All four `itemTrackingType` values support inspection (the only UI gate is
+purchased items for Inbound — see Code map). Serial parts produce N tracked
+entities and the inspector scans/selects a discrete entity per sample;
+non-serial (Batch/Inventory/Non-Inventory) record pass/fail with
+`trackedEntityId = NULL` (same UI, no scan). Inventory items that aren't
+tracked have no per-row status to flip, so a Reject posts a compensating
+`itemLedger` entry instead (see disposition).
 
 ## Code map (ERP)
 
 - **Items toggle**: `apps/erp/app/modules/items/ui/{Parts,Materials,Tools,Consumables}/*Properties.tsx`
-  render the `requiresInspection` checkbox only when `replenishmentSystem?.includes("Buy")` (i.e.
-  purchased items) — **gated by Buy replenishment, NOT by tracking type**.
+  render the `requiresInspection` checkbox only when `replenishmentSystem?.includes("Buy")` —
+  legacy fallback; prefer the per-type `itemInspectionPolicy` editor.
 - **Sampling plan editor**: `apps/erp/app/modules/quality/ui/SamplingPlan/SamplingPlanForm.tsx`,
   mounted on `routes/x+/{part,material,tool,consumable}+/$itemId.quality.tsx`.
 - **Inspection detail drawer**: `.../ui/InboundInspections/InboundInspectionLotView.tsx` — progress,
   samples table, Accept/Reject/Partial. Branches on `isSerial = itemTrackingType === "Serial"`.
   Reject modal has an "Open an NCR" checkbox (`createNcr`, defaults on). When a linked
-  inspection document has recorded `inboundInspectionSampleMeasurement` rows, the Measurements
-  cell is expandable and shows the characteristic table (nominal / ± / unit / measured / In|Out).
+  inspection document has recorded measurement rows, the Measurements cell is expandable and
+  shows the characteristic table (nominal / ± / unit / measured / In|Out).
 - **Sample modal**: `.../ui/InboundInspections/ScanInspectionSample.tsx` — `isSerial` prop; serial
   shows Scan/Select tabs (entity required), non-serial shows just Notes + Pass/Fail.
 - **Routes** `apps/erp/app/routes/x+/quality+/`:
-  - `inbound-inspections.tsx` — list filtered `sourceType = Receipt`
-  - `lot-inspections.tsx` — list filtered `sourceType = Job` (Lot Inspections nav)
-  - Detail/actions under both path families; Job ids opened under inbound URLs redirect to
+  - `inbound-inspections.tsx` — list filtered `type = Inbound`
+  - `lot-inspections.tsx` — list filtered `type = Lot` (Lot Inspections nav)
+  - Detail/actions under both path families (`lot-inspections.$id.reject.tsx` re-exports the
+    inbound route's `action`); Job ids opened under inbound URLs redirect to
     `/quality/lot-inspections/:id`. Shared detail loader:
     `ui/InboundInspections/loadInspectionLotDetail.server.ts`.
-  - New job lots allocate readable ids from the `lotInspection` sequence (`LI…`); inbound still
-    uses `inboundInspection` (`II…`). Historical Job rows may still show `II…`.
+    Source-aware redirects/links go through `inspectionRouteFamily(sourceType)`.
 - **Server** `quality.server.ts`:
   - `upsertInboundInspectionSample` — flips entity status + writes `trackedActivity` input/output
     only when `trackedEntityId` is present; anonymous (null) samples are always inserts (no dedupe).
-  - `dispositionInboundInspection` — Accept releases un-sampled entities to Available; Reject flips
-    all lot entities to Rejected (and for a non-tracked Inventory item posts an `itemLedger`
-    `Inbound Inspection` negative adjustment, doc-type added `20260619142853`); Partial leaves
-    entities; always writes `inboundInspectionHistory`.
-  - NCR auto-creation lives in the **reject route** (`.$id.reject.tsx`), optional via `createNcr`,
-    linking through `nonConformanceInboundInspection`. Redirects are source-aware via
-    `inspectionRouteFamily`.
-- **Service** `quality.service.ts`: `getInboundInspections` (list; optional `sourceType`),
-  `getInboundInspection` (selects `item(... itemTrackingType)`),
-  `getInboundInspectionLotTrackedEntities`.
+    Writes the generic `inspectionSample`/`inspectionSampleMeasurement` tables.
+  - `dispositionInboundInspection` — reads/writes the generic `inspection` + `inspectionReceipt`
+    tables via Kysely. Accept releases un-sampled entities to Available; Reject flips all lot
+    entities to Rejected (and for a non-tracked Inventory item posts an `itemLedger`
+    `"Inspection"` negative adjustment — `"Inbound Inspection"` stays a valid enum value for
+    reading rows written before Phase 2.5); Partial leaves entities; always writes
+    `inspectionHistory`.
+  - NCR auto-creation lives in the **reject route** (`inbound-inspections.$id.reject.tsx`),
+    optional via `createNcr`, linking through `nonConformanceInspection`.
+- **Service** `quality.service.ts`: `getInboundInspections`/`getInboundInspection` (legacy shape,
+  generic tables underneath — see `normalizeInspectionRow`), `getInspections`/`getInspection`
+  (generic shape, any `type`), `getInboundInspectionLotTrackedEntities`,
+  `getItemInspectionPolicy(ies)` / `upsertItemInspectionPolicy`.
 - **Validators** `quality.models.ts`: `inboundInspectionSampleValidator` (`trackedEntityId`
-  optional), `itemSamplingPlanValidator`, `inboundInspectionDispositionValidator`.
-- **Architecture (forward):** `.ai/specs/2026-07-16-three-type-inspections.md` — Inbound / Lot /
-  In-Process; Phase 1 is the dual-tab split above.
+  optional), `itemSamplingPlanValidator`, `itemInspectionPolicyValidator`,
+  `inboundInspectionDispositionValidator`.
+- **NCR associations**: `quality.service.ts` `deleteIssueAssociation`/`getIssueAssociations` and
+  `routes/x+/issue+/$id.association.new.tsx` keep the `"inboundInspections"` association-type key
+  stable but read/write `nonConformanceInspection` + `inspection` underneath.
+- **Traceability**: `trackedEntity.sourceDocument` writes `"Inspection"` (was `"Inbound Inspection"`
+  pre-cutover); readers should accept both values on historical rows.
 
 ## Gotchas
 
-- **Lot-based, not entity-based.** The Phase-1 per-entity `inboundInspection` was dropped; read
-  the `20260419163058` migration (and newer) for the real shape. `receiptLineId` is unique — one
-  inspection lot per received line.
+- **Generic tables are the source of truth; legacy tables are a trigger-mirrored read path.**
+  Don't hand-write to `inboundInspection*` from new code — write `inspection` + the matching
+  subtype and let the trigger mirror it, or call the existing `quality.server.ts` helpers.
 - **Inspection-required tracked entities post `On Hold`, not Available.** They are not on-hand
   until released by sampling/disposition.
 - **`trackedEntityId` is nullable** on samples; serial uniqueness is enforced by a *partial* index.
+- **`inspectionLot.outputLotKey` is the idempotency key** for `create-inspection-lot` — don't
+  allocate a second lot for the same completion; check it first.
 - **Don't confuse with inspection *documents*.** `inspectionDocument`/`inspectionFeature`/`balloon`
-  + `save_inspection_document_atomic` (`20260526142837`, `20260526153412`) are the first-article /
-  ballooned-drawing feature — a separate system from this receiving lot flow.
+  + `save_inspection_document_atomic` are the first-article / ballooned-drawing feature — a
+  separate system from this receiving/lot flow (though a policy can reference a document for
+  its sampling plan).

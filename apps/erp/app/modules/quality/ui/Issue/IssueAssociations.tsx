@@ -912,8 +912,8 @@ function NewInboundInspectionAssociation() {
       return;
     }
     const { data, error } = await carbon
-      .from("inboundInspection")
-      .select("id, inboundInspectionId, itemId, status");
+      .from("inspection")
+      .select("id, inspectionId, itemId, status");
 
     if (error) {
       toast.error(t`Failed to load inbound inspections`);
@@ -921,7 +921,7 @@ function NewInboundInspectionAssociation() {
 
     setInspections(
       data?.map((inspection) => ({
-        label: (inspection as any).inboundInspectionId ?? inspection.id,
+        label: (inspection as any).inspectionId ?? inspection.id,
         value: inspection.id,
         helper: [
           getItemReadableId(storedItems, inspection.itemId),

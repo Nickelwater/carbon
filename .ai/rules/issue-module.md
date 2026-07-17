@@ -117,7 +117,11 @@ Reviewers managed in `ReviewersList.tsx` (`nonConformanceReviewerValidator` = ju
   `externalLink`), `nonConformanceJobOperation`, `nonConformancePurchaseOrderLine`,
   `nonConformanceSalesOrderLine`, `nonConformanceShipmentLine`,
   `nonConformanceReceiptLine`, `nonConformanceTrackedEntity`,
-  `nonConformanceInboundInspection` (`20260421091238`).
+  `nonConformanceInspection` (Phase 2.5; links to the generic `inspection` table,
+  replacing `nonConformanceInboundInspection` from `20260421091238`, which is
+  now trigger-mirrored for backward compatibility — see
+  `.ai/rules/inbound-inspection-system.md`). The association-type key stays
+  `"inboundInspections"` in the UI/validators.
 
 ## `issues` view
 

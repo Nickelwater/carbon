@@ -554,10 +554,13 @@ export async function dispositionInboundInspection(
             itemId: inspection.itemId,
             locationId: ledgerLocationId,
             entryType: "Negative Adjmt.",
-            // "Inspection" doesn't exist as an itemLedgerDocumentType enum
-            // value yet — Phase 2.5 will add it and update readers to accept
-            // both; keep the legacy value until then.
-            documentType: "Inbound Inspection",
+            // Phase 2.5 added "Inspection" to itemLedgerDocumentType so Inbound
+            // and Lot inspections (both post through the generic `inspection`
+            // table now) share one label; "Inbound Inspection" stays on the enum
+            // only so older ledger rows keep reading. `as any` because the
+            // generated Kysely types won't include the new literal until
+            // `pnpm db:migrate` (this migration) + `generate:types` have run.
+            documentType: "Inspection" as any,
             documentId: inspection.id,
             quantity: -inspection.lotSize,
             trackedEntityId: null,
