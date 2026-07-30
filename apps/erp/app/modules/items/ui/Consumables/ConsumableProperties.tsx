@@ -130,8 +130,7 @@ const ConsumableProperties = ({ data }: ConsumablePropertiesProps) => {
         | "itemPostingGroupId"
         | "consumableId"
         | "active"
-        | "mpn"
-        | "requiresInspection",
+        | "mpn",
       value: string | null
     ) => {
       const formData = new FormData();

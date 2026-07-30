@@ -122,11 +122,18 @@ const AccountDefaultsForm = ({
         description: t`Configure default accounts for inventory management`,
         fields: [
           {
-            name: "inventoryAccount",
-            label: t`Inventory`,
-            description: t`Primary account for on-hand inventory valuation`,
+            name: "rawMaterialsAccount",
+            label: t`Raw Materials`,
+            description: t`On-hand value of purchased stock and components (Buy items)`,
             badgeType: "Asset",
-            termId: "account-default-inventory"
+            termId: "account-default-raw-materials"
+          },
+          {
+            name: "finishedGoodsAccount",
+            label: t`Finished Goods`,
+            description: t`On-hand value of manufactured goods (Make items)`,
+            badgeType: "Asset",
+            termId: "account-default-finished-goods"
           },
           {
             name: "workInProgressAccount",
@@ -134,13 +141,6 @@ const AccountDefaultsForm = ({
             description: t`Account for production orders not yet completed`,
             badgeType: "Asset",
             termId: "account-default-wip"
-          },
-          {
-            name: "inventoryShippedNotInvoicedAccount",
-            label: t`Inventory Shipped Not Invoiced`,
-            description: t`Accrual for inventory shipped but not yet invoiced to customer`,
-            badgeType: "Asset",
-            termId: "account-default-inventory-shipped-not-invoiced"
           }
         ]
       },
@@ -357,6 +357,12 @@ const AccountDefaultsForm = ({
             termId: "account-default-inventory-adjustment"
           },
           {
+            name: "scrapAccount",
+            label: t`Scrap / Cost of Quality`,
+            description: t`Write-off of stock scrapped or returned via inspection rejects and NCR dispositions`,
+            badgeType: "Expense"
+          },
+          {
             name: "materialVarianceAccount",
             label: t`Material Usage Variance`,
             description: t`Variance between actual and standard BOM component consumption`,
@@ -413,11 +419,18 @@ const AccountDefaultsForm = ({
             termId: "account-default-depreciation-expense"
           },
           {
-            name: "assetGainsAndLossesAccount",
-            label: t`Gains and Losses`,
-            description: t`Gains or losses recognized on disposal of fixed assets`,
+            name: "assetGainOnDisposalAccount",
+            label: t`Gain on Disposal`,
+            description: t`Gains recognized on disposal of fixed assets`,
+            badgeType: "Revenue",
+            termId: "account-default-gain-on-disposal"
+          },
+          {
+            name: "assetLossOnDisposalAccount",
+            label: t`Loss on Disposal`,
+            description: t`Losses recognized on disposal of fixed assets`,
             badgeType: "Expense",
-            termId: "account-default-gains-and-losses"
+            termId: "account-default-loss-on-disposal"
           },
           {
             name: "serviceChargeAccount",

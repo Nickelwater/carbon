@@ -16,8 +16,12 @@ import {
 import { calculateCOGS } from "../shared/calculate-cogs.ts";
 import { getCurrentAccountingPeriod } from "../shared/get-accounting-period.ts";
 import { getNextSequence } from "../shared/get-next-sequence.ts";
-import { getDefaultPostingGroup } from "../shared/get-posting-group.ts";
 import {
+  getDefaultPostingGroup,
+  resolveInventoryAccount,
+} from "../shared/get-posting-group.ts";
+import {
+  resolveFeatureSamplingPlan,
   resolveSamplingPlan,
   type SamplingStandard,
 } from "../shared/sampling-engine.ts";
@@ -107,7 +111,9 @@ serve(async (req: Request) => {
       await Promise.all([
         client
           .from("item")
-          .select("id, itemTrackingType, requiresInspection")
+          .select(
+            "id, itemTrackingType, requiresInspection, replenishmentSystem"
+          )
           .in("id", itemIds)
           .eq("companyId", companyId),
         client
@@ -144,13 +150,75 @@ serve(async (req: Request) => {
 
     const samplingStandard: SamplingStandard =
       (companySettings.data as any)?.samplingStandard ?? "ANSI_Z1_4";
+
+    // Receipt-usage inspection document assignments drive per-feature
+    // measurement plans on the created lots.
+    const inspectionDocumentAssignments = await (client as any)
+      .from("itemInspectionDocumentAssignment")
+      .select("itemId, inspectionDocumentId")
+      .eq("companyId", companyId)
+      .eq("usage", "Receipt")
+      .in("itemId", itemIds);
+    const assignmentByItemId = new Map<string, string>(
+      ((inspectionDocumentAssignments.data as any[]) ?? []).map((a) => [
+        a.itemId,
+        a.inspectionDocumentId,
+      ])
+    );
     const samplingPlansByItemId = new Map<string, any>(
       ((itemSamplingPlans.data as any[]) ?? []).map((p) => [p.itemId, p])
     );
     const inboundPoliciesByItemId = new Map<string, any>(
       ((inboundPolicies.data as any[]) ?? []).map((p) => [p.itemId, p])
     );
-    
+
+    const assignedDocumentIds = [...new Set(assignmentByItemId.values())];
+    const inspectionFeaturesByDocumentId = new Map<string, any[]>();
+    if (assignedDocumentIds.length > 0) {
+      const inspectionFeatures = await (client as any)
+        .from("inspectionFeature")
+        .select(
+          "id, inspectionDocumentId, type, samplingPlanType, samplingSampleSize, samplingPercentage, samplingAql, samplingInspectionLevel, samplingSeverity"
+        )
+        .in("inspectionDocumentId", assignedDocumentIds)
+        .eq("companyId", companyId);
+      for (const feature of (inspectionFeatures.data as any[]) ?? []) {
+        const list =
+          inspectionFeaturesByDocumentId.get(feature.inspectionDocumentId) ??
+          [];
+        list.push(feature);
+        inspectionFeaturesByDocumentId.set(feature.inspectionDocumentId, list);
+      }
+    }
+
+    // The document's default sampling rule is the lot-level plan base and the
+    // fallback for features without their own rule (feature rule -> document
+    // default -> All).
+    const documentDefaultByDocumentId = new Map<string, any>();
+    if (assignedDocumentIds.length > 0) {
+      const assignedDocuments = await (client as any)
+        .from("inspectionDocument")
+        .select(
+          "id, samplingPlanType, samplingSampleSize, samplingPercentage, samplingAql, samplingInspectionLevel, samplingSeverity"
+        )
+        .in("id", assignedDocumentIds)
+        .eq("companyId", companyId);
+      for (const doc of (assignedDocuments.data as any[]) ?? []) {
+        if (!doc.samplingPlanType) continue;
+        documentDefaultByDocumentId.set(doc.id, {
+          type: doc.samplingPlanType,
+          sampleSize: doc.samplingSampleSize,
+          percentage:
+            doc.samplingPercentage == null
+              ? null
+              : Number(doc.samplingPercentage),
+          aql: doc.samplingAql == null ? null : Number(doc.samplingAql),
+          inspectionLevel: doc.samplingInspectionLevel,
+          severity: doc.samplingSeverity,
+        });
+      }
+    }
+
     if (type === "void") {
       if (receipt.data?.status !== "Posted") {
         throw new Error("Can only void posted receipts");
@@ -379,7 +447,8 @@ serve(async (req: Request) => {
         (line) => {
           if (
             line.purchaseOrderLineType === "Comment" ||
-            line.purchaseOrderLineType === "G/L Account"
+            line.purchaseOrderLineType === "G/L Account" ||
+            line.purchaseOrderLineType === "Service"
           )
             return true;
           const target = line.purchaseQuantity ?? 0;
@@ -543,6 +612,10 @@ serve(async (req: Request) => {
       });
     }
 
+    if (receipt.data?.status === "Voided") {
+      throw new Error("Cannot post a voided receipt");
+    }
+
     switch (receipt.data?.sourceDocument) {
       case "Purchase Order": {
         if (!receipt.data.sourceDocumentId)
@@ -660,16 +733,36 @@ serve(async (req: Request) => {
           return acc;
         }, {});
 
-        // Build one inspection lot per receiptLine that belongs to an item
-        // with Inbound inspection required. Prefer itemInspectionPolicy; fall
-        // back to legacy requiresInspection + itemSamplingPlan.
-        const inboundInspectionInserts: Array<Record<string, any>> = [];
+        // Build one inspection lot per receiptLine whose item requires inbound
+        // inspection — either via a Receipt-usage inspection document
+        // assignment (per-feature sampling engine) or the legacy
+        // itemInspectionPolicy / item.requiresInspection + itemSamplingPlan
+        // flow (lot-level plan, no document attached).
+        const inspectionInserts: Array<Record<string, any>> = [];
+        // Per-feature resolved plans, keyed by receiptLineId until the lot ids
+        // exist (they are joined after the insert returns ids).
+        type InspectionSamplingPlanInsert = {
+          inspectionFeatureId: string;
+          sampleSize: number;
+          acceptanceNumber: number;
+          rejectionNumber: number;
+          codeLetter: string | null;
+          companyId: string;
+          createdBy: string;
+        };
+        const samplingPlanInsertsByReceiptLineId = new Map<
+          string,
+          Array<InspectionSamplingPlanInsert>
+        >();
         for (const receiptLine of receiptLines.data ?? []) {
           const item = items.data?.find((i) => i.id === receiptLine.itemId);
           if (!receiptLine.itemId) continue;
 
+          const assignedDocumentId =
+            assignmentByItemId.get(receiptLine.itemId) ?? null;
           const inboundPolicy = inboundPoliciesByItemId.get(receiptLine.itemId);
           const requiresInbound =
+            assignedDocumentId != null ||
             inboundPolicy?.required === true ||
             (inboundPolicy == null && item?.requiresInspection === true);
           if (!requiresInbound) continue;
@@ -681,7 +774,12 @@ serve(async (req: Request) => {
               : receiptLine.receivedQuantity;
           if (safeReceivedQuantity <= 0) continue;
 
-          const plan = inboundPolicy ??
+          const documentDefault = assignedDocumentId
+            ? (documentDefaultByDocumentId.get(assignedDocumentId) ?? null)
+            : null;
+
+          const plan = documentDefault ??
+            inboundPolicy ??
             samplingPlansByItemId.get(receiptLine.itemId) ?? {
               type: "All",
               sampleSize: null,
@@ -697,23 +795,59 @@ serve(async (req: Request) => {
             samplingStandard
           );
 
-          inboundInspectionInserts.push({
-            receiptLineId: receiptLine.id,
-            receiptId,
+          const documentFeatures = assignedDocumentId
+            ? (inspectionFeaturesByDocumentId.get(assignedDocumentId) ?? [])
+            : [];
+          const featurePlans = documentFeatures.map((feature) => ({
+            inspectionFeatureId: feature.id,
+            resolved: resolveFeatureSamplingPlan(
+              feature,
+              documentDefault,
+              safeReceivedQuantity,
+              samplingStandard
+            ),
+          }));
+          if (featurePlans.length > 0) {
+            samplingPlanInsertsByReceiptLineId.set(
+              receiptLine.id,
+              featurePlans.map((p) => ({
+                inspectionFeatureId: p.inspectionFeatureId,
+                sampleSize: p.resolved.sampleSize,
+                acceptanceNumber: p.resolved.acceptance,
+                rejectionNumber: p.resolved.rejection,
+                codeLetter: p.resolved.codeLetter,
+                companyId,
+                createdBy: userId,
+              }))
+            );
+          }
+
+          inspectionInserts.push({
+            sourceDocument: "Receipt",
+            sourceDocumentId: receiptId,
+            sourceDocumentLineId: receiptLine.id,
+            sourceDocumentReadableId: receipt.data.receiptId ?? null,
             itemId: receiptLine.itemId,
             itemReadableId: receiptLine.itemReadableId,
             supplierId: purchaseOrder.data.supplierId ?? null,
             lotSize: safeReceivedQuantity,
             samplingStandard,
             samplingPlanType: plan.type,
-            sampleSize: snapshot.sampleSize,
+            // With a document attached, the lot-level sample size is the max
+            // across the per-feature plans (SAP-style); Ac/Re remain the
+            // item-plan fallback numbers used by the no-document flow.
+            sampleSize:
+              featurePlans.length > 0
+                ? Math.max(...featurePlans.map((p) => p.resolved.sampleSize))
+                : snapshot.sampleSize,
             acceptanceNumber: snapshot.acceptance,
             rejectionNumber: snapshot.rejection,
             aql: plan.aql ?? null,
             inspectionLevel: plan.inspectionLevel ?? null,
             severity: plan.severity ?? null,
             codeLetter: snapshot.codeLetter,
-            inspectionDocumentId: plan.inspectionDocumentId ?? null,
+            inspectionDocumentId:
+              assignedDocumentId ?? plan.inspectionDocumentId ?? null,
             status: "Pending",
             locationId: receiptLine.locationId ?? null,
             storageUnitId: receiptLine.storageUnitId ?? null,
@@ -722,9 +856,10 @@ serve(async (req: Request) => {
           });
         }
 
-        // Tracked entities for items requiring inspection stay On Hold after
-        // posting (they are released individually by the sample inspection or
-        // en masse by lot disposition). Everything else flips to Available.
+        // Tracked entities for items with a Receipt-usage inspection plan stay
+        // On Hold after posting (they are released individually by the sample
+        // inspection or en masse by lot disposition). Everything else flips to
+        // Available.
         const trackedEntityUpdates =
           receiptLineTracking.data?.reduce<
             Record<
@@ -757,6 +892,9 @@ serve(async (req: Request) => {
               ? inboundPoliciesByItemId.get(receiptLine.itemId)
               : undefined;
             const requiresInspection =
+              (receiptLine?.itemId
+                ? assignmentByItemId.has(receiptLine.itemId)
+                : false) ||
               inboundPolicy?.required === true ||
               (inboundPolicy == null && item?.requiresInspection === true);
 
@@ -949,9 +1087,11 @@ serve(async (req: Request) => {
         for await (const receiptLine of receiptLines.data) {
           const jlStartIdx = journalLineInserts.length;
 
+          const receiptLineItem = items.data.find(
+            (item) => item.id === receiptLine.itemId
+          );
           const itemTrackingType =
-            items.data.find((item) => item.id === receiptLine.itemId)
-              ?.itemTrackingType ?? "Inventory";
+            receiptLineItem?.itemTrackingType ?? "Inventory";
 
           const receivedQuantity =
             isNaN(receiptLine.receivedQuantity) ||
@@ -1022,8 +1162,12 @@ serve(async (req: Request) => {
             let debitDescription: string;
 
             if (itemTrackingType !== "Non-Inventory" && !isOutsideProcessing) {
-              debitAccount = accountDefaults.data.inventoryAccount;
-              debitDescription = "Inventory Account";
+              const inventoryAccount = resolveInventoryAccount(
+                receiptLineItem?.replenishmentSystem ?? null,
+                accountDefaults.data
+              );
+              debitAccount = inventoryAccount.account;
+              debitDescription = inventoryAccount.description;
             } else if (isOutsideProcessing) {
               debitAccount = accountDefaults.data.workInProgressAccount;
               debitDescription = "WIP Account";
@@ -1603,6 +1747,7 @@ serve(async (req: Request) => {
             (line) =>
               line.purchaseOrderLineType === "Comment" ||
               line.purchaseOrderLineType === "G/L Account" ||
+              line.purchaseOrderLineType === "Service" ||
               line.receivedComplete
           );
 
@@ -1822,11 +1967,11 @@ serve(async (req: Request) => {
             }
           }
 
-          if (inboundInspectionInserts.length > 0) {
-            for (const row of inboundInspectionInserts) {
+          if (inspectionInserts.length > 0) {
+            for (const row of inspectionInserts) {
               const readableId = await getNextSequence(
                 trx,
-                "inboundInspection",
+                "inspection",
                 companyId
               );
               const inserted = await trx
@@ -1834,6 +1979,10 @@ serve(async (req: Request) => {
                 .values({
                   inspectionId: readableId,
                   type: "Inbound",
+                  sourceDocument: row.sourceDocument,
+                  sourceDocumentId: row.sourceDocumentId,
+                  sourceDocumentLineId: row.sourceDocumentLineId,
+                  sourceDocumentReadableId: row.sourceDocumentReadableId,
                   itemId: row.itemId,
                   itemReadableId: row.itemReadableId,
                   supplierId: row.supplierId,
@@ -1862,8 +2011,8 @@ serve(async (req: Request) => {
                 .values({
                   companyId,
                   inspectionId: inserted.id,
-                  receiptId: row.receiptId,
-                  receiptLineId: row.receiptLineId,
+                  receiptId: row.sourceDocumentId,
+                  receiptLineId: row.sourceDocumentLineId,
                   createdBy: userId,
                 } as any)
                 .execute();
@@ -1874,7 +2023,7 @@ serve(async (req: Request) => {
                 .where(
                   sql<string>`attributes ->> 'Receipt Line'`,
                   "=",
-                  row.receiptLineId!
+                  row.sourceDocumentLineId!
                 )
                 .where("companyId", "=", companyId)
                 .execute();
@@ -1899,6 +2048,23 @@ serve(async (req: Request) => {
                     trackedEntityId: entity.id,
                     createdBy: userId,
                   } as any)
+                  .execute();
+              }
+
+              const featureRows = row.sourceDocumentLineId
+                ? samplingPlanInsertsByReceiptLineId.get(
+                    row.sourceDocumentLineId
+                  )
+                : undefined;
+              if (featureRows && featureRows.length > 0) {
+                await trx
+                  .insertInto("inspectionSamplingPlan" as any)
+                  .values(
+                    featureRows.map((featureRow) => ({
+                      ...featureRow,
+                      inspectionId: inserted.id,
+                    })) as any
+                  )
                   .execute();
               }
             }
@@ -1931,13 +2097,23 @@ serve(async (req: Request) => {
         const transferItemIds = warehouseTransferLines.data
           .map((line) => line.itemId)
           .filter(Boolean) as string[];
-        const itemCosts = await client
-          .from("itemCost")
-          .select("itemId, itemPostingGroupId, unitCost")
-          .in("itemId", transferItemIds);
+        const [itemCosts, transferItems] = await Promise.all([
+          client
+            .from("itemCost")
+            .select("itemId, itemPostingGroupId, unitCost")
+            .in("itemId", transferItemIds),
+          client
+            .from("item")
+            .select("id, replenishmentSystem")
+            .in("id", transferItemIds)
+            .eq("companyId", companyId),
+        ]);
 
         if (itemCosts.error) {
           throw new Error("Failed to fetch item costs");
+        }
+        if (transferItems.error) {
+          throw new Error("Failed to fetch items");
         }
 
         const itemLedgerInserts: Database["public"]["Tables"]["itemLedger"]["Insert"][] =
@@ -2015,9 +2191,17 @@ serve(async (req: Request) => {
           // Create journal entries for inventory movement if there's value
           if (accountingEnabled && accountDefaults?.data && totalValue > 0) {
             const journalLineReference = nanoid();
+            // Same account on both sides: a transfer moves stock between
+            // locations, not between inventory classes.
+            const inventoryAccount = resolveInventoryAccount(
+              transferItems.data.find(
+                (item: { id: string }) => item.id === receiptLine.itemId
+              )?.replenishmentSystem ?? null,
+              accountDefaults.data
+            );
 
             journalLineInserts.push({
-              accountId: accountDefaults.data.inventoryAccount,
+              accountId: inventoryAccount.account,
               description: `Transfer Out - ${warehouseTransfer.data?.transferId}`,
               amount: credit("asset", totalValue),
               quantity: Math.abs(receivedQuantity),
@@ -2030,7 +2214,7 @@ serve(async (req: Request) => {
             });
 
             journalLineInserts.push({
-              accountId: accountDefaults.data.inventoryAccount,
+              accountId: inventoryAccount.account,
               description: `Transfer In - ${warehouseTransfer.data?.transferId}`,
               amount: debit("asset", totalValue),
               quantity: Math.abs(receivedQuantity),

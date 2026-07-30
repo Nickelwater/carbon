@@ -155,7 +155,7 @@ export function useLineCosts({
       }
 
       data.operations?.forEach((operation: QuotationOperation) => {
-        if (operation.operationType === "Inside") {
+        if (operation.operationType !== "Outside Processing") {
           const opEffects = computeInsideOperationCostEffects({
             op: {
               setupTime: operation.setupTime,
@@ -231,7 +231,7 @@ export function useLineCosts({
           effects.overheadCost.push((quantity) =>
             opEffects.overheadCost(quantity)
           );
-        } else if (operation.operationType === "Outside") {
+        } else {
           effects.outsideCost.push((quantity) => {
             const unitCost =
               operation.operationUnitCost * data.quantity * quantity;

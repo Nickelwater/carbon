@@ -1,7 +1,7 @@
-import { HStack, VStack } from "@carbon/react";
+import { Badge, HStack, MenuIcon, MenuItem, VStack } from "@carbon/react";
 import { useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
-import { memo, useMemo } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   LuArrowRightLeft,
   LuBlocks,
@@ -9,17 +9,19 @@ import {
   LuFileText,
   LuHash,
   LuMapPin,
+  LuMessageSquare,
   LuMoveDown,
   LuMoveUp,
   LuQrCode,
   LuUser,
-  LuWarehouse
+  LuWarehouse,
+  LuWrench
 } from "react-icons/lu";
 import { Link } from "react-router";
 import { EmployeeAvatar, Hyperlink, ItemThumbnail, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { useLocations } from "~/components/Form/Location";
-import { useDateFormatter, useUser } from "~/hooks";
+import { useDateFormatter, usePermissions, useUser } from "~/hooks";
 import { useDebouncedRealtime } from "~/hooks/useDebouncedRealtime";
 import type { MethodItemType } from "~/modules/shared";
 import { usePeople } from "~/stores";
@@ -29,6 +31,7 @@ import {
   itemLedgerTypes
 } from "../../inventory.models";
 import type { StockMovement } from "../../types";
+import StockMovementCorrectionModal from "./StockMovementCorrectionModal";
 
 type StockMovementsTableProps = {
   data: StockMovement[];
@@ -40,6 +43,9 @@ const StockMovementsTable = memo(
     const { t } = useLingui();
     const { formatDate } = useDateFormatter();
     const { company } = useUser();
+    const permissions = usePermissions();
+    const [correctionTarget, setCorrectionTarget] =
+      useState<StockMovement | null>(null);
     const [people] = usePeople();
     const locations = useLocations();
     const locationsById = useMemo(
@@ -111,32 +117,33 @@ const StockMovementsTable = memo(
           }
         },
         {
+          accessorKey: "isCorrection",
+          header: t`Correction`,
+          cell: ({ row }) =>
+            isCorrectionRow(row.original) ? (
+              <Badge variant="yellow">{t`Correction`}</Badge>
+            ) : (
+              ""
+            ),
+          meta: {
+            filter: {
+              type: "static",
+              options: [
+                { value: "true", label: t`Correction` },
+                { value: "false", label: t`Original` }
+              ]
+            },
+            pluralHeader: t`Corrections`,
+            icon: <LuWrench />,
+            // Export the corrected movement's id so the CSV keeps the linkage.
+            exportValue: (row: StockMovement) =>
+              row.correctionOfItemLedgerId ?? ""
+          }
+        },
+        {
           accessorKey: "quantity",
           header: t`Quantity`,
-          cell: ({ row }) => {
-            const value = row.original.quantity;
-            if (!value)
-              return (
-                <HStack
-                  spacing={1}
-                  className="font-medium text-muted-foreground"
-                >
-                  <LuMoveUp className="invisible text-lg" />
-                  <span>{value}</span>
-                </HStack>
-              );
-            const isPositive = value > 0;
-            return (
-              <HStack spacing={1} className="font-medium">
-                {isPositive ? (
-                  <LuMoveUp className="text-success text-lg" />
-                ) : (
-                  <LuMoveDown className="text-destructive text-lg" />
-                )}
-                <span>{Math.abs(value)}</span>
-              </HStack>
-            );
-          },
+          cell: ({ row }) => <QuantityDelta value={row.original.quantity} />,
           meta: {
             icon: <LuHash />
           }
@@ -195,6 +202,18 @@ const StockMovementsTable = memo(
           }
         },
         {
+          accessorKey: "comment",
+          header: t`Comment`,
+          cell: ({ row }) => (
+            <span className="truncate text-muted-foreground">
+              {row.original.comment ?? ""}
+            </span>
+          ),
+          meta: {
+            icon: <LuMessageSquare />
+          }
+        },
+        {
           accessorKey: "postingDate",
           header: t`Posting Date`,
           cell: (item) => formatDate(item.getValue<string>()),
@@ -230,24 +249,78 @@ const StockMovementsTable = memo(
       ];
     }, [people, locations, locationsById, t, formatDate]);
 
+    const renderContextMenu = useCallback(
+      (row: StockMovement) => (
+        <MenuItem
+          disabled={!permissions.can("update", "inventory")}
+          onClick={() => setCorrectionTarget(row)}
+        >
+          <MenuIcon icon={<LuWrench />} />
+          {t`Correct Quantity`}
+        </MenuItem>
+      ),
+      [permissions, t]
+    );
+
     return (
-      <Table<(typeof data)[number]>
-        data={data}
-        columns={columns}
-        count={count}
-        defaultColumnPinning={{
-          left: ["itemReadableId"]
-        }}
-        title={t`Stock Movements`}
-        table="itemLedger"
-        withSavedView
-      />
+      <>
+        <Table<(typeof data)[number]>
+          data={data}
+          columns={columns}
+          count={count}
+          defaultColumnPinning={{
+            left: ["itemReadableId"]
+          }}
+          renderContextMenu={renderContextMenu}
+          title={t`Inventory Movements`}
+          table="itemLedger"
+          withSavedView
+        />
+        {correctionTarget && (
+          <StockMovementCorrectionModal
+            movement={correctionTarget}
+            onClose={() => setCorrectionTarget(null)}
+          />
+        )}
+      </>
     );
   }
 );
 
 StockMovementsTable.displayName = "StockMovementsTable";
 export default StockMovementsTable;
+
+// A movement is a correction when it points back at the movement it fixes.
+// Prefer the view's computed `isCorrection` flag; fall back to the raw link.
+function isCorrectionRow(movement: StockMovement) {
+  return (
+    (movement as { isCorrection?: boolean }).isCorrection ??
+    movement.correctionOfItemLedgerId != null
+  );
+}
+
+// Signed quantity with a direction arrow (NUMERIC arrives as a string).
+function QuantityDelta({ value }: { value: number | string | null }) {
+  const n = value == null ? 0 : Number(value);
+  if (!n) {
+    return (
+      <HStack spacing={1} className="font-medium text-muted-foreground">
+        <LuMoveUp className="invisible text-lg" />
+        <span className="tabular-nums">{n}</span>
+      </HStack>
+    );
+  }
+  return (
+    <HStack spacing={1} className="font-medium">
+      {n > 0 ? (
+        <LuMoveUp className="text-success text-lg" />
+      ) : (
+        <LuMoveDown className="text-destructive text-lg" />
+      )}
+      <span className="tabular-nums">{Math.abs(n)}</span>
+    </HStack>
+  );
+}
 
 // Opens the item's side panel on the Activity tab inside the Inventory
 // (Quantities) layout:

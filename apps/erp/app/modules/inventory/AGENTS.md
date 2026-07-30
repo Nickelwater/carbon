@@ -13,6 +13,7 @@ Tracks item quantities across locations and storage units. Manages receipts, shi
 - **Warehouse Transfer** — moves inventory between locations (inter-location).
 - **Picking List** — generated pick instructions with FEFO/FIFO ordering and tracked entity allocation.
 - **Kanban** — pull-based replenishment signal between storage units.
+- **Inventory Count** — physical/cycle count. Posted is terminal (there is no count-level "Rectify" — fixing a posted movement happens per-movement via `correctStockMovement`). Created with an optional scope (`storageUnitIds` + `itemType`) recorded in the header's `scope` JSONB (written at create; not yet read back). `generateInventoryCountLines` snapshots on-hand into `inventoryCountLine` rows, **excluding Rejected AND Consumed tracked lots**. The count **detail** table filters lines by item type / storage unit / storage type / tags / material attributes via the `inventoryCountLines` **view** (line → item → subtype tables → storageUnit, flattened) — the same generic column-filter set the quantities screen uses. There is no material-attribute scope at create time.
 
 ## Safety
 
@@ -35,8 +36,7 @@ Tracks item quantities across locations and storage units. Manages receipts, shi
 ## Validation Commands
 
 ```bash
-pnpm --filter @carbon/erp typecheck
-pnpm --filter @carbon/erp test
+pnpm exec turbo run typecheck --filter=erp   # the app's package name is "erp", not "@carbon/erp"
 ```
 
 ## Key Data Model
@@ -60,7 +60,8 @@ pnpm --filter @carbon/erp test
 
 - `getInventoryItems` / `getInventoryItemsCount` — calls `get_inventory_quantities` RPC for on-hand quantities
 - `getItemLedgerPage` / `getItemLedgerActivity` — paginated ledger history
-- `insertManualInventoryAdjustment` — adjustments with tracked entity handling and ledger entries
+- `insertManualInventoryAdjustment` — adjustments with tracked entity handling; wraps the `post-inventory-adjustment` edge function, which also maintains cost layers and posts GL journals (5310 vs RM/FG) in one transaction when accounting is enabled
+- `correctStockMovement` — wraps the `correct-stock-movement` edge function: fixes a posted `itemLedger` row by booking ONE opposite (delta) movement linked via `correctionOfItemLedgerId`, dated with the original's `postingDate` and posted into the original's accounting period (fails if Locked/Closed). The delta is derived against the movement's current effective quantity (original + prior corrections), so repeat corrections converge
 - `getStorageUnit(s)` / `getStorageUnitTree` / `getStorageUnitsTreeForLocation` — storage hierarchy
 - `getAvailableTrackedEntities` — calls `get_available_tracked_entities` RPC
 - `getReceipts` / `getReceiptLines` / `reconcileReceiptSerialEntities` — receipt management
@@ -68,6 +69,7 @@ pnpm --filter @carbon/erp test
 - `generatePickingList` / `getPickingListAvailability` / `getPickingSchedule` — picking operations
 - `getDefaultStorageUnitOrStorageUnitWithHighestQuantity` — picking defaults
 - `getTrackedEntities` / `getTrackedEntityExpirations` / `getShelfLifeForItems` — tracking and expiry
+- `generateInventoryCountLines` — Kysely; aggregates `itemLedger` on-hand into `inventoryCountLine` rows, scoped by the optional `storageUnitIds` + `itemType`. Excludes `Rejected` and `Consumed` tracked lots (status-aware, matching `quantityOnHand`); non-tracked rows (NULL status) always included. `getInventoryCountLines` reads the `inventoryCountLines` view (joins item + subtype tables on `id = item."readableId"` — the same predicate `get_inventory_quantities` uses, all LEFT — + `storageUnit`) so the detail table can apply generic column filters on flat columns.
 
 ## Key Exports
 
@@ -82,9 +84,9 @@ import { inventoryAdjustmentValidator, receiptValidator } from "~/modules/invent
 - **production** — job completion posts finished goods; materials issued from inventory
 - **items** — `itemTrackingType` (Inventory/Serial/Batch/Non-Inventory) determines tracking behavior
 - **sales** — shipments fulfill sales order lines
-- **quality** — inbound inspections triggered on receipt for items with `requiresInspection`
+- **quality** — inbound inspections triggered on receipt for items with a Receipt-usage inspection-document assignment
 
 ## Rules References
 
-- `.ai/rules/inventory-system.md` — comprehensive guide to inventory code, RPCs, storage units, and gotchas
-- `.ai/rules/traceability-model.md` — serial/batch lineage graph model (trackedEntity/trackedActivity)
+- `.claude/rules/inventory-system.md` — comprehensive guide to inventory code, RPCs, storage units, and gotchas
+- `.claude/rules/traceability-model.md` — serial/batch lineage graph model (trackedEntity/trackedActivity)

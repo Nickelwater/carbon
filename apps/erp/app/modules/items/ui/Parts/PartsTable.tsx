@@ -579,7 +579,7 @@ const PartsTable = memo(({ data, tags, count }: PartsTableProps) => {
             <MenuSub>
               <MenuSubTrigger>
                 <MenuIcon icon={<LuGitPullRequestArrow />} />
-                <Trans>Versions</Trans>
+                <Trans>Revisions</Trans>
               </MenuSubTrigger>
               <MenuSubContent>
                 {revisions.map((revision) => (
@@ -595,6 +595,18 @@ const PartsTable = memo(({ data, tags, count }: PartsTableProps) => {
             </MenuSub>
           )}
           <MenuItem
+            disabled={!permissions.can("create", "parts")}
+            onClick={() =>
+              fetcher.submit(null, {
+                method: "post",
+                action: path.to.newChangeNoticeFromItem(row.id!)
+              })
+            }
+          >
+            <MenuIcon icon={<LuGitPullRequestArrow />} />
+            <Trans>Create Change Notice</Trans>
+          </MenuItem>
+          <MenuItem
             destructive
             disabled={!permissions.can("delete", "parts")}
             onClick={() => {
@@ -608,7 +620,7 @@ const PartsTable = memo(({ data, tags, count }: PartsTableProps) => {
         </>
       );
     };
-  }, [deleteItemModal, navigate, permissions, t]);
+  }, [deleteItemModal, fetcher, navigate, permissions, t]);
 
   return (
     <>
@@ -639,6 +651,10 @@ const PartsTable = memo(({ data, tags, count }: PartsTableProps) => {
           {
             table: "operations" as const,
             label: "Operations"
+          },
+          {
+            table: "partWithMethod" as const,
+            label: "Parts with Methods"
           }
         ]}
         primaryAction={

@@ -2,27 +2,29 @@ import "./global.css";
 import "./editorial.css";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import type { Metadata, Viewport } from "next";
-import { DM_Sans, Fira_Code } from "next/font/google";
+import { Archivo, JetBrains_Mono } from "next/font/google";
 import type { ReactNode } from "react";
 import { ScrollToTop } from "@/components/scroll-to-top";
 import { SiteFooter } from "@/components/site-footer";
+import { faviconLinks } from "@carbon/utils/favicon";
 import { ogImage, SEO, SITE } from "@/lib/seo";
 
-// next/font self-hosts DM Sans + Fira Code at build time: no render-blocking request
+// next/font self-hosts Archivo + JetBrains Mono at build time: no render-blocking request
 // to fonts.googleapis.com, automatic `font-display: swap`, and a size-adjusted fallback
 // face so swapping in the web font causes ~no layout shift (CLS). Exposed as CSS vars
-// the design tokens (--font-sans/--font-mono in global.css) point at.
-const dmSans = DM_Sans({
+// the design tokens (--font-sans/--font-display/--font-mono in global.css) point at.
+// Archivo covers body/UI text and (in bold weights) headings/display type.
+const archivo = Archivo({
   subsets: ["latin"],
   display: "swap",
   style: ["normal", "italic"],
-  variable: "--font-dm-sans"
+  variable: "--font-archivo"
 });
 
-const firaCode = Fira_Code({
+const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
-  variable: "--font-fira-code"
+  variable: "--font-jetbrains-mono"
 });
 
 const defaultOg = ogImage({ title: SEO.site.title, eyebrow: "Documentation" });
@@ -44,7 +46,7 @@ export const metadata: Metadata = {
     "MCP"
   ],
   authors: [{ name: "Carbon" }],
-  // Favicon comes from the app/icon.svg file convention.
+  // Favicons are declared as theme-aware <link> tags in the <head> below.
   openGraph: {
     title: SEO.site.title,
     description: SEO.site.description,
@@ -65,7 +67,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#F5F5F2"
+  themeColor: "#F5F5F5"
 };
 
 // Prerender likely-next pages on hover (~200ms) so in-site navigation feels instant.
@@ -111,7 +113,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html
       lang="en"
-      className={`${dmSans.variable} ${firaCode.variable}`}
+      className={`${archivo.variable} ${jetbrainsMono.variable}`}
       suppressHydrationWarning
     >
       <head>
@@ -119,36 +121,9 @@ export default function Layout({ children }: { children: ReactNode }) {
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLd }}
         />
-        <link
-          rel="icon"
-          type="image/svg+xml"
-          href="/carbon-mark-light.svg"
-          media="(prefers-color-scheme: light)"
-        />
-        <link
-          rel="icon"
-          type="image/svg+xml"
-          href="/carbon-mark-dark.svg"
-          media="(prefers-color-scheme: dark)"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="32x32"
-          href="/favicon-32x32.png"
-        />
-        <link
-          rel="icon"
-          type="image/png"
-          sizes="16x16"
-          href="/favicon-16x16.png"
-        />
-        <link
-          rel="apple-touch-icon"
-          sizes="180x180"
-          href="/apple-touch-icon.png"
-        />
-        <link rel="manifest" href="/site.webmanifest" />
+        {faviconLinks.map((link) => (
+          <link key={`${link.rel}-${link.href}`} {...link} />
+        ))}
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
           rel="preconnect"

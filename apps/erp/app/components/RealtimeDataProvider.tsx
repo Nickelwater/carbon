@@ -133,6 +133,7 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
         fetchAllFromTable<{
           id: string;
           readableId: string;
+          revision: string;
           readableIdWithRevision: string;
           unitOfMeasureCode: string;
           name: string;
@@ -143,7 +144,7 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
         }>(
           carbon,
           "item",
-          "id, readableId, readableIdWithRevision, unitOfMeasureCode, name, type, replenishmentSystem, active, itemTrackingType",
+          "id, readableId, revision, readableIdWithRevision, unitOfMeasureCode, name, type, replenishmentSystem, active, itemTrackingType",
           (query) =>
             query
               .eq("companyId", companyId)
@@ -295,6 +296,7 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                       id: inserted.id,
                       name: inserted.name,
                       readableId: inserted.readableId,
+                      revision: inserted.revision,
                       readableIdWithRevision: inserted.readableIdWithRevision,
                       description: inserted.description,
                       replenishmentSystem: inserted.replenishmentSystem,
@@ -325,6 +327,7 @@ const RealtimeDataProvider = ({ children }: { children: React.ReactNode }) => {
                         return {
                           ...i,
                           readableId: updated.readableId,
+                          revision: updated.revision,
                           readableIdWithRevision:
                             updated.readableIdWithRevision,
                           name: updated.name,

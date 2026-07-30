@@ -97,7 +97,7 @@ function calculateOperationUnitCost(
   op: BomOperation,
   batchSize: number
 ): number {
-  if (op.operationType === "Outside") {
+  if (op.operationType === "Outside Processing") {
     return Math.max(op.operationMinimumCost, op.operationUnitCost);
   }
 
@@ -204,12 +204,7 @@ export const calculateTotalQuantity = (
   return quantity;
 };
 
-export const generateBomIds = (
-  nodes:
-    | FlatTreeItem<QuoteMethod>[]
-    | FlatTreeItem<Method>[]
-    | FlatTreeItem<JobMethod>[]
-): string[] => {
+export const generateBomIds = (nodes: FlatTreeItem<unknown>[]): string[] => {
   const ids = new Array(nodes.length);
   const levelCounters = new Map<number, number>();
 

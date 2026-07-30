@@ -8,6 +8,8 @@ export {
   companyRestoreRevertFunction
 } from "./company-restore";
 export { evaluateInProcessInspectionsFunction } from "./evaluate-in-process-inspections";
+export { modelCompactFunction } from "./model-compact";
+export { modelOptimizeFunction } from "./model-optimize";
 export { modelThumbnailFunction } from "./model-thumbnail";
 export { onboardFunction } from "./onboard";
 export { postTransactionFunction } from "./post-transaction";

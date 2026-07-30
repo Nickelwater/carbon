@@ -253,7 +253,7 @@ export function QuantityModal({
                       records.
                     </Trans>
                   </AlertDescription>
-                  <label className="flex items-center gap-2 mt-2 cursor-pointer">
+                  <label className="col-start-2 flex items-center gap-2 mt-2 cursor-pointer">
                     <Checkbox
                       isChecked={confirmedUnissued}
                       onCheckedChange={(checked) =>
@@ -314,6 +314,13 @@ export function QuantityModal({
                       onChange={setQuantity}
                       isReadOnly={parentIsSerial}
                       minValue={0}
+                      // Allow fractional quantities (weight/length UoMs), capped
+                      // at 2 decimals. Without formatOptions, NumberControlled
+                      // inherits react-aria's 3-decimal default.
+                      formatOptions={{
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                      }}
                       size="lg"
                     />
                   </div>

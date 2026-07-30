@@ -174,6 +174,23 @@ export const nonConformanceTypes = [
   { name: "Customer Complaint", createdBy: "system" }
 ] as const;
 
+// Change Order types (the changeOrderType lookup). Kept in sync with the
+// one-time seed in the change-orders migration so new companies get the same
+// default types the migration gave existing ones.
+export const changeOrderTypes = [
+  { name: "Design Improvement", createdBy: "system" },
+  { name: "Cost Reduction", createdBy: "system" },
+  { name: "Quality / Reliability Improvement", createdBy: "system" },
+  { name: "Supplier / Sourcing Change", createdBy: "system" },
+  { name: "Material or Component Change", createdBy: "system" },
+  { name: "Obsolescence / End-of-Life", createdBy: "system" },
+  { name: "Regulatory / Compliance", createdBy: "system" },
+  { name: "Safety", createdBy: "system" },
+  { name: "Manufacturing / Producibility", createdBy: "system" },
+  { name: "Customer Request", createdBy: "system" },
+  { name: "Documentation Error / Correction", createdBy: "system" }
+] as const;
+
 export const nonConformanceRequiredActions = [
   { name: "Corrective Action", systemType: "Corrective" as const, createdBy: "system" },
   { name: "Preventive Action", systemType: "Preventive" as const, createdBy: "system" },
@@ -187,6 +204,19 @@ export const nonConformanceRequiredActions = [
   { name: "Incoming Materials", createdBy: "system" },
   { name: "Process", createdBy: "system" },
   { name: "Documentation", createdBy: "system" }
+] as const;
+
+// Default change-order actions (the changeOrderRequiredAction templates). Kept in
+// sync with the one-time backfill in the change-order-required-actions migration so
+// new companies get the same defaults existing ones were backfilled with.
+export const changeOrderRequiredActions = [
+  { name: "Engineering Review", createdBy: "system" },
+  { name: "Update Drawings / CAD", createdBy: "system" },
+  { name: "Update BOM / Routing", createdBy: "system" },
+  { name: "Cost Impact Review", createdBy: "system" },
+  { name: "Quality Review", createdBy: "system" },
+  { name: "Inventory Disposition (rework / scrap / use-as-is)", createdBy: "system" },
+  { name: "Notify Affected Parties", createdBy: "system" }
 ] as const;
 
 export const sequences = [
@@ -218,9 +248,11 @@ export const sequences = [
     step: 1
   },
   {
-    table: "inboundInspection",
-    name: "Inbound Inspection",
-    prefix: "II",
+    // Existing companies keep their re-keyed II sequence (20260722132135);
+    // only new companies seed the INS prefix.
+    table: "inspection",
+    name: "Inspection",
+    prefix: "INS",
     suffix: null,
     next: 0,
     size: 6,
@@ -257,6 +289,15 @@ export const sequences = [
     table: "nonConformance",
     name: "Issue",
     prefix: "NCR",
+    suffix: null,
+    next: 0,
+    size: 6,
+    step: 1
+  },
+  {
+    table: "changeOrder",
+    name: "Change Notice",
+    prefix: "CN-",
     suffix: null,
     next: 0,
     size: 6,
@@ -608,7 +649,8 @@ export const accounts = [
 
   // Inventory
   { key: "inventory", number: null, name: "Inventory & Stock", isGroup: true, parentKey: "assets", accountType: "Inventory", incomeBalance: "Balance Sheet", class: "Asset", consolidatedRate: "Current", createdBy: "system" },
-  { key: "1210", number: "1210", name: "Inventory", isGroup: false, parentKey: "inventory", accountType: "Inventory", incomeBalance: "Balance Sheet", class: "Asset", consolidatedRate: "Current", createdBy: "system" },
+  { key: "1210", number: "1210", name: "Raw Materials", isGroup: false, parentKey: "inventory", accountType: "Inventory", incomeBalance: "Balance Sheet", class: "Asset", consolidatedRate: "Current", createdBy: "system" },
+  { key: "1220", number: "1220", name: "Finished Goods", isGroup: false, parentKey: "inventory", accountType: "Inventory", incomeBalance: "Balance Sheet", class: "Asset", consolidatedRate: "Current", createdBy: "system" },
   { key: "1230", number: "1230", name: "Work In Progress (WIP)", isGroup: false, parentKey: "inventory", accountType: "Inventory", incomeBalance: "Balance Sheet", class: "Asset", consolidatedRate: "Current", createdBy: "system" },
   { key: "1240", number: "1240", name: "Inventory Reserves / Allowances", isGroup: false, parentKey: "inventory", accountType: "Inventory", incomeBalance: "Balance Sheet", class: "Asset", consolidatedRate: "Current", createdBy: "system" },
 
@@ -640,7 +682,6 @@ export const accounts = [
   { key: "current-liabilities", number: null, name: "Current Liabilities", isGroup: true, parentKey: "liabilities", accountType: "Other Current Liability", incomeBalance: "Balance Sheet", class: "Liability", consolidatedRate: "Current", createdBy: "system" },
   { key: "2110", number: "2110", name: "Customer Prepayments", isGroup: false, parentKey: "current-liabilities", accountType: "Other Current Liability", incomeBalance: "Balance Sheet", class: "Liability", consolidatedRate: "Current", createdBy: "system" },
   { key: "2125", number: "2125", name: "GR/IR Clearing", isGroup: false, parentKey: "current-liabilities", accountType: "Other Current Liability", incomeBalance: "Balance Sheet", class: "Liability", consolidatedRate: "Current", createdBy: "system" },
-  { key: "2130", number: "2130", name: "Inventory Shipped Not Invoiced", isGroup: false, parentKey: "current-liabilities", accountType: "Other Current Liability", incomeBalance: "Balance Sheet", class: "Liability", consolidatedRate: "Current", createdBy: "system" },
   { key: "2140", number: "2140", name: "Accrued Expenses", isGroup: false, parentKey: "current-liabilities", accountType: "Other Current Liability", incomeBalance: "Balance Sheet", class: "Liability", consolidatedRate: "Current", createdBy: "system" },
   { key: "2150", number: "2150", name: "Accrued Wages & Salaries", isGroup: false, parentKey: "current-liabilities", accountType: "Other Current Liability", incomeBalance: "Balance Sheet", class: "Liability", consolidatedRate: "Current", createdBy: "system" },
   { key: "2160", number: "2160", name: "Deferred Revenue", isGroup: false, parentKey: "current-liabilities", accountType: "Other Current Liability", incomeBalance: "Balance Sheet", class: "Liability", consolidatedRate: "Current", createdBy: "system" },
@@ -681,6 +722,7 @@ export const accounts = [
   { key: "4110", number: "4110", name: "Scrap Sales", isGroup: false, parentKey: "other-income", accountType: "Other Income", incomeBalance: "Income Statement", class: "Revenue", consolidatedRate: "Average", createdBy: "system" },
   { key: "4120", number: "4120", name: "Foreign Exchange Gains", isGroup: false, parentKey: "other-income", accountType: "Other Income", incomeBalance: "Income Statement", class: "Revenue", consolidatedRate: "Average", createdBy: "system" },
   { key: "4130", number: "4130", name: "Vendor Write-Off Income", isGroup: false, parentKey: "other-income", accountType: "Other Income", incomeBalance: "Income Statement", class: "Revenue", consolidatedRate: "Average", createdBy: "system" },
+  { key: "4140", number: "4140", name: "Gain on Disposal", isGroup: false, parentKey: "other-income", accountType: "Other Income", incomeBalance: "Income Statement", class: "Revenue", consolidatedRate: "Average", createdBy: "system" },
 
   // ─── 5000-5999: COST OF GOODS SOLD ───
   { key: "cogs", number: null, name: "Cost of Goods Sold", isGroup: true, parentKey: "income-statement", accountType: "Cost of Goods Sold", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
@@ -701,6 +743,7 @@ export const accounts = [
   // Inventory Adjustments
   { key: "inventory-adjustments", number: null, name: "Inventory Adjustments", isGroup: true, parentKey: "cogs", accountType: "Cost of Goods Sold", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
   { key: "5310", number: "5310", name: "Inventory Adjustment", isGroup: false, parentKey: "inventory-adjustments", accountType: "Cost of Goods Sold", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
+  { key: "5320", number: "5320", name: "Scrap / Cost of Quality", isGroup: false, parentKey: "inventory-adjustments", accountType: "Cost of Goods Sold", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
 
   // ─── 6000-6999: OPERATING EXPENSES ───
   { key: "operating-expenses", number: null, name: "Operating Expenses", isGroup: true, parentKey: "income-statement", accountType: "Expense", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
@@ -719,7 +762,7 @@ export const accounts = [
   // Depreciation & Amortization
   { key: "depreciation", number: null, name: "Depreciation & Amortization", isGroup: true, parentKey: "operating-expenses", accountType: "Other Expense", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
   { key: "6310", number: "6310", name: "Depreciation Expense", isGroup: false, parentKey: "depreciation", accountType: "Other Expense", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
-  { key: "6320", number: "6320", name: "Gains and Losses on Disposal", isGroup: false, parentKey: "depreciation", accountType: "Other Expense", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
+  { key: "6320", number: "6320", name: "Loss on Disposal", isGroup: false, parentKey: "depreciation", accountType: "Other Expense", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
 
   // ─── 7000-7999: OTHER / NON-OPERATING EXPENSES ───
   { key: "other-expenses", number: null, name: "Other Expenses", isGroup: true, parentKey: "income-statement", accountType: "Other Expense", incomeBalance: "Income Statement", class: "Expense", consolidatedRate: "Average", createdBy: "system" },
@@ -740,6 +783,7 @@ export const accountDefaults = {
   costOfGoodsSoldAccount: "5010",
   purchaseVarianceAccount: "5210",
   inventoryAdjustmentVarianceAccount: "5310",
+  scrapAccount: "5320",
   materialVarianceAccount: "5220",
   laborAndMachineVarianceAccount: "5230",
   overheadVarianceAccount: "5240",
@@ -750,7 +794,8 @@ export const accountDefaults = {
   indirectCostAccount: "5050",
   maintenanceAccount: "6010",
   assetDepreciationExpenseAccount: "6310",
-  assetGainsAndLossesAccount: "6320",
+  assetGainOnDisposalAccount: "4140",
+  assetLossOnDisposalAccount: "6320",
   serviceChargeAccount: "7040",
   interestAccount: "7010",
   supplierPaymentDiscountAccount: "7020",
@@ -760,7 +805,8 @@ export const accountDefaults = {
   assetAquisitionCostOnDisposalAccount: "1320",
   accumulatedDepreciationAccount: "1330",
   accumulatedDepreciationOnDisposalAccount: "1340",
-  inventoryAccount: "1210",
+  rawMaterialsAccount: "1210",
+  finishedGoodsAccount: "1220",
   workInProgressAccount: "1230",
   receivablesAccount: "1110",
   intercompanyReceivablesAccount: "1130",
@@ -771,7 +817,6 @@ export const accountDefaults = {
   supplierPrepaymentAccount: "1150",
   payablesAccount: "2010",
   goodsReceivedNotInvoicedAccount: "2125",
-  inventoryShippedNotInvoicedAccount: "2130",
   salesTaxPayableAccount: "2210",
   purchaseTaxPayableAccount: "2220",
   reverseChargeSalesTaxPayableAccount: "2230",
@@ -796,7 +841,8 @@ export const fixedAssetClasses = [
     depreciationExpenseAccount: "6310",
     writeOffAccount: "6320",
     writeDownAccount: "6320",
-    disposalAccount: "6320",
+    gainOnDisposalAccount: "4140",
+    lossOnDisposalAccount: "6320",
   },
   {
     name: "Machinery & Equipment",
@@ -808,7 +854,8 @@ export const fixedAssetClasses = [
     depreciationExpenseAccount: "6310",
     writeOffAccount: "6320",
     writeDownAccount: "6320",
-    disposalAccount: "6320",
+    gainOnDisposalAccount: "4140",
+    lossOnDisposalAccount: "6320",
   },
   {
     name: "Vehicles",
@@ -820,7 +867,8 @@ export const fixedAssetClasses = [
     depreciationExpenseAccount: "6310",
     writeOffAccount: "6320",
     writeDownAccount: "6320",
-    disposalAccount: "6320",
+    gainOnDisposalAccount: "4140",
+    lossOnDisposalAccount: "6320",
   },
 ];
 
@@ -829,6 +877,95 @@ export const fiscalYearSettings = {
   taxStartMonth: "January",
   updatedBy: "system"
 } as const;
+
+/**
+ * Default period-close checklist (NetSuite-style). Seeded per company as system
+ * task definitions; getPeriodCloseChecklist instantiates a periodCloseTask per
+ * period from the active definitions. `autoCheckKey` binds Auto tasks to a
+ * readiness evaluator in accounting.service.ts (computePeriodReadiness).
+ */
+export const periodCloseTaskDefinitions = [
+  {
+    name: "Post pending operational documents",
+    taskType: "Auto",
+    autoCheckKey: "pending-postings",
+    sortOrder: 1,
+    required: true,
+    severity: "Blocker",
+    active: true,
+    isSystem: true
+  },
+  {
+    name: "Post or re-date draft journal entries",
+    taskType: "Auto",
+    autoCheckKey: "draft-journals",
+    sortOrder: 2,
+    required: true,
+    severity: "Blocker",
+    active: true,
+    isSystem: true
+  },
+  {
+    name: "Lock the period",
+    taskType: "Action",
+    autoCheckKey: null,
+    sortOrder: 3,
+    required: true,
+    severity: null,
+    active: true,
+    isSystem: true
+  },
+  {
+    name: "Post depreciation runs covering the period",
+    taskType: "Auto",
+    autoCheckKey: "draft-depreciation",
+    sortOrder: 4,
+    required: true,
+    severity: "Warning",
+    active: true,
+    isSystem: true
+  },
+  {
+    name: "Match & eliminate intercompany transactions",
+    taskType: "Auto",
+    autoCheckKey: "unmatched-ic",
+    sortOrder: 5,
+    required: true,
+    severity: "Warning",
+    active: true,
+    isSystem: true
+  },
+  {
+    name: "Review negative on-hand inventory",
+    taskType: "Action",
+    autoCheckKey: null,
+    sortOrder: 6,
+    required: true,
+    severity: null,
+    active: true,
+    isSystem: true
+  },
+  {
+    name: "Trial balance in balance for the period",
+    taskType: "Auto",
+    autoCheckKey: "tb-balanced",
+    sortOrder: 7,
+    required: true,
+    severity: "Blocker",
+    active: true,
+    isSystem: true
+  },
+  {
+    name: "Review financial statements",
+    taskType: "Action",
+    autoCheckKey: null,
+    sortOrder: 8,
+    required: true,
+    severity: null,
+    active: true,
+    isSystem: true
+  }
+];
 
 /**
  * Default location seeded for new companies

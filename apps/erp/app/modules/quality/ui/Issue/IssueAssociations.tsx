@@ -316,7 +316,7 @@ function getAssociationIcon(key: IssueAssociationKey) {
       return <LuHandCoins className="text-red-600" />;
     case "trackedEntities":
       return <LuQrCode />;
-    case "inboundInspections":
+    case "inspections":
       return <LuClipboardCheck className="text-teal-600" />;
     default:
       return <LuFileText />;
@@ -897,7 +897,7 @@ function NewTrackedEntityAssociation({ items }: { items?: string[] }) {
   );
 }
 
-function NewInboundInspectionAssociation() {
+function NewInspectionAssociation() {
   const { t } = useLingui();
   const { carbon } = useCarbon();
   const [storedItems] = useItems();
@@ -941,7 +941,7 @@ function NewInboundInspectionAssociation() {
   return (
     <Combobox
       name="id"
-      label={t`Inbound Inspection`}
+      label={t`Inspection`}
       options={inspections}
       isLoading={inspectionsAreLoading}
     />
@@ -996,8 +996,8 @@ function NewAssociationModal({
         return <NewReceiptLineAssociation items={items} />;
       case "trackedEntities":
         return <NewTrackedEntityAssociation items={items} />;
-      case "inboundInspections":
-        return <NewInboundInspectionAssociation />;
+      case "inspections":
+        return <NewInspectionAssociation />;
       default:
         return null;
     }
@@ -1068,7 +1068,7 @@ function getAssociationLink(
       return path.to.customer(child.documentId);
     case "suppliers":
       return path.to.supplier(child.documentId);
-    case "inboundInspections":
+    case "inspections":
       return (child as { sourceType?: string }).sourceType === "Job"
         ? path.to.lotInspection(child.documentId)
         : path.to.inboundInspection(child.documentId);

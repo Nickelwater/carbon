@@ -1,72 +1,14 @@
-import { error } from "@carbon/auth";
-import { requirePermissions } from "@carbon/auth/auth.server";
-import { flash } from "@carbon/auth/session.server";
 import type { LoaderFunctionArgs } from "react-router";
-import { data, redirect, useLoaderData } from "react-router";
+import { redirect } from "react-router";
 import invariant from "tiny-invariant";
-import { inspectionRouteFamily } from "~/modules/quality/inspectionRoutes";
-import type {
-  InboundInspectionRow,
-  InboundInspectionSample,
-  InspectionTrackedEntity,
-  IssueTypeListItem
-} from "~/modules/quality/types";
-import InboundInspectionLotView from "~/modules/quality/ui/InboundInspections/InboundInspectionLotView";
-import { loadInspectionLotDetail } from "~/modules/quality/ui/InboundInspections/loadInspectionLotDetail.server";
 import { path } from "~/utils/path";
 
+// The inbound inspection drawer moved to a full-screen execution view at
+// /x/inspection/{id}. Keep old links (notifications, bookmarks)
+// working with a redirect.
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const { client, companyId, userId } = await requirePermissions(request, {
-    view: "quality",
-    role: "employee"
-  });
   const { id } = params;
   invariant(id, "id is required");
-
-  const result = await loadInspectionLotDetail(client, {
-    id,
-    companyId,
-    userId
-  });
-
-  if (result.error || !result.data) {
-    throw redirect(
-      path.to.inboundInspections,
-      await flash(request, error(result.error, "Failed to load inspection"))
-    );
-  }
-
-  const url = new URL(request.url);
-  if (result.data.sourceType === "Job") {
-    throw redirect(`${path.to.lotInspection(id)}${url.search}`);
-  }
-
-  return data(result.data);
-}
-
-export default function InboundInspectionRoute() {
-  const loaderData = useLoaderData<typeof loader>();
-  const routes = inspectionRouteFamily("Receipt");
-
-  return (
-    <InboundInspectionLotView
-      inspection={loaderData.inspection as InboundInspectionRow}
-      inspectionDocumentId={loaderData.inspectionDocumentId}
-      inspectionPlan={loaderData.inspectionPlan}
-      linkedDocument={loaderData.linkedDocument}
-      sampleMeasurements={loaderData.sampleMeasurements}
-      receiptReadableId={loaderData.receiptReadableId}
-      jobReadableId={loaderData.jobReadableId}
-      receiverId={loaderData.receiverId}
-      itemName={loaderData.itemName}
-      itemTrackingType={loaderData.itemTrackingType}
-      supplierName={loaderData.supplierName}
-      samples={loaderData.samples as InboundInspectionSample[]}
-      lotEntities={loaderData.lotEntities as InspectionTrackedEntity[]}
-      issueTypes={loaderData.issueTypes as IssueTypeListItem[]}
-      currentUserId={loaderData.currentUserId}
-      enforceFourEyes={loaderData.enforceFourEyes}
-      detailPath={routes.detail}
-    />
-  );
+  const search = new URL(request.url).search;
+  throw redirect(`${path.to.inspection(id)}${search}`);
 }

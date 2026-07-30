@@ -4,13 +4,7 @@ import { ValidatedForm } from "@carbon/form";
 import {
   Badge,
   Select as CarbonSelect,
-  CardAction,
   cn,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuIcon,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   FormControl,
   FormLabel,
   HStack,
@@ -44,13 +38,11 @@ import {
 import { getItemReadableId } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { BsThreeDotsVertical } from "react-icons/bs";
 import {
   LuBox,
   LuChevronRight,
   LuLandmark,
   LuPlus,
-  LuTrash,
   LuTruck
 } from "react-icons/lu";
 import { useParams } from "react-router";
@@ -78,7 +70,7 @@ import {
   useUser
 } from "~/hooks";
 import { getDefaultStorageUnitForJob } from "~/modules/inventory/inventory.service";
-import { methodType } from "~/modules/shared";
+import { itemType, methodType } from "~/modules/shared";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import {
@@ -88,13 +80,11 @@ import {
 import type {
   PriceTraceStep,
   SalesOrder,
-  SalesOrderLine,
   SalesOrderLineType
 } from "../../types";
 import { PriceTracePopover } from "../Pricing/PriceTracePopover";
 import { ContractCustomerPartLabel } from "./ContractCustomerPartLabel";
 import { customerPartNumberLabel } from "./contractCustomerPartLabelLogic";
-import DeleteSalesOrderLine from "./DeleteSalesOrderLine";
 
 type SalesOrderLineFormProps = {
   initialValues: z.infer<typeof salesOrderLineValidator> & {
@@ -383,6 +373,36 @@ const SalesOrderLineForm = ({
     setIsPriceResolving(false);
   };
 
+  const onAssetChange = async (assetId: string) => {
+    if (!assetId) {
+      setAssetData((d) => ({ ...d, assetId: "" }));
+      return;
+    }
+    if (!carbon || !company.id) return;
+
+    const asset = await carbon
+      .from("fixedAsset")
+      .select("name, acquisitionCost, accumulatedDepreciation")
+      .eq("id", assetId)
+      .eq("companyId", company.id)
+      .single();
+
+    // Net book value = acquisition cost − accumulated depreciation (the same
+    // figure shown in FixedAssetsTable), used as the default sale unit price.
+    // NB: `Number` is the form component in this file, so rely on the numeric
+    // column types rather than the global `Number()`.
+    const netBookValue =
+      (asset.data?.acquisitionCost ?? 0) -
+      (asset.data?.accumulatedDepreciation ?? 0);
+
+    setAssetData((d) => ({
+      ...d,
+      assetId,
+      description: asset.data?.name ?? "",
+      unitPrice: netBookValue
+    }));
+  };
+
   const onLocationChange = async (newLocation: { value: string } | null) => {
     if (!carbon) throw new Error("carbon is not defined");
     if (typeof newLocation?.value !== "string")
@@ -407,7 +427,6 @@ const SalesOrderLineForm = ({
 
   const costsDisclosure = useDisclosure();
   const assetCostsDisclosure = useDisclosure();
-  const deleteDisclosure = useDisclosure();
 
   const canToggleCustomerParts =
     routeData?.customer?.contractCustomer &&
@@ -567,30 +586,6 @@ const SalesOrderLineForm = ({
                         </TabsTrigger>
                       </TabsList>
                     )}
-                    {isEditing &&
-                      permissions.can("update", "sales") &&
-                      !isLocked && (
-                        <CardAction>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <IconButton
-                                icon={<BsThreeDotsVertical />}
-                                aria-label={t`More`}
-                                variant="ghost"
-                              />
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem
-                                destructive
-                                onClick={deleteDisclosure.onOpen}
-                              >
-                                <DropdownMenuIcon icon={<LuTrash />} />
-                                <Trans>Delete Line</Trans>
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </CardAction>
-                      )}
                   </div>
                 </HStack>
                 <ModalCardBody>
@@ -672,6 +667,7 @@ const SalesOrderLineForm = ({
                             name="itemId"
                             label={i18n._(itemTypeLabel(lineType as "Part"))}
                             type={lineType as "Part"}
+                            validItemTypes={[...itemType]}
                             typeFieldName="salesOrderLineType"
                             value={itemData.itemId}
                             locationId={locationId}
@@ -953,10 +949,7 @@ const SalesOrderLineForm = ({
                             options={assetOptions}
                             value={assetData.assetId}
                             onChange={(selected) => {
-                              setAssetData((d) => ({
-                                ...d,
-                                assetId: (selected?.value as string) ?? ""
-                              }));
+                              onAssetChange((selected?.value as string) ?? "");
                             }}
                             termId="sales-order-line-asset"
                           />
@@ -1159,12 +1152,6 @@ const SalesOrderLineForm = ({
           </ModalCard>
         </ModalCardProvider>
       </Tabs>
-      {isEditing && deleteDisclosure.isOpen && (
-        <DeleteSalesOrderLine
-          line={initialValues as SalesOrderLine}
-          onCancel={deleteDisclosure.onClose}
-        />
-      )}
     </>
   );
 };

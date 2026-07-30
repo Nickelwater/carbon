@@ -39,19 +39,14 @@ import { Editor } from "@carbon/react/Editor";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { DragControls } from "framer-motion";
-import {
-  AnimatePresence,
-  LayoutGroup,
-  motion,
-  Reorder,
-  useDragControls
-} from "framer-motion";
+import { motion, Reorder, useDragControls } from "framer-motion";
 import { nanoid } from "nanoid";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
 import {
   LuActivity,
+  LuChevronLeft,
   LuChevronRight,
   LuCirclePlus,
   LuEllipsisVertical,
@@ -63,12 +58,15 @@ import {
   LuLock,
   LuMaximize2,
   LuMinimize2,
-  LuSettings2,
   LuSquareFunction,
-  LuTriangleAlert,
-  LuX
+  LuTriangleAlert
 } from "react-icons/lu";
-import { useFetcher, useFetchers, useParams } from "react-router";
+import {
+  useFetcher,
+  useFetchers,
+  useParams,
+  useRevalidator
+} from "react-router";
 import { z } from "zod";
 import {
   DirectionAwareTabs,
@@ -95,22 +93,34 @@ import {
   UnitOfMeasure,
   WorkCenter
 } from "~/components/Form";
+import AssemblyInstruction from "~/components/Form/AssemblyInstruction";
+import InspectionDocument from "~/components/Form/InspectionDocument";
 import { OperationTimeBasisFields } from "~/components/Form/OperationTimeBasisFields";
 import { OperatorAttentionField } from "~/components/Form/OperatorAttentionField";
 import Procedure from "~/components/Form/Procedure";
 import { SupplierProcessPreview } from "~/components/Form/SupplierProcess";
 import { getUnitHint, unitForHint } from "~/components/Form/UnitHint";
 import { useUnitOfMeasure } from "~/components/Form/UnitOfMeasure";
-import { ProcedureStepTypeIcon } from "~/components/Icons";
+import { OperationTypeIcon, ProcedureStepTypeIcon } from "~/components/Icons";
 import { ConfirmDelete } from "~/components/Modals";
+import { SlidesEditor, uploadStepSlideModel } from "~/components/SlidesEditor";
 import type { Item, SortableItemRenderProps } from "~/components/SortableList";
-import { SortableList, SortableListItem } from "~/components/SortableList";
+import {
+  SortableList,
+  SortableListItem,
+  SortableListItemPanel,
+  SortableListItemToggle
+} from "~/components/SortableList";
+import { StepLinkEditor } from "~/components/StepLinkEditor";
 import { useDateFormatter, usePermissions, useUser } from "~/hooks";
 import { useTags } from "~/hooks/useTags";
 import type {
   OperationParameter,
   OperationStep,
-  OperationTool
+  OperationStepSlide,
+  OperationTool,
+  SlideAnnotation,
+  SlideSize
 } from "~/modules/shared";
 import {
   methodOperationOrders,
@@ -134,6 +144,8 @@ import type {
   ConfigurationRule,
   MakeMethod
 } from "../../types";
+import type { ReleaseLockProps } from "./ReleaseLockAlert";
+import ReleaseLockAlert, { getReleaseLockFlags } from "./ReleaseLockAlert";
 
 type Operation = z.infer<typeof methodOperationValidator> & {
   workInstruction: JSONContent | null;
@@ -145,7 +157,12 @@ type ItemWithData = Item & {
 };
 
 type MethodMaterialType = {
+  id: string;
   itemId: string;
+  description?: string | null;
+  quantity?: number | null;
+  methodOperationId?: string | null;
+  methodMaterialStep?: { methodOperationStepId: string }[] | null;
 };
 
 type BillOfProcessProps = {
@@ -160,7 +177,13 @@ type BillOfProcessProps = {
   })[];
   parameters?: ConfigurationParameter[];
   tags: { name: string }[];
-};
+  selectedMaterialId?: string;
+  // Extra read-only reason from the embedding surface (e.g. a change notice whose
+  // engineering content is frozen at Implementation).
+  isDisabled?: boolean;
+  // What to tell the user when isDisabled is what made this read-only.
+  disabledReason?: ReactNode;
+} & ReleaseLockProps;
 
 type PendingWorkInstructions = {
   [key: string]: JSONContent;
@@ -189,7 +212,9 @@ const initialOperation: Omit<
   machineUnit: "Minutes/Piece",
   operatorAttention: 1,
   operationOrder: "After Previous",
-  operationType: "Inside",
+  operationType: "Process",
+  assemblyInstructionId: "",
+  inspectionDocumentId: "",
   processId: "",
   procedureId: "",
   setupTime: 0,
@@ -211,13 +236,24 @@ const BillOfProcess = ({
   materials,
   operations: initialOperations,
   parameters,
-  tags
+  tags,
+  selectedMaterialId,
+  revisionStatus,
+  releaseControl,
+  isDisabled = false,
+  disabledReason
 }: BillOfProcessProps) => {
   const permissions = usePermissions();
   const { t } = useLingui();
+  const { isProductionRevision, isReleaseLocked } = getReleaseLockFlags({
+    revisionStatus,
+    releaseControl
+  });
   const isReadOnly =
     permissions.can("update", "parts") === false ||
-    makeMethod.status !== "Draft";
+    makeMethod.status !== "Draft" ||
+    isReleaseLocked ||
+    isDisabled;
 
   const makeMethodId = makeMethod.id;
 
@@ -482,6 +518,8 @@ const BillOfProcess = ({
       [];
 
     const hasProcedure = !!item.data.procedureId;
+    const hasAssemblyInstruction = !!item.data.assemblyInstructionId;
+    const hasInspectionDocument = !!item.data.inspectionDocumentId;
 
     const tabs = [
       {
@@ -489,37 +527,27 @@ const BillOfProcess = ({
         label: t`Details`,
         content: (
           <div className="flex w-full flex-col pr-2 py-2">
-            <motion.div
-              initial={{ opacity: 0, filter: "blur(4px)" }}
-              animate={{ opacity: 1, filter: "blur(0px)" }}
-              transition={{
-                type: "spring",
-                bounce: 0.2,
-                duration: 0.75,
-                delay: 0.15
+            <OperationForm
+              isReadOnly={isReadOnly}
+              configurable={configurable}
+              item={item}
+              itemId={makeMethod.itemId}
+              rulesByField={rulesByField}
+              workInstruction={workInstructions[item.id] ?? {}}
+              temporaryItems={temporaryItems}
+              onConfigure={onConfigure}
+              setSelectedItemId={setSelectedItemId}
+              setTemporaryItems={setTemporaryItems}
+              setWorkInstructions={setWorkInstructions}
+              onSubmit={() => {
+                setSelectedItemId(null);
+                addOperationButtonRef.current?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "nearest",
+                  inline: "center"
+                });
               }}
-            >
-              <OperationForm
-                isReadOnly={isReadOnly}
-                configurable={configurable}
-                item={item}
-                rulesByField={rulesByField}
-                workInstruction={workInstructions[item.id] ?? {}}
-                temporaryItems={temporaryItems}
-                onConfigure={onConfigure}
-                setSelectedItemId={setSelectedItemId}
-                setTemporaryItems={setTemporaryItems}
-                setWorkInstructions={setWorkInstructions}
-                onSubmit={() => {
-                  setSelectedItemId(null);
-                  addOperationButtonRef.current?.scrollIntoView({
-                    behavior: "smooth",
-                    block: "nearest",
-                    inline: "center"
-                  });
-                }}
-              />
-            </motion.div>
+            />
           </div>
         )
       },
@@ -549,7 +577,7 @@ const BillOfProcess = ({
         disabled:
           item.id in temporaryItems ||
           hasProcedure ||
-          item.data.operationType === "Outside",
+          item.data.operationType === "Outside Processing",
         content: (
           <div className="flex flex-col">
             <div>
@@ -589,7 +617,7 @@ const BillOfProcess = ({
         disabled:
           item.id in temporaryItems ||
           hasProcedure ||
-          item.data.operationType === "Outside",
+          item.data.operationType === "Outside Processing",
         label: (
           <span className="flex items-center gap-2">
             <span>Parameters</span>
@@ -635,11 +663,15 @@ const BillOfProcess = ({
         disabled:
           item.id in temporaryItems ||
           hasProcedure ||
-          item.data.operationType === "Outside",
+          hasAssemblyInstruction ||
+          hasInspectionDocument ||
+          item.data.operationType === "Outside Processing",
         label: (
           <span className="flex items-center gap-2">
             <span>Steps</span>
-            {hasProcedure && (
+            {(hasProcedure ||
+              hasAssemblyInstruction ||
+              hasInspectionDocument) && (
               <Tooltip>
                 <TooltipTrigger>
                   <Badge variant="secondary">
@@ -648,20 +680,35 @@ const BillOfProcess = ({
                 </TooltipTrigger>
                 <TooltipContent side="bottom" className="opacity-100">
                   <p>
-                    <Trans>Attributes are inherited from the procedure.</Trans>
+                    {hasAssemblyInstruction ? (
+                      <Trans>
+                        Steps are inherited from the assembly instruction.
+                      </Trans>
+                    ) : hasInspectionDocument ? (
+                      <Trans>
+                        Steps are inherited from the inspection plan.
+                      </Trans>
+                    ) : (
+                      <Trans>
+                        Attributes are inherited from the procedure.
+                      </Trans>
+                    )}
                   </p>
                 </TooltipContent>
               </Tooltip>
             )}
-            {!hasProcedure && steps.length > 0 && (
-              <Count count={steps.length} />
-            )}
+            {!hasProcedure &&
+              !hasAssemblyInstruction &&
+              !hasInspectionDocument &&
+              steps.length > 0 && <Count count={steps.length} />}
           </span>
         ),
         content: (
           <div className="flex w-full flex-col py-4">
             <AttributesForm
               steps={steps}
+              tools={tools}
+              materials={materials}
               operationId={item.id!}
               temporaryItems={temporaryItems}
               isDisabled={
@@ -680,7 +727,8 @@ const BillOfProcess = ({
       {
         id: 4,
         disabled:
-          item.id in temporaryItems || item.data.operationType === "Outside",
+          item.id in temporaryItems ||
+          item.data.operationType === "Outside Processing",
         label: (
           <span className="flex items-center gap-2">
             <span>Tools</span>
@@ -701,6 +749,19 @@ const BillOfProcess = ({
             />
           </div>
         )
+      },
+      {
+        // Phase 3: read-only preview of how the operator sees this operation in the MES
+        // assembly view — step-by-step, with each step's reference image and the tools
+        // scoped to it. No live job needed; renders straight off the method.
+        id: 5,
+        disabled: item.id in temporaryItems,
+        label: <span>Preview</span>,
+        content: (
+          <div className="flex w-full flex-col py-4">
+            <OperationPreview steps={steps} tools={tools} />
+          </div>
+        )
       }
     ];
 
@@ -717,84 +778,18 @@ const BillOfProcess = ({
         onRemoveItem={onRemoveItem}
         handleDrag={() => setSelectedItemId(null)}
         renderExtra={(item) => (
-          <div key={`${isOpen}`}>
-            <motion.button
-              layout
-              onClick={
-                isOpen
-                  ? () => {
-                      setSelectedItemId(null);
-                    }
-                  : () => {
-                      setSelectedItemId(item.id);
-                    }
-              }
-              key="collapse"
-              className={cn("absolute right-3 top-3 z-10")}
-            >
-              {isOpen ? (
-                <motion.span
-                  initial={{ opacity: 0, filter: "blur(4px)" }}
-                  animate={{ opacity: 1, filter: "blur(0px)" }}
-                  exit={{ opacity: 1, filter: "blur(0px)" }}
-                  transition={{
-                    type: "spring",
-                    duration: 1.95
-                  }}
-                >
-                  <LuX className="h-5 w-5 text-foreground" />
-                </motion.span>
-              ) : (
-                <motion.span
-                  initial={{ opacity: 0, filter: "blur(4px)" }}
-                  animate={{ opacity: 1, filter: "blur(0px)" }}
-                  exit={{ opacity: 1, filter: "blur(0px)" }}
-                  transition={{
-                    type: "spring",
-                    duration: 0.95
-                  }}
-                >
-                  <LuSettings2 className="stroke-1 h-5 w-5 text-foreground/80  hover:stroke-primary/70 " />
-                </motion.span>
-              )}
-            </motion.button>
-
-            <LayoutGroup id={`${item.id}`}>
-              <AnimatePresence mode="popLayout">
-                {isOpen ? (
-                  <motion.div className="flex w-full flex-col ">
-                    <div className=" w-full p-2">
-                      <motion.div
-                        initial={{
-                          y: 0,
-                          opacity: 0,
-                          filter: "blur(4px)"
-                        }}
-                        animate={{
-                          y: 0,
-                          opacity: 1,
-                          filter: "blur(0px)"
-                        }}
-                        transition={{
-                          type: "spring",
-                          duration: 0.15
-                        }}
-                        layout
-                        className="w-full "
-                      >
-                        <DirectionAwareTabs
-                          className="mr-auto"
-                          tabs={tabs}
-                          onChange={() =>
-                            setTabChangeRerender(tabChangeRerender + 1)
-                          }
-                        />
-                      </motion.div>
-                    </div>
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </LayoutGroup>
+          <div>
+            <SortableListItemToggle
+              isOpen={isOpen}
+              onToggle={() => setSelectedItemId(isOpen ? null : item.id)}
+            />
+            <SortableListItemPanel isOpen={isOpen}>
+              <DirectionAwareTabs
+                className="mr-auto"
+                tabs={tabs}
+                onChange={() => setTabChangeRerender(tabChangeRerender + 1)}
+              />
+            </SortableListItemPanel>
           </div>
         )}
       />
@@ -813,7 +808,8 @@ const BillOfProcess = ({
     configuratorDisclosure.onOpen();
   };
 
-  const { materialId } = useParams();
+  const { materialId: paramMaterialId } = useParams();
+  const materialId = selectedMaterialId ?? paramMaterialId;
 
   const rulesByField = new Map(
     configurationRules?.map((rule) => [rule.field, rule]) ?? []
@@ -824,7 +820,28 @@ const BillOfProcess = ({
       <HStack className="justify-between">
         <CardHeader>
           <CardTitle className="flex flex-row items-center gap-2">
-            Bill of Process {isReadOnly && <LuLock />}
+            <Trans>Bill of Process</Trans>
+            {isReadOnly && (
+              <Tooltip>
+                <TooltipTrigger className="text-muted-foreground">
+                  <LuLock />
+                </TooltipTrigger>
+                <TooltipContent className="max-w-xs">
+                  {makeMethod.status !== "Draft" ? (
+                    <Trans>
+                      This method version is read-only. Create a new version
+                      from the method menu to make changes.
+                    </Trans>
+                  ) : isDisabled && disabledReason ? (
+                    disabledReason
+                  ) : (
+                    <Trans>
+                      You don't have permission to edit this bill of process.
+                    </Trans>
+                  )}
+                </TooltipContent>
+              </Tooltip>
+            )}
           </CardTitle>
         </CardHeader>
 
@@ -867,6 +884,9 @@ const BillOfProcess = ({
         </CardAction>
       </HStack>
       <CardContent>
+        {isProductionRevision && (
+          <ReleaseLockAlert isLocked={isReleaseLocked} className="mb-4" />
+        )}
         <SortableList
           isReadOnly={isReadOnly}
           items={items}
@@ -895,6 +915,7 @@ type OperationFormProps = {
   configurable: boolean;
   isReadOnly: boolean;
   item: ItemWithData;
+  itemId: string;
   rulesByField: Map<string, ConfigurationRule>;
   workInstruction: JSONContent;
   temporaryItems: TemporaryItems;
@@ -909,6 +930,7 @@ function OperationForm({
   isReadOnly,
   configurable,
   item,
+  itemId,
   rulesByField,
   workInstruction,
   temporaryItems,
@@ -947,6 +969,7 @@ function OperationForm({
 
   const machineDisclosure = useDisclosure();
   const laborDisclosure = useDisclosure();
+  const assemblyDisclosure = useDisclosure();
   const setupDisclosure = useDisclosure();
   const procedureDisclosure = useDisclosure();
 
@@ -960,6 +983,8 @@ function OperationForm({
     machineUnitHint: string;
     operatorAttention: number;
     operationType: string;
+    assemblyInstructionId: string;
+    inspectionDocumentId: string;
     operationOrder: string;
     processId: string;
     procedureId: string;
@@ -983,7 +1008,9 @@ function OperationForm({
     machineUnitHint: getUnitHint(item.data.machineUnit, item.data.timeBasis),
     operatorAttention: +(item.data.operatorAttention ?? 1),
     operationOrder: item.data.operationOrder ?? "After Previous",
-    operationType: item.data.operationType ?? "Inside",
+    operationType: item.data.operationType ?? "Process",
+    assemblyInstructionId: item.data.assemblyInstructionId ?? "",
+    inspectionDocumentId: item.data.inspectionDocumentId ?? "",
     processId: item.data.processId ?? "",
     procedureId: item.data.procedureId ?? "",
     workCenterId: item.data.workCenterId ?? "",
@@ -1014,8 +1041,9 @@ function OperationForm({
       laborUnitHint: getUnitHint(process.data?.defaultStandardFactor),
       machineUnit: process.data?.defaultStandardFactor ?? "Hours/Piece",
       machineUnitHint: getUnitHint(process.data?.defaultStandardFactor),
-      operationType:
-        process.data?.processType === "Outside" ? "Outside" : "Inside",
+      // processType and operationType share one enum — the process's type is the
+      // default operation type.
+      operationType: process.data?.processType ?? "Process",
       operationMinimumCost:
         supplierProcesses.data && supplierProcesses.data.length > 0
           ? supplierProcesses.data.reduce((acc, sp) => {
@@ -1100,103 +1128,49 @@ function OperationForm({
           }}
         />
 
-        <Select
-          name="operationOrder"
-          label={t`Operation Order`}
-          placeholder={t`Operation Order`}
-          options={methodOperationOrders.map((o) => ({
-            value: o,
-            label: o
-          }))}
-          onChange={(value) => {
-            setProcessData((d) => ({
-              ...d,
-              operationOrder: value?.value as string
-            }));
-          }}
-          isConfigured={rulesByField.has(key("operationOrder"))}
-          onConfigure={
-            configurable && !temporaryItems[item.id]
-              ? () => {
-                  onConfigure({
-                    label: t`Operation Order`,
-                    field: key("operationOrder"),
-                    code: rulesByField.get(key("operationOrder"))?.code,
-                    defaultValue: processData.operationOrder,
-                    returnType: {
-                      type: "enum",
-                      listOptions: ["After Previous", "With Previous"]
-                    }
-                  });
-                }
-              : undefined
-          }
-        />
-
         <SelectControlled
           name="operationType"
           label={t`Operation Type`}
+          termId="operation-type"
           placeholder={t`Operation Type`}
           options={operationTypes.map((o) => ({
             value: o,
-            label: o
+            label: (
+              <span className="flex items-center gap-2">
+                <OperationTypeIcon type={o} />
+                <span>{o}</span>
+              </span>
+            )
           }))}
           value={processData.operationType}
           onChange={(value) => {
+            const next = (value?.value as string) ?? "Process";
             setProcessData((d) => ({
               ...d,
-              setupUnit: "Total Minutes",
-              laborUnit: "Minutes/Piece",
-              machineUnit: "Minutes/Piece",
-              operationType: value?.value as string
+              operationType: next,
+              // Each type has exactly one instruction source — clear the ones
+              // that no longer apply (the upsert normalizes server-side too).
+              ...(next !== "Process" ? { procedureId: "" } : {}),
+              ...(next !== "Assembly" ? { assemblyInstructionId: "" } : {}),
+              ...(next !== "Inspection" ? { inspectionDocumentId: "" } : {}),
+              // Machine only applies to Process operations.
+              ...(next !== "Process" ? { machineTime: 0 } : {}),
+              // Crossing the in-house <-> Outside Processing boundary changes the
+              // meaningful time units; reset to defaults. Switching between in-house
+              // types keeps whatever units the user picked.
+              ...((next === "Outside Processing") !==
+              (d.operationType === "Outside Processing")
+                ? {
+                    setupUnit: "Total Minutes",
+                    laborUnit: "Minutes/Piece",
+                    machineUnit: "Minutes/Piece"
+                  }
+                : {})
             }));
           }}
-          isConfigured={rulesByField.has(key("operationType"))}
-          onConfigure={
-            configurable && !temporaryItems[item.id]
-              ? () => {
-                  onConfigure({
-                    label: t`Operation Type`,
-                    field: key("operationType"),
-                    code: rulesByField.get(key("operationType"))?.code,
-                    defaultValue: processData.operationType,
-                    returnType: {
-                      type: "enum",
-                      listOptions: ["Inside", "Outside"]
-                    }
-                  });
-                }
-              : undefined
-          }
         />
 
-        <InputControlled
-          name="description"
-          label={t`Description`}
-          value={processData.description}
-          onChange={(newValue) => {
-            setProcessData((d) => ({ ...d, description: newValue }));
-          }}
-          className="col-span-2"
-          isConfigured={rulesByField.has(key("description"))}
-          onConfigure={
-            configurable && !temporaryItems[item.id]
-              ? () => {
-                  onConfigure({
-                    label: t`Description`,
-                    field: key("description"),
-                    code: rulesByField.get(key("description"))?.code,
-                    defaultValue: processData.description,
-                    returnType: {
-                      type: "text"
-                    }
-                  });
-                }
-              : undefined
-          }
-        />
-
-        {processData.operationType === "Outside" ? (
+        {processData.operationType === "Outside Processing" ? (
           <>
             <SupplierProcess
               name="operationSupplierProcessId"
@@ -1283,9 +1257,68 @@ function OperationForm({
             />
           </>
         )}
+
+        <InputControlled
+          name="description"
+          label={t`Description`}
+          value={processData.description}
+          onChange={(newValue) => {
+            setProcessData((d) => ({ ...d, description: newValue }));
+          }}
+          className="col-span-2"
+          isConfigured={rulesByField.has(key("description"))}
+          onConfigure={
+            configurable && !temporaryItems[item.id]
+              ? () => {
+                  onConfigure({
+                    label: t`Description`,
+                    field: key("description"),
+                    code: rulesByField.get(key("description"))?.code,
+                    defaultValue: processData.description,
+                    returnType: {
+                      type: "text"
+                    }
+                  });
+                }
+              : undefined
+          }
+        />
+
+        <Select
+          name="operationOrder"
+          label={t`Operation Order`}
+          placeholder={t`Operation Order`}
+          options={methodOperationOrders.map((o) => ({
+            value: o,
+            label: o
+          }))}
+          onChange={(value) => {
+            setProcessData((d) => ({
+              ...d,
+              operationOrder: value?.value as string
+            }));
+          }}
+          isConfigured={rulesByField.has(key("operationOrder"))}
+          onConfigure={
+            configurable && !temporaryItems[item.id]
+              ? () => {
+                  onConfigure({
+                    label: t`Operation Order`,
+                    field: key("operationOrder"),
+                    code: rulesByField.get(key("operationOrder"))?.code,
+                    defaultValue: processData.operationOrder,
+                    returnType: {
+                      type: "enum",
+                      listOptions: ["After Previous", "With Previous"]
+                    }
+                  });
+                }
+              : undefined
+          }
+        />
       </div>
 
-      {processData.operationType === "Inside" && (
+      {processData.operationType !== "Outside Processing" && (
         <>
           <OperationTimeBasisFields
             processData={processData}
@@ -1522,205 +1555,304 @@ function OperationForm({
               />
             </div>
           </div>
-          <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
-            <HStack
-              className="w-full justify-between cursor-pointer"
-              onClick={machineDisclosure.onToggle}
-            >
-              <HStack>
-                <TimeTypeIcon type="Machine" />
-                <Label>
-                  <Trans>Run</Trans>
-                </Label>
+          {processData.operationType === "Process" && (
+            <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
+              <HStack
+                className="w-full justify-between cursor-pointer"
+                onClick={machineDisclosure.onToggle}
+              >
+                <HStack>
+                  <TimeTypeIcon type="Machine" />
+                  <Label>
+                    <Trans>Run</Trans>
+                  </Label>
+                </HStack>
+                <HStack>
+                  {(processData?.machineTime ?? 0) > 0 && (
+                    <Badge variant="secondary">
+                      <TimeTypeIcon type="Machine" className="h-3 w-3 mr-1" />
+                      {processData.machineTime} {processData.machineUnit}
+                    </Badge>
+                  )}
+                  <IconButton
+                    icon={<LuChevronRight />}
+                    aria-label={
+                      machineDisclosure.isOpen
+                        ? t`Collapse Machine`
+                        : t`Expand Machine`
+                    }
+                    variant="ghost"
+                    size="md"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      machineDisclosure.onToggle();
+                    }}
+                    className={`transition-transform ${
+                      machineDisclosure.isOpen ? "rotate-90" : ""
+                    }`}
+                  />
+                </HStack>
               </HStack>
-              <HStack>
-                {(processData?.machineTime ?? 0) > 0 && (
-                  <Badge variant="secondary">
-                    <TimeTypeIcon type="Machine" className="h-3 w-3 mr-1" />
-                    {processData.machineTime} {processData.machineUnit}
-                  </Badge>
-                )}
-                <IconButton
-                  icon={<LuChevronRight />}
-                  aria-label={
-                    machineDisclosure.isOpen
-                      ? t`Collapse Machine`
-                      : t`Expand Machine`
-                  }
-                  variant="ghost"
-                  size="md"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    machineDisclosure.onToggle();
+              <div
+                className={`grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3 pb-4 ${
+                  machineDisclosure.isOpen ? "" : "hidden"
+                }`}
+              >
+                <UnitHint
+                  name="machineHint"
+                  label={t`Run`}
+                  timeBasis={processData.timeBasis}
+                  value={processData.machineUnitHint}
+                  onChange={(hint) => {
+                    setProcessData((d) => ({
+                      ...d,
+                      machineUnitHint: hint,
+                      machineUnit: unitForHint(hint, d.timeBasis)
+                    }));
                   }}
-                  className={`transition-transform ${
-                    machineDisclosure.isOpen ? "rotate-90" : ""
-                  }`}
                 />
-              </HStack>
-            </HStack>
-            <div
-              className={`grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3 pb-4 ${
-                machineDisclosure.isOpen ? "" : "hidden"
-              }`}
-            >
-              <UnitHint
-                name="machineHint"
-                label={t`Run`}
-                timeBasis={processData.timeBasis}
-                value={processData.machineUnitHint}
-                onChange={(hint) => {
-                  setProcessData((d) => ({
-                    ...d,
-                    machineUnitHint: hint,
-                    machineUnit: unitForHint(hint, d.timeBasis)
-                  }));
-                }}
-              />
-              <NumberControlled
-                name="machineTime"
-                label={t`Run time`}
-                isOptional={false}
-                minValue={0}
-                value={processData.machineTime}
-                onChange={(newValue) =>
-                  setProcessData((d) => ({
-                    ...d,
-                    machineTime: newValue
-                  }))
-                }
-                isConfigured={rulesByField.has(key("machineTime"))}
-                onConfigure={
-                  configurable && !temporaryItems[item.id]
-                    ? () => {
-                        onConfigure({
-                          label: t`Run time`,
-                          field: key("machineTime"),
-                          code: rulesByField.get(key("machineTime"))?.code,
-                          defaultValue: processData.machineTime,
-                          returnType: {
-                            type: "numeric"
-                          }
-                        });
-                      }
-                    : undefined
-                }
-              />
-              <StandardFactor
-                name="machineUnit"
-                label={t`Run unit`}
-                isOptional={false}
-                hint={processData.machineUnitHint}
-                timeBasis={processData.timeBasis}
-                value={processData.machineUnit}
-                onChange={(newValue) => {
-                  setProcessData((d) => ({
-                    ...d,
-                    machineUnit: newValue?.value ?? "Total Minutes"
-                  }));
-                }}
-                isConfigured={rulesByField.has(key("machineUnit"))}
-                onConfigure={
-                  configurable && !temporaryItems[item.id]
-                    ? () => {
-                        onConfigure({
-                          label: t`Run unit`,
-                          field: key("machineUnit"),
-                          code: rulesByField.get(key("machineUnit"))?.code,
-                          defaultValue: processData.machineUnit,
-                          returnType: {
-                            type: "enum",
-                            listOptions: standardFactorType
-                          }
-                        });
-                      }
-                    : undefined
-                }
-              />
-              <OperatorAttentionField
-                value={processData.operatorAttention}
-                onChange={(newValue) =>
-                  setProcessData((d) => ({
-                    ...d,
-                    operatorAttention: newValue
-                  }))
-                }
-              />
+                <NumberControlled
+                  name="machineTime"
+                  label={t`Run time`}
+                  isOptional={false}
+                  minValue={0}
+                  value={processData.machineTime}
+                  onChange={(newValue) =>
+                    setProcessData((d) => ({
+                      ...d,
+                      machineTime: newValue
+                    }))
+                  }
+                  isConfigured={rulesByField.has(key("machineTime"))}
+                  onConfigure={
+                    configurable && !temporaryItems[item.id]
+                      ? () => {
+                          onConfigure({
+                            label: t`Run time`,
+                            field: key("machineTime"),
+                            code: rulesByField.get(key("machineTime"))?.code,
+                            defaultValue: processData.machineTime,
+                            returnType: {
+                              type: "numeric"
+                            }
+                          });
+                        }
+                      : undefined
+                  }
+                />
+                <StandardFactor
+                  name="machineUnit"
+                  label={t`Run unit`}
+                  isOptional={false}
+                  hint={processData.machineUnitHint}
+                  timeBasis={processData.timeBasis}
+                  value={processData.machineUnit}
+                  onChange={(newValue) => {
+                    setProcessData((d) => ({
+                      ...d,
+                      machineUnit: newValue?.value ?? "Total Minutes"
+                    }));
+                  }}
+                  isConfigured={rulesByField.has(key("machineUnit"))}
+                  onConfigure={
+                    configurable && !temporaryItems[item.id]
+                      ? () => {
+                          onConfigure({
+                            label: t`Run unit`,
+                            field: key("machineUnit"),
+                            code: rulesByField.get(key("machineUnit"))?.code,
+                            defaultValue: processData.machineUnit,
+                            returnType: {
+                              type: "enum",
+                              listOptions: standardFactorType
+                            }
+                          });
+                        }
+                      : undefined
+                  }
+                />
+                <OperatorAttentionField
+                  value={processData.operatorAttention}
+                  onChange={(newValue) =>
+                    setProcessData((d) => ({
+                      ...d,
+                      operatorAttention: newValue
+                    }))
+                  }
+                />
+              </div>
             </div>
-          </div>
+          )}
 
-          <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
-            <HStack
-              className="w-full justify-between cursor-pointer"
-              onClick={procedureDisclosure.onToggle}
-            >
-              <HStack>
-                <LuListChecks />
-                <Label>Procedure</Label>
+          {processData.operationType === "Process" && (
+            <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
+              <HStack
+                className="w-full justify-between cursor-pointer"
+                onClick={procedureDisclosure.onToggle}
+              >
+                <HStack>
+                  <LuListChecks />
+                  <Label>Procedure</Label>
+                </HStack>
+                <HStack>
+                  {processData.procedureId && (
+                    <Badge variant="secondary">
+                      <LuListChecks className="h-3 w-3 mr-1" />
+                      Procedure
+                    </Badge>
+                  )}
+                  <IconButton
+                    icon={<LuChevronRight />}
+                    aria-label={
+                      procedureDisclosure.isOpen
+                        ? "Collapse Procedure"
+                        : "Expand Procedure"
+                    }
+                    variant="ghost"
+                    size="md"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      procedureDisclosure.onToggle();
+                    }}
+                    className={`transition-transform ${
+                      procedureDisclosure.isOpen ? "rotate-90" : ""
+                    }`}
+                  />
+                </HStack>
               </HStack>
-              <HStack>
-                {processData.procedureId && (
+              <div
+                className={`grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-1 pb-4 ${
+                  procedureDisclosure.isOpen ? "" : "hidden"
+                }`}
+              >
+                <Procedure
+                  name="procedureId"
+                  label={t`Procedure`}
+                  processId={processData.processId}
+                  value={processData.procedureId}
+                  isConfigured={rulesByField.has(key("procedureId"))}
+                  onConfigure={
+                    configurable && !temporaryItems[item.id]
+                      ? () => {
+                          onConfigure({
+                            label: t`Procedure`,
+                            field: key("procedureId"),
+                            code: rulesByField.get(key("procedureId"))?.code,
+                            defaultValue: processData.procedureId,
+                            returnType: {
+                              type: "text",
+                              helperText:
+                                "the unique identifier for the procedure. you can get this from the URL when editing a procedure"
+                            }
+                          });
+                        }
+                      : undefined
+                  }
+                  onChange={(value) => {
+                    setProcessData((d) => ({
+                      ...d,
+                      procedureId: value?.value as string
+                    }));
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {processData.operationType === "Assembly" && (
+            <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
+              <HStack
+                className="w-full justify-between cursor-pointer"
+                onClick={assemblyDisclosure.onToggle}
+              >
+                <HStack>
+                  <OperationTypeIcon type="Assembly" />
+                  <Label>Assembly Instruction</Label>
+                </HStack>
+                <HStack>
+                  {processData.assemblyInstructionId && (
+                    <Badge variant="secondary">
+                      <OperationTypeIcon
+                        type="Assembly"
+                        className="h-3 w-3 mr-1"
+                      />
+                      Assembly Instruction
+                    </Badge>
+                  )}
+                  <IconButton
+                    icon={<LuChevronRight />}
+                    aria-label={
+                      assemblyDisclosure.isOpen
+                        ? "Collapse Assembly Instruction"
+                        : "Expand Assembly Instruction"
+                    }
+                    variant="ghost"
+                    size="md"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      assemblyDisclosure.onToggle();
+                    }}
+                    className={`transition-transform ${
+                      assemblyDisclosure.isOpen ? "rotate-90" : ""
+                    }`}
+                  />
+                </HStack>
+              </HStack>
+              <div
+                className={`grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-1 pb-4 ${
+                  assemblyDisclosure.isOpen ? "" : "hidden"
+                }`}
+              >
+                <AssemblyInstruction
+                  name="assemblyInstructionId"
+                  label={t`Assembly Instruction`}
+                  itemId={itemId}
+                  value={processData.assemblyInstructionId}
+                  onChange={(value) => {
+                    setProcessData((d) => ({
+                      ...d,
+                      assemblyInstructionId: value?.value as string
+                    }));
+                  }}
+                />
+              </div>
+            </div>
+          )}
+
+          {processData.operationType === "Inspection" && (
+            <div className="border border-border rounded-md shadow-sm p-4 flex flex-col gap-4">
+              <HStack className="w-full justify-between">
+                <HStack>
+                  <OperationTypeIcon type="Inspection" />
+                  <Label>Inspection Plan</Label>
+                </HStack>
+                {processData.inspectionDocumentId && (
                   <Badge variant="secondary">
-                    <LuListChecks className="h-3 w-3 mr-1" />
-                    Procedure
+                    <OperationTypeIcon
+                      type="Inspection"
+                      className="h-3 w-3 mr-1"
+                    />
+                    Inspection Plan
                   </Badge>
                 )}
-                <IconButton
-                  icon={<LuChevronRight />}
-                  aria-label={
-                    procedureDisclosure.isOpen
-                      ? "Collapse Procedure"
-                      : "Expand Procedure"
-                  }
-                  variant="ghost"
-                  size="md"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    procedureDisclosure.onToggle();
-                  }}
-                  className={`transition-transform ${
-                    procedureDisclosure.isOpen ? "rotate-90" : ""
-                  }`}
-                />
               </HStack>
-            </HStack>
-            <div
-              className={`grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-1 pb-4 ${
-                procedureDisclosure.isOpen ? "" : "hidden"
-              }`}
-            >
-              <Procedure
-                name="procedureId"
-                label={t`Procedure`}
-                processId={processData.processId}
-                value={processData.procedureId}
-                isConfigured={rulesByField.has(key("procedureId"))}
-                onConfigure={
-                  configurable && !temporaryItems[item.id]
-                    ? () => {
-                        onConfigure({
-                          label: t`Procedure`,
-                          field: key("procedureId"),
-                          code: rulesByField.get(key("procedureId"))?.code,
-                          defaultValue: processData.procedureId,
-                          returnType: {
-                            type: "text",
-                            helperText:
-                              "the unique identifier for the procedure. you can get this from the URL when editing a procedure"
-                          }
-                        });
-                      }
-                    : undefined
-                }
-                onChange={(value) => {
-                  setProcessData((d) => ({
-                    ...d,
-                    procedureId: value?.value as string
-                  }));
-                }}
-              />
+              <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-1 pb-4">
+                <InspectionDocument
+                  name="inspectionDocumentId"
+                  label={t`Inspection Plan`}
+                  isOptional={false}
+                  itemId={itemId}
+                  value={processData.inspectionDocumentId}
+                  onChange={(value) => {
+                    setProcessData((d) => ({
+                      ...d,
+                      inspectionDocumentId: value?.value as string
+                    }));
+                  }}
+                />
+              </div>
             </div>
-          </div>
+          )}
         </>
       )}
       <motion.div
@@ -1751,6 +1883,8 @@ function AttributesForm({
   configurable,
   isDisabled,
   steps,
+  tools,
+  materials,
   temporaryItems,
   rulesByField,
   onConfigure,
@@ -1760,6 +1894,8 @@ function AttributesForm({
   configurable: boolean;
   isDisabled: boolean;
   steps: OperationStep[];
+  tools: OperationTool[];
+  materials: MethodMaterialType[];
   temporaryItems: TemporaryItems;
   rulesByField: Map<string, ConfigurationRule>;
   onConfigure?: (c: Configuration) => void;
@@ -1827,9 +1963,60 @@ function AttributesForm({
   );
 
   const { carbon } = useCarbon();
-  const {
-    company: { id: companyId }
-  } = useUser();
+  const user = useUser();
+  const companyId = user.company.id;
+  const revalidator = useRevalidator();
+
+  // Slides chosen while creating a step are buffered here (the step has no id yet);
+  // they're attached to the new step right after it's created. See the effect below.
+  // A buffered slide is image XOR model (imagePath / modelUploadId).
+  const [draftSlides, setDraftSlides] = useState<
+    {
+      id: string;
+      imagePath: string | null;
+      modelUploadId: string | null;
+      caption: string;
+      size: SlideSize;
+      annotations: SlideAnnotation[];
+    }[]
+  >([]);
+  const [draftUploading, setDraftUploading] = useState(false);
+  const draftFileInputRef = useRef<HTMLInputElement>(null);
+  const draftModelInputRef = useRef<HTMLInputElement>(null);
+
+  // Parts (this operation's BOM materials) the operator can assign to a step. Parts picked
+  // while CREATING a step are buffered here and attached right after the step is created.
+  const operationParts = useMemo(
+    () =>
+      (materials ?? [])
+        .filter((m) => m.methodOperationId === operationId)
+        .map((m) => ({
+          id: m.id,
+          name: m.description || m.itemId,
+          quantity: m.quantity ?? 1
+        })),
+    [materials, operationId]
+  );
+  const [draftParts, setDraftParts] = useState<string[]>([]);
+
+  // Tools (this operation's tools) the operator can assign to a step — the tool twin of
+  // operationParts/draftParts. Tools picked while CREATING a step are buffered here and
+  // attached right after the step is created (see the effect below).
+  const allTools = useTools();
+  const operationTools = useMemo(
+    () =>
+      (tools ?? []).map((tl) => {
+        const tool = allTools.find((x) => x.id === tl.toolId);
+        return {
+          id: tl.id ?? "",
+          name: tool?.readableIdWithRevision ?? tl.toolId ?? "",
+          secondary: tool?.name ?? undefined,
+          quantity: tl.quantity ?? 1
+        };
+      }),
+    [tools, allTools]
+  );
+  const [draftTools, setDraftTools] = useState<string[]>([]);
 
   const onUploadImage = async (file: File) => {
     const fileType = file.name.split(".").pop();
@@ -1848,6 +2035,154 @@ function AttributesForm({
 
     return getPrivateUrl(result.data.path);
   };
+
+  // Upload a chosen image to storage immediately and buffer it as a draft slide.
+  const onAddDraftSlide = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !carbon) return;
+    setDraftUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `${companyId}/parts/${nanoid()}.${ext}`;
+      const result = await carbon.storage
+        .from("private")
+        .upload(fileName, file);
+      if (result.error || !result.data) {
+        toast.error(t`Failed to upload image`);
+        return;
+      }
+      setDraftSlides((prev) => [
+        ...prev,
+        {
+          id: nanoid(),
+          imagePath: result.data.path,
+          modelUploadId: null,
+          caption: "",
+          size: "medium",
+          annotations: []
+        }
+      ]);
+    } finally {
+      setDraftUploading(false);
+    }
+  };
+
+  // Upload a chosen 3D model, register it as a modelUpload (which also kicks the
+  // assembler's STEP → GLB conversion), and buffer it as a draft model slide.
+  const onAddDraftModel = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !carbon) return;
+    setDraftUploading(true);
+    try {
+      const modelUploadId = await uploadStepSlideModel(carbon, companyId, file);
+      if (!modelUploadId) {
+        toast.error(t`Failed to upload model`);
+        return;
+      }
+      setDraftSlides((prev) => [
+        ...prev,
+        {
+          id: nanoid(),
+          imagePath: null,
+          modelUploadId,
+          caption: "",
+          size: "medium",
+          annotations: []
+        }
+      ]);
+    } finally {
+      setDraftUploading(false);
+    }
+  };
+
+  // When the new step is created, attach any buffered slides to it, then revalidate so
+  // they show on the step and reset the buffer for the next step.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed off the created step id
+  useEffect(() => {
+    const newStepId = (fetcher.data as { id?: string | null } | undefined)?.id;
+    if (!newStepId || draftSlides.length === 0 || !carbon) return;
+    let cancelled = false;
+    (async () => {
+      const slideRows = draftSlides.map((slide, index) => ({
+        stepId: newStepId,
+        imagePath: slide.imagePath,
+        modelUploadId: slide.modelUploadId,
+        caption: slide.caption || null,
+        sortOrder: index + 1,
+        size: slide.size,
+        annotations: slide.annotations,
+        companyId,
+        createdBy: user.id
+      }));
+      const { error } = await carbon
+        .from("methodOperationStepSlide")
+        .insert(slideRows);
+      if (cancelled) return;
+      if (error) {
+        toast.error(t`Failed to save slides`);
+        return;
+      }
+      setDraftSlides([]);
+      revalidator.revalidate();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetcher.data]);
+
+  // When the new step is created, attach any buffered parts, then revalidate + reset.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed off the created step id
+  useEffect(() => {
+    const newStepId = (fetcher.data as { id?: string | null } | undefined)?.id;
+    if (!newStepId || draftParts.length === 0 || !carbon) return;
+    let cancelled = false;
+    (async () => {
+      const { error } = await carbon.from("methodMaterialStep").insert(
+        draftParts.map((methodMaterialId) => ({
+          methodMaterialId,
+          methodOperationStepId: newStepId
+        }))
+      );
+      if (cancelled) return;
+      if (error) {
+        toast.error(t`Failed to save parts`);
+        return;
+      }
+      setDraftParts([]);
+      revalidator.revalidate();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetcher.data]);
+
+  // When the new step is created, attach any buffered tools, then revalidate + reset.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: keyed off the created step id
+  useEffect(() => {
+    const newStepId = (fetcher.data as { id?: string | null } | undefined)?.id;
+    if (!newStepId || draftTools.length === 0 || !carbon) return;
+    let cancelled = false;
+    (async () => {
+      const { error } = await carbon.from("methodOperationToolStep").insert(
+        draftTools.map((methodOperationToolId) => ({
+          methodOperationToolId,
+          methodOperationStepId: newStepId
+        }))
+      );
+      if (cancelled) return;
+      if (error) {
+        toast.error(t`Failed to save tools`);
+        return;
+      }
+      setDraftTools([]);
+      revalidator.revalidate();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [fetcher.data]);
 
   if (isDisabled && temporaryItems[operationId]) {
     return (
@@ -1978,6 +2313,79 @@ function AttributesForm({
                 <ArrayInput name="listValues" label={t`List Options`} />
               )}
 
+              <SlidesEditor
+                slides={draftSlides.map((slide) => ({
+                  key: slide.id,
+                  imagePath: slide.imagePath,
+                  modelUploadId: slide.modelUploadId,
+                  caption: slide.caption,
+                  size: slide.size,
+                  annotations: slide.annotations
+                }))}
+                isDisabled={isDisabled}
+                busy={draftUploading}
+                fileInputRef={draftFileInputRef}
+                onFileChange={onAddDraftSlide}
+                modelInputRef={draftModelInputRef}
+                onModelFileChange={onAddDraftModel}
+                onRemove={(index) =>
+                  setDraftSlides((prev) => prev.filter((_, i) => i !== index))
+                }
+                onCaptionBlur={(index, caption) =>
+                  setDraftSlides((prev) =>
+                    prev.map((slide, i) =>
+                      i === index ? { ...slide, caption } : slide
+                    )
+                  )
+                }
+                onAnnotationsChange={(index, annotations) =>
+                  setDraftSlides((prev) =>
+                    prev.map((slide, i) =>
+                      i === index ? { ...slide, annotations } : slide
+                    )
+                  )
+                }
+              />
+
+              <StepLinkEditor
+                label={t`Parts`}
+                addLabel={t`Add parts`}
+                emptyLabel={t`No parts`}
+                searchPlaceholder={t`Search parts...`}
+                removeLabel={t`Remove part`}
+                items={operationParts}
+                linkedIds={draftParts}
+                isDisabled={isDisabled}
+                onAdd={(partId) =>
+                  setDraftParts((prev) =>
+                    prev.includes(partId) ? prev : [...prev, partId]
+                  )
+                }
+                onRemove={(partId) =>
+                  setDraftParts((prev) => prev.filter((id) => id !== partId))
+                }
+              />
+
+              <StepLinkEditor
+                label={t`Tools`}
+                addLabel={t`Add tools`}
+                emptyLabel={t`No tools`}
+                searchPlaceholder={t`Search tools...`}
+                removeLabel={t`Remove tool`}
+                icon={<LuHammer />}
+                items={operationTools}
+                linkedIds={draftTools}
+                isDisabled={isDisabled}
+                onAdd={(toolId) =>
+                  setDraftTools((prev) =>
+                    prev.includes(toolId) ? prev : [...prev, toolId]
+                  )
+                }
+                onRemove={(toolId) =>
+                  setDraftTools((prev) => prev.filter((id) => id !== toolId))
+                }
+              />
+
               <Submit
                 leftIcon={<LuCirclePlus />}
                 isDisabled={isDisabled || fetcher.state !== "idle"}
@@ -1991,7 +2399,7 @@ function AttributesForm({
       )}
 
       {steps.length > 0 && (
-        <div className="border bg-card rounded-lg">
+        <div className="border rounded-lg">
           <Reorder.Group
             axis="y"
             values={sortOrder}
@@ -2013,11 +2421,15 @@ function AttributesForm({
                       attribute={step}
                       operationId={operationId}
                       typeOptions={typeOptions}
+                      materials={materials}
+                      tools={tools}
                       isDisabled={isDisabled}
                       dragControls={dragControls}
-                      className={
-                        index === sortOrder.length - 1 ? "border-none" : ""
-                      }
+                      className={cn(
+                        index === 0 && "rounded-t-lg",
+                        index === sortOrder.length - 1 &&
+                          "rounded-b-lg border-none"
+                      )}
                       configurable={configurable}
                       rulesByField={rulesByField}
                       onConfigure={onConfigure}
@@ -2065,6 +2477,8 @@ function AttributesListItem({
   attribute,
   operationId,
   typeOptions,
+  materials,
+  tools,
   className,
   configurable,
   rulesByField,
@@ -2076,6 +2490,8 @@ function AttributesListItem({
   attribute: OperationStep;
   operationId: string;
   typeOptions: { label: JSX.Element; value: string }[];
+  materials: MethodMaterialType[];
+  tools: OperationTool[];
   className?: string;
   configurable: boolean;
   rulesByField: Map<string, ConfigurationRule>;
@@ -2102,6 +2518,7 @@ function AttributesListItem({
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
   const fetcher = useFetcher<typeof editMethodOperationStepAction>();
+  const duplicateFetcher = useFetcher();
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   useEffect(() => {
@@ -2166,7 +2583,7 @@ function AttributesListItem({
       rulesByField.has(getFieldKey(`attribute:${id}:maxValue`, operationId)));
 
   return (
-    <div className={cn("border-b p-6", className)}>
+    <div className={cn("border-b p-6 bg-card", className)}>
       {disclosure.isOpen ? (
         <ValidatedForm
           action={path.to.methodOperationStep(id)}
@@ -2313,6 +2730,14 @@ function AttributesListItem({
             {type === "List" && (
               <ArrayInput name="listValues" label={t`List Options`} />
             )}
+            <StepSlides step={attribute} isDisabled={isDisabled} />
+            <StepParts
+              step={attribute}
+              operationId={operationId}
+              materials={materials}
+              isDisabled={isDisabled}
+            />
+            <StepTools step={attribute} tools={tools} isDisabled={isDisabled} />
             <HStack className="w-full justify-end" spacing={2}>
               <Button variant="secondary" onClick={disclosure.onClose}>
                 Cancel
@@ -2431,9 +2856,24 @@ function AttributesListItem({
           </HStack>
           <div className="flex items-center justify-end gap-2">
             <HStack spacing={2}>
-              <span className="text-xs text-muted-foreground">
-                {isUpdated ? "Updated" : "Created"} {formatRelativeTime(date)}
-              </span>
+              {/* Light revision surface: relative time inline, full created + updated
+                  history (who / when) on hover. */}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="text-xs text-muted-foreground">
+                    {isUpdated ? "Updated" : "Created"}{" "}
+                    {formatRelativeTime(date)}
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">
+                  <div className="flex flex-col gap-0.5 text-xs">
+                    <span>Created {formatRelativeTime(createdAt)}</span>
+                    {updatedAt ? (
+                      <span>Updated {formatRelativeTime(updatedAt)}</span>
+                    ) : null}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
               <EmployeeAvatar employeeId={person} withName={false} />
             </HStack>
             {!isDisabled && (
@@ -2448,6 +2888,16 @@ function AttributesListItem({
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={disclosure.onOpen}>
                     Edit
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      duplicateFetcher.submit(null, {
+                        method: "post",
+                        action: path.to.duplicateMethodOperationStep(id)
+                      })
+                    }
+                  >
+                    Duplicate
                   </DropdownMenuItem>
                   <DropdownMenuItem
                     destructive
@@ -2476,6 +2926,280 @@ function AttributesListItem({
         />
       )}
     </div>
+  );
+}
+
+// Parts assigned to an EXISTING step — the step-side of the part↔step link. Lists this
+// operation's BOM parts and toggles each link immediately via the material route. Replaces
+// the old BOM "Steps" dropdown (assignment now lives on the step).
+function StepParts({
+  step,
+  operationId,
+  materials,
+  isDisabled
+}: {
+  step: OperationStep;
+  operationId: string;
+  materials: MethodMaterialType[];
+  isDisabled: boolean;
+}) {
+  const { t } = useLingui();
+  const fetcher = useFetcher();
+
+  const operationParts = (materials ?? [])
+    .filter((m) => m.methodOperationId === operationId)
+    .map((m) => ({
+      id: m.id,
+      name: m.description || m.itemId,
+      quantity: m.quantity ?? 1
+    }));
+
+  const linkedPartIds = (materials ?? [])
+    .filter((m) =>
+      (m.methodMaterialStep ?? []).some(
+        (s) => s.methodOperationStepId === step.id
+      )
+    )
+    .map((m) => m.id);
+
+  const toggle = (partId: string, linked: boolean) => {
+    if (!step.id) return;
+    const fd = new FormData();
+    fd.append("materialId", partId);
+    fd.append("stepId", step.id);
+    fd.append("linked", String(linked));
+    fetcher.submit(fd, {
+      method: "post",
+      action: path.to.methodOperationStepMaterial
+    });
+  };
+
+  return (
+    <StepLinkEditor
+      label={t`Parts`}
+      addLabel={t`Add parts`}
+      emptyLabel={t`No parts`}
+      searchPlaceholder={t`Search parts...`}
+      removeLabel={t`Remove part`}
+      items={operationParts}
+      linkedIds={linkedPartIds}
+      isDisabled={isDisabled}
+      busy={fetcher.state !== "idle"}
+      onAdd={(id) => toggle(id, true)}
+      onRemove={(id) => toggle(id, false)}
+    />
+  );
+}
+
+// Tools assigned to an EXISTING step — the step-side of the tool↔step link. Lists this
+// operation's tools and toggles each link immediately via the tool route (assignment now
+// lives on the step, not the tool modal). Twin of StepParts.
+function StepTools({
+  step,
+  tools,
+  isDisabled
+}: {
+  step: OperationStep;
+  tools: OperationTool[];
+  isDisabled: boolean;
+}) {
+  const { t } = useLingui();
+  const fetcher = useFetcher();
+  const allTools = useTools();
+
+  const operationTools = (tools ?? []).map((tl) => {
+    const tool = allTools.find((x) => x.id === tl.toolId);
+    return {
+      id: tl.id ?? "",
+      name: tool?.readableIdWithRevision ?? tl.toolId ?? "",
+      secondary: tool?.name ?? undefined,
+      quantity: tl.quantity ?? 1
+    };
+  });
+
+  const linkedToolIds = (tools ?? [])
+    .filter((tl) =>
+      (
+        tl.methodOperationStepIds ??
+        (
+          (
+            tl as {
+              methodOperationToolStep?: { methodOperationStepId: string }[];
+            }
+          ).methodOperationToolStep ?? []
+        ).map((s) => s.methodOperationStepId)
+      ).some((stepId) => stepId === step.id)
+    )
+    .map((tl) => tl.id ?? "");
+
+  const toggle = (toolId: string, linked: boolean) => {
+    if (!step.id) return;
+    const fd = new FormData();
+    fd.append("toolId", toolId);
+    fd.append("stepId", step.id);
+    fd.append("linked", String(linked));
+    fetcher.submit(fd, {
+      method: "post",
+      action: path.to.methodOperationStepTool
+    });
+  };
+
+  return (
+    <StepLinkEditor
+      label={t`Tools`}
+      addLabel={t`Add tools`}
+      emptyLabel={t`No tools`}
+      searchPlaceholder={t`Search tools...`}
+      removeLabel={t`Remove tool`}
+      icon={<LuHammer />}
+      items={operationTools}
+      linkedIds={linkedToolIds}
+      isDisabled={isDisabled}
+      busy={fetcher.state !== "idle"}
+      onAdd={(id) => toggle(id, true)}
+      onRemove={(id) => toggle(id, false)}
+    />
+  );
+}
+
+// Reference images ("slides") for an EXISTING step — upload (one image/slide to the
+// private bucket), caption, delete, persisted immediately via the slide routes. Copied
+// to job/quote by get-method. See .ai/specs/2026-07-14-mes-execution-views.md §4.
+function StepSlides({
+  step,
+  isDisabled
+}: {
+  step: OperationStep;
+  isDisabled: boolean;
+}) {
+  const { t } = useLingui();
+  const fetcher = useFetcher();
+  const captionFetcher = useFetcher();
+  const { carbon } = useCarbon();
+  const {
+    company: { id: companyId }
+  } = useUser();
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const modelInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+
+  const slides = ((step.methodOperationStepSlide ?? []) as OperationStepSlide[])
+    .slice()
+    .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+
+  const nextSortOrder = () =>
+    slides.reduce((m, s) => Math.max(m, s.sortOrder ?? 0), 0) + 1;
+
+  const onAddFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !carbon || !step.id) return;
+    setUploading(true);
+    try {
+      const ext = file.name.split(".").pop();
+      const fileName = `${companyId}/parts/${nanoid()}.${ext}`;
+      const result = await carbon.storage
+        .from("private")
+        .upload(fileName, file);
+      if (result.error || !result.data) {
+        toast.error(t`Failed to upload image`);
+        return;
+      }
+      const fd = new FormData();
+      fd.append("stepId", step.id);
+      fd.append("imagePath", result.data.path);
+      fd.append("sortOrder", String(nextSortOrder()));
+      fetcher.submit(fd, {
+        method: "post",
+        action: path.to.newMethodOperationStepSlide
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Upload a 3D model and attach it to the step as a model slide. The model-upload
+  // API also starts the assembler's STEP → GLB conversion.
+  const onAddModelFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file || !carbon || !step.id) return;
+    setUploading(true);
+    try {
+      const modelUploadId = await uploadStepSlideModel(carbon, companyId, file);
+      if (!modelUploadId) {
+        toast.error(t`Failed to upload model`);
+        return;
+      }
+      const fd = new FormData();
+      fd.append("stepId", step.id);
+      fd.append("modelUploadId", modelUploadId);
+      fd.append("sortOrder", String(nextSortOrder()));
+      fetcher.submit(fd, {
+        method: "post",
+        action: path.to.newMethodOperationStepSlide
+      });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  // Update one slide: always carries the required fields (id → the route updates rather
+  // than inserts; stepId + the slide's content field satisfy the validator) plus whatever
+  // changed. Fields not sent are preserved, so a caption edit never wipes size/annotations
+  // and vice-versa.
+  function saveSlide(
+    slide: OperationStepSlide,
+    fields: Record<string, string>
+  ) {
+    const fd = new FormData();
+    fd.append("id", slide.id);
+    fd.append("stepId", slide.stepId);
+    if (slide.imagePath) fd.append("imagePath", slide.imagePath);
+    if (slide.modelUploadId) fd.append("modelUploadId", slide.modelUploadId);
+    fd.append("sortOrder", String(slide.sortOrder ?? 1));
+    for (const [key, value] of Object.entries(fields)) fd.append(key, value);
+    captionFetcher.submit(fd, {
+      method: "post",
+      action: path.to.newMethodOperationStepSlide
+    });
+  }
+
+  return (
+    <SlidesEditor
+      slides={slides.map((s) => ({
+        key: s.id,
+        imagePath: s.imagePath,
+        modelUploadId: s.modelUploadId,
+        caption: s.caption,
+        size: s.size,
+        annotations: s.annotations
+      }))}
+      isDisabled={isDisabled}
+      busy={uploading || fetcher.state !== "idle"}
+      fileInputRef={fileInputRef}
+      onFileChange={onAddFile}
+      modelInputRef={modelInputRef}
+      onModelFileChange={onAddModelFile}
+      onRemove={(index) => {
+        const slide = slides[index];
+        if (!slide) return;
+        fetcher.submit(null, {
+          method: "post",
+          action: path.to.deleteMethodOperationStepSlide(slide.id)
+        });
+      }}
+      onCaptionBlur={(index, caption) => {
+        const slide = slides[index];
+        if (slide && (slide.caption ?? "") !== caption)
+          saveSlide(slide, { caption });
+      }}
+      onAnnotationsChange={(index, annotations) => {
+        const slide = slides[index];
+        if (slide)
+          saveSlide(slide, { annotations: JSON.stringify(annotations) });
+      }}
+    />
   );
 }
 
@@ -2775,6 +3499,153 @@ function ParametersListItem({
   );
 }
 
+// Read-only MES assembly preview for an operation (Phase 3). Mirrors the MES per-step
+// layout: a step pager, the step's first reference slide, the step text, and the tools
+// scoped to that step (unscoped tools show on every step). No live job, no mutations.
+function OperationPreview({
+  steps,
+  tools
+}: {
+  steps: OperationStep[];
+  tools: OperationTool[];
+}) {
+  const { t } = useLingui();
+  const allTools = useTools();
+  const [current, setCurrent] = useState(0);
+
+  const sorted = [...steps].sort(
+    (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+  );
+
+  if (sorted.length === 0) {
+    return (
+      <div className="rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground">
+        <Trans>Add steps to preview the operator view.</Trans>
+      </div>
+    );
+  }
+
+  const idx = Math.min(current, sorted.length - 1);
+  const step = sorted[idx];
+  const slides = [...(step.methodOperationStepSlide ?? [])].sort(
+    (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0)
+  );
+  // First IMAGE slide for the preview panel — model slides render only in the MES
+  // assembly view; here they'd have no picture to show.
+  const firstImagePath = slides.find((s) => s.imagePath)?.imagePath;
+  const image = firstImagePath ? getPrivateUrl(firstImagePath) : null;
+
+  // Tools scoped to this step + operation-level (no links) tools shown on every step
+  // (tool ↔ step is many-to-many).
+  const stepTools = tools.filter((tl) => {
+    const ids: string[] =
+      tl.methodOperationStepIds ??
+      (
+        (
+          tl as {
+            methodOperationToolStep?: { methodOperationStepId: string }[];
+          }
+        ).methodOperationToolStep ?? []
+      ).map((s) => s.methodOperationStepId);
+    return ids.length === 0 || (!!step.id && ids.includes(step.id));
+  });
+
+  const descriptionHtml =
+    step.description && typeof step.description === "object"
+      ? generateHTML(step.description as Parameters<typeof generateHTML>[0])
+      : "";
+
+  return (
+    <div className="flex flex-col gap-4 rounded-lg border bg-card p-4">
+      <div className="flex items-center justify-between">
+        <span className="text-xs text-muted-foreground">
+          {t`Step`} {idx + 1} / {sorted.length}
+        </span>
+        <div className="flex gap-1">
+          <Button
+            variant="ghost"
+            size="md"
+            isIcon
+            aria-label={t`Previous step`}
+            isDisabled={idx <= 0}
+            onClick={() => setCurrent((c) => Math.max(0, c - 1))}
+          >
+            <LuChevronLeft />
+          </Button>
+          <Button
+            variant="ghost"
+            size="md"
+            isIcon
+            aria-label={t`Next step`}
+            isDisabled={idx >= sorted.length - 1}
+            onClick={() =>
+              setCurrent((c) => Math.min(sorted.length - 1, c + 1))
+            }
+          >
+            <LuChevronRight />
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex aspect-video items-center justify-center overflow-hidden rounded-md border bg-muted/40">
+        {image ? (
+          <img
+            src={image}
+            alt=""
+            className="max-h-full max-w-full object-contain"
+          />
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            <Trans>No reference image</Trans>
+          </span>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2">
+        <span className="flex size-6 items-center justify-center rounded-full bg-foreground text-xs font-bold text-background">
+          {idx + 1}
+        </span>
+        {step.type ? <Badge variant="secondary">{step.type}</Badge> : null}
+      </div>
+      <p className="text-sm font-medium">{step.name ?? t`Step`}</p>
+      {descriptionHtml ? (
+        <div
+          className="prose prose-sm max-w-none text-sm dark:prose-invert"
+          dangerouslySetInnerHTML={{ __html: descriptionHtml }}
+        />
+      ) : null}
+
+      <div className="flex flex-col gap-1 border-t pt-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+          <Trans>Tools</Trans>
+        </span>
+        {stepTools.length > 0 ? (
+          stepTools.map((tl, i) => {
+            const tool = allTools.find((x) => x.id === tl.toolId);
+            return (
+              <div key={tl.id ?? i} className="flex items-center gap-2 py-0.5">
+                <LuHammer className="size-3 shrink-0 text-muted-foreground" />
+                <span className="flex-1 text-xs">
+                  {tool?.readableIdWithRevision ?? tl.toolId}
+                </span>
+                {tl.quantity > 1 ? (
+                  <span className="text-xs text-muted-foreground">
+                    ×{tl.quantity}
+                  </span>
+                ) : null}
+              </div>
+            );
+          })
+        ) : (
+          <span className="text-xs text-muted-foreground">
+            <Trans>No tools for this step</Trans>
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ToolsForm({
   operationId,
   isDisabled,
@@ -2832,6 +3703,9 @@ function ToolsForm({
                 <Number name="quantity" label={t`Quantity`} />
               </div>
 
+              {/* Tool↔step assignment lives on the step editor now, not here — a tool added
+                  from this form starts operation-level (shown on every step in the MES). */}
+
               <Submit
                 leftIcon={<LuCirclePlus />}
                 isDisabled={isDisabled || fetcher.state !== "idle"}
@@ -2855,7 +3729,10 @@ function ToolsForm({
                 key={t.id}
                 tool={t}
                 operationId={operationId}
-                className={index === tools.length - 1 ? "border-none" : ""}
+                className={cn(
+                  index === 0 && "rounded-t-lg",
+                  index === tools.length - 1 && "rounded-b-lg border-none"
+                )}
                 isDisabled={isDisabled}
               />
             ))}
@@ -2930,6 +3807,9 @@ function ToolsListItem({
               <Tool name="toolId" label={t`Tool`} autoFocus />
               <Number name="quantity" label={t`Quantity`} />
             </div>
+
+            {/* Tool↔step assignment lives on the step editor now (not here). */}
+
             <HStack className="w-full justify-end" spacing={2}>
               <Button variant="secondary" onClick={disclosure.onClose}>
                 Cancel
@@ -3031,7 +3911,7 @@ function makeItem(
         <h3 className="font-semibold truncate cursor-pointer">
           {operation.description}
         </h3>
-        {operation.operationType === "Outside" && (
+        {operation.operationType === "Outside Processing" && (
           <SupplierProcessPreview
             processId={operation.processId}
             supplierProcessId={operation.operationSupplierProcessId}
@@ -3043,8 +3923,8 @@ function makeItem(
     order: operation.operationOrder,
     details: (
       <HStack spacing={1}>
-        {operation.operationType === "Outside" ? (
-          <Badge>Outside</Badge>
+        {operation.operationType === "Outside Processing" ? (
+          <Badge>Outside Processing</Badge>
         ) : (
           <>
             {(operation?.setupTime ?? 0) > 0 && (

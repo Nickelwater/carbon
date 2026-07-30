@@ -5,12 +5,14 @@ import type {
   getGaugeCalibrationRecords,
   getGauges,
   getGaugeTypes,
-  getInboundInspection,
-  getInboundInspections,
+  getInspection,
   getInspectionDocument,
   getInspectionDocuments,
   getInspectionFeatures,
+  getInspectionMeasurements,
   getInspectionPlan,
+  getInspectionSamplingPlans,
+  getInspections,
   getIssueActionTasks,
   getIssueApprovalTasks,
   getIssueAssociations,
@@ -174,39 +176,42 @@ export type Risk = NonNullable<
   Awaited<ReturnType<typeof getRisks>>["data"]
 >[number];
 
-export type InboundInspection = NonNullable<
-  Awaited<ReturnType<typeof getInboundInspections>>["data"]
+export type Inspection = NonNullable<
+  Awaited<ReturnType<typeof getInspections>>["data"]
 >[number];
 
-export type InboundInspectionDetail = NonNullable<
-  Awaited<ReturnType<typeof getInboundInspection>>["data"]
+export type InspectionDetail = NonNullable<
+  Awaited<ReturnType<typeof getInspection>>["data"]
 >;
 
-export type InboundInspectionStatus =
-  Database["public"]["Enums"]["inboundInspectionStatus"];
+export type InspectionStatus =
+  Database["public"]["Enums"]["inspectionStatusType"];
 
-export type InboundInspectionSampleStatus =
-  Database["public"]["Enums"]["inboundInspectionSampleStatus"];
+export type InspectionSampleStatus =
+  Database["public"]["Enums"]["inspectionSampleStatusType"];
+
+export type InspectionRow = Database["public"]["Tables"]["inspection"]["Row"];
+
+export type InspectionSampleRow =
+  Database["public"]["Tables"]["inspectionSample"]["Row"];
 
 // getInboundInspection/getInboundInspections (quality.service.ts) now read
 // the generic `inspection` table and normalize the row into this legacy
 // shape: `sourceType`/`receiptId`/`receiptLineId`/`jobId`/`jobOperationId`
 // are attached from the `inspectionReceipt`/`inspectionLot` subtype tables,
 // and `inboundInspectionId` mirrors `inspection.inspectionId`.
-export type InboundInspectionRow =
-  Database["public"]["Tables"]["inspection"]["Row"] & {
-    inboundInspectionId: string;
-    sourceType: "Receipt" | "Job";
-    receiptId: string | null;
-    receiptLineId: string | null;
-    jobId: string | null;
-    jobOperationId: string | null;
-  };
+export type InboundInspectionRow = InspectionRow & {
+  inboundInspectionId: string;
+  sourceType: "Receipt" | "Job";
+  receiptId: string | null;
+  receiptLineId: string | null;
+  jobId: string | null;
+  jobOperationId: string | null;
+};
 
-export type InboundInspectionSampleRow =
-  Database["public"]["Tables"]["inspectionSample"]["Row"] & {
-    inboundInspectionId: string;
-  };
+export type InboundInspectionSampleRow = InspectionSampleRow & {
+  inboundInspectionId: string;
+};
 
 export type InspectionTrackedEntity = Pick<
   Database["public"]["Tables"]["trackedEntity"]["Row"],
@@ -218,12 +223,26 @@ export type InspectionTrackedEntity = Pick<
   | "quantity"
 >;
 
-export type InboundInspectionSample = InboundInspectionSampleRow & {
+export type InspectionSample = InspectionSampleRow & {
   trackedEntity: InspectionTrackedEntity | null;
 };
 
 export type InboundInspectionSampleMeasurementRow =
   Database["public"]["Tables"]["inspectionSampleMeasurement"]["Row"];
+
+export type ItemInspectionDocumentAssignment =
+  Database["public"]["Tables"]["itemInspectionDocumentAssignment"]["Row"];
+
+export type InspectionMeasurementRow =
+  Database["public"]["Tables"]["inspectionMeasurement"]["Row"];
+
+export type InspectionSamplingPlan = NonNullable<
+  Awaited<ReturnType<typeof getInspectionSamplingPlans>>["data"]
+>[number];
+
+export type InspectionMeasurement = NonNullable<
+  Awaited<ReturnType<typeof getInspectionMeasurements>>["data"]
+>[number];
 
 export type IssueTypeListItem = NonNullable<
   Awaited<ReturnType<typeof getIssueTypesList>>["data"]

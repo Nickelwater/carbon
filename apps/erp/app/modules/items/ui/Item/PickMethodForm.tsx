@@ -505,6 +505,7 @@ function ShelfLifeFields({
                   description={t`Output never outlasts its raw materials. Falls back to the fixed duration when no input has an expiry date.`}
                   value={!!shelfLifeCalculateFromBom}
                   onChange={(v) => setShelfLifeCalculateFromBom(v)}
+                  bordered
                 />
               </div>
             </>

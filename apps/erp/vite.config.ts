@@ -63,7 +63,13 @@ export default defineConfig(({ isSsrBuild, mode }) => {
     server: {
       port: 3000,
       strictPort: true,
-      allowedHosts: [".ngrok-free.app", ".ngrok-free.dev", ".dev", ".localhost"],
+      allowedHosts: [
+        ".ngrok-free.app",
+        ".ngrok-free.dev",
+        ".trycloudflare.com",
+        ".dev",
+        ".localhost",
+      ],
       watch: {
         awaitWriteFinish: { stabilityThreshold: 250 },
       },
@@ -84,10 +90,9 @@ export default defineConfig(({ isSsrBuild, mode }) => {
          * whole `konva` package — react-konva imports `konva/lib/Core.js`, etc.).
          */
         canvas: path.resolve(__dirname, "app/ssr-shims/canvas-stub.cjs"),
-        "@carbon/utils": path.resolve(
-          __dirname,
-          "../../packages/utils/src/index.ts",
-        ),
+        // Directory (not index.ts) so subpath imports like
+        // `@carbon/utils/favicon` resolve to `src/favicon.ts`.
+        "@carbon/utils": path.resolve(__dirname, "../../packages/utils/src"),
         "@carbon/form": path.resolve(
           __dirname,
           "../../packages/form/src/index.tsx",

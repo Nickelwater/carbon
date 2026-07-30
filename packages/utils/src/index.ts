@@ -23,6 +23,7 @@ export * from "./object";
 export * from "./operation-costing";
 export * from "./operation-time";
 export * from "./parts-per-cycle";
+export * from "./receiving";
 export * from "./shipmentBatchTracking";
 export * from "./shippingLabelBoxes";
 export * from "./ssr";

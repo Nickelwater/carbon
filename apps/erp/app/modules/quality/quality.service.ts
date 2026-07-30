@@ -17,7 +17,8 @@ import {
   listBalloons,
   listInspectionFeatures,
   mapBalloonIdsToFeatureIdsForDocument
-} from "./inspectionDocumentDb";
+} from "~/modules/production/inspectionDocumentDb";
+import type { inspectionDocumentValidator } from "~/modules/production/production.models";
 import { rewireSamplingPlansToActiveInspectionDocument } from "./inspectionDocumentVersioning";
 
 export {
@@ -32,11 +33,11 @@ import type {
   gaugeRole,
   gaugeTypeValidator,
   gaugeValidator,
-  inspectionDocumentValidator,
   inspectionTypes,
   issueTypeValidator,
   issueValidator,
   issueWorkflowValidator,
+  itemInspectionDocumentAssignmentValidator,
   itemInspectionPolicyValidator,
   itemSamplingPlanValidator,
   nonConformanceApprovalRequirement,
@@ -150,7 +151,7 @@ export async function deleteIssueAssociation(
         .from("nonConformanceTrackedEntity")
         .delete()
         .eq("id", associationId);
-    case "inboundInspections":
+    case "inspections":
       return await (client as any)
         .from("nonConformanceInspection")
         .delete()
@@ -409,17 +410,6 @@ export async function getIssueWorkflow(
     .single();
 }
 
-export async function getIssueAction(
-  client: SupabaseClient<Database>,
-  id: string
-) {
-  return client
-    .from("nonConformanceActionTask")
-    .select("id,notes,nonConformanceId,nonConformance(id,nonConformanceId)")
-    .eq("id", id)
-    .single();
-}
-
 export async function getIssueActionTasks(
   client: SupabaseClient<Database>,
   id: string,
@@ -525,7 +515,7 @@ export async function getIssueAssociations(
     trackedEntities,
     customers,
     suppliers,
-    inboundInspections
+    inspections
   ] = await Promise.all([
     // Items
     (client as any)
@@ -820,18 +810,16 @@ export async function getIssueAssociations(
         documentLineId: "",
         documentReadableId: item.supplier.name
       })) || [],
-    inboundInspections: ((inboundInspections as any)?.data ?? []).map(
-      (link: any) => ({
-        id: link.id,
-        type: "inboundInspections",
-        documentId: link.inspectionId ?? "",
-        documentLineId: "",
-        documentReadableId: link.inspection?.inspectionId ?? "",
-        quantity: link.inspection?.lotSize ?? 0,
-        status: link.inspection?.status ?? null,
-        sourceType: link.inspection?.type === "Lot" ? "Job" : "Receipt"
-      })
-    )
+    inspections: ((inspections as any)?.data ?? []).map((link: any) => ({
+      id: link.id,
+      type: "inspections",
+      documentId: link.inspectionId ?? "",
+      documentLineId: "",
+      documentReadableId: link.inspection?.inspectionId ?? "",
+      quantity: link.inspection?.lotSize ?? 0,
+      status: link.inspection?.status ?? null,
+      sourceType: link.inspection?.type === "Lot" ? "Job" : "Receipt"
+    }))
   };
 }
 
@@ -3441,8 +3429,11 @@ export async function getInspections(
     search?: string | null;
     status?: string | null;
     type?: (typeof inspectionTypes)[number];
+    source?: string | null;
   }
 ) {
+  // No receipt embed: the generic sourceDocumentId carries no FK, so the
+  // source document is denormalized onto the row (sourceDocumentReadableId).
   let query = (client as any)
     .from("inspection")
     .select(INSPECTION_SELECT_LIST, { count: "exact" })
@@ -3454,13 +3445,18 @@ export async function getInspections(
 
   if (args?.search) {
     query = query.or(
-      `itemReadableId.ilike.%${args.search}%,notes.ilike.%${args.search}%`
+      `itemReadableId.ilike.%${args.search}%,sourceDocumentReadableId.ilike.%${args.search}%,notes.ilike.%${args.search}%`
     );
   }
 
   if (args?.status) {
     // @ts-ignore - status is a valid enum value
     query = query.eq("status", args.status);
+  }
+
+  if (args?.source) {
+    // @ts-ignore - source is a valid enum value
+    query = query.eq("sourceDocument", args.source);
   }
 
   if (args) {
@@ -3663,7 +3659,26 @@ export async function getInProcessInspectionDependencies(
   };
 }
 
-export async function getInboundInspectionLotTrackedEntities(
+// All inspection lots created for a receipt (one per inspected receipt line),
+// keyed by the source-generic columns. Powers the receipt header's link/dropdown
+// to its inspections.
+export async function getReceiptInspections(
+  client: SupabaseClient<Database>,
+  receiptId: string,
+  companyId: string
+) {
+  return (client as any)
+    .from("inspection")
+    .select("id, inspectionId, itemId, itemReadableId, status")
+    .eq("sourceDocument", "Receipt")
+    .eq("sourceDocumentId", receiptId)
+    .eq("companyId", companyId)
+    .order("createdAt", { ascending: true });
+}
+
+// Receipt-sourced lots only: the received tracked entities are linked to the
+// receipt line through their attributes.
+export async function getInspectionTrackedEntities(
   client: SupabaseClient<Database>,
   inspectionId: string,
   companyId: string,
@@ -3699,4 +3714,90 @@ export async function getInboundInspectionLotTrackedEntities(
     .select("*")
     .eq("attributes ->> Receipt Line", receiptLineId)
     .eq("companyId", companyId);
+}
+
+export async function getInspectionSamplingPlans(
+  client: SupabaseClient<Database>,
+  inspectionId: string,
+  companyId: string
+) {
+  // Embed by target table name, never alias:fkColumn — composite-FK embeds
+  // break with the alias form.
+  return client
+    .from("inspectionSamplingPlan")
+    .select(
+      "*, inspectionFeature(id, label, description, pageNumber, type, nominalValue, tolerancePlus, toleranceMinus, unit)"
+    )
+    .eq("inspectionId", inspectionId)
+    .eq("companyId", companyId);
+}
+
+export async function getInspectionMeasurements(
+  client: SupabaseClient<Database>,
+  inspectionId: string,
+  companyId: string
+) {
+  return client
+    .from("inspectionMeasurement")
+    .select("*")
+    .eq("inspectionId", inspectionId)
+    .eq("companyId", companyId);
+}
+
+export async function getItemInspectionDocumentAssignments(
+  client: SupabaseClient<Database>,
+  itemId: string,
+  companyId: string
+) {
+  return client
+    .from("itemInspectionDocumentAssignment")
+    .select("*")
+    .eq("itemId", itemId)
+    .eq("companyId", companyId);
+}
+
+export async function upsertItemInspectionDocumentAssignment(
+  client: SupabaseClient<Database>,
+  assignment: z.infer<typeof itemInspectionDocumentAssignmentValidator> & {
+    companyId: string;
+    userId: string;
+  }
+) {
+  if (!assignment.inspectionDocumentId) {
+    return client
+      .from("itemInspectionDocumentAssignment")
+      .delete()
+      .eq("itemId", assignment.itemId)
+      .eq("usage", assignment.usage)
+      .eq("companyId", assignment.companyId);
+  }
+
+  const existing = await client
+    .from("itemInspectionDocumentAssignment")
+    .select("itemId")
+    .eq("itemId", assignment.itemId)
+    .eq("usage", assignment.usage)
+    .eq("companyId", assignment.companyId)
+    .maybeSingle();
+
+  if (existing.data) {
+    return client
+      .from("itemInspectionDocumentAssignment")
+      .update({
+        inspectionDocumentId: assignment.inspectionDocumentId,
+        updatedBy: assignment.userId,
+        updatedAt: new Date().toISOString()
+      })
+      .eq("itemId", assignment.itemId)
+      .eq("usage", assignment.usage)
+      .eq("companyId", assignment.companyId);
+  }
+
+  return client.from("itemInspectionDocumentAssignment").insert({
+    itemId: assignment.itemId,
+    usage: assignment.usage,
+    inspectionDocumentId: assignment.inspectionDocumentId,
+    companyId: assignment.companyId,
+    createdBy: assignment.userId
+  });
 }

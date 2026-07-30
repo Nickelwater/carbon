@@ -305,7 +305,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         };
       }
       break;
-    case "inboundInspections": {
+    case "inspections": {
       const inspection = await (client as any)
         .from("inspection")
         .select(
@@ -374,7 +374,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
         );
       }
 
-      await autoLinkInboundInspectionContext(client, {
+      await autoLinkInspectionContext(client, {
         nonConformanceId,
         companyId,
         userId,
@@ -443,7 +443,7 @@ async function autoLinkJobOperationContext(
   });
 }
 
-async function autoLinkInboundInspectionContext(
+async function autoLinkInspectionContext(
   client: Awaited<ReturnType<typeof requirePermissions>>["client"],
   args: {
     nonConformanceId: string;

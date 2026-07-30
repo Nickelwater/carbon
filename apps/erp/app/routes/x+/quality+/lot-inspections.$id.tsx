@@ -12,7 +12,7 @@ import type {
   IssueTypeListItem
 } from "~/modules/quality/types";
 import InboundInspectionLotView from "~/modules/quality/ui/InboundInspections/InboundInspectionLotView";
-import { loadInspectionLotDetail } from "~/modules/quality/ui/InboundInspections/loadInspectionLotDetail.server";
+import { loadInspectionLotDetail } from "~/modules/quality/ui/Inspections/loadInspectionLotDetail.server";
 import { path } from "~/utils/path";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {

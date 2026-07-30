@@ -43,8 +43,8 @@ import {
 } from "~/hooks";
 import { getLinkToItemDetails } from "~/modules/items/ui/Item/ItemForm";
 import type { Supplier } from "~/modules/purchasing/types";
-import type { MethodItemType } from "~/modules/shared";
-import { methodItemType } from "~/modules/shared";
+import type { ItemType } from "~/modules/shared";
+import { itemType } from "~/modules/shared";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import { isSalesInvoiceLocked } from "../../invoicing.models";
@@ -68,7 +68,7 @@ export default function SalesInvoiceExplorer() {
 
   const salesInvoiceLineInitialValues = {
     invoiceId: invoiceId,
-    invoiceLineType: "Item" as MethodItemType,
+    invoiceLineType: "Item" as ItemType,
     quantity: 1,
     locationId:
       salesInvoiceData?.salesInvoice?.locationId ?? defaults.locationId ?? "",
@@ -361,14 +361,14 @@ function SalesInvoiceLineItem({
                   <Trans>Delete Line</Trans>
                 </DropdownMenuItem>
                 {/* @ts-expect-error */}
-                {methodItemType.includes(line.invoiceLineType ?? "") && (
+                {itemType.includes(line.invoiceLineType ?? "") && (
                   <DropdownMenuItem
                     asChild
                     onClick={(e) => e.stopPropagation()}
                   >
                     <Link
                       to={getLinkToItemDetails(
-                        line.invoiceLineType as MethodItemType,
+                        line.invoiceLineType as ItemType,
                         line.itemId!
                       )}
                     >
