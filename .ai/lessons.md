@@ -567,3 +567,13 @@ Format: `Context → Problem → Rule → Applies to`
 **Rule:** A `.refine` predicate must return a **boolean** (`false` = invalid). To attach a path/message, either pass the second `{ message, path }` argument to `.refine` and return `false` on failure, or use `.superRefine((data, ctx) => ctx.addIssue({ path, message }))` when you need per-field errors. Never return an object/array from a `.refine` callback expecting it to be an error map.
 
 **Applies to:** all `apps/erp/app/modules/**/*.models.ts` (and `apps/mes/app/services/models.ts`) zod schemas using `.refine`.
+
+## Upstream table rename vs fork CREATE of the same name
+
+**Context:** Merging `upstream/main` after the fork shipped a three-type inspection model (`20260717170708` CREATE `inspection` + subtypes) while upstream later renamed `inboundInspection` → `inspection` (`20260722132135`).
+
+**Problem:** Fresh/fork migrate dies at the rename (`relation "inspection" already exists`). A late-only reconciliation migration cannot run if the rename migration fails first. Rewriting the already-applied fork CREATE breaks checksums on DBs that recorded it.
+
+**Rule:** Keep the applied fork migration untouched. Guard the **unapplied** upstream rename so colliding ops no-op when fork markers exist (`inspectionType` + subtype table), absorb additive upstream tables that do not collide, and add a new reconcile migration for FK retargeting / UNIQUE(id) needs. Never leave both CREATE and RENAME targeting the same relation without an explicit fork/fresh path.
+
+**Applies to:** `packages/database/supabase/migrations/` after upstream merges; especially quality/inspection and any dual-write legacy→generic schema pairs.

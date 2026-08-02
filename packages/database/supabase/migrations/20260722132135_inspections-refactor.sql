@@ -7,35 +7,72 @@
 -- becomes `inspectionSamplingPlan` and the status enums take the *StatusType
 -- suffix (supplierStatusType precedent). Old constraint/index NAMES keep their
 -- `inboundInspection` strings — renaming them is cosmetic churn.
+--
+-- Fork guard (Nickelwater three-type model): when `inspectionType` +
+-- `inspectionReceipt` already exist from 20260717170708, skip colliding
+-- renames / enum renames / sourceDocument required model / sequence re-key.
+-- Still absorb Feature→inspectionSamplingPlan and Measurement→inspectionMeasurement
+-- when those targets are free. See FORK.md and 20260731*_reconcile-inspection-models.
 
 -- 1) Table renames (RLS policies follow the table)
-DO $$ BEGIN
-  IF to_regclass('public."inboundInspection"') IS NOT NULL THEN
-    ALTER TABLE "inboundInspection" RENAME TO "inspection";
+DO $$
+DECLARE
+  v_fork_model boolean;
+BEGIN
+  v_fork_model :=
+    EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspectionType')
+    AND to_regclass('public."inspectionReceipt"') IS NOT NULL;
+
+  -- Colliding renames: only when the fork generic model is absent.
+  IF NOT v_fork_model THEN
+    IF to_regclass('public."inboundInspection"') IS NOT NULL
+       AND to_regclass('public."inspection"') IS NULL THEN
+      ALTER TABLE "inboundInspection" RENAME TO "inspection";
+    END IF;
+    IF to_regclass('public."inboundInspectionSample"') IS NOT NULL
+       AND to_regclass('public."inspectionSample"') IS NULL THEN
+      ALTER TABLE "inboundInspectionSample" RENAME TO "inspectionSample";
+    END IF;
+    IF to_regclass('public."inboundInspectionHistory"') IS NOT NULL
+       AND to_regclass('public."inspectionHistory"') IS NULL THEN
+      ALTER TABLE "inboundInspectionHistory" RENAME TO "inspectionHistory";
+    END IF;
+    IF to_regclass('public."nonConformanceInboundInspection"') IS NOT NULL
+       AND to_regclass('public."nonConformanceInspection"') IS NULL THEN
+      ALTER TABLE "nonConformanceInboundInspection" RENAME TO "nonConformanceInspection";
+    END IF;
   END IF;
-  IF to_regclass('public."inboundInspectionSample"') IS NOT NULL THEN
-    ALTER TABLE "inboundInspectionSample" RENAME TO "inspectionSample";
-  END IF;
-  IF to_regclass('public."inboundInspectionFeature"') IS NOT NULL THEN
+
+  -- Additive upstream execution tables: rename when target is free (fork + upstream).
+  IF to_regclass('public."inboundInspectionFeature"') IS NOT NULL
+     AND to_regclass('public."inspectionSamplingPlan"') IS NULL THEN
     ALTER TABLE "inboundInspectionFeature" RENAME TO "inspectionSamplingPlan";
   END IF;
-  IF to_regclass('public."inboundInspectionMeasurement"') IS NOT NULL THEN
+  IF to_regclass('public."inboundInspectionMeasurement"') IS NOT NULL
+     AND to_regclass('public."inspectionMeasurement"') IS NULL THEN
     ALTER TABLE "inboundInspectionMeasurement" RENAME TO "inspectionMeasurement";
-  END IF;
-  IF to_regclass('public."inboundInspectionHistory"') IS NOT NULL THEN
-    ALTER TABLE "inboundInspectionHistory" RENAME TO "inspectionHistory";
-  END IF;
-  IF to_regclass('public."nonConformanceInboundInspection"') IS NOT NULL THEN
-    ALTER TABLE "nonConformanceInboundInspection" RENAME TO "nonConformanceInspection";
   END IF;
 END $$;
 
--- 2) Enum renames
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inboundInspectionStatus') THEN
+-- 2) Enum renames (skip on fork — app + dual-write still use inboundInspection* names)
+DO $$
+DECLARE
+  v_fork_model boolean;
+BEGIN
+  v_fork_model :=
+    EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspectionType')
+    AND to_regclass('public."inspectionReceipt"') IS NOT NULL;
+
+  IF v_fork_model THEN
+    RETURN;
+  END IF;
+
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inboundInspectionStatus')
+     AND NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspectionStatusType') THEN
     ALTER TYPE "inboundInspectionStatus" RENAME TO "inspectionStatusType";
   END IF;
-  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inboundInspectionSampleStatus') THEN
+  IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inboundInspectionSampleStatus')
+     AND NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspectionSampleStatusType') THEN
     ALTER TYPE "inboundInspectionSampleStatus" RENAME TO "inspectionSampleStatusType";
   END IF;
 END $$;
@@ -43,17 +80,39 @@ END $$;
 -- 3) Column renames. Parent readable id follows the nonConformance precedent
 -- (readable `inspectionId` on the parent; child FK columns share the name but
 -- reference inspection.id).
-DO $$ BEGIN
-  IF EXISTS (SELECT 1 FROM information_schema.columns
-             WHERE table_schema = 'public' AND table_name = 'inspection'
-               AND column_name = 'inboundInspectionId') THEN
-    ALTER TABLE "inspection" RENAME COLUMN "inboundInspectionId" TO "inspectionId";
+-- On the fork path, only rename columns on SamplingPlan / Measurement (the
+-- colliding header/sample/history/NCR tables were not renamed).
+DO $$
+DECLARE
+  v_fork_model boolean;
+BEGIN
+  v_fork_model :=
+    EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspectionType')
+    AND to_regclass('public."inspectionReceipt"') IS NOT NULL;
+
+  IF NOT v_fork_model THEN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema = 'public' AND table_name = 'inspection'
+                 AND column_name = 'inboundInspectionId') THEN
+      ALTER TABLE "inspection" RENAME COLUMN "inboundInspectionId" TO "inspectionId";
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema = 'public' AND table_name = 'inspectionSample'
+                 AND column_name = 'inboundInspectionId') THEN
+      ALTER TABLE "inspectionSample" RENAME COLUMN "inboundInspectionId" TO "inspectionId";
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema = 'public' AND table_name = 'inspectionHistory'
+                 AND column_name = 'inboundInspectionId') THEN
+      ALTER TABLE "inspectionHistory" RENAME COLUMN "inboundInspectionId" TO "inspectionId";
+    END IF;
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_schema = 'public' AND table_name = 'nonConformanceInspection'
+                 AND column_name = 'inboundInspectionId') THEN
+      ALTER TABLE "nonConformanceInspection" RENAME COLUMN "inboundInspectionId" TO "inspectionId";
+    END IF;
   END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns
-             WHERE table_schema = 'public' AND table_name = 'inspectionSample'
-               AND column_name = 'inboundInspectionId') THEN
-    ALTER TABLE "inspectionSample" RENAME COLUMN "inboundInspectionId" TO "inspectionId";
-  END IF;
+
   IF EXISTS (SELECT 1 FROM information_schema.columns
              WHERE table_schema = 'public' AND table_name = 'inspectionSamplingPlan'
                AND column_name = 'inboundInspectionId') THEN
@@ -69,33 +128,35 @@ DO $$ BEGIN
                AND column_name = 'inboundInspectionSampleId') THEN
     ALTER TABLE "inspectionMeasurement" RENAME COLUMN "inboundInspectionSampleId" TO "inspectionSampleId";
   END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns
-             WHERE table_schema = 'public' AND table_name = 'inspectionHistory'
-               AND column_name = 'inboundInspectionId') THEN
-    ALTER TABLE "inspectionHistory" RENAME COLUMN "inboundInspectionId" TO "inspectionId";
-  END IF;
-  IF EXISTS (SELECT 1 FROM information_schema.columns
-             WHERE table_schema = 'public' AND table_name = 'nonConformanceInspection'
-               AND column_name = 'inboundInspectionId') THEN
-    ALTER TABLE "nonConformanceInspection" RENAME COLUMN "inboundInspectionId" TO "inspectionId";
-  END IF;
 END $$;
 
--- 4) Generic source-document model
-DO $$ BEGIN
-  CREATE TYPE "inspectionSourceDocument" AS ENUM ('Receipt', 'Job Operation');
-EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+-- 4) Generic source-document model (upstream-only path)
+DO $$
+DECLARE
+  v_fork_model boolean;
+BEGIN
+  v_fork_model :=
+    EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspectionType')
+    AND to_regclass('public."inspectionReceipt"') IS NOT NULL;
 
-ALTER TABLE "inspection"
-  ADD COLUMN IF NOT EXISTS "sourceDocument" "inspectionSourceDocument",
-  ADD COLUMN IF NOT EXISTS "sourceDocumentId" TEXT,
-  ADD COLUMN IF NOT EXISTS "sourceDocumentLineId" TEXT,
-  ADD COLUMN IF NOT EXISTS "sourceDocumentReadableId" TEXT;
+  IF v_fork_model THEN
+    RETURN;
+  END IF;
 
--- Backfill from the receipt-specific columns, then drop them. Gated on the old
--- columns still existing so a retry over committed partial state is a no-op.
--- Dropping the columns also drops their FK and unique constraints.
-DO $$ BEGIN
+  BEGIN
+    CREATE TYPE "inspectionSourceDocument" AS ENUM ('Receipt', 'Job Operation');
+  EXCEPTION WHEN duplicate_object THEN NULL;
+  END;
+
+  ALTER TABLE "inspection"
+    ADD COLUMN IF NOT EXISTS "sourceDocument" "inspectionSourceDocument",
+    ADD COLUMN IF NOT EXISTS "sourceDocumentId" TEXT,
+    ADD COLUMN IF NOT EXISTS "sourceDocumentLineId" TEXT,
+    ADD COLUMN IF NOT EXISTS "sourceDocumentReadableId" TEXT;
+
+  -- Backfill from the receipt-specific columns, then drop them. Gated on the old
+  -- columns still existing so a retry over committed partial state is a no-op.
+  -- Dropping the columns also drops their FK and unique constraints.
   IF EXISTS (SELECT 1 FROM information_schema.columns
              WHERE table_schema = 'public' AND table_name = 'inspection'
                AND column_name = 'receiptLineId') THEN
@@ -121,24 +182,39 @@ DO $$ BEGIN
     ALTER TABLE "inspection" DROP COLUMN "receiptId";
     ALTER TABLE "inspection" DROP COLUMN "receiptLineId";
   END IF;
+
+  ALTER TABLE "inspection"
+    ALTER COLUMN "sourceDocument" SET NOT NULL,
+    ALTER COLUMN "sourceDocumentId" SET NOT NULL;
+
+  -- One inspection per source line (was: unique receiptLineId). No FKs on the
+  -- generic ids — same as receipt."sourceDocumentId".
+  CREATE UNIQUE INDEX IF NOT EXISTS "inspection_sourceDocumentLineId_key"
+    ON "inspection" ("sourceDocument", "sourceDocumentLineId")
+    WHERE "sourceDocumentLineId" IS NOT NULL;
+  CREATE INDEX IF NOT EXISTS "inspection_sourceDocumentId_idx"
+    ON "inspection" ("sourceDocumentId");
+  CREATE INDEX IF NOT EXISTS "inspection_sourceDocument_idx"
+    ON "inspection" ("sourceDocument");
 END $$;
 
-ALTER TABLE "inspection"
-  ALTER COLUMN "sourceDocument" SET NOT NULL,
-  ALTER COLUMN "sourceDocumentId" SET NOT NULL;
+-- 5) Sequence re-key (upstream-only; fork keeps inboundInspection / lotInspection /
+-- inProcessInspection sequences)
+DO $$
+DECLARE
+  v_fork_model boolean;
+BEGIN
+  v_fork_model :=
+    EXISTS (SELECT 1 FROM pg_type WHERE typname = 'inspectionType')
+    AND to_regclass('public."inspectionReceipt"') IS NOT NULL;
 
--- One inspection per source line (was: unique receiptLineId). No FKs on the
--- generic ids — same as receipt."sourceDocumentId".
-CREATE UNIQUE INDEX IF NOT EXISTS "inspection_sourceDocumentLineId_key"
-  ON "inspection" ("sourceDocument", "sourceDocumentLineId")
-  WHERE "sourceDocumentLineId" IS NOT NULL;
-CREATE INDEX IF NOT EXISTS "inspection_sourceDocumentId_idx"
-  ON "inspection" ("sourceDocumentId");
-CREATE INDEX IF NOT EXISTS "inspection_sourceDocument_idx"
-  ON "inspection" ("sourceDocument");
+  IF v_fork_model THEN
+    RETURN;
+  END IF;
 
--- 5) Sequence re-key: existing companies keep their prefix (II) and counter;
--- only NEW companies seed the INS prefix (lib/seed.data.ts).
-UPDATE "sequence"
-SET "table" = 'inspection', "name" = 'Inspection'
-WHERE "table" = 'inboundInspection';
+  -- Existing companies keep their prefix (II) and counter;
+  -- only NEW companies seed the INS prefix (lib/seed.data.ts).
+  UPDATE "sequence"
+  SET "table" = 'inspection', "name" = 'Inspection'
+  WHERE "table" = 'inboundInspection';
+END $$;

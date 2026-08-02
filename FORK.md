@@ -47,6 +47,7 @@ Update this section when adding or removing fork-specific behavior.
 - **Inspection lot sampling** — Link inbound inspection lots to inspection documents; scan sample UX.
 - **Part file attachments on inspection documents** — Attach part files when creating inspection docs.
 - **Production inspection** — `production-inspection` migration and related quality flows.
+- **Three-type inspection model** — Generic `inspection` + Receipt/Lot/InProcess subtypes with dual-write to legacy `inboundInspection*` (`20260717170708_generic-inspection-model` and Phase 3 follow-ons). Upstream’s flat rename (`inboundInspection` → `inspection`) is fork-guarded; see migration collision note below.
 
 ### Inventory & items
 
@@ -124,7 +125,19 @@ Migrations present on this fork that may not exist upstream (or differ in conten
 20260615120001_inspection-document-versions.sql
 20260623154712_customers_view_contract_customer.sql
 20260626175552_item_packaging.sql
+20260717170708_generic-inspection-model.sql
+20260731151905_reconcile-inspection-models.sql
 ```
+
+### Inspection migration collision (upstream rename vs fork CREATE)
+
+Upstream `20260722132135_inspections-refactor.sql` renames `inboundInspection` → `inspection`. The fork already **creates** a different `inspection` table in `20260717170708`. On fork + fresh installs:
+
+1. **`20260722132135` is fork-guarded** — when `inspectionType` + `inspectionReceipt` exist, skip colliding renames, enum renames, required `sourceDocument*` model, and sequence re-key. Still renames Feature→`inspectionSamplingPlan` and Measurement→`inspectionMeasurement` when targets are free.
+2. **`20260727031247`** adds `UNIQUE (id)` on fork `inspection` / `inspectionSample` so `productionQuantity` single-column FKs work.
+3. **`20260731151905_reconcile-inspection-models`** retargets SamplingPlan/Measurement FKs from legacy `inboundInspection*` onto generic `inspection` / `inspectionSample` (same ids via dual-write backfill).
+
+Do **not** rewrite applied fork migration `20260717170708`. Validate `crbn migrate` on staging before production. Upstream-only DBs that already ran the rename are out of scope for this reconciliation.
 
 After merging upstream, run migrations on a fresh or staging DB before production:
 
@@ -251,3 +264,4 @@ Run after every upstream integration. Check off in the PR description.
 | Date | Notes |
 | ---- | ----- |
 | 2026-06-29 | Initial `FORK.md` — documents shipping labels, batch tracking, item packaging, inspection, quote parts, operation time basis, tool life, and merge workflow |
+| 2026-07-31 | Inspection reconciliation — fork three-type model wins; guard upstream `20260722132135`; add `20260731151905_reconcile-inspection-models` |

@@ -5,6 +5,13 @@
 --    inspectionSampleId is the double-count guard for verdict-driven postings
 --    (a sample can produce at most one posting); inspectionId links lot-level
 --    bulk rows.
+--
+-- Fork three-type model uses composite PK ("id","companyId") on inspection /
+-- inspectionSample. Single-column FKs require a UNIQUE on id alone (ids from
+-- id('…') are globally unique).
+CREATE UNIQUE INDEX IF NOT EXISTS "inspection_id_key" ON "inspection" ("id");
+CREATE UNIQUE INDEX IF NOT EXISTS "inspectionSample_id_key" ON "inspectionSample" ("id");
+
 ALTER TABLE "productionQuantity"
   ADD COLUMN IF NOT EXISTS "inspectionId" TEXT REFERENCES "inspection"("id") ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS "inspectionSampleId" TEXT REFERENCES "inspectionSample"("id") ON DELETE SET NULL;
