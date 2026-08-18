@@ -1,14 +1,18 @@
 import type { Database } from "@carbon/database";
+import { getCompanyTimeZone } from "@carbon/database";
 import { trigger } from "@carbon/jobs";
+import type { WorkSource } from "@carbon/lib/telemetry";
+import { trackWorkEvent } from "@carbon/lib/telemetry";
+import { raiseMoment } from "@carbon/lib/workflows";
 import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
 import {
+  datetime,
   type FlatTree,
   flattenTree,
   generateBomIds,
   type TrackedActivityAttributes
 } from "@carbon/utils";
-import { getLocalTimeZone, today } from "@internationalized/date";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 import type { z } from "zod";
@@ -255,91 +259,126 @@ export async function finishJobOperation(
 
     // The status='Done' write fires the sync_finish_job_operation trigger, which
     // completes the job to inventory (job.status → 'Completed') when this was the
-    // last operation. At that point, return any picking-list-allocated batch/serial
-    // stock that was staged to lineside but not consumed back to its warehouse
-    // source — the SQL trigger can't call edge functions, so we orchestrate it here.
-    await returnAllocatedRemaindersAtJobComplete(client, args);
+    // last operation. Return any picked-but-unconsumed stock staged at lineside
+    // back to its warehouse source — the SQL trigger can't call edge functions,
+    // so we orchestrate it here.
+    const { jobId } = await returnPickedRemainders(client, args);
+
+    if (jobId) {
+      await raiseMoment("production.jobOperationCompleted", {
+        outputs: {
+          job: { id: jobId },
+          jobOperation: { id: args.jobOperationId },
+          completedBy: { id: args.userId }
+        },
+        companyId: args.companyId,
+        actorId: args.userId
+      });
+
+      // The status write above has no prior-status guard, so finishing an
+      // already-Done operation writes again. The idempotency key is the
+      // operation id, so the repeat collapses instead of counting twice.
+      trackWorkEvent("job_operation_finished", {
+        companyId: args.companyId,
+        userId: args.userId,
+        jobOperationId: args.jobOperationId,
+        jobId
+      });
+
+      // The only way to observe the automatic completion. When this was the
+      // last operation, sync_finish_job_operation has already flipped the job
+      // to Completed inside the same transaction as the status write above —
+      // in Postgres, with no application call site in any runtime. Reading the
+      // row back here is what closes the last link of the benchmark chain
+      // (created → released → started → reported → finished → completed).
+      // Keyed on jobId, so it collapses with the manual complete route rather
+      // than counting a second completion.
+      const completed = await client
+        .from("job")
+        .select("status")
+        .eq("id", jobId)
+        .eq("companyId", args.companyId)
+        .maybeSingle();
+
+      if (completed.data?.status === "Completed") {
+        trackWorkEvent("job_completed", {
+          companyId: args.companyId,
+          userId: args.userId,
+          jobId,
+          path: "auto"
+        });
+      }
+    }
   }
 
   return result;
 }
 
 /**
- * When a job has just completed, sweep its tracked (batch/serial) picking-list
- * allocations and return the un-consumed remainder of each from the lineside
- * shelf back to the warehouse source (so it's re-allocatable, and inventory
- * reflects only what was actually consumed). No-op unless the job is 'Completed'.
- * Idempotent: `returnPickedRemainder` returns nothing once lineside on-hand is 0.
+ * Flush un-consumed picked material (tracked AND untracked) from the lineside
+ * shelf back to the warehouse via the post-picking sweep cases. Job just
+ * completed → sweep the whole job (runs under both returnPickedMaterialTiming
+ * policies). Otherwise → sweep this operation's lines; the edge function itself
+ * no-ops unless the company policy is 'operation'. Both sweeps are idempotent.
  *
  * Uses the client `finishJobOperation` is given — every caller passes a
- * service-role client, so the picking allocations (an inventory table the
- * finishing operator may not have RLS access to) are always readable and the
- * returns aren't silently skipped for production-only roles.
+ * service-role client, so the picking lines (an inventory table the finishing
+ * operator may not have RLS access to) are always readable and the returns
+ * aren't silently skipped for production-only roles.
  */
-async function returnAllocatedRemaindersAtJobComplete(
+export async function returnPickedRemainders(
   client: SupabaseClient<Database>,
   args: {
     jobOperationId: string;
     userId: string;
     companyId: string;
   }
-) {
+): Promise<{ jobId: string | undefined }> {
   const op = await client
     .from("jobOperation")
     .select("jobId")
     .eq("id", args.jobOperationId)
+    .eq("companyId", args.companyId)
     .maybeSingle();
   const jobId = op.data?.jobId;
-  if (!jobId) return;
+  if (!jobId) return { jobId: undefined };
 
   const job = await client
     .from("job")
-    .select("status, locationId")
+    .select("status")
     .eq("id", jobId)
+    .eq("companyId", args.companyId)
     .maybeSingle();
-  const locationId = job.data?.locationId;
-  if (job.data?.status !== "Completed" || !locationId) return;
+  if (!job.data) return { jobId };
 
-  const { data: lines } = await client
-    .from("pickingListLine")
-    .select("id, pickingListId, pickingListLineTrackedEntity(trackedEntityId)")
-    .eq("jobId", jobId)
-    .neq("status", "Cancelled");
-  if (!lines?.length) return;
-
-  const returns = lines.flatMap((line) => {
-    const allocations =
-      (line.pickingListLineTrackedEntity as Array<{
-        trackedEntityId: string;
-      }> | null) ?? [];
-    return allocations.map((allocation) =>
-      client.functions.invoke("post-picking", {
-        body: {
-          type: "returnPickedRemainder",
-          pickingListId: line.pickingListId,
-          pickingListLineId: line.id,
-          trackedEntityId: allocation.trackedEntityId,
-          locationId,
+  const body =
+    job.data.status === "Completed"
+      ? {
+          type: "returnJobRemainders" as const,
+          jobId,
           userId: args.userId,
           companyId: args.companyId
         }
-      })
-    );
-  });
+      : {
+          type: "returnOperationRemainders" as const,
+          jobOperationId: args.jobOperationId,
+          userId: args.userId,
+          companyId: args.companyId
+        };
 
-  // `functions.invoke` resolves to `{ data, error }` rather than rejecting, so a
-  // failed return never surfaces through Promise.all — inspect each result and log
-  // it, otherwise a stranded lineside remainder is lost silently.
-  const results = await Promise.all(returns);
-  for (const { error } of results) {
-    if (error) {
-      log.error("returnPickedRemainder failed at job complete", {
-        error,
-        jobId,
-        companyId: args.companyId
-      });
-    }
+  // `functions.invoke` resolves to `{ data, error }` rather than rejecting —
+  // inspect and log, otherwise a stranded lineside remainder is lost silently.
+  const { error } = await client.functions.invoke("post-picking", { body });
+  if (error) {
+    log.error("picked-material return sweep failed", {
+      error,
+      jobId,
+      scope: body.type,
+      companyId: args.companyId
+    });
   }
+
+  return { jobId };
 }
 
 export async function getActiveJobOperationsByEmployee(
@@ -728,16 +767,34 @@ export async function getJobMaterialsByOperationId(
   const consumedEntityIds = Array.from(
     new Set((trackedInputs.data ?? []).map((i) => i.id).filter(Boolean))
   );
-  const todayStr = today(getLocalTimeZone()).toString();
-  const expiredConsumed =
-    consumedEntityIds.length > 0
-      ? await client
-          .from("trackedEntity")
-          .select("id")
-          .in("id", consumedEntityIds)
-          .not("expirationDate", "is", null)
-          .lt("expirationDate", todayStr)
-      : { data: [] as { id: string }[] };
+  let expiredConsumed: { data: { id: string }[] | null } = {
+    data: [] as { id: string }[]
+  };
+  if (consumedEntityIds.length > 0) {
+    const job = await client
+      .from("job")
+      .select("companyId")
+      .eq("id", operation.jobId)
+      .single();
+    // A missing job row must not silently degrade the expiry cutoff to UTC
+    // (getCompanyTimeZone("") resolves no company and falls back).
+    if (job.error || !job.data) {
+      throw new Error(
+        `Failed to resolve job ${operation.jobId} for the expiry check: ${
+          job.error?.message ?? "not found"
+        }`
+      );
+    }
+    const todayStr = datetime
+      .today(await getCompanyTimeZone(client, job.data.companyId))
+      .toString();
+    expiredConsumed = await client
+      .from("trackedEntity")
+      .select("id")
+      .in("id", consumedEntityIds)
+      .not("expirationDate", "is", null)
+      .lt("expirationDate", todayStr);
+  }
   const expiredConsumedIds = new Set(
     (expiredConsumed.data ?? []).map((r) => r.id)
   );
@@ -1283,6 +1340,61 @@ export async function getTrackedEntitiesByMakeMethodId(
     .order("createdAt", { ascending: true });
 }
 
+type SerialEntityForSelection = Pick<
+  Database["public"]["Tables"]["trackedEntity"]["Row"],
+  "attributes" | "status"
+>;
+
+/**
+ * A serial tracked entity is still "incomplete" for a job operation when its
+ * attributes carry no `Operation ${jobOperationId}` completion marker and it has
+ * not been consumed. Shared by the serial auto-selection (routes) and the manual
+ * serial picker (`useOperation`) so both agree on "done for this operation".
+ */
+export function isSerialEntityIncompleteForOperation(
+  entity: SerialEntityForSelection,
+  jobOperationId: string
+): boolean {
+  const attributes = (entity.attributes ?? {}) as Record<string, unknown>;
+  // Scrapped is terminal like Consumed — a scrapped unit is never a work
+  // candidate; its replacement is the spawned Reserved entity.
+  return (
+    !(`Operation ${jobOperationId}` in attributes) &&
+    entity.status !== "Consumed" &&
+    entity.status !== "Scrapped"
+  );
+}
+
+/**
+ * The next serial unit an operator should work on for a job operation. Entities
+ * must be ordered by `createdAt` ascending (as `getTrackedEntitiesByMakeMethodId`
+ * returns them). Returns the first entity still incomplete for this operation;
+ * when every entity is already complete it falls back to the last entity, which
+ * preserves the prior end-state behavior. This unifies both the pre-split flow
+ * (all N `quantity=1` entities exist up front) and the old lazy-split flow (the
+ * `issue` edge function spawns the next entity on each completion).
+ */
+export function getNextIncompleteSerialEntity<
+  T extends SerialEntityForSelection
+>(entities: T[], jobOperationId: string): T | undefined {
+  if (entities.length === 0) return undefined;
+  // Prefer a non-terminal (not Consumed/Scrapped) unit for the end-state
+  // fallback so we never seed work onto a scrapped/consumed serial. But keep
+  // the guaranteed last-entity fallback for a fully-terminal make method (every
+  // unit Consumed on a finished subassembly), preserving the prior behavior of
+  // always returning something when entities exist.
+  const selectable = entities.filter(
+    (entity) => entity.status !== "Consumed" && entity.status !== "Scrapped"
+  );
+  return (
+    selectable.find((entity) =>
+      isSerialEntityIncompleteForOperation(entity, jobOperationId)
+    ) ??
+    selectable[selectable.length - 1] ??
+    entities[entities.length - 1]
+  );
+}
+
 export async function getTrackedEntity(
   client: SupabaseClient<Database>,
   id: string
@@ -1325,6 +1437,15 @@ export async function getTrackedInputs(
       p_tracked_entity_id: trackedEntityId
     })
   ]);
+
+  // A scrapped descendant is no longer a live consumed input — the scrap flow
+  // relieved its WIP and reopened the material requirement — so it must not
+  // surface in the Unconsume/Scrap lists (which are built from these inputs).
+  // Genealogy still sees it via the traceability lineage RPCs; this MES helper
+  // intentionally hides it.
+  if (inputs.data) {
+    inputs.data = inputs.data.filter((input) => input.status !== "Scrapped");
+  }
 
   if (outputs.error || outputs.data.length === 0) return inputs;
 
@@ -1570,9 +1691,11 @@ export async function insertProductionQuantity(
     // index on inspectionSampleId is the double-count guard).
     inspectionId?: string;
     inspectionSampleId?: string;
-  }
+  },
+  /** Which surface posted it. Telemetry only — the row cannot tell. */
+  source: WorkSource = "mes"
 ) {
-  return client
+  const result = await client
     .from("productionQuantity")
     .insert(
       sanitize({
@@ -1581,6 +1704,20 @@ export async function insertProductionQuantity(
       })
     )
     .select("*");
+
+  const inserted = result.data?.[0];
+  if (inserted) {
+    trackWorkEvent("production_quantity_reported", {
+      companyId: data.companyId,
+      userId: data.createdBy,
+      productionQuantityId: inserted.id,
+      jobOperationId: data.jobOperationId,
+      quantity: data.quantity,
+      source
+    });
+  }
+
+  return result;
 }
 
 export async function insertScrapQuantity(
@@ -1704,7 +1841,7 @@ export async function startProductionEvent(
   client: SupabaseClient<Database>,
   data: Omit<
     z.infer<typeof productionEventValidator>,
-    "id" | "action" | "timezone" | "hasActiveEvents" | "unitIndex"
+    "id" | "action" | "hasActiveEvents" | "unitIndex"
   > & {
     startTime: string;
     employeeId: string;
@@ -1712,7 +1849,9 @@ export async function startProductionEvent(
     createdBy: string;
   },
   trackedEntityId: string | undefined,
-  unitIndex?: number
+  unitIndex?: number,
+  /** `mes_qr` when the operator scanned a traveller rather than tapping a station. */
+  source: WorkSource = "mes"
 ) {
   if (trackedEntityId) {
     const activityId = nanoid();
@@ -1781,6 +1920,15 @@ export async function startProductionEvent(
       userId: data.createdBy
     });
 
+    trackWorkEvent("job_operation_started", {
+      companyId: data.companyId,
+      userId: data.createdBy,
+      productionEventId: eventInsert.data.id,
+      jobOperationId: data.jobOperationId,
+      eventType: data.type,
+      source
+    });
+
     return eventInsert;
   }
 
@@ -1794,6 +1942,18 @@ export async function startProductionEvent(
       jobOperationId: data.jobOperationId,
       userId: data.createdBy
     });
+
+    const inserted = eventInsert.data?.[0];
+    if (inserted) {
+      trackWorkEvent("job_operation_started", {
+        companyId: data.companyId,
+        userId: data.createdBy,
+        productionEventId: inserted.id,
+        jobOperationId: data.jobOperationId,
+        eventType: data.type,
+        source
+      });
+    }
   }
 
   return eventInsert;

@@ -1,5 +1,6 @@
 import { SUPABASE_URL } from "@carbon/auth";
 import type { Database, Json } from "@carbon/database";
+import { getCompanyTimeZone } from "@carbon/database";
 import type {
   DocumentBlock,
   DocumentSectionPlacement,
@@ -28,6 +29,7 @@ import type {
   accountsReceivableBillingAddressValidator,
   apiKeyValidator,
   companyValidator,
+  itemSerialSequenceValidator,
   kanbanOutputTypes,
   purchasePriceUpdateTimingTypes,
   sequenceValidator,
@@ -308,8 +310,11 @@ export async function getCurrentSequence(
   const { prefix, suffix, next, size } = sequence.data;
 
   const currentSequence = next.toString().padStart(size, "0");
-  const derivedPrefix = interpolateSequenceDate(prefix);
-  const derivedSuffix = interpolateSequenceDate(suffix);
+  // Same calendar as get_next_sequence (SQL): tokens roll over at the
+  // company's midnight, or the preview disagrees with the issued number.
+  const timezone = await getCompanyTimeZone(client, companyId);
+  const derivedPrefix = interpolateSequenceDate(prefix, timezone);
+  const derivedSuffix = interpolateSequenceDate(suffix, timezone);
 
   return {
     data: `${derivedPrefix}${currentSequence}${derivedSuffix}`,
@@ -459,6 +464,103 @@ export async function getSequencesList(
     .eq("table", table)
     .eq("companyId", companyId)
     .order("table");
+}
+
+export async function getItemSerialSequences(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: GenericQueryFilters & {
+    search: string | null;
+  }
+) {
+  let query = client
+    .from("itemSerialSequences")
+    .select("*", {
+      count: "exact"
+    })
+    .eq("companyId", companyId);
+
+  if (args.search) {
+    // Strip PostgREST filter-grammar characters so a search term can't alter the
+    // `or` expression or filter unintended columns (mirrors inventory.service.ts).
+    const search = args.search.replace(/[,()\\]/g, " ");
+    query = query.or(
+      `itemReadableId.ilike.%${search}%,itemName.ilike.%${search}%`
+    );
+  }
+
+  query = setGenericQueryFilters(query, args, [
+    { column: "itemReadableId", ascending: true }
+  ]);
+  return query;
+}
+
+export async function getItemSerialSequence(
+  client: SupabaseClient<Database>,
+  id: string,
+  companyId: string
+) {
+  return client
+    .from("itemSerialSequences")
+    .select("*")
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .single();
+}
+
+export async function getItemSerialSequenceByItemId(
+  client: SupabaseClient<Database>,
+  itemId: string,
+  companyId: string
+) {
+  return client
+    .from("itemSerialSequence")
+    .select("*")
+    .eq("itemId", itemId)
+    .eq("companyId", companyId)
+    .maybeSingle();
+}
+
+export async function upsertItemSerialSequence(
+  client: SupabaseClient<Database>,
+  itemSerialSequence:
+    | (Omit<z.infer<typeof itemSerialSequenceValidator>, "id"> & {
+        companyId: string;
+        createdBy: string;
+      })
+    | (Omit<z.infer<typeof itemSerialSequenceValidator>, "id"> & {
+        id: string;
+        companyId: string;
+        updatedBy: string;
+      })
+) {
+  if ("createdBy" in itemSerialSequence) {
+    return client
+      .from("itemSerialSequence")
+      .insert([itemSerialSequence])
+      .select("id")
+      .single();
+  }
+  const { id, companyId, ...update } = itemSerialSequence;
+  return client
+    .from("itemSerialSequence")
+    .update(sanitize(update))
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .select("id")
+    .single();
+}
+
+export async function deleteItemSerialSequence(
+  client: SupabaseClient<Database>,
+  id: string,
+  companyId: string
+) {
+  return client
+    .from("itemSerialSequence")
+    .delete()
+    .eq("id", id)
+    .eq("companyId", companyId);
 }
 
 export async function getSubsidiaries(
@@ -1373,6 +1475,28 @@ export async function updateDefaultSupplierCc(
     .eq("id", companyId);
 }
 
+export async function updateRequireMfaSetting(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  requireMfa: boolean
+) {
+  return client
+    .from("companySettings")
+    .update(sanitize({ requireMfa }))
+    .eq("id", companyId);
+}
+
+export async function updateShowCurrencyTrailingZerosSetting(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  showCurrencyTrailingZeros: boolean
+) {
+  return client
+    .from("companySettings")
+    .update(sanitize({ showCurrencyTrailingZeros }))
+    .eq("id", companyId);
+}
+
 export async function updateShowSupplierReadableIdSetting(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1414,6 +1538,17 @@ export async function updateIncompletePickingListPolicySetting(
   return client
     .from("companySettings")
     .update(sanitize({ incompletePickingListPolicy }))
+    .eq("id", companyId);
+}
+
+export async function updateReturnPickedMaterialTimingSetting(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  returnPickedMaterialTiming: "job" | "operation"
+) {
+  return client
+    .from("companySettings")
+    .update(sanitize({ returnPickedMaterialTiming }))
     .eq("id", companyId);
 }
 

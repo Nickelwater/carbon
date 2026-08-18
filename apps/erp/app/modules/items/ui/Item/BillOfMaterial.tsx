@@ -19,6 +19,7 @@ import {
   HStack,
   IconButton,
   Label,
+  ScrollArea,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -27,7 +28,7 @@ import {
   useThrottle,
   VStack
 } from "@carbon/react";
-import { getItemReadableId } from "@carbon/utils";
+import { getItemById, getItemReadableId } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { motion } from "framer-motion";
 import { nanoid } from "nanoid";
@@ -200,6 +201,7 @@ const BillOfMaterial = ({
   const addItemButtonRef = useRef<HTMLButtonElement>(null);
 
   const [items] = useItems();
+  const itemName = getItemById(items, makeMethod.itemId)?.name;
   const fetcher = useFetcher<{}>();
   const [searchParams] = useSearchParams();
 
@@ -468,6 +470,11 @@ const BillOfMaterial = ({
         <CardHeader>
           <CardTitle className="flex flex-row items-center gap-2">
             <Trans>Bill of Material</Trans>
+            {itemName && (
+              <span className="text-xs text-muted-foreground font-normal">
+                {itemName}
+              </span>
+            )}
             {isReadOnly && (
               <Tooltip>
                 <TooltipTrigger className="text-muted-foreground">
@@ -538,14 +545,16 @@ const BillOfMaterial = ({
         {isProductionRevision && (
           <ReleaseLockAlert isLocked={isReleaseLocked} className="mb-4" />
         )}
-        <SortableList
-          isReadOnly={isReadOnly}
-          items={materials}
-          onReorder={onReorder}
-          onToggleItem={onToggleItem}
-          onRemoveItem={onRemoveItem}
-          renderItem={renderListItem}
-        />
+        <ScrollArea type="auto" className="max-h-[60dvh]">
+          <SortableList
+            isReadOnly={isReadOnly}
+            items={materials}
+            onReorder={onReorder}
+            onToggleItem={onToggleItem}
+            onRemoveItem={onRemoveItem}
+            renderItem={renderListItem}
+          />
+        </ScrollArea>
       </CardContent>
       {configuratorDisclosure.isOpen && configuration && (
         <ConfigurationEditor

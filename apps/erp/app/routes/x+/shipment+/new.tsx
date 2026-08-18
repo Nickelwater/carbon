@@ -9,6 +9,7 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 import type { ShipmentSourceDocument } from "~/modules/inventory";
 import { getUserDefaults } from "~/modules/users/users.server";
+import { getEdgeFunctionErrorMessage } from "~/utils/error";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
@@ -49,6 +50,18 @@ export async function action({ request }: ActionFunctionArgs) {
 
   switch (sourceDocument) {
     case "Sales Order":
+      if (!defaults.data?.locationId) {
+        throw redirect(
+          path.to.salesOrder(sourceDocumentId),
+          await flash(
+            request,
+            error(
+              null,
+              "Set a default location in your settings before creating a shipment"
+            )
+          )
+        );
+      }
       const salesOrderShipment = await serviceRole.functions.invoke<{
         id: string;
       }>("create", {
@@ -69,13 +82,31 @@ export async function action({ request }: ActionFunctionArgs) {
           path.to.salesOrder(sourceDocumentId),
           await flash(
             request,
-            error(salesOrderShipment.error, "Failed to create shipment")
+            error(
+              salesOrderShipment.error,
+              await getEdgeFunctionErrorMessage(
+                salesOrderShipment.error,
+                "Failed to create shipment"
+              )
+            )
           )
         );
       }
 
       throw redirect(path.to.shipmentDetails(salesOrderShipment.data.id));
     case "Purchase Order":
+      if (!defaults.data?.locationId) {
+        throw redirect(
+          path.to.purchaseOrder(sourceDocumentId),
+          await flash(
+            request,
+            error(
+              null,
+              "Set a default location in your settings before creating a shipment"
+            )
+          )
+        );
+      }
       const purchaseOrderShipment = await serviceRole.functions.invoke<{
         id: string;
       }>("create", {
@@ -96,7 +127,13 @@ export async function action({ request }: ActionFunctionArgs) {
           path.to.purchaseOrder(sourceDocumentId),
           await flash(
             request,
-            error(purchaseOrderShipment.error, "Failed to create shipment")
+            error(
+              purchaseOrderShipment.error,
+              await getEdgeFunctionErrorMessage(
+                purchaseOrderShipment.error,
+                "Failed to create shipment"
+              )
+            )
           )
         );
       }
@@ -122,7 +159,13 @@ export async function action({ request }: ActionFunctionArgs) {
           path.to.warehouseTransferDetails(sourceDocumentId),
           await flash(
             request,
-            error(warehouseTransferShipment.error, "Failed to create shipment")
+            error(
+              warehouseTransferShipment.error,
+              await getEdgeFunctionErrorMessage(
+                warehouseTransferShipment.error,
+                "Failed to create shipment"
+              )
+            )
           )
         );
       }
@@ -159,7 +202,13 @@ export async function action({ request }: ActionFunctionArgs) {
           path.to.shipments,
           await flash(
             request,
-            error(defaultShipment.error, "Failed to create shipment")
+            error(
+              defaultShipment.error,
+              await getEdgeFunctionErrorMessage(
+                defaultShipment.error,
+                "Failed to create shipment"
+              )
+            )
           )
         );
       }

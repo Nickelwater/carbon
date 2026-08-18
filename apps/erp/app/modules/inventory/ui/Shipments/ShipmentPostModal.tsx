@@ -29,6 +29,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
 import { useNavigation, useParams } from "react-router";
+import { DateTime } from "~/components";
 import { useSettings, useUser } from "~/hooks";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
@@ -321,7 +322,8 @@ const ShipmentPostModal = ({ onClose }: { onClose: () => void }) => {
                         {w.readableId}
                       </span>
                       <span className="block mt-0.5 text-red-500 font-normal">
-                        Expired on {w.expirationDate}
+                        Expired on{" "}
+                        <DateTime value={w.expirationDate} variant="date" />
                       </span>
                     </li>
                   ))}
@@ -344,7 +346,8 @@ const ShipmentPostModal = ({ onClose }: { onClose: () => void }) => {
                         {w.readableId}
                       </span>
                       <span className="block mt-0.5 text-amber-600 font-normal">
-                        Expired on {w.expirationDate}
+                        Expired on{" "}
+                        <DateTime value={w.expirationDate} variant="date" />
                       </span>
                     </li>
                   ))}

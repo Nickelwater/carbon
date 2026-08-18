@@ -24,6 +24,7 @@ import {
   IconButton,
   Label,
   Loading,
+  ScrollArea,
   ToggleGroup,
   ToggleGroupItem,
   Tooltip,
@@ -36,6 +37,7 @@ import {
   VStack
 } from "@carbon/react";
 import { Editor } from "@carbon/react/Editor";
+import { getItemById, INPUT_FORMAT } from "@carbon/utils";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { DragControls } from "framer-motion";
@@ -69,6 +71,7 @@ import {
 } from "react-router";
 import { z } from "zod";
 import {
+  DateTime,
   DirectionAwareTabs,
   EmployeeAvatar,
   Empty,
@@ -112,7 +115,7 @@ import {
   SortableListItemToggle
 } from "~/components/SortableList";
 import { StepLinkEditor } from "~/components/StepLinkEditor";
-import { useDateFormatter, usePermissions, useUser } from "~/hooks";
+import { useCurrencyDecimals, usePermissions, useUser } from "~/hooks";
 import { useTags } from "~/hooks/useTags";
 import type {
   OperationParameter,
@@ -263,6 +266,7 @@ const BillOfProcess = ({
   const { id: userId } = useUser();
 
   const [allItems] = useItems();
+  const itemName = getItemById(allItems, makeMethod.itemId)?.name;
 
   const materialItemIds = useMemo(
     () => new Set((materials ?? []).map((m) => m.itemId)),
@@ -821,6 +825,11 @@ const BillOfProcess = ({
         <CardHeader>
           <CardTitle className="flex flex-row items-center gap-2">
             <Trans>Bill of Process</Trans>
+            {itemName && (
+              <span className="text-xs text-muted-foreground font-normal">
+                {itemName}
+              </span>
+            )}
             {isReadOnly && (
               <Tooltip>
                 <TooltipTrigger className="text-muted-foreground">
@@ -887,14 +896,16 @@ const BillOfProcess = ({
         {isProductionRevision && (
           <ReleaseLockAlert isLocked={isReleaseLocked} className="mb-4" />
         )}
-        <SortableList
-          isReadOnly={isReadOnly}
-          items={items}
-          onReorder={onReorder}
-          onToggleItem={onToggleItem}
-          onRemoveItem={onRemoveItem}
-          renderItem={renderListItem}
-        />
+        <ScrollArea type="auto" className="max-h-[60dvh]">
+          <SortableList
+            isReadOnly={isReadOnly}
+            items={items}
+            onReorder={onReorder}
+            onToggleItem={onToggleItem}
+            onRemoveItem={onRemoveItem}
+            renderItem={renderListItem}
+          />
+        </ScrollArea>
       </CardContent>
       {configuratorDisclosure.isOpen && configuration && (
         <ConfigurationEditor
@@ -950,6 +961,7 @@ function OperationForm({
   const { carbon } = useCarbon();
 
   const baseCurrency = company?.baseCurrencyCode ?? "USD";
+  const currencyDecimals = useCurrencyDecimals(baseCurrency);
 
   useEffect(() => {
     // Remove from temporary items after successful submission
@@ -1183,10 +1195,7 @@ function OperationForm({
               label={t`Minimum Cost`}
               minValue={0}
               value={processData.operationMinimumCost}
-              formatOptions={{
-                style: "currency",
-                currency: baseCurrency
-              }}
+              formatOptions={INPUT_FORMAT.rate(baseCurrency, currencyDecimals)}
               onChange={(newValue) =>
                 setProcessData((d) => ({
                   ...d,
@@ -1199,10 +1208,7 @@ function OperationForm({
               label={t`Unit Cost`}
               minValue={0}
               value={processData.operationUnitCost}
-              formatOptions={{
-                style: "currency",
-                currency: baseCurrency
-              }}
+              formatOptions={INPUT_FORMAT.rate(baseCurrency, currencyDecimals)}
               onChange={(newValue) =>
                 setProcessData((d) => ({
                   ...d,
@@ -2501,7 +2507,6 @@ function AttributesListItem({
   itemMentions: { id: string; label: string }[];
 }) {
   const { t } = useLingui();
-  const { formatRelativeTime } = useDateFormatter();
   const {
     name,
     unitOfMeasureCode,
@@ -2856,24 +2861,10 @@ function AttributesListItem({
           </HStack>
           <div className="flex items-center justify-end gap-2">
             <HStack spacing={2}>
-              {/* Light revision surface: relative time inline, full created + updated
-                  history (who / when) on hover. */}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <span className="text-xs text-muted-foreground">
-                    {isUpdated ? "Updated" : "Created"}{" "}
-                    {formatRelativeTime(date)}
-                  </span>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  <div className="flex flex-col gap-0.5 text-xs">
-                    <span>Created {formatRelativeTime(createdAt)}</span>
-                    {updatedAt ? (
-                      <span>Updated {formatRelativeTime(updatedAt)}</span>
-                    ) : null}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
+              <span className="text-xs text-muted-foreground">
+                {isUpdated ? "Updated" : "Created"}{" "}
+                <DateTime value={date} variant="relative" />
+              </span>
               <EmployeeAvatar employeeId={person} withName={false} />
             </HStack>
             {!isDisabled && (
@@ -3324,7 +3315,6 @@ function ParametersListItem({
   isDisabled?: boolean;
 }) {
   const { t } = useLingui();
-  const { formatRelativeTime } = useDateFormatter();
   const disclosure = useDisclosure();
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
@@ -3452,7 +3442,8 @@ function ParametersListItem({
           <div className="flex items-center justify-end gap-2">
             <HStack spacing={2}>
               <span className="text-xs text-muted-foreground">
-                {isUpdated ? "Updated" : "Created"} {formatRelativeTime(date)}
+                {isUpdated ? "Updated" : "Created"}{" "}
+                <DateTime value={date} variant="relative" />
               </span>
               <EmployeeAvatar employeeId={person} withName={false} />
             </HStack>
@@ -3759,7 +3750,6 @@ function ToolsListItem({
   isDisabled?: boolean;
 }) {
   const { t } = useLingui();
-  const { formatRelativeTime } = useDateFormatter();
   const disclosure = useDisclosure();
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
@@ -3846,7 +3836,8 @@ function ToolsListItem({
           <div className="flex items-center justify-end gap-2">
             <HStack spacing={2}>
               <span className="text-xs text-muted-foreground">
-                {isUpdated ? "Updated" : "Created"} {formatRelativeTime(date)}
+                {isUpdated ? "Updated" : "Created"}{" "}
+                <DateTime value={date} variant="relative" />
               </span>
               <EmployeeAvatar employeeId={person} withName={false} />
             </HStack>

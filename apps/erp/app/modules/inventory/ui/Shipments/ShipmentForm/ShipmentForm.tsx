@@ -318,6 +318,7 @@ const ShipmentForm = ({
                   />
                 ) : (
                   <Combobox
+                    key={sourceDocument}
                     name="sourceDocumentId"
                     label={t`Source Document ID`}
                     termId="shipment-source-document-id"

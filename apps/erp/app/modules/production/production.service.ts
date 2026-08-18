@@ -2,9 +2,12 @@ import type { Database, Json } from "@carbon/database";
 import { fetchAllFromTable } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
 import { ASSEMBLER_SERVICE_API_KEY, ASSEMBLER_SERVICE_URL } from "@carbon/env";
+import type { JobSource } from "@carbon/lib/telemetry";
+import { asJobSource, trackWorkEvent } from "@carbon/lib/telemetry";
+import { raiseMoment } from "@carbon/lib/workflows";
 import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
-import { nameSimilarity, tiptapToText } from "@carbon/utils";
+import { nameSimilarity, scrapAllowance, tiptapToText } from "@carbon/utils";
 import type {
   AssemblyGraph,
   AssemblyGraphIndex,
@@ -21,10 +24,15 @@ import {
 import { parseDate } from "@internationalized/date";
 import type { FileObject, StorageError } from "@supabase/storage-js";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import { nanoid } from "nanoid";
 import type { z } from "zod";
 import type { StorageItem } from "~/types";
 import type { GenericQueryFilters } from "~/utils/query";
-import { getGenericFilter, setGenericQueryFilters } from "~/utils/query";
+import {
+  getGenericFilter,
+  LIST_COUNT,
+  setGenericQueryFilters
+} from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
 import { getDefaultStorageUnitForJob } from "../inventory";
 import { getEmployeeJob } from "../people";
@@ -73,6 +81,7 @@ import {
   fastenerSchema,
   getAssemblyModelState,
   isJobOrderStatusHidden,
+  JOB_LOCKED_STATUSES,
   JOB_SUPPLY_STATUS_PRIORITY,
   motionSchema,
   PO_STATUS_PRIORITY,
@@ -132,6 +141,21 @@ export async function convertSalesOrderLinesToJobs(
     return { data: null, error: "No lines found" };
   }
 
+  // Lines converted individually must not be converted a second time here
+  const existingJobs = await client
+    .from("job")
+    .select("salesOrderLineId")
+    .eq("companyId", companyId)
+    .in("salesOrderLineId", lines.map((line) => line.id).filter(Boolean));
+
+  if (existingJobs.error) {
+    return existingJobs;
+  }
+
+  const lineIdsWithJobs = new Set(
+    existingJobs.data.map((job) => job.salesOrderLineId)
+  );
+
   const opportunity = await client
     .from("opportunity")
     .select("*, quotes(*), salesOrders(*)")
@@ -145,7 +169,11 @@ export async function convertSalesOrderLinesToJobs(
   let jobsCreated = 0;
 
   for await (const line of lines) {
-    if (line.methodType === "Make to Order" && line.itemId) {
+    if (
+      line.methodType === "Make to Order" &&
+      line.itemId &&
+      !lineIdsWithJobs.has(line.id)
+    ) {
       const manufacturing = await client
         .from("itemReplenishment")
         .select("*")
@@ -209,8 +237,7 @@ export async function convertSalesOrderLinesToJobs(
 
         // Calculate scrap quantity based on item's scrap percentage
         const scrapPercentage = manufacturing.data?.scrapPercentage ?? 0;
-        const scrapQuantity =
-          scrapPercentage > 0 ? Math.ceil(jobQuantity * scrapPercentage) : 0;
+        const scrapQuantity = scrapAllowance(jobQuantity, scrapPercentage);
 
         const data = {
           customerId: salesOrder.data?.customerId ?? undefined,
@@ -262,6 +289,24 @@ export async function convertSalesOrderLinesToJobs(
           continue;
         }
 
+        // This function inserts into `job` itself rather than going through
+        // insertJob, so it inherits none of its instrumentation. Without this,
+        // "Create Jobs" on a sales order — the make-to-order path, and for some
+        // shops the only way jobs are ever raised — produced no job_created at
+        // all, and the account would read as not running production.
+        trackWorkEvent("job_created", {
+          companyId,
+          userId,
+          jobId: createJob.data.id,
+          itemId: data.itemId,
+          quantity: data.quantity,
+          scrapQuantity: data.scrapQuantity ?? 0,
+          locationId: locationId ?? null,
+          salesOrderLineId: line.id,
+          deadlineType: data.deadlineType ?? null,
+          source: "salesOrder"
+        });
+
         if (quoteId) {
           const upsertMethod = await client.functions.invoke("get-method", {
             body: {
@@ -305,6 +350,13 @@ export async function convertSalesOrderLinesToJobs(
             companyId,
             userId
           }
+        });
+
+        await assignJobSerialNumbers(client, {
+          jobId: createJob.data.id,
+          itemId: data.itemId,
+          companyId,
+          userId
         });
 
         jobsCreated++;
@@ -964,7 +1016,7 @@ export async function getJobs(
   let query = client
     .from("jobs")
     .select("*", {
-      count: "exact"
+      count: LIST_COUNT
     })
     .eq("companyId", companyId);
 
@@ -2213,12 +2265,16 @@ export async function getTrackedEntityByJobId(
     };
   }
 
+  // Survivors carry NEITHER pointer key: the legacy key marks old departed
+  // originals, the new key marks split children — filtering both returns
+  // exactly the live root entity across mixed-convention history.
   const result = await client
     .from("trackedEntity")
     .select("*")
     .eq("attributes ->> Job Make Method", jobMakeMethod.data.id)
     .eq("companyId", jobMakeMethod.data.companyId)
     .is("attributes ->> Split Entity ID", null)
+    .is("attributes ->> Split From Entity ID", null)
     .limit(1);
 
   return {
@@ -2249,7 +2305,8 @@ export async function getTrackedEntitiesByJobId(
     .select("*")
     .eq("attributes ->> Job Make Method", jobMakeMethod.data.id)
     .eq("companyId", jobMakeMethod.data.companyId)
-    .is("attributes ->> Split Entity ID", null);
+    .is("attributes ->> Split Entity ID", null)
+    .is("attributes ->> Split From Entity ID", null);
 }
 
 /**
@@ -2346,12 +2403,13 @@ export async function updateJobStatus(
   client: SupabaseClient<Database>,
   params: {
     id: string;
+    companyId: string;
     status: (typeof jobStatus)[number];
     assignee?: string | null;
     updatedBy: string;
   }
 ) {
-  const { id, status, assignee, updatedBy } = params;
+  const { id, companyId, status, assignee, updatedBy } = params;
 
   // Reopening a job (leaving a completed state) must clear completedDate so it
   // isn't left stale. Done in the same UPDATE as status so the job event
@@ -2360,7 +2418,15 @@ export async function updateJobStatus(
   // set completedDate — that is the complete route's / complete_job_to_inventory's job.
   const clearsCompletion = !["Completed", "Closed"].includes(status);
 
-  return client
+  // The prior status is what tells a real release/hold apart from a re-save.
+  const prior = await client
+    .from("job")
+    .select("status")
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .maybeSingle();
+
+  const result = await client
     .from("job")
     .update({
       status,
@@ -2370,6 +2436,32 @@ export async function updateJobStatus(
       ...(clearsCompletion ? { completedDate: null } : {})
     })
     .eq("id", id);
+
+  if (!result.error && prior.data && prior.data.status !== status) {
+    if (status === "Ready") {
+      await raiseMoment("production.jobReleased", {
+        outputs: { job: { id }, releasedBy: { id: updatedBy } },
+        companyId,
+        actorId: updatedBy
+      });
+      // Same guard as the moment above: a real transition, never a re-save.
+      trackWorkEvent("job_released", {
+        companyId,
+        userId: updatedBy,
+        jobId: id,
+        priorStatus: prior.data.status,
+        source: "erp"
+      });
+    } else if (status === "Paused") {
+      await raiseMoment("production.jobHeld", {
+        outputs: { job: { id }, heldBy: { id: updatedBy } },
+        companyId,
+        actorId: updatedBy
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function updateJobMaterialOrder(
@@ -2484,6 +2576,72 @@ export async function updateJobOperationStatus(
     .eq("id", id)
     .select()
     .single();
+}
+
+/**
+ * Flush un-consumed picked material staged at lineside back to the warehouse
+ * after an operation went 'Done'. If the operation was the last one, the SQL
+ * interceptor has already completed the job — sweep the whole job (both
+ * returnPickedMaterialTiming policies); otherwise sweep this operation's lines
+ * (the post-picking edge function no-ops unless the policy is 'operation').
+ * Pass a service-role client so the picking lines are readable regardless of
+ * the caller's inventory permissions. Idempotent.
+ */
+export async function returnPickedRemaindersForOperation(
+  client: SupabaseClient<Database>,
+  args: { jobOperationId: string; userId: string; companyId: string }
+) {
+  const op = await client
+    .from("jobOperation")
+    .select("jobId")
+    .eq("id", args.jobOperationId)
+    .eq("companyId", args.companyId)
+    .maybeSingle();
+  const jobId = op.data?.jobId;
+  if (!jobId) return { data: null, error: op.error };
+
+  const job = await client
+    .from("job")
+    .select("status")
+    .eq("id", jobId)
+    .eq("companyId", args.companyId)
+    .maybeSingle();
+  if (!job.data) return { data: null, error: job.error };
+
+  const body =
+    job.data.status === "Completed"
+      ? {
+          type: "returnJobRemainders" as const,
+          jobId,
+          userId: args.userId,
+          companyId: args.companyId
+        }
+      : {
+          type: "returnOperationRemainders" as const,
+          jobOperationId: args.jobOperationId,
+          userId: args.userId,
+          companyId: args.companyId
+        };
+
+  return client.functions.invoke("post-picking", { body });
+}
+
+/**
+ * Job-scope sweep after an explicit job completion (the ERP Complete button).
+ * The edge function guards on job.status = 'Completed' and is idempotent.
+ */
+export async function returnPickedRemaindersForJob(
+  client: SupabaseClient<Database>,
+  args: { jobId: string; userId: string; companyId: string }
+) {
+  return client.functions.invoke("post-picking", {
+    body: {
+      type: "returnJobRemainders",
+      jobId: args.jobId,
+      userId: args.userId,
+      companyId: args.companyId
+    }
+  });
 }
 
 export async function updateJobOperationDueDate(
@@ -2616,6 +2774,20 @@ export async function upsertProductionQuantity(
   }
 }
 
+/**
+ * `options.source` is telemetry-only: which surface raised the job. Five
+ * routes, MRP, the MCP tools and the workflow engine all funnel through here
+ * and the `job` row cannot tell them apart, so the caller has to say.
+ *
+ * Unset is reported as `unknown`, never as `erp`. The MCP tool and the
+ * workflow engine both reach this through `dispatch(call, context, inputs)`,
+ * which has nowhere to put an option, and an `erp` default would file
+ * automated job creation as human work — the one thing the field separates.
+ *
+ * Kept out of the options type literal on purpose: the MCP metadata generator
+ * parses that object textually and turns a JSDoc block above a property into a
+ * property name of its own, which then ships in the public tool schema.
+ */
 export async function insertJob(
   client: SupabaseClient<Database>,
   input: {
@@ -2647,6 +2819,7 @@ export async function insertJob(
     skipMethod?: boolean;
     skipRecalculate?: boolean;
     methodSource?: "item" | "quoteLine";
+    source?: JobSource;
   }
 ): Promise<{
   data: { id: string; jobId: string } | null;
@@ -2736,8 +2909,7 @@ export async function insertJob(
       input.companyId
     ));
 
-  const scrapQuantity =
-    scrapPercentage > 0 ? Math.ceil(input.quantity * scrapPercentage) : 0;
+  const scrapQuantity = scrapAllowance(input.quantity, scrapPercentage);
 
   const job = await client
     .from("job")
@@ -2776,6 +2948,21 @@ export async function insertJob(
 
   const createdJobId = job.data.id;
 
+  trackWorkEvent("job_created", {
+    companyId: input.companyId,
+    userId: input.createdBy,
+    jobId: createdJobId,
+    itemId: input.itemId,
+    quantity: input.quantity,
+    scrapQuantity,
+    locationId: locationId ?? null,
+    salesOrderLineId: input.salesOrderLineId ?? null,
+    deadlineType,
+    // Narrowed, not trusted: this arrives from an MCP caller as an untyped
+    // schema field, so TypeScript is not a guard on it.
+    source: asJobSource(options?.source)
+  });
+
   if (!options?.skipMethod) {
     const methodSource =
       options?.methodSource ??
@@ -2810,6 +2997,14 @@ export async function insertJob(
     }
   }
 
+  // Assign configured serial numbers to the job's tracked entities (best-effort).
+  await assignJobSerialNumbers(client, {
+    jobId: createdJobId,
+    itemId: input.itemId,
+    companyId: input.companyId,
+    userId: input.createdBy
+  });
+
   if (!options?.skipRecalculate) {
     await client.functions.invoke("recalculate", {
       body: {
@@ -2822,6 +3017,46 @@ export async function insertJob(
   }
 
   return { data: { id: createdJobId, jobId }, error: null };
+}
+
+/**
+ * Assign configured serial numbers to a freshly-created job's tracked entities.
+ * Best-effort and cheap: it skips the edge function entirely unless the item has
+ * an `itemSerialSequence` configured. Shared by every job-creation path so serial
+ * numbering is applied consistently (insertJob, sales-order conversion, ...).
+ */
+async function assignJobSerialNumbers(
+  client: SupabaseClient<Database>,
+  args: { jobId: string; itemId: string; companyId: string; userId: string }
+) {
+  const serialSequence = await client
+    .from("itemSerialSequence")
+    .select("id")
+    .eq("itemId", args.itemId)
+    .eq("companyId", args.companyId)
+    .maybeSingle();
+  // A query error (DB/RLS) also returns null data — distinguish it from "no
+  // sequence configured" so a failure can't silently create an unnumbered job.
+  if (serialSequence.error) {
+    logger.error("Failed to check item serial sequence", {
+      error: serialSequence.error,
+      itemId: args.itemId,
+      companyId: args.companyId
+    });
+    return;
+  }
+  if (!serialSequence.data) return;
+
+  const { error } = await client.functions.invoke("assign-serial-numbers", {
+    body: {
+      jobId: args.jobId,
+      companyId: args.companyId,
+      userId: args.userId
+    }
+  });
+  if (error) {
+    logger.error("Failed to assign serial numbers", { error });
+  }
 }
 
 export async function updateJob(
@@ -4164,7 +4399,11 @@ export async function getAssemblyInstructions(
   }
 ) {
   let query = client
-    .from("assemblyInstruction")
+    // "assemblyInstructions" (plural) is the version-collapsing view: one row
+    // per version group (root = rootInstructionId ?? id), latest version shown,
+    // all siblings rolled into a "versions" jsonb array. See the
+    // 20260730153412_assembly-instructions-view migration.
+    .from("assemblyInstructions")
     .select("*, modelUpload(id, name, componentCount, processingStatus)", {
       count: "exact"
     })
@@ -4300,30 +4539,270 @@ export async function updateAssemblyInstructionStatus(
     updatedBy: string;
   }
 ) {
-  // Each publish bumps the version ("Edit N" in the header)
-  let version: number | undefined;
-  if (data.status === "Published") {
-    const current = await client
-      .from("assemblyInstruction")
-      .select("version")
-      .eq("id", id)
-      .single();
-    version = (current.data?.version ?? 0) + 1;
-  }
-
+  // Version is assigned when a new version is copied (see
+  // copyAssemblyInstructionAsVersion), not bumped on publish. Activating a
+  // version goes through activateAssemblyInstructionVersion; this remains for
+  // any direct status write.
   return client
     .from("assemblyInstruction")
     .update({
       status: data.status,
       publishedAt:
         data.status === "Published" ? new Date().toISOString() : undefined,
-      ...(version !== undefined ? { version } : {}),
       updatedBy: data.updatedBy,
       updatedAt: new Date().toISOString()
     })
     .eq("id", id)
     .select("id")
     .single();
+}
+
+/**
+ * Sibling versions of an instruction, for the header's version switcher. All
+ * versions of one instruction share a group root: NULL rootInstructionId means
+ * "I am the root", so the group root is `rootInstructionId ?? id` and siblings
+ * are the rows whose id = root OR whose rootInstructionId = root.
+ */
+export async function getAssemblyInstructionVersions(
+  client: SupabaseClient<Database>,
+  instruction: {
+    id: string;
+    rootInstructionId?: string | null;
+    companyId: string;
+  }
+) {
+  const root = instruction.rootInstructionId ?? instruction.id;
+  return client
+    .from("assemblyInstruction")
+    .select("id, name, version, status, rootInstructionId")
+    .eq("companyId", instruction.companyId)
+    .or(`id.eq.${root},rootInstructionId.eq.${root}`)
+    .order("version", { ascending: false });
+}
+
+/**
+ * Create a new editable Draft version as a perfect copy of an existing
+ * instruction: a fresh assemblyInstruction row (new id, version = max+1,
+ * status Draft) plus deep copies of every step (parentStepId remapped through
+ * the self-referential tree) and each step's live child rows (materials,
+ * slides, tools). Non-atomic multi-insert — a partial copy leaves a deletable
+ * Draft, matching the procedure/make-method copy precedents.
+ */
+export async function copyAssemblyInstructionAsVersion(
+  client: SupabaseClient<Database>,
+  args: { copyFromId: string; companyId: string; userId: string }
+) {
+  const { copyFromId, companyId, userId } = args;
+
+  const source = await client
+    .from("assemblyInstruction")
+    .select("*")
+    .eq("id", copyFromId)
+    .eq("companyId", companyId)
+    .single();
+  if (source.error) return source;
+
+  const root = source.data.rootInstructionId ?? source.data.id;
+
+  // Highest version across the group determines the next version number.
+  const siblings = await client
+    .from("assemblyInstruction")
+    .select("version")
+    .eq("companyId", companyId)
+    .or(`id.eq.${root},rootInstructionId.eq.${root}`)
+    .order("version", { ascending: false })
+    .limit(1);
+  const nextVersion =
+    (siblings.data?.[0]?.version ?? source.data.version ?? 0) + 1;
+
+  const insert = await client
+    .from("assemblyInstruction")
+    .insert({
+      name: source.data.name,
+      modelUploadId: source.data.modelUploadId,
+      itemId: source.data.itemId,
+      assemblyPlanJobId: source.data.assemblyPlanJobId,
+      settings: source.data.settings,
+      tags: source.data.tags,
+      status: "Draft",
+      version: nextVersion,
+      rootInstructionId: root,
+      companyId,
+      createdBy: userId
+    })
+    .select("id")
+    .single();
+  if (insert.error) return insert;
+  const newInstructionId = insert.data.id;
+
+  // Copy steps, pre-generating ids so parentStepId can be remapped in one pass.
+  const sourceSteps = await client
+    .from("assemblyInstructionStep")
+    .select("*")
+    .eq("assemblyInstructionId", copyFromId)
+    .order("sortOrder", { ascending: true });
+  if (sourceSteps.error) return sourceSteps;
+
+  const stepIdMap = new Map<string, string>();
+  for (const step of sourceSteps.data ?? []) {
+    stepIdMap.set(step.id, nanoid());
+  }
+
+  if ((sourceSteps.data?.length ?? 0) > 0) {
+    const stepRows = sourceSteps.data.map((step) => {
+      // Strip identity/audit columns; keep every authored field verbatim.
+      // biome-ignore lint/correctness/noUnusedVariables: destructure omits identity/audit columns before re-insert
+      const { id, createdAt, updatedAt, updatedBy, ...rest } = step;
+      return {
+        ...rest,
+        id: stepIdMap.get(step.id)!,
+        assemblyInstructionId: newInstructionId,
+        parentStepId: step.parentStepId
+          ? (stepIdMap.get(step.parentStepId) ?? null)
+          : null,
+        companyId,
+        createdBy: userId
+      };
+    });
+    const insertSteps = await client
+      .from("assemblyInstructionStep")
+      .insert(stepRows);
+    if (insertSteps.error) return insertSteps;
+  }
+
+  // Copy each step's live child rows, remapping stepId.
+  const sourceStepIds = [...stepIdMap.keys()];
+  if (sourceStepIds.length > 0) {
+    const copyChildTable = async (
+      table:
+        | "assemblyInstructionStepMaterial"
+        | "assemblyInstructionStepSlide"
+        | "assemblyInstructionStepTool"
+    ) => {
+      const rows = await client
+        .from(table)
+        .select("*")
+        .in("stepId", sourceStepIds);
+      if (rows.error) return rows;
+      if (!rows.data?.length) return rows;
+      const inserts = rows.data.map((row: any) => {
+        // biome-ignore lint/correctness/noUnusedVariables: destructure omits identity/audit columns before re-insert
+        const { id, createdAt, updatedAt, updatedBy, ...rest } = row;
+        return {
+          ...rest,
+          stepId: stepIdMap.get(row.stepId)!,
+          companyId,
+          createdBy: userId
+        };
+      });
+      return client.from(table).insert(inserts);
+    };
+
+    for (const table of [
+      "assemblyInstructionStepMaterial",
+      "assemblyInstructionStepSlide",
+      "assemblyInstructionStepTool"
+    ] as const) {
+      const copied = await copyChildTable(table);
+      if (copied.error) return copied;
+    }
+  }
+
+  return insert;
+}
+
+/**
+ * Make a version the active (Published) one: archive whichever sibling is
+ * currently Published, publish the target, and repoint in-flight work to it —
+ * but only active job operations (status not Done/Canceled) on active jobs
+ * (status not Completed/Closed/Cancelled). Method operations are intentionally
+ * left untouched.
+ */
+export async function activateAssemblyInstructionVersion(
+  client: SupabaseClient<Database>,
+  args: { id: string; companyId: string; userId: string }
+) {
+  const { id, companyId, userId } = args;
+
+  const target = await client
+    .from("assemblyInstruction")
+    .select("id, rootInstructionId")
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .single();
+  if (target.error) return target;
+
+  const root = target.data.rootInstructionId ?? target.data.id;
+
+  const group = await client
+    .from("assemblyInstruction")
+    .select("id, status")
+    .eq("companyId", companyId)
+    .or(`id.eq.${root},rootInstructionId.eq.${root}`);
+  if (group.error) return group;
+
+  const now = new Date().toISOString();
+
+  // Archive the currently-active sibling(s).
+  const previouslyActive = (group.data ?? []).filter(
+    (v) => v.id !== id && v.status === "Published"
+  );
+  if (previouslyActive.length > 0) {
+    const archive = await client
+      .from("assemblyInstruction")
+      .update({ status: "Archived", updatedBy: userId, updatedAt: now })
+      .in(
+        "id",
+        previouslyActive.map((v) => v.id)
+      );
+    if (archive.error) return archive;
+  }
+
+  // Publish the target.
+  const publish = await client
+    .from("assemblyInstruction")
+    .update({
+      status: "Published",
+      publishedAt: now,
+      updatedBy: userId,
+      updatedAt: now
+    })
+    .eq("id", id)
+    .select("id")
+    .single();
+  if (publish.error) return publish;
+
+  // Repoint in-flight work: active job operations on active jobs that point at
+  // any other version in this group → the newly-active version.
+  const otherVersionIds = (group.data ?? [])
+    .map((v) => v.id)
+    .filter((vId) => vId !== id);
+  if (otherVersionIds.length > 0) {
+    // Drive the lookup off jobOperation (bounded by this small sibling-version
+    // set) rather than first materializing every unlocked job id — that list
+    // can exceed the 1000-row cap and silently drop operations, leaving them
+    // pointed at the now-archived version. An inner join on job applies the
+    // locked-job filter server-side while keeping the row set bounded.
+    const staleOps = await client
+      .from("jobOperation")
+      .select("id, job!inner(status)")
+      .eq("companyId", companyId)
+      .in("assemblyInstructionId", otherVersionIds)
+      .not("status", "in", "(Done,Canceled)")
+      .not("job.status", "in", `(${JOB_LOCKED_STATUSES.join(",")})`);
+    if (staleOps.error) return staleOps;
+
+    const staleOpIds = (staleOps.data ?? []).map((o) => o.id);
+    if (staleOpIds.length > 0) {
+      const repoint = await client
+        .from("jobOperation")
+        .update({ assemblyInstructionId: id })
+        .in("id", staleOpIds);
+      if (repoint.error) return repoint;
+    }
+  }
+
+  return publish;
 }
 
 export async function deleteAssemblyInstruction(
@@ -6247,7 +6726,9 @@ export async function generateAssemblyStepsFromPlan(
         ok: false,
         reason: "steps-locked",
         modelUploadId,
-        message: `${locked.length} ${locked.length === 1 ? "step is" : "steps are"} manually authored or done — delete or reset them before regenerating`
+        message: `${locked.length} ${
+          locked.length === 1 ? "step is" : "steps are"
+        } manually authored or done — delete or reset them before regenerating`
       };
     }
     const removed = await client

@@ -233,7 +233,8 @@ export const purchaseOrderLineValidator = z
     supplierPartId: zfd.text(z.string().optional()),
     supplierShippingCost: zfd.numeric(z.number().optional()),
     supplierTaxAmount: zfd.numeric(z.number().optional()),
-    supplierUnitPrice: zfd.numeric(z.number().optional())
+    supplierUnitPrice: zfd.numeric(z.number().optional()),
+    taxPercent: zfd.numeric(z.number().min(0).max(1).optional().default(0))
   })
   .refine(
     (data) =>
@@ -321,6 +322,9 @@ export const selectedLineSchema = z.object({
   supplierShippingCost: z.number(),
   supplierUnitPrice: z.number(),
   supplierTaxAmount: z.number(),
+  // Same 0..1 fraction contract as purchaseOrderLineValidator — the two feed the
+  // same columns, so an unbounded rate here would bypass the form's bound.
+  taxPercent: z.number().min(0).max(1).optional().default(0),
   unitPrice: z.number()
 });
 
@@ -329,7 +333,7 @@ export const selectedLinesValidator = z.record(z.string(), selectedLineSchema);
 export const supplierValidator = z.object({
   id: zfd.text(z.string().optional()),
   readableId: zfd.text(z.string().optional()),
-  name: z.string().min(1, { message: "Name is required" }),
+  name: z.string().trim().min(1, { message: "Name is required" }),
   supplierStatus: z.preprocess(
     (val) => (val === "" ? undefined : val),
     z.enum(supplierStatusType).optional().nullable()
@@ -345,7 +349,7 @@ export const supplierValidator = z.object({
 export const supplierApprovalValidator = z.object({
   id: zfd.text(z.string().optional()),
   readableId: zfd.text(z.string().optional()),
-  name: z.string().min(1, { message: "Name is required" }),
+  name: z.string().trim().min(1, { message: "Name is required" }),
   supplierStatus: z.enum(supplierStatusType, {
     errorMap: (issue, ctx) => ({
       message: "Supplier status is required"
@@ -434,7 +438,7 @@ export const supplierAccountingValidator = z.object({
 
 export const supplierTypeValidator = z.object({
   id: zfd.text(z.string().optional()),
-  name: z.string().min(1, { message: "Name is required" })
+  name: z.string().trim().min(1, { message: "Name is required" })
 });
 
 export const supplierQuoteValidator = z

@@ -31,20 +31,22 @@ export const path = {
     accountingPeriodsGenerate: `${x}/accounting/periods/generate`,
     accountingRoot: `${x}/accounting`,
     accountingSettings: `${x}/settings/accounting`,
+    accountingSyncTieOut: `${x}/accounting/sync-tieout`,
+    accountingSyncTieOutCell: (id: string) =>
+      generatePath(`${x}/accounting/sync-tieout/${id}`),
     accountPassword: `${x}/account/password`,
     accountPersonal: `${x}/account/personal`,
     accountSecurity: `${x}/account/security`,
     acknowledge: `${x}/acknowledge`,
     activateGauge: (id: string) =>
       generatePath(`${x}/quality/gauges/activate/${id}`),
-    activateGauge: (id: string) =>
-      generatePath(`${x}/quality/gauges/activate/${id}`),
-    activeMethodVersion: (id: string) =>
-      generatePath(`${x}/items/methods/versions/activate/${id}`),
     activeMethodVersion: (id: string) =>
       generatePath(`${x}/items/methods/versions/activate/${id}`),
     addAndIssueMaintenanceDispatchItem: (dispatchId: string) =>
       generatePath(`${x}/maintenance/${dispatchId}/add-and-issue`),
+    analyticsReport: (key: string) =>
+      generatePath(`${x}/reports/analytics/${key}`),
+    apAging: `${x}/reports/ap-aging`,
     api: {
       abilities: `${api}/resources/abilities`,
       accounts: `${api}/accounting/accounts`,
@@ -52,6 +54,8 @@ export const path = {
       agentFeedback: `${api}/agent/feedback`,
       agentThread: (id: string) => `${api}/agent/thread/${id}`,
       agentThreads: `${api}/agent/threads`,
+      analyticsReportLines: (key: string) =>
+        generatePath(`${api}/accounting/analytics-lines?reportKey=${key}`),
       assemblyForItem: (itemId: string) =>
         generatePath(`${api}/production/assembly-for-item/${itemId}`),
       assemblyInstructions: (itemId: string) =>
@@ -100,6 +104,7 @@ export const path = {
         ),
       inspectionDocuments: (itemId: string) =>
         generatePath(`${api}/production/inspection-documents/${itemId}`),
+      issueTypes: `${api}/quality/issue-types`,
       item: (type: string) => generatePath(`${api}/item/${type}`),
       itemConfigurable: `${api}/items/configurable`,
       itemCostRecalculate: (itemId: string) =>
@@ -193,6 +198,7 @@ export const path = {
         generatePath(`${api}/production/kpi/${key}`),
       purchaseInvoice: (id: string) =>
         generatePath(`${api}/purchase-invoice/${id}`),
+      purchasesReportLines: `${api}/accounting/purchase-lines`,
       purchasingKpi: (key: string) =>
         generatePath(`${api}/purchasing/kpi/${key}`),
       qualityKpi: (key: string) => generatePath(`${api}/quality/kpi/${key}`),
@@ -263,6 +269,7 @@ export const path = {
       tags: (table?: string) =>
         generatePath(`${api}/shared/tags?table=${table}`),
       timecard: `${api}/people/timecard`,
+      timezones: `${api}/timezones`,
       unitOfMeasures: `${api}/items/uoms`,
       userSelectGroupEmails: (groupId: string) =>
         generatePath(`${api}/users/select/groups/${groupId}/emails`),
@@ -289,64 +296,44 @@ export const path = {
         generatePath(`${api}/resources/work-centers?location=${id}`)
     },
     apiDocs: "https://docs.carbon.ms/api-reference",
-    apiDocs: "https://docs.carbon.ms/api-reference",
     apiKey: (id: string) => generatePath(`${x}/settings/api-keys/${id}`),
-    apiKey: (id: string) => generatePath(`${x}/settings/api-keys/${id}`),
-    apiKeys: `${x}/settings/api-keys`,
     apiKeys: `${x}/settings/api-keys`,
     approvalRule: (id: string) =>
       generatePath(`${x}/settings/approval-rules/${id}`),
     approvalRules: `${x}/settings/approval-rules`,
+    arAging: `${x}/reports/ar-aging`,
     assemblyInstruction: (id: string) => generatePath(`${x}/assembly/${id}`),
-    assemblyInstruction: (id: string) => generatePath(`${x}/assembly/${id}`),
-    assemblyInstructionStatus: (id: string) =>
-      generatePath(`${x}/assembly/${id}/status`),
+    assemblyInstructionActivate: (id: string) =>
+      generatePath(`${x}/assembly/${id}/activate`),
     assemblyInstructionStatus: (id: string) =>
       generatePath(`${x}/assembly/${id}/status`),
     assemblyInstructionStep: (id: string, stepId: string) =>
       generatePath(`${x}/assembly/${id}/steps/${stepId}`),
-    assemblyInstructionStep: (id: string, stepId: string) =>
-      generatePath(`${x}/assembly/${id}/steps/${stepId}`),
-    assemblyInstructionStepComponents: (id: string, stepId: string) =>
-      generatePath(`${x}/assembly/${id}/steps/components/${stepId}`),
     assemblyInstructionStepComponents: (id: string, stepId: string) =>
       generatePath(`${x}/assembly/${id}/steps/components/${stepId}`),
     assemblyInstructionStepComponentsReassign: (id: string) =>
       generatePath(`${x}/assembly/${id}/steps/components/reassign`),
     assemblyInstructionStepMotion: (id: string, stepId: string) =>
       generatePath(`${x}/assembly/${id}/steps/motion/${stepId}`),
-    assemblyInstructionStepMotion: (id: string, stepId: string) =>
-      generatePath(`${x}/assembly/${id}/steps/motion/${stepId}`),
-    assemblyInstructionStepOrder: (id: string) =>
-      generatePath(`${x}/assembly/${id}/steps/order`),
     assemblyInstructionStepOrder: (id: string) =>
       generatePath(`${x}/assembly/${id}/steps/order`),
     assemblyInstructionStepStatus: (id: string, stepId: string) =>
       generatePath(`${x}/assembly/${id}/steps/status/${stepId}`),
-    assemblyInstructionStepStatus: (id: string, stepId: string) =>
-      generatePath(`${x}/assembly/${id}/steps/status/${stepId}`),
     assemblyInstructions: `${x}/production/assemblies`,
-    assemblyInstructions: `${x}/production/assemblies`,
+    assemblyInstructionVersionNew: (id: string) =>
+      generatePath(`${x}/assembly/${id}/version/new`),
     assemblyJobsCancel: (id: string) =>
       generatePath(`${x}/assembly/${id}/jobs/cancel`),
-    assemblyModelConvert: (id: string) =>
-      generatePath(`${x}/assembly/${id}/model/convert`),
     assemblyModelConvert: (id: string) =>
       generatePath(`${x}/assembly/${id}/model/convert`),
     assemblyModelInvalidate: (id: string) =>
       generatePath(`${x}/assembly/${id}/model/invalidate`),
     assemblyPlanRerun: (id: string) =>
       generatePath(`${x}/assembly/${id}/plan/rerun`),
-    assemblyPlanRerun: (id: string) =>
-      generatePath(`${x}/assembly/${id}/plan/rerun`),
     assemblyStandardNote: (noteId: string) =>
       generatePath(`${x}/assembly/standard-notes/${noteId}`),
     assemblyStepMaterial: (id: string, materialId: string) =>
       generatePath(`${x}/assembly/${id}/materials/${materialId}`),
-    assemblyStepMaterial: (id: string, materialId: string) =>
-      generatePath(`${x}/assembly/${id}/materials/${materialId}`),
-    assemblyStepMaterialOrder: (id: string) =>
-      generatePath(`${x}/assembly/${id}/materials/order`),
     assemblyStepMaterialOrder: (id: string) =>
       generatePath(`${x}/assembly/${id}/materials/order`),
     assemblyStepRequirement: (id: string, requirementId: string) =>
@@ -357,95 +344,50 @@ export const path = {
       generatePath(`${x}/assembly/${id}/sync-bop`),
     assetClass: (id: string) =>
       generatePath(`${x}/accounting/asset-class/${id}`),
-    assetClass: (id: string) =>
-      generatePath(`${x}/accounting/asset-class/${id}`),
-    assetClasses: `${x}/accounting/asset-classes`,
     assetClasses: `${x}/accounting/asset-classes`,
     assignIssueItemEntities: `${x}/issue/item/assign-entities`,
-    assignIssueItemEntities: `${x}/issue/item/assign-entities`,
     attribute: (id: string) => generatePath(`${x}/people/attribute/${id}`),
-    attribute: (id: string) => generatePath(`${x}/people/attribute/${id}`),
-    attributeCategory: (id: string) =>
-      generatePath(`${x}/people/attributes/${id}`),
     attributeCategory: (id: string) =>
       generatePath(`${x}/people/attributes/${id}`),
     attributeCategoryList: (id: string) =>
       generatePath(`${x}/people/attributes/list/${id}`),
-    attributeCategoryList: (id: string) =>
-      generatePath(`${x}/people/attributes/list/${id}`),
-    attributes: `${x}/people/attributes`,
     attributes: `${x}/people/attributes`,
     auditLog: `${x}/settings/audit-logs`,
-    auditLog: `${x}/settings/audit-logs`,
-    auditLogDetails: `${x}/settings/audit-logs/details`,
     auditLogDetails: `${x}/settings/audit-logs/details`,
     authenticatedRoot: x,
     autoMatchAssemblyComponents: (id: string) =>
       generatePath(`${x}/assembly/${id}/component-mappings/auto`),
-    autoMatchAssemblyComponents: (id: string) =>
-      generatePath(`${x}/assembly/${id}/component-mappings/auto`),
     backups: `${x}/settings/backups`,
-    backups: `${x}/settings/backups`,
-    balanceSheet: `${x}/accounting/balance-sheet`,
-    balanceSheet: `${x}/accounting/balance-sheet`,
+    balanceSheet: `${x}/reports/balance-sheet`,
     balanceSheetLedger: (id: string) =>
-      generatePath(`${x}/accounting/balance-sheet/${id}`),
-    balanceSheetLedger: (id: string) =>
-      generatePath(`${x}/accounting/balance-sheet/${id}`),
-    batchProperty: (itemId: string) =>
-      generatePath(`${x}/inventory/batch-property/${itemId}/property`),
+      generatePath(`${x}/reports/balance-sheet/${id}`),
     batchProperty: (itemId: string) =>
       generatePath(`${x}/inventory/batch-property/${itemId}/property`),
     batchPropertyOrder: (itemId: string) =>
       generatePath(`${x}/inventory/batch-property/${itemId}/property/order`),
-    batchPropertyOrder: (itemId: string) =>
-      generatePath(`${x}/inventory/batch-property/${itemId}/property/order`),
     billing: `${x}/settings/billing`,
-    billing: `${x}/settings/billing`,
-    bulkEditPermissions: `${x}/users/bulk-edit-permissions`,
     bulkEditPermissions: `${x}/users/bulk-edit-permissions`,
     bulkUpdateInspectionDocument: `${x}/inspection/update`,
     bulkUpdateIssue: `${x}/issue/update`,
-    bulkUpdateIssue: `${x}/issue/update`,
-    bulkUpdateIssueWorkflow: `${x}/issue-workflow/update`,
     bulkUpdateIssueWorkflow: `${x}/issue-workflow/update`,
     bulkUpdateItems: `${x}/items/update`,
-    bulkUpdateItems: `${x}/items/update`,
-    bulkUpdateJob: `${x}/job/update`,
     bulkUpdateJob: `${x}/job/update`,
     bulkUpdateProcedure: `${x}/procedure/update`,
-    bulkUpdateProcedure: `${x}/procedure/update`,
-    bulkUpdateProductionPlanning: `${x}/production/planning/update`,
     bulkUpdateProductionPlanning: `${x}/production/planning/update`,
     bulkUpdatePurchaseInvoice: `${x}/purchase-invoice/update`,
-    bulkUpdatePurchaseInvoice: `${x}/purchase-invoice/update`,
-    bulkUpdatePurchaseOrder: `${x}/purchase-order/update`,
     bulkUpdatePurchaseOrder: `${x}/purchase-order/update`,
     bulkUpdatePurchasingPlanning: `${x}/purchasing/planning/update`,
-    bulkUpdatePurchasingPlanning: `${x}/purchasing/planning/update`,
-    bulkUpdatePurchasingRfq: `${x}/purchasing-rfq/update`,
     bulkUpdatePurchasingRfq: `${x}/purchasing-rfq/update`,
     bulkUpdateQualityDocument: `${x}/quality-document/update`,
-    bulkUpdateQualityDocument: `${x}/quality-document/update`,
-    bulkUpdateQuote: `${x}/quote/update`,
     bulkUpdateQuote: `${x}/quote/update`,
     bulkUpdateReceiptLine: `${x}/receipt/lines/update`,
-    bulkUpdateReceiptLine: `${x}/receipt/lines/update`,
-    bulkUpdateSalesInvoice: `${x}/sales-invoice/update`,
     bulkUpdateSalesInvoice: `${x}/sales-invoice/update`,
     bulkUpdateSalesOrder: `${x}/sales-order/update`,
-    bulkUpdateSalesOrder: `${x}/sales-order/update`,
-    bulkUpdateSalesRfq: `${x}/sales-rfq/update`,
     bulkUpdateSalesRfq: `${x}/sales-rfq/update`,
     bulkUpdateShipmentLine: `${x}/shipment/lines/update`,
-    bulkUpdateShipmentLine: `${x}/shipment/lines/update`,
-    bulkUpdateStockTransferLine: `${x}/stock-transfer/lines/update`,
     bulkUpdateStockTransferLine: `${x}/stock-transfer/lines/update`,
     bulkUpdateSupplierQuote: `${x}/supplier-quote/update`,
-    bulkUpdateSupplierQuote: `${x}/supplier-quote/update`,
     bulkUpdateTraining: `${x}/training/update`,
-    bulkUpdateTraining: `${x}/training/update`,
-    calibrations: `${x}/quality/calibrations`,
     calibrations: `${x}/quality/calibrations`,
     cancelPurchasingRfq: (id: string) =>
       generatePath(`${x}/purchasing-rfq/${id}/cancel`),
@@ -506,218 +448,112 @@ export const path = {
     changeNoticeTypes: `${x}/items/change-notice-types`,
     chartOfAccount: (id: string) =>
       generatePath(`${x}/accounting/charts/${id}`),
-    chartOfAccount: (id: string) =>
-      generatePath(`${x}/accounting/charts/${id}`),
     chartOfAccounts: `${x}/accounting/charts`,
-    chartOfAccounts: `${x}/accounting/charts`,
-    chartOfAccountsLedger: (id: string) =>
-      generatePath(`${x}/accounting/charts/ledger/${id}`),
     chartOfAccountsLedger: (id: string) =>
       generatePath(`${x}/accounting/charts/ledger/${id}`),
     closeIssue: (id: string) => generatePath(`${x}/issue/${id}/close`),
     companies: `${x}/settings/companies`,
-    companies: `${x}/settings/companies`,
     company: `${x}/settings/company`,
-    company: `${x}/settings/company`,
-    companySwitch: (companyId: string) =>
-      generatePath(`${x}/settings/company/switch/${companyId}`),
     companySwitch: (companyId: string) =>
       generatePath(`${x}/settings/company/switch/${companyId}`),
     completeTrainingAssignment: (id: string) =>
       generatePath(`${share}/training/${id}`),
-    completeTrainingAssignment: (id: string) =>
-      generatePath(`${share}/training/${id}`),
-    configurationParameter: (itemId: string) =>
-      generatePath(`${x}/part/${itemId}/parameter`),
     configurationParameter: (itemId: string) =>
       generatePath(`${x}/part/${itemId}/parameter`),
     configurationParameterGroup: (itemId: string) =>
       generatePath(`${x}/part/${itemId}/parameter/group`),
-    configurationParameterGroup: (itemId: string) =>
-      generatePath(`${x}/part/${itemId}/parameter/group`),
-    configurationParameterGroupOrder: (itemId: string) =>
-      generatePath(`${x}/part/${itemId}/parameter/group/order`),
     configurationParameterGroupOrder: (itemId: string) =>
       generatePath(`${x}/part/${itemId}/parameter/group/order`),
     configurationParameterOrder: (itemId: string) =>
       generatePath(`${x}/part/${itemId}/parameter/order`),
-    configurationParameterOrder: (itemId: string) =>
-      generatePath(`${x}/part/${itemId}/parameter/order`),
-    configurationRule: (itemId: string) =>
-      generatePath(`${x}/part/${itemId}/rule`),
     configurationRule: (itemId: string) =>
       generatePath(`${x}/part/${itemId}/rule`),
     consumable: (id: string) => generatePath(`${x}/consumable/${id}`),
-    consumable: (id: string) => generatePath(`${x}/consumable/${id}`),
-    consumableCosting: (id: string) =>
-      generatePath(`${x}/consumable/${id}/costing`),
     consumableCosting: (id: string) =>
       generatePath(`${x}/consumable/${id}/costing`),
     consumableDetails: (id: string) =>
       generatePath(`${x}/consumable/${id}/details`),
-    consumableDetails: (id: string) =>
-      generatePath(`${x}/consumable/${id}/details`),
-    consumableInventory: (id: string) =>
-      generatePath(`${x}/consumable/${id}/inventory`),
     consumableInventory: (id: string) =>
       generatePath(`${x}/consumable/${id}/inventory`),
     consumableInventoryLocation: (id: string, locationId: string) =>
       generatePath(`${x}/consumable/${id}/inventory?location=${locationId}`),
-    consumableInventoryLocation: (id: string, locationId: string) =>
-      generatePath(`${x}/consumable/${id}/inventory?location=${locationId}`),
-    consumablePlanning: (id: string) =>
-      generatePath(`${x}/consumable/${id}/planning`),
     consumablePlanning: (id: string) =>
       generatePath(`${x}/consumable/${id}/planning`),
     consumablePlanningLocation: (id: string, locationId: string) =>
       generatePath(`${x}/consumable/${id}/planning?location=${locationId}`),
-    consumablePlanningLocation: (id: string, locationId: string) =>
-      generatePath(`${x}/consumable/${id}/planning?location=${locationId}`),
-    consumablePurchasing: (id: string) =>
-      generatePath(`${x}/consumable/${id}/purchasing`),
     consumablePurchasing: (id: string) =>
       generatePath(`${x}/consumable/${id}/purchasing`),
     consumableQuality: (id: string) =>
       generatePath(`${x}/consumable/${id}/quality`),
-    consumableQuality: (id: string) =>
-      generatePath(`${x}/consumable/${id}/quality`),
-    consumableRoot: `${x}/consumable`,
     consumableRoot: `${x}/consumable`,
     consumableRules: (id: string) =>
       generatePath(`${x}/consumable/${id}/rules`),
     consumableSupplier: (itemId: string, id: string) =>
       generatePath(`${x}/consumable/${itemId}/purchasing/${id}`),
-    consumableSupplier: (itemId: string, id: string) =>
-      generatePath(`${x}/consumable/${itemId}/purchasing/${id}`),
     consumableSuppliers: (id: string) =>
       generatePath(`${x}/consumable/${id}/suppliers`),
-    consumableSuppliers: (id: string) =>
-      generatePath(`${x}/consumable/${id}/suppliers`),
-    consumables: `${x}/items/consumables`,
     consumables: `${x}/items/consumables`,
     contact: `${x}/people/contact`,
     contractor: (id: string) =>
       generatePath(`${x}/resources/contractors/${id}`),
-    contractor: (id: string) =>
-      generatePath(`${x}/resources/contractors/${id}`),
     contractors: `${x}/resources/contractors`,
-    contractors: `${x}/resources/contractors`,
-    convertQuoteToOrder: (id: string) =>
-      generatePath(`${x}/quote/${id}/convert`),
     convertQuoteToOrder: (id: string) =>
       generatePath(`${x}/quote/${id}/convert`),
     convertSupplierQuoteToOrder: (id: string) =>
       generatePath(`${x}/supplier-quote/${id}/convert`),
-    convertSupplierQuoteToOrder: (id: string) =>
-      generatePath(`${x}/supplier-quote/${id}/convert`),
-    costCenter: (id: string) =>
-      generatePath(`${x}/accounting/cost-centers/${id}`),
     costCenter: (id: string) =>
       generatePath(`${x}/accounting/cost-centers/${id}`),
     costCenters: `${x}/accounting/cost-centers`,
-    costCenters: `${x}/accounting/cost-centers`,
-    customer: (id: string) => generatePath(`${x}/customer/${id}`),
     customer: (id: string) => generatePath(`${x}/customer/${id}`),
     customerAccounting: (id: string) =>
       generatePath(`${x}/customer/${id}/accounting`),
-    customerAccounting: (id: string) =>
-      generatePath(`${x}/customer/${id}/accounting`),
     customerAccounts: `${x}/users/customers`,
-    customerAccounts: `${x}/users/customers`,
-    customerContact: (customerId: string, id: string) =>
-      generatePath(`${x}/customer/${customerId}/contacts/${id}`),
     customerContact: (customerId: string, id: string) =>
       generatePath(`${x}/customer/${customerId}/contacts/${id}`),
     customerContacts: (id: string) =>
       generatePath(`${x}/customer/${id}/contacts`),
-    customerContacts: (id: string) =>
-      generatePath(`${x}/customer/${id}/contacts`),
-    customerDetails: (id: string) =>
-      generatePath(`${x}/customer/${id}/details`),
     customerDetails: (id: string) =>
       generatePath(`${x}/customer/${id}/details`),
     customerLocation: (customerId: string, id: string) =>
       generatePath(`${x}/customer/${customerId}/locations/${id}`),
-    customerLocation: (customerId: string, id: string) =>
-      generatePath(`${x}/customer/${customerId}/locations/${id}`),
-    customerLocations: (id: string) =>
-      generatePath(`${x}/customer/${id}/locations`),
     customerLocations: (id: string) =>
       generatePath(`${x}/customer/${id}/locations`),
     customerPart: (id: string, customerPartToItemId: string) =>
       generatePath(
         `${x}/part/${id}/sales/customer-parts/${customerPartToItemId}`
       ),
-    customerPart: (id: string, customerPartToItemId: string) =>
-      generatePath(
-        `${x}/part/${id}/sales/customer-parts/${customerPartToItemId}`
-      ),
-    customerPayment: (id: string) =>
-      generatePath(`${x}/customer/${id}/payments`),
     customerPayment: (id: string) =>
       generatePath(`${x}/customer/${id}/payments`),
     customerPortal: (id: string) =>
       generatePath(`${x}/sales/customer-portals/${id}`),
-    customerPortal: (id: string) =>
-      generatePath(`${x}/sales/customer-portals/${id}`),
-    customerPortals: `${x}/sales/customer-portals`,
     customerPortals: `${x}/sales/customer-portals`,
     customerRisks: (id: string) => generatePath(`${x}/customer/${id}/risks`),
-    customerRisks: (id: string) => generatePath(`${x}/customer/${id}/risks`),
     customerRoot: `${x}/customer`,
-    customerRoot: `${x}/customer`,
-    customerShipping: (id: string) =>
-      generatePath(`${x}/customer/${id}/shipping`),
     customerShipping: (id: string) =>
       generatePath(`${x}/customer/${id}/shipping`),
     customerStatus: (id: string) =>
       generatePath(`${x}/sales/customer-statuses/${id}`),
-    customerStatus: (id: string) =>
-      generatePath(`${x}/sales/customer-statuses/${id}`),
-    customerStatuses: `${x}/sales/customer-statuses`,
     customerStatuses: `${x}/sales/customer-statuses`,
     customers: `${x}/sales/customers`,
-    customers: `${x}/sales/customers`,
-    customerTax: (id: string) => generatePath(`${x}/customer/${id}/tax`),
     customerTax: (id: string) => generatePath(`${x}/customer/${id}/tax`),
     customerType: (id: string) =>
       generatePath(`${x}/sales/customer-types/${id}`),
-    customerType: (id: string) =>
-      generatePath(`${x}/sales/customer-types/${id}`),
     customerTypes: `${x}/sales/customer-types`,
-    customerTypes: `${x}/sales/customer-types`,
-    customField: (tableId: string, id: string) =>
-      generatePath(`${x}/settings/custom-fields/${tableId}/${id}`),
     customField: (tableId: string, id: string) =>
       generatePath(`${x}/settings/custom-fields/${tableId}/${id}`),
     customFieldList: (id: string) =>
       generatePath(`${x}/settings/custom-fields/${id}`),
-    customFieldList: (id: string) =>
-      generatePath(`${x}/settings/custom-fields/${id}`),
     customFields: `${x}/settings/custom-fields`,
-    customFields: `${x}/settings/custom-fields`,
-    customFieldsTable: (table: string) =>
-      generatePath(`${x}/settings/custom-fields/${table}`),
     customFieldsTable: (table: string) =>
       generatePath(`${x}/settings/custom-fields/${table}`),
 
     deactivateUsers: `${x}/users/deactivate`,
-
-    deactivateUsers: `${x}/users/deactivate`,
-    defaultRevision: (id: string) =>
-      generatePath(`${x}/items/revisions/default/${id}`),
     defaultRevision: (id: string) =>
       generatePath(`${x}/items/revisions/default/${id}`),
     deleteAbility: (id: string) =>
       generatePath(`${x}/resources/abilities/delete/${id}`),
-    deleteAbility: (id: string) =>
-      generatePath(`${x}/resources/abilities/delete/${id}`),
     deleteAccountingCharts: (id: string) =>
       generatePath(`${x}/accounting/charts/delete/${id}`),
-    deleteAccountingCharts: (id: string) =>
-      generatePath(`${x}/accounting/charts/delete/${id}`),
-    deleteApiKey: (id: string) =>
-      generatePath(`${x}/settings/api-keys/delete/${id}`),
     deleteApiKey: (id: string) =>
       generatePath(`${x}/settings/api-keys/delete/${id}`),
     deleteApprovalRule: (id: string) =>
@@ -726,22 +562,12 @@ export const path = {
       generatePath(
         `${x}/assembly/${id}/component-mappings/delete/${mappingId}`
       ),
-    deleteAssemblyComponentMapping: (id: string, mappingId: string) =>
-      generatePath(
-        `${x}/assembly/${id}/component-mappings/delete/${mappingId}`
-      ),
     deleteAssemblyInstruction: (id: string) =>
       generatePath(`${x}/assembly/delete/${id}`),
-    deleteAssemblyInstruction: (id: string) =>
-      generatePath(`${x}/assembly/delete/${id}`),
-    deleteAssemblyInstructionStep: (id: string, stepId: string) =>
-      generatePath(`${x}/assembly/${id}/steps/delete/${stepId}`),
     deleteAssemblyInstructionStep: (id: string, stepId: string) =>
       generatePath(`${x}/assembly/${id}/steps/delete/${stepId}`),
     deleteAssemblyStandardNote: (noteId: string) =>
       generatePath(`${x}/assembly/standard-notes/delete/${noteId}`),
-    deleteAssemblyStepMaterial: (id: string, materialId: string) =>
-      generatePath(`${x}/assembly/${id}/materials/delete/${materialId}`),
     deleteAssemblyStepMaterial: (id: string, materialId: string) =>
       generatePath(`${x}/assembly/${id}/materials/delete/${materialId}`),
     deleteAssemblyStepRequirement: (id: string, requirementId: string) =>
@@ -752,24 +578,12 @@ export const path = {
       generatePath(`${x}/assembly/${id}/tools/delete/${toolId}`),
     deleteAssemblyUnit: (id: string, unitId: string) =>
       generatePath(`${x}/assembly/${id}/units/delete/${unitId}`),
-    deleteAssemblyUnit: (id: string, unitId: string) =>
-      generatePath(`${x}/assembly/${id}/units/delete/${unitId}`),
-    deleteAssetClass: (id: string) =>
-      generatePath(`${x}/accounting/asset-class/${id}/delete`),
     deleteAssetClass: (id: string) =>
       generatePath(`${x}/accounting/asset-class/${id}/delete`),
     deleteAttribute: (id: string) =>
       generatePath(`${x}/people/attribute/delete/${id}`),
-    deleteAttribute: (id: string) =>
-      generatePath(`${x}/people/attribute/delete/${id}`),
     deleteAttributeCategory: (id: string) =>
       generatePath(`${x}/people/attributes/delete/${id}`),
-    deleteAttributeCategory: (id: string) =>
-      generatePath(`${x}/people/attributes/delete/${id}`),
-    deleteBatchProperty: (itemId: string, id: string) =>
-      generatePath(
-        `${x}/inventory/batch-property/${itemId}/property/delete/${id}`
-      ),
     deleteBatchProperty: (itemId: string, id: string) =>
       generatePath(
         `${x}/inventory/batch-property/${itemId}/property/delete/${id}`
@@ -788,196 +602,100 @@ export const path = {
       generatePath(`${x}/items/change-notice-types/delete/${id}`),
     deleteCompany: (id: string) =>
       generatePath(`${x}/settings/companies/delete/${id}`),
-    deleteCompany: (id: string) =>
-      generatePath(`${x}/settings/companies/delete/${id}`),
-    deleteConfigurationParameter: (itemId: string, id: string) =>
-      generatePath(`${x}/part/${itemId}/parameter/delete/${id}`),
     deleteConfigurationParameter: (itemId: string, id: string) =>
       generatePath(`${x}/part/${itemId}/parameter/delete/${id}`),
     deleteConfigurationParameterGroup: (itemId: string, id: string) =>
       generatePath(`${x}/part/${itemId}/parameter/group/delete/${id}`),
-    deleteConfigurationParameterGroup: (itemId: string, id: string) =>
-      generatePath(`${x}/part/${itemId}/parameter/group/delete/${id}`),
-    deleteConfigurationRule: (itemId: string, field: string) =>
-      generatePath(`${x}/part/${itemId}/rule/delete/${field}`),
     deleteConfigurationRule: (itemId: string, field: string) =>
       generatePath(`${x}/part/${itemId}/rule/delete/${field}`),
     deleteConsumableSupplier: (itemId: string, id: string) =>
       generatePath(`${x}/consumable/${itemId}/purchasing/${id}/delete`),
-    deleteConsumableSupplier: (itemId: string, id: string) =>
-      generatePath(`${x}/consumable/${itemId}/purchasing/${id}/delete`),
-    deleteContractor: (id: string) =>
-      generatePath(`${x}/resources/contractors/delete/${id}`),
     deleteContractor: (id: string) =>
       generatePath(`${x}/resources/contractors/delete/${id}`),
     deleteCostCenter: (id: string) =>
       generatePath(`${x}/accounting/cost-centers/delete/${id}`),
-    deleteCostCenter: (id: string) =>
-      generatePath(`${x}/accounting/cost-centers/delete/${id}`),
-    deleteCustomer: (id: string) => generatePath(`${x}/customer/${id}/delete`),
     deleteCustomer: (id: string) => generatePath(`${x}/customer/${id}/delete`),
     deleteCustomerContact: (customerId: string, id: string) =>
       generatePath(`${x}/customer/${customerId}/contacts/delete/${id}`),
-    deleteCustomerContact: (customerId: string, id: string) =>
-      generatePath(`${x}/customer/${customerId}/contacts/delete/${id}`),
-    deleteCustomerLocation: (customerId: string, id: string) =>
-      generatePath(`${x}/customer/${customerId}/locations/delete/${id}`),
     deleteCustomerLocation: (customerId: string, id: string) =>
       generatePath(`${x}/customer/${customerId}/locations/delete/${id}`),
     deleteCustomerPart: (id: string, customerPartToItemId: string) =>
       generatePath(
         `${x}/part/${id}/sales/customer-parts/delete/${customerPartToItemId}`
       ),
-    deleteCustomerPart: (id: string, customerPartToItemId: string) =>
-      generatePath(
-        `${x}/part/${id}/sales/customer-parts/delete/${customerPartToItemId}`
-      ),
-    deleteCustomerPortal: (id: string) =>
-      generatePath(`${x}/sales/customer-portals/delete/${id}`),
     deleteCustomerPortal: (id: string) =>
       generatePath(`${x}/sales/customer-portals/delete/${id}`),
     deleteCustomerStatus: (id: string) =>
       generatePath(`${x}/sales/customer-statuses/delete/${id}`),
-    deleteCustomerStatus: (id: string) =>
-      generatePath(`${x}/sales/customer-statuses/delete/${id}`),
     deleteCustomerType: (id: string) =>
       generatePath(`${x}/sales/customer-types/delete/${id}`),
-    deleteCustomerType: (id: string) =>
-      generatePath(`${x}/sales/customer-types/delete/${id}`),
-    deleteCustomField: (tableId: string, id: string) =>
-      generatePath(`${x}/settings/custom-fields/${tableId}/delete/${id}`),
     deleteCustomField: (tableId: string, id: string) =>
       generatePath(`${x}/settings/custom-fields/${tableId}/delete/${id}`),
     deleteDemandProjections: (itemId: string, locationId: string) =>
       generatePath(
         `${x}/production/projections/delete/${itemId}/${locationId}`
       ),
-    deleteDemandProjections: (itemId: string, locationId: string) =>
-      generatePath(
-        `${x}/production/projections/delete/${itemId}/${locationId}`
-      ),
-    deleteDepartment: (id: string) =>
-      generatePath(`${x}/people/departments/delete/${id}`),
     deleteDepartment: (id: string) =>
       generatePath(`${x}/people/departments/delete/${id}`),
     deleteDepreciationRun: (id: string) =>
       generatePath(`${x}/depreciation-run/${id}/delete`),
-    deleteDepreciationRun: (id: string) =>
-      generatePath(`${x}/depreciation-run/${id}/delete`),
-    deleteDimension: (id: string) =>
-      generatePath(`${x}/accounting/dimensions/delete/${id}`),
     deleteDimension: (id: string) =>
       generatePath(`${x}/accounting/dimensions/delete/${id}`),
     deleteDocument: (id: string) => generatePath(`${x}/documents/${id}/trash`),
-    deleteDocument: (id: string) => generatePath(`${x}/documents/${id}/trash`),
-    deleteDocumentPermanently: (id: string) =>
-      generatePath(`${x}/documents/${id}/delete`),
     deleteDocumentPermanently: (id: string) =>
       generatePath(`${x}/documents/${id}/delete`),
     deleteEmployeeAbility: (abilityId: string, id: string) =>
       generatePath(`${x}/resources/ability/${abilityId}/employee/delete/${id}`),
-    deleteEmployeeAbility: (abilityId: string, id: string) =>
-      generatePath(`${x}/resources/ability/${abilityId}/employee/delete/${id}`),
-    deleteEmployeeType: (id: string) =>
-      generatePath(`${x}/users/employee-types/delete/${id}`),
     deleteEmployeeType: (id: string) =>
       generatePath(`${x}/users/employee-types/delete/${id}`),
     deleteExchangeRate: (id: string) =>
       generatePath(`${x}/accounting/exchange-rates/delete/${id}`),
-    deleteExchangeRate: (id: string) =>
-      generatePath(`${x}/accounting/exchange-rates/delete/${id}`),
-    deleteFailureMode: (id: string) =>
-      generatePath(`${x}/resources/failure-modes/delete/${id}`),
     deleteFailureMode: (id: string) =>
       generatePath(`${x}/resources/failure-modes/delete/${id}`),
     deleteFixedAsset: (id: string) =>
       generatePath(`${x}/fixed-asset/${id}/delete`),
-    deleteFixedAsset: (id: string) =>
-      generatePath(`${x}/fixed-asset/${id}/delete`),
-    deleteGauge: (id: string) =>
-      generatePath(`${x}/quality/gauges/delete/${id}`),
     deleteGauge: (id: string) =>
       generatePath(`${x}/quality/gauges/delete/${id}`),
     deleteGaugeCalibrationRecord: (id: string) =>
       generatePath(`${x}/quality/calibrations/delete/${id}`),
-    deleteGaugeCalibrationRecord: (id: string) =>
-      generatePath(`${x}/quality/calibrations/delete/${id}`),
-    deleteGaugeType: (id: string) =>
-      generatePath(`${x}/quality/gauge-types/delete/${id}`),
     deleteGaugeType: (id: string) =>
       generatePath(`${x}/quality/gauge-types/delete/${id}`),
     deleteGroup: (id: string) => generatePath(`${x}/users/groups/delete/${id}`),
-    deleteGroup: (id: string) => generatePath(`${x}/users/groups/delete/${id}`),
-    deleteHoliday: (id: string) =>
-      generatePath(`${x}/people/holidays/delete/${id}`),
     deleteHoliday: (id: string) =>
       generatePath(`${x}/people/holidays/delete/${id}`),
     deleteInspectionDocument: (id: string) =>
       generatePath(`${x}/inspection-document/${id}/delete`),
-    deleteInspectionDocument: (id: string) =>
-      generatePath(`${x}/inspection/${id}/delete`),
-    deleteInvestigationType: (id: string) =>
-      generatePath(`${x}/quality/investigation-types/delete/${id}`),
     deleteInvestigationType: (id: string) =>
       generatePath(`${x}/quality/investigation-types/delete/${id}`),
     deleteIssue: (id: string) => generatePath(`${x}/issue/delete/${id}`),
-    deleteIssue: (id: string) => generatePath(`${x}/issue/delete/${id}`),
-    deleteIssueAssociation: (id: string, type: string, associationId: string) =>
-      generatePath(
-        `${x}/issue/${id}/association/delete/${type}/${associationId}`
-      ),
     deleteIssueAssociation: (id: string, type: string, associationId: string) =>
       generatePath(
         `${x}/issue/${id}/association/delete/${type}/${associationId}`
       ),
     deleteIssueType: (id: string) =>
       generatePath(`${x}/quality/issue-types/delete/${id}`),
-    deleteIssueType: (id: string) =>
-      generatePath(`${x}/quality/issue-types/delete/${id}`),
-    deleteIssueWorkflow: (id: string) =>
-      generatePath(`${x}/issue-workflow/delete/${id}`),
     deleteIssueWorkflow: (id: string) =>
       generatePath(`${x}/issue-workflow/delete/${id}`),
     deleteItem: (id: string) => generatePath(`${x}/items/delete/${id}`),
-    deleteItem: (id: string) => generatePath(`${x}/items/delete/${id}`),
-    deleteItemPostingGroup: (id: string) =>
-      generatePath(`${x}/items/groups/delete/${id}`),
     deleteItemPostingGroup: (id: string) =>
       generatePath(`${x}/items/groups/delete/${id}`),
     deleteJob: (id: string) => generatePath(`${x}/job/${id}/delete`),
-    deleteJob: (id: string) => generatePath(`${x}/job/${id}/delete`),
-    deleteJobMaterial: (jobId: string, id: string) =>
-      generatePath(`${x}/job/methods/${jobId}/material/delete/${id}`),
     deleteJobMaterial: (jobId: string, id: string) =>
       generatePath(`${x}/job/methods/${jobId}/material/delete/${id}`),
     deleteJobOperationParameter: (id: string) =>
       generatePath(`${x}/job/methods/operation/parameter/delete/${id}`),
-    deleteJobOperationParameter: (id: string) =>
-      generatePath(`${x}/job/methods/operation/parameter/delete/${id}`),
-    deleteJobOperationStep: (id: string) =>
-      generatePath(`${x}/job/methods/operation/step/delete/${id}`),
     deleteJobOperationStep: (id: string) =>
       generatePath(`${x}/job/methods/operation/step/delete/${id}`),
     deleteJobOperationStepSlide: (id: string) =>
       generatePath(`${x}/job/methods/operation/step/slide/delete/${id}`),
     deleteJobOperationTool: (id: string) =>
       generatePath(`${x}/job/methods/operation/tool/delete/${id}`),
-    deleteJobOperationTool: (id: string) =>
-      generatePath(`${x}/job/methods/operation/tool/delete/${id}`),
-    deleteJournalEntry: (id: string) =>
-      generatePath(`${x}/journal-entry/${id}/delete`),
     deleteJournalEntry: (id: string) =>
       generatePath(`${x}/journal-entry/${id}/delete`),
     deleteKanban: (id: string) =>
       generatePath(`${x}/inventory/kanbans/delete/${id}`),
-    deleteKanban: (id: string) =>
-      generatePath(`${x}/inventory/kanbans/delete/${id}`),
     deleteLocation: (id: string) =>
       generatePath(`${x}/resources/locations/delete/${id}`),
-    deleteLocation: (id: string) =>
-      generatePath(`${x}/resources/locations/delete/${id}`),
-    deleteMaintenanceDispatch: (id: string) =>
-      generatePath(`${x}/resources/maintenance/delete/${id}`),
     deleteMaintenanceDispatch: (id: string) =>
       generatePath(`${x}/resources/maintenance/delete/${id}`),
     deleteMaintenanceDispatchEvent: (dispatchId: string, eventId: string) =>
@@ -986,66 +704,37 @@ export const path = {
       generatePath(`${x}/maintenance/${dispatchId}/item/${itemId}/delete`),
     deleteMaintenanceSchedule: (id: string) =>
       generatePath(`${x}/resources/scheduled-maintenance/delete/${id}`),
-    deleteMaintenanceSchedule: (id: string) =>
-      generatePath(`${x}/resources/scheduled-maintenance/delete/${id}`),
-    deleteMaterialDimension: (id: string) =>
-      generatePath(`${x}/items/dimensions/delete/${id}`),
     deleteMaterialDimension: (id: string) =>
       generatePath(`${x}/items/dimensions/delete/${id}`),
     deleteMaterialFinish: (id: string) =>
       generatePath(`${x}/items/finishes/delete/${id}`),
-    deleteMaterialFinish: (id: string) =>
-      generatePath(`${x}/items/finishes/delete/${id}`),
-    deleteMaterialForm: (id: string) =>
-      generatePath(`${x}/items/forms/delete/${id}`),
     deleteMaterialForm: (id: string) =>
       generatePath(`${x}/items/forms/delete/${id}`),
     deleteMaterialGrade: (id: string) =>
       generatePath(`${x}/items/grades/delete/${id}`),
-    deleteMaterialGrade: (id: string) =>
-      generatePath(`${x}/items/grades/delete/${id}`),
-    deleteMaterialSubstance: (id: string) =>
-      generatePath(`${x}/items/substances/delete/${id}`),
     deleteMaterialSubstance: (id: string) =>
       generatePath(`${x}/items/substances/delete/${id}`),
     deleteMaterialSupplier: (itemId: string, id: string) =>
       generatePath(`${x}/material/${itemId}/purchasing/${id}/delete`),
     deleteMaterialType: (id: string) =>
       generatePath(`${x}/items/types/delete/${id}`),
-    deleteMaterialType: (id: string) =>
-      generatePath(`${x}/items/types/delete/${id}`),
-    deleteMethodMaterial: (id: string) =>
-      generatePath(`${x}/items/methods/material/delete/${id}`),
     deleteMethodMaterial: (id: string) =>
       generatePath(`${x}/items/methods/material/delete/${id}`),
     deleteMethodOperationParameter: (id: string) =>
       generatePath(`${x}/items/methods/operation/parameter/delete/${id}`),
-    deleteMethodOperationParameter: (id: string) =>
-      generatePath(`${x}/items/methods/operation/parameter/delete/${id}`),
-    deleteMethodOperationStep: (id: string) =>
-      generatePath(`${x}/items/methods/operation/step/delete/${id}`),
     deleteMethodOperationStep: (id: string) =>
       generatePath(`${x}/items/methods/operation/step/delete/${id}`),
     deleteMethodOperationStepSlide: (id: string) =>
       generatePath(`${x}/items/methods/operation/step/slide/delete/${id}`),
     deleteMethodOperationTool: (id: string) =>
       generatePath(`${x}/items/methods/operation/tool/delete/${id}`),
-    deleteMethodOperationTool: (id: string) =>
-      generatePath(`${x}/items/methods/operation/tool/delete/${id}`),
-    deleteNoQuoteReason: (id: string) =>
-      generatePath(`${x}/sales/no-quote-reasons/delete/${id}`),
     deleteNoQuoteReason: (id: string) =>
       generatePath(`${x}/sales/no-quote-reasons/delete/${id}`),
     deleteNote: (id: string) => generatePath(`${x}/shared/notes/${id}/delete`),
-    deleteNote: (id: string) => generatePath(`${x}/shared/notes/${id}/delete`),
-    deletePartner: (id: string) =>
-      generatePath(`${x}/resources/partners/delete/${id}`),
     deletePartner: (id: string) =>
       generatePath(`${x}/resources/partners/delete/${id}`),
     deletePartSupplier: (itemId: string, id: string) =>
       generatePath(`${x}/part/${itemId}/purchasing/${id}/delete`),
-    deletePaymentTerm: (id: string) =>
-      generatePath(`${x}/accounting/payment-terms/delete/${id}`),
     deletePaymentTerm: (id: string) =>
       generatePath(`${x}/accounting/payment-terms/delete/${id}`),
     deletePriceOverride: (id: string) =>
@@ -1056,42 +745,22 @@ export const path = {
       generatePath(`${x}/settings/printing/${id}/delete`),
     deleteProcedure: (id: string) =>
       generatePath(`${x}/procedure/delete/${id}`),
-    deleteProcedure: (id: string) =>
-      generatePath(`${x}/procedure/delete/${id}`),
-    deleteProcedureParameter: (id: string, parameterId: string) =>
-      generatePath(`${x}/procedure/${id}/parameters/delete/${parameterId}`),
     deleteProcedureParameter: (id: string, parameterId: string) =>
       generatePath(`${x}/procedure/${id}/parameters/delete/${parameterId}`),
     deleteProcedureStep: (id: string, stepId: string) =>
       generatePath(`${x}/procedure/${id}/steps/delete/${stepId}`),
-    deleteProcedureStep: (id: string, stepId: string) =>
-      generatePath(`${x}/procedure/${id}/steps/delete/${stepId}`),
-    deleteProcess: (id: string) =>
-      generatePath(`${x}/resources/processes/delete/${id}`),
     deleteProcess: (id: string) =>
       generatePath(`${x}/resources/processes/delete/${id}`),
     deleteProductionEvent: (id: string) =>
       generatePath(`${x}/job/methods/event/delete/${id}`),
-    deleteProductionEvent: (id: string) =>
-      generatePath(`${x}/job/methods/event/delete/${id}`),
-    deleteProductionQuantity: (id: string) =>
-      generatePath(`${x}/job/methods/quantity/delete/${id}`),
     deleteProductionQuantity: (id: string) =>
       generatePath(`${x}/job/methods/quantity/delete/${id}`),
     deletePurchaseInvoice: (id: string) =>
       generatePath(`${x}/purchase-invoice/${id}/delete`),
-    deletePurchaseInvoice: (id: string) =>
-      generatePath(`${x}/purchase-invoice/${id}/delete`),
-    deletePurchaseInvoiceLine: (invoiceId: string, lineId: string) =>
-      generatePath(`${x}/purchase-invoice/${invoiceId}/${lineId}/delete`),
     deletePurchaseInvoiceLine: (invoiceId: string, lineId: string) =>
       generatePath(`${x}/purchase-invoice/${invoiceId}/${lineId}/delete`),
     deletePurchaseOrder: (id: string) =>
       generatePath(`${x}/purchase-order/${id}/delete`),
-    deletePurchaseOrder: (id: string) =>
-      generatePath(`${x}/purchase-order/${id}/delete`),
-    deletePurchaseOrderLine: (orderId: string, lineId: string) =>
-      generatePath(`${x}/purchase-order/${orderId}/${lineId}/delete`),
     deletePurchaseOrderLine: (orderId: string, lineId: string) =>
       generatePath(`${x}/purchase-order/${orderId}/${lineId}/delete`),
     deletePurchasingRfq: (id: string) =>
@@ -1100,213 +769,115 @@ export const path = {
       generatePath(`${x}/purchasing-rfq/${id}/${lineId}/delete`),
     deleteQualityDocument: (id: string) =>
       generatePath(`${x}/quality-document/delete/${id}`),
-    deleteQualityDocument: (id: string) =>
-      generatePath(`${x}/quality-document/delete/${id}`),
-    deleteQualityDocumentStep: (id: string, stepId: string) =>
-      generatePath(`${x}/quality-document/${id}/steps/delete/${stepId}`),
     deleteQualityDocumentStep: (id: string, stepId: string) =>
       generatePath(`${x}/quality-document/${id}/steps/delete/${stepId}`),
     deleteQuote: (id: string) => generatePath(`${x}/quote/${id}/delete`),
-    deleteQuote: (id: string) => generatePath(`${x}/quote/${id}/delete`),
     deleteQuoteLine: (id: string, lineId: string) =>
       generatePath(`${x}/quote/${id}/${lineId}/delete`),
-    deleteQuoteLine: (id: string, lineId: string) =>
-      generatePath(`${x}/quote/${id}/${lineId}/delete`),
-    deleteQuoteLineCost: (quoteId: string, lineId: string) =>
-      generatePath(`${x}/quote/${quoteId}/${lineId}/cost/delete`),
     deleteQuoteLineCost: (quoteId: string, lineId: string) =>
       generatePath(`${x}/quote/${quoteId}/${lineId}/cost/delete`),
     deleteQuoteMaterial: (quoteId: string, lineId: string, id: string) =>
       generatePath(
         `${x}/quote/methods/${quoteId}/${lineId}/material/delete/${id}`
       ),
-    deleteQuoteMaterial: (quoteId: string, lineId: string, id: string) =>
-      generatePath(
-        `${x}/quote/methods/${quoteId}/${lineId}/material/delete/${id}`
-      ),
-    deleteQuoteOperationParameter: (id: string) =>
-      generatePath(`${x}/quote/methods/operation/parameter/delete/${id}`),
     deleteQuoteOperationParameter: (id: string) =>
       generatePath(`${x}/quote/methods/operation/parameter/delete/${id}`),
     deleteQuoteOperationStep: (id: string) =>
       generatePath(`${x}/quote/methods/operation/step/delete/${id}`),
-    deleteQuoteOperationStep: (id: string) =>
-      generatePath(`${x}/quote/methods/operation/step/delete/${id}`),
-    deleteQuoteOperationTool: (id: string) =>
-      generatePath(`${x}/quote/methods/operation/tool/delete/${id}`),
     deleteQuoteOperationTool: (id: string) =>
       generatePath(`${x}/quote/methods/operation/tool/delete/${id}`),
     deleteReceipt: (id: string) => generatePath(`${x}/receipt/${id}/delete`),
-    deleteReceipt: (id: string) => generatePath(`${x}/receipt/${id}/delete`),
-    deleteRequiredAction: (id: string) =>
-      generatePath(`${x}/quality/required-actions/delete/${id}`),
+    deleteReportView: (id: string) =>
+      generatePath(`${x}/reports/views/${id}/delete`),
     deleteRequiredAction: (id: string) =>
       generatePath(`${x}/quality/required-actions/delete/${id}`),
     deleteRisk: (id: string) => generatePath(`${x}/quality/risks/delete/${id}`),
-    deleteRisk: (id: string) => generatePath(`${x}/quality/risks/delete/${id}`),
-    deleteSalesInvoice: (id: string) =>
-      generatePath(`${x}/sales-invoice/${id}/delete`),
     deleteSalesInvoice: (id: string) =>
       generatePath(`${x}/sales-invoice/${id}/delete`),
     deleteSalesInvoiceLine: (invoiceId: string, lineId: string) =>
       generatePath(`${x}/sales-invoice/${invoiceId}/${lineId}/delete`),
-    deleteSalesInvoiceLine: (invoiceId: string, lineId: string) =>
-      generatePath(`${x}/sales-invoice/${invoiceId}/${lineId}/delete`),
-    deleteSalesOrder: (id: string) =>
-      generatePath(`${x}/sales-order/${id}/delete`),
     deleteSalesOrder: (id: string) =>
       generatePath(`${x}/sales-order/${id}/delete`),
     deleteSalesOrderLine: (orderId: string, lineId: string) =>
       generatePath(`${x}/sales-order/${orderId}/${lineId}/delete`),
-    deleteSalesOrderLine: (orderId: string, lineId: string) =>
-      generatePath(`${x}/sales-order/${orderId}/${lineId}/delete`),
     deleteSalesRfq: (id: string) => generatePath(`${x}/sales-rfq/${id}/delete`),
-    deleteSalesRfq: (id: string) => generatePath(`${x}/sales-rfq/${id}/delete`),
-    deleteSalesRfqLine: (id: string, lineId: string) =>
-      generatePath(`${x}/sales-rfq/${id}/${lineId}/delete`),
     deleteSalesRfqLine: (id: string, lineId: string) =>
       generatePath(`${x}/sales-rfq/${id}/${lineId}/delete`),
     deleteSavedView: (id: string) =>
       generatePath(`${x}/shared/views/delete/${id}`),
-    deleteSavedView: (id: string) =>
-      generatePath(`${x}/shared/views/delete/${id}`),
     deleteScrapReason: (id: string) =>
       generatePath(`${x}/production/scrap-reasons/delete/${id}`),
-    deleteScrapReason: (id: string) =>
-      generatePath(`${x}/production/scrap-reasons/delete/${id}`),
-    deleteShift: (id: string) =>
-      generatePath(`${x}/people/shifts/delete/${id}`),
+    deleteSerialNumberSequence: (id: string) =>
+      generatePath(`${x}/settings/serial-numbers/delete/${id}`),
     deleteShift: (id: string) =>
       generatePath(`${x}/people/shifts/delete/${id}`),
     deleteShipment: (id: string) => generatePath(`${x}/shipment/${id}/delete`),
-    deleteShipment: (id: string) => generatePath(`${x}/shipment/${id}/delete`),
-    deleteShippingMethod: (id: string) =>
-      generatePath(`${x}/inventory/shipping-methods/delete/${id}`),
     deleteShippingMethod: (id: string) =>
       generatePath(`${x}/inventory/shipping-methods/delete/${id}`),
     deleteStockTransfer: (id: string) =>
       generatePath(`${x}/stock-transfer/delete/${id}`),
-    deleteStockTransfer: (id: string) =>
-      generatePath(`${x}/stock-transfer/delete/${id}`),
-    deleteStockTransferLine: (id: string, lineId: string) =>
-      generatePath(`${x}/stock-transfer/${id}/line/${lineId}/delete`),
     deleteStockTransferLine: (id: string, lineId: string) =>
       generatePath(`${x}/stock-transfer/${id}/line/${lineId}/delete`),
     deleteStorageRule: (id: string) =>
       generatePath(`${x}/inventory/storage-rules/${id}/delete`),
     deleteStorageType: (id: string) =>
       generatePath(`${x}/inventory/storage-types/delete/${id}`),
-    deleteStorageType: (id: string) =>
-      generatePath(`${x}/inventory/storage-types/delete/${id}`),
-    deleteStorageUnit: (id: string) =>
-      generatePath(`${x}/inventory/storage-units/delete/${id}`),
     deleteStorageUnit: (id: string) =>
       generatePath(`${x}/inventory/storage-units/delete/${id}`),
     deleteSuggestion: (id: string) =>
       generatePath(`${x}/resources/suggestions/delete/${id}`),
-    deleteSuggestion: (id: string) =>
-      generatePath(`${x}/resources/suggestions/delete/${id}`),
     deleteSupplier: (id: string) => generatePath(`${x}/supplier/${id}/delete`),
-    deleteSupplier: (id: string) => generatePath(`${x}/supplier/${id}/delete`),
-    deleteSupplierContact: (supplierId: string, id: string) =>
-      generatePath(`${x}/supplier/${supplierId}/contacts/delete/${id}`),
     deleteSupplierContact: (supplierId: string, id: string) =>
       generatePath(`${x}/supplier/${supplierId}/contacts/delete/${id}`),
     deleteSupplierLocation: (supplierId: string, id: string) =>
       generatePath(`${x}/supplier/${supplierId}/locations/delete/${id}`),
-    deleteSupplierLocation: (supplierId: string, id: string) =>
-      generatePath(`${x}/supplier/${supplierId}/locations/delete/${id}`),
-    deleteSupplierProcess: (supplierId: string, id: string) =>
-      generatePath(`${x}/supplier/${supplierId}/processes/delete/${id}`),
     deleteSupplierProcess: (supplierId: string, id: string) =>
       generatePath(`${x}/supplier/${supplierId}/processes/delete/${id}`),
     deleteSupplierQuote: (id: string) =>
       generatePath(`${x}/supplier-quote/${id}/delete`),
-    deleteSupplierQuote: (id: string) =>
-      generatePath(`${x}/supplier-quote/${id}/delete`),
-    deleteSupplierQuoteLine: (id: string, lineId: string) =>
-      generatePath(`${x}/supplier-quote/${id}/${lineId}/delete`),
     deleteSupplierQuoteLine: (id: string, lineId: string) =>
       generatePath(`${x}/supplier-quote/${id}/${lineId}/delete`),
     deleteSupplierType: (id: string) =>
       generatePath(`${x}/purchasing/supplier-types/delete/${id}`),
-    deleteSupplierType: (id: string) =>
-      generatePath(`${x}/purchasing/supplier-types/delete/${id}`),
-    deleteTimecard: (id: string) =>
-      generatePath(`${x}/people/timecard/delete/${id}`),
     deleteTimecard: (id: string) =>
       generatePath(`${x}/people/timecard/delete/${id}`),
     deleteToolSupplier: (itemId: string, id: string) =>
       generatePath(`${x}/tool/${itemId}/purchasing/${id}/delete`),
     deleteTraining: (id: string) => generatePath(`${x}/training/delete/${id}`),
-    deleteTraining: (id: string) => generatePath(`${x}/training/delete/${id}`),
-    deleteTrainingAssignment: (assignmentId: string) =>
-      generatePath(
-        `${x}/resources/assignments/assignment/${assignmentId}/delete`
-      ),
     deleteTrainingAssignment: (assignmentId: string) =>
       generatePath(
         `${x}/resources/assignments/assignment/${assignmentId}/delete`
       ),
     deleteTrainingQuestion: (id: string, questionId: string) =>
       generatePath(`${x}/training/${id}/questions/delete/${questionId}`),
-    deleteTrainingQuestion: (id: string, questionId: string) =>
-      generatePath(`${x}/training/${id}/questions/delete/${questionId}`),
     deleteUom: (id: string) => generatePath(`${x}/items/uom/delete/${id}`),
-    deleteUom: (id: string) => generatePath(`${x}/items/uom/delete/${id}`),
-    deleteUserAttribute: (id: string) =>
-      generatePath(`${x}/account/${id}/delete/attribute`),
     deleteUserAttribute: (id: string) =>
       generatePath(`${x}/account/${id}/delete/attribute`),
     deleteWarehouseTransfer: (id: string) =>
       generatePath(`${x}/warehouse-transfer/${id}/delete`),
-    deleteWarehouseTransfer: (id: string) =>
-      generatePath(`${x}/warehouse-transfer/${id}/delete`),
-    deleteWebhook: (id: string) =>
-      generatePath(`${x}/settings/webhooks/delete/${id}`),
     deleteWebhook: (id: string) =>
       generatePath(`${x}/settings/webhooks/delete/${id}`),
     deleteWorkCenter: (id: string) =>
       generatePath(`${x}/resources/work-centers/delete/${id}`),
-    deleteWorkCenter: (id: string) =>
-      generatePath(`${x}/resources/work-centers/delete/${id}`),
-    demandProjection: (itemId: string, locationId: string) =>
-      generatePath(`${x}/production/projections/${itemId}/${locationId}`),
     demandProjection: (itemId: string, locationId: string) =>
       generatePath(`${x}/production/projections/${itemId}/${locationId}`),
     demandProjections: `${x}/production/projections`,
-    demandProjections: `${x}/production/projections`,
     department: (id: string) => generatePath(`${x}/people/departments/${id}`),
-    department: (id: string) => generatePath(`${x}/people/departments/${id}`),
-    departments: `${x}/people/departments`,
     departments: `${x}/people/departments`,
     depreciationRun: (id: string) =>
       generatePath(`${x}/depreciation-run/${id}`),
-    depreciationRun: (id: string) =>
-      generatePath(`${x}/depreciation-run/${id}`),
-    depreciationRuns: `${x}/accounting/depreciation-runs`,
     depreciationRuns: `${x}/accounting/depreciation-runs`,
     dimension: (id: string) => generatePath(`${x}/accounting/dimensions/${id}`),
-    dimension: (id: string) => generatePath(`${x}/accounting/dimensions/${id}`),
-    dimensions: `${x}/accounting/dimensions`,
     dimensions: `${x}/accounting/dimensions`,
     document: (id: string) => generatePath(`${x}/documents/search/${id}`),
-    document: (id: string) => generatePath(`${x}/documents/search/${id}`),
     documentFavorite: `${x}/documents/favorite`,
-    documentFavorite: `${x}/documents/favorite`,
-    documentRestore: (id: string) =>
-      generatePath(`${x}/documents/${id}/restore`),
     documentRestore: (id: string) =>
       generatePath(`${x}/documents/${id}/restore`),
     documentSections: `${x}/templates/shared`,
     documents: `${x}/documents/search`,
-    documents: `${x}/documents/search`,
-    documentsTrash: `${x}/documents/search?q=trash`,
     documentsTrash: `${x}/documents/search?q=trash`,
     documentTemplate: (type: string) => generatePath(`${x}/templates/${type}`),
     documentTemplates: `${x}/templates`,
-    documentView: (id: string) =>
-      generatePath(`${x}/documents/search/view/${id}`),
     documentView: (id: string) =>
       generatePath(`${x}/documents/search/view/${id}`),
     download: (token: string) => `/download/${token}`,
@@ -1320,24 +891,17 @@ export const path = {
       generatePath(`${x}/maintenance/${dispatchId}/event/${eventId}`),
     employeeAbility: (abilityId: string, id: string) =>
       generatePath(`${x}/resources/ability/${abilityId}/employee/${id}`),
-    employeeAbility: (abilityId: string, id: string) =>
-      generatePath(`${x}/resources/ability/${abilityId}/employee/${id}`),
-    employeeAccount: (id: string) => generatePath(`${x}/users/employees/${id}`),
     employeeAccount: (id: string) => generatePath(`${x}/users/employees/${id}`),
     employeeAccounts: `${x}/users/employees`,
-    employeeAccounts: `${x}/users/employees`,
-    employeeType: (id: string) =>
-      generatePath(`${x}/users/employee-types/${id}`),
+    employeeResetMfa: (id: string) =>
+      generatePath(`${x}/users/employees/reset-mfa/${id}`),
     employeeType: (id: string) =>
       generatePath(`${x}/users/employee-types/${id}`),
     employeeTypes: `${x}/users/employee-types`,
-    employeeTypes: `${x}/users/employee-types`,
-    exchangeRate: (id: string) =>
-      generatePath(`${x}/accounting/exchange-rates/${id}`),
     exchangeRate: (id: string) =>
       generatePath(`${x}/accounting/exchange-rates/${id}`),
     exchangeRates: `${x}/accounting/exchange-rates`,
-    exchangeRates: `${x}/accounting/exchange-rates`,
+    executivePnl: `${x}/reports/executive-pnl`,
     external: {
       mes: MES_URL,
       mesJobOperation: (id: string) => `${MES_URL}/x/operation/${id}`,
@@ -1348,28 +912,16 @@ export const path = {
         `${MES_URL}/x/operations?search=${encodeURIComponent(jobId)}`
     },
     externalCustomer: (id: string) => generatePath(`/share/customer/${id}`),
-    externalCustomer: (id: string) => generatePath(`/share/customer/${id}`),
-    externalCustomerFile: (id: string, path: string) =>
-      generatePath(`/share/customer/${id}/${path}`),
     externalCustomerFile: (id: string, path: string) =>
       generatePath(`/share/customer/${id}/${path}`),
     externalQuote: (id: string) => generatePath(`/share/quote/${id}`),
-    externalQuote: (id: string) => generatePath(`/share/quote/${id}`),
     externalScar: (id: string) => generatePath(`/share/scar/${id}`),
-    externalScar: (id: string) => generatePath(`/share/scar/${id}`),
-    externalSupplierQuote: (id: string) =>
-      generatePath(`/share/supplier-quote/${id}`),
     externalSupplierQuote: (id: string) =>
       generatePath(`/share/supplier-quote/${id}`),
     externalTraining: (assignmentId: string) =>
       generatePath(`/share/training/${assignmentId}`),
-    externalTraining: (assignmentId: string) =>
-      generatePath(`/share/training/${assignmentId}`),
     failureMode: (id: string) =>
       generatePath(`${x}/resources/failure-modes/${id}`),
-    failureMode: (id: string) =>
-      generatePath(`${x}/resources/failure-modes/${id}`),
-    failureModes: `${x}/resources/failure-modes`,
     failureModes: `${x}/resources/failure-modes`,
     feedback: `${x}/feedback`,
     file: {
@@ -1595,24 +1147,6 @@ export const path = {
         if (opts?.labelSize) url += `&labelSize=${opts.labelSize}`;
         return url;
       },
-      storageUnitLabelsPdf: (
-        ids: string | string[],
-        opts?: { labelSize?: string }
-      ) => {
-        const idString = Array.isArray(ids) ? ids.join(",") : ids;
-        let url = `${file}/storage-unit/labels.pdf?ids=${idString}`;
-        if (opts?.labelSize) url += `&labelSize=${opts.labelSize}`;
-        return url;
-      },
-      storageUnitLabelsZpl: (
-        ids: string | string[],
-        opts?: { labelSize?: string }
-      ) => {
-        const idString = Array.isArray(ids) ? ids.join(",") : ids;
-        let url = `${file}/storage-unit/labels.zpl?ids=${idString}`;
-        if (opts?.labelSize) url += `&labelSize=${opts.labelSize}`;
-        return url;
-      },
       storageUnitLabelsZpl: (
         ids: string | string[],
         opts?: { labelSize?: string }
@@ -1627,34 +1161,6 @@ export const path = {
         { labelSize }: { labelSize?: string } = {}
       ) => {
         let url = `${file}/entity/${id}/labels.pdf`;
-        const params = new URLSearchParams();
-
-        if (labelSize) params.append("labelSize", labelSize);
-
-        const queryString = params.toString();
-        if (queryString) url += `?${queryString}`;
-
-        return generatePath(url);
-      },
-      trackedEntityLabelPdf: (
-        id: string,
-        { labelSize }: { labelSize?: string } = {}
-      ) => {
-        let url = `${file}/entity/${id}/labels.pdf`;
-        const params = new URLSearchParams();
-
-        if (labelSize) params.append("labelSize", labelSize);
-
-        const queryString = params.toString();
-        if (queryString) url += `?${queryString}`;
-
-        return generatePath(url);
-      },
-      trackedEntityLabelZpl: (
-        id: string,
-        { labelSize }: { labelSize?: string } = {}
-      ) => {
-        let url = `${file}/entity/${id}/labels.zpl`;
         const params = new URLSearchParams();
 
         if (labelSize) params.append("labelSize", labelSize);
@@ -1680,13 +1186,11 @@ export const path = {
       }
     },
     fiscalYears: `${x}/accounting/years`,
-    fiscalYears: `${x}/accounting/years`,
     fixedAsset: (id: string) => generatePath(`${x}/fixed-asset/${id}`),
     fixedAssetDetails: (id: string) =>
       generatePath(`${x}/fixed-asset/${id}/details`),
     fixedAssetDispose: (id: string) =>
       generatePath(`${x}/fixed-asset/${id}/dispose`),
-    fixedAssetImport: `${x}/accounting/fixed-asset-import`,
     fixedAssetImport: `${x}/accounting/fixed-asset-import`,
     fixedAssetPurchase: (id: string) =>
       generatePath(`${x}/fixed-asset/${id}/purchase`),
@@ -1705,15 +1209,9 @@ export const path = {
     gaugeTypes: `${x}/quality/gauge-types`,
     generateAssemblyInstructionSteps: (id: string) =>
       generatePath(`${x}/assembly/${id}/steps/generate`),
-    generateAssemblyInstructionSteps: (id: string) =>
-      generatePath(`${x}/assembly/${id}/steps/generate`),
-    getStarted: `${x}/get-started`,
     getStarted: `${x}/get-started`,
     getStartedEnroll: `${x}/get-started/enroll`,
-    getStartedEnroll: `${x}/get-started/enroll`,
     getStartedPage: (slug: string) => generatePath(`${x}/get-started/${slug}`),
-    getStartedPage: (slug: string) => generatePath(`${x}/get-started/${slug}`),
-    getStartedState: `${x}/get-started/state`,
     getStartedState: `${x}/get-started/state`,
     group: (id: string) => generatePath(`${x}/users/groups/${id}`),
     groups: `${x}/users/groups`,
@@ -1723,12 +1221,9 @@ export const path = {
     inboundInspection: (id: string) =>
       generatePath(`${x}/quality/inbound-inspections/${id}`),
     inboundInspections: `${x}/quality/inbound-inspections`,
-    incomeStatement: `${x}/accounting/income-statement`,
-    incomeStatement: `${x}/accounting/income-statement`,
+    incomeStatement: `${x}/reports/income-statement`,
     incomeStatementLedger: (id: string) =>
-      generatePath(`${x}/accounting/income-statement/${id}`),
-    incomeStatementLedger: (id: string) =>
-      generatePath(`${x}/accounting/income-statement/${id}`),
+      generatePath(`${x}/reports/income-statement/${id}`),
     inProcessDependencyWaive: (dependencyId: string) =>
       generatePath(
         `${x}/quality/in-process-dependencies/${dependencyId}/waive`
@@ -1741,10 +1236,8 @@ export const path = {
       generatePath(`${x}/inspection/${id}/accept`),
     inspectionAssignedDocument: (id: string) =>
       generatePath(`${x}/inspection/${id}/document`),
-    inspectionDocument: (id: string) => generatePath(`${x}/inspection/${id}`),
     inspectionDocument: (id: string) =>
       generatePath(`${x}/inspection-document/${id}`),
-    inspectionDocuments: `${x}/quality/inspection`,
     inspectionDocuments: `${x}/production/inspection`,
     inspectionMeasurement: (id: string) =>
       generatePath(`${x}/inspection/${id}/measurement`),
@@ -1762,7 +1255,6 @@ export const path = {
     integrationDeactivate: (id: string) =>
       generatePath(`${x}/settings/integrations/deactivate/${id}`),
     integrations: `${x}/settings/integrations`,
-    intercompany: `${x}/accounting/intercompany`,
     intercompany: `${x}/accounting/intercompany`,
     inventory: `${x}/inventory/quantities`,
     inventoryCount: (id: string) => generatePath(`${x}/inventory-count/${id}`),
@@ -1784,8 +1276,8 @@ export const path = {
       generatePath(`${x}/inventory/quantities/${id}/adjustment`),
     inventoryRoot: `${x}/inventory`,
     inventorySettings: `${x}/settings/inventory`,
-    inventoryValuation: `${x}/inventory/valuation`,
-    inventoryValuationReconcile: `${x}/inventory/valuation/reconcile`,
+    inventoryValuation: `${x}/reports/inventory-valuation`,
+    inventoryValuationReconcile: `${x}/reports/inventory-valuation/reconcile`,
     investigationType: (id: string) =>
       generatePath(`${x}/quality/investigation-types/${id}`),
     investigationTypes: `${x}/quality/investigation-types`,
@@ -1798,7 +1290,6 @@ export const path = {
     issueActionProcesses: (id: string) =>
       generatePath(`${x}/issue/action/${id}/processes`),
     issueActions: (id: string) => generatePath(`${x}/issue/${id}`),
-    issueActionTasksOrder: `${x}/issue/action-tasks/order`,
     issueActionTasksOrder: `${x}/issue/action-tasks/order`,
     issueDetails: (id: string) => generatePath(`${x}/issue/${id}/details`),
     issueDispositions: (id: string) =>
@@ -1813,6 +1304,7 @@ export const path = {
     issueTypes: `${x}/quality/issue-types`,
     issueWorkflow: (id: string) => generatePath(`${x}/issue-workflow/${id}`),
     issueWorkflows: `${x}/quality/issue-workflows`,
+    itarCertifications: `${x}/settings/itar-certifications`,
     itemCostUpdate: (id: string) => generatePath(`${x}/items/cost/${id}`),
     itemPostingGroup: (id: string) => generatePath(`${x}/items/groups/${id}`),
     itemPostingGroups: `${x}/items/groups`,
@@ -1948,7 +1440,6 @@ export const path = {
     materialType: (id: string) => generatePath(`${x}/items/types/${id}`),
     materialTypes: `${x}/items/types`,
     mcpDocs: "https://docs.carbon.ms/mcp",
-    mcpDocs: "https://docs.carbon.ms/mcp",
     // Credit / Debit memos — payment-shaped documents (the `memo` table). The
     // list lives in the invoicing nav beside Payments; details mirror payments.
     memo: (id: string) => generatePath(`${x}/credits/${id}`),
@@ -1976,8 +1467,10 @@ export const path = {
     methodOperationsOrder: `${x}/items/methods/operation/order`,
     methodOperationTool: (id: string) =>
       generatePath(`${x}/items/methods/operation/tool/${id}`),
-    moveChartOfAccount: (id: string) =>
-      generatePath(`${x}/accounting/charts/move/${id}`),
+    mfa: "/mfa",
+    mfaEnroll: "/api/mfa/enroll",
+    mfaUnenroll: "/api/mfa/unenroll",
+    mfaVerify: "/api/mfa/verify",
     moveChartOfAccount: (id: string) =>
       generatePath(`${x}/accounting/charts/move/${id}`),
     newAbility: `${x}/resources/abilities/new`,
@@ -1988,17 +1481,10 @@ export const path = {
         : `${x}/settings/approval-rules/new`,
     newAssemblyComponentMapping: (id: string) =>
       generatePath(`${x}/assembly/${id}/component-mappings/new`),
-    newAssemblyComponentMapping: (id: string) =>
-      generatePath(`${x}/assembly/${id}/component-mappings/new`),
     newAssemblyInstruction: `${x}/production/assemblies/new`,
-    newAssemblyInstruction: `${x}/production/assemblies/new`,
-    newAssemblyInstructionStep: (id: string) =>
-      generatePath(`${x}/assembly/${id}/steps/new`),
     newAssemblyInstructionStep: (id: string) =>
       generatePath(`${x}/assembly/${id}/steps/new`),
     newAssemblyStandardNote: `${x}/assembly/standard-notes/new`,
-    newAssemblyStepMaterial: (id: string) =>
-      generatePath(`${x}/assembly/${id}/materials/new`),
     newAssemblyStepMaterial: (id: string) =>
       generatePath(`${x}/assembly/${id}/materials/new`),
     newAssemblyStepRequirement: (id: string) =>
@@ -2009,9 +1495,6 @@ export const path = {
       generatePath(`${x}/assembly/${id}/tools/new`),
     newAssemblyUnit: (id: string) =>
       generatePath(`${x}/assembly/${id}/units/new`),
-    newAssemblyUnit: (id: string) =>
-      generatePath(`${x}/assembly/${id}/units/new`),
-    newAssetClass: `${x}/accounting/asset-classes/new`,
     newAssetClass: `${x}/accounting/asset-classes/new`,
     newAttribute: `${x}/people/attribute/new`,
     newAttributeCategory: `${x}/people/attributes/new`,
@@ -2054,7 +1537,6 @@ export const path = {
     newDemandProjection: `${x}/production/projections/new`,
     newDepartment: `${x}/people/departments/new`,
     newDepreciationRun: `${x}/accounting/depreciation-runs/new`,
-    newDepreciationRun: `${x}/accounting/depreciation-runs/new`,
     newDimension: `${x}/accounting/dimensions/new`,
     newDocument: `${x}/documents/new`,
     newEmployee: `${x}/users/employees/new`,
@@ -2064,7 +1546,6 @@ export const path = {
     newExchangeRate: `${x}/accounting/exchange-rates/new`,
     newFailureMode: `${x}/resources/failure-modes/new`,
     newFixedAsset: `${x}/accounting/fixed-assets/new`,
-    newFixedAsset: `${x}/accounting/fixed-assets/new`,
     newFixture: `${x}/fixture/new`,
     newFixtureSupplier: (id: string) =>
       generatePath(`${x}/fixture/${id}/purchasing/new`),
@@ -2073,9 +1554,7 @@ export const path = {
     newGaugeType: `${x}/quality/gauge-types/new`,
     newGroup: `${x}/users/groups/new`,
     newHoliday: `${x}/people/holidays/new`,
-    newInspectionDocument: `${x}/quality/inspection/new`,
     newInspectionDocument: `${x}/production/inspection/new`,
-    newIntercompanyTransaction: `${x}/accounting/intercompany/new`,
     newIntercompanyTransaction: `${x}/accounting/intercompany/new`,
     newInventoryCount: `${x}/inventory/inventory-count/new`,
     newInvestigationType: `${x}/quality/investigation-types/new`,
@@ -2174,6 +1653,7 @@ export const path = {
     newSalesRFQ: `${x}/sales-rfq/new`,
     newSalesRFQLine: (id: string) => generatePath(`${x}/sales-rfq/${id}/new`),
     newScrapReason: `${x}/production/scrap-reasons/new`,
+    newSerialNumberSequence: `${x}/settings/serial-numbers/new`,
     newService: `${x}/service/new`,
     newServiceSupplier: (id: string) =>
       generatePath(`${x}/service/${id}/purchasing/new`),
@@ -2228,12 +1708,8 @@ export const path = {
       user: `${onboarding}/user`
     },
     operator: (id: string) => generatePath(`${x}/users/operators/${id}`),
-    operator: (id: string) => generatePath(`${x}/users/operators/${id}`),
     operatorResetPin: (id: string) =>
       generatePath(`${x}/users/operators/reset-pin/${id}`),
-    operatorResetPin: (id: string) =>
-      generatePath(`${x}/users/operators/reset-pin/${id}`),
-    operators: `${x}/users/operators`,
     operators: `${x}/users/operators`,
     part: (id: string) => generatePath(`${x}/part/${id}`),
     partCosting: (id: string) => generatePath(`${x}/part/${id}/costing`),
@@ -2369,6 +1845,7 @@ export const path = {
     purchaseOrderStatus: (id: string) =>
       generatePath(`${x}/purchase-order/${id}/status`),
     purchaseOrders: `${x}/purchasing/orders`,
+    purchasesReport: `${x}/reports/purchases`,
     purchasing: `${x}/purchasing`,
     purchasingPlanning: `${x}/purchasing/planning`,
 
@@ -2483,8 +1960,7 @@ export const path = {
     refreshSession: "/refresh-session",
     repeatDepreciationRun: (id: string) =>
       generatePath(`${x}/depreciation-run/${id}/repeat`),
-    repeatDepreciationRun: (id: string) =>
-      generatePath(`${x}/depreciation-run/${id}/repeat`),
+    reports: `${x}/accounting/reports`,
     requiredAction: (id: string) =>
       generatePath(`${x}/quality/required-actions/${id}`),
     requiredActions: `${x}/quality/required-actions`,
@@ -2566,8 +2042,6 @@ export const path = {
     salesRfqs: `${x}/sales/rfqs`,
     salesSettings: `${x}/settings/sales`,
     saveInspectionDocument: (id: string) =>
-      generatePath(`${x}/inspection/${id}/save`),
-    saveInspectionDocument: (id: string) =>
       generatePath(`${x}/inspection-document/${id}/save`),
 
     saveViewOrder: `${x}/shared/view/order`,
@@ -2580,10 +2054,14 @@ export const path = {
     scrapReason: (id: string) =>
       generatePath(`${x}/production/scrap-reasons/${id}`),
     scrapReasons: `${x}/production/scrap-reasons`,
+    security: `${x}/settings/security`,
     selectCompany,
     sequences: `${x}/settings/sequences`,
     serialNumber: (id: string) =>
       generatePath(`${x}/inventory/serial-numbers/${id}`),
+    serialNumberSequence: (id: string) =>
+      generatePath(`${x}/settings/serial-numbers/${id}`),
+    serialNumberSequences: `${x}/settings/serial-numbers`,
     serialNumbers: `${x}/inventory/serial-numbers`,
     service: (id: string) => generatePath(`${x}/service/${id}`),
     serviceCosting: (id: string) => generatePath(`${x}/service/${id}/costing`),
@@ -2617,7 +2095,6 @@ export const path = {
     shippingMethod: (id: string) =>
       generatePath(`${x}/inventory/shipping-methods/${id}`),
     shippingMethods: `${x}/inventory/shipping-methods`,
-    splitIssueItem: `${x}/issue/item/split`,
     splitIssueItem: `${x}/issue/item/split`,
     stockMovementCorrect: (id: string) =>
       generatePath(`${x}/inventory/stock-movements/${id}/correct`),
@@ -2749,24 +2226,16 @@ export const path = {
     trainingQuestionOrder: (id: string) =>
       generatePath(`${x}/training/${id}/questions/order`),
     trainings: `${x}/resources/training`,
-    trialBalance: `${x}/accounting/trial-balance`,
-    trialBalance: `${x}/accounting/trial-balance`,
+    trialBalance: `${x}/reports/trial-balance`,
     trialBalanceLedger: (id: string) =>
-      generatePath(`${x}/accounting/trial-balance/${id}`),
-    trialBalanceLedger: (id: string) =>
-      generatePath(`${x}/accounting/trial-balance/${id}`),
+      generatePath(`${x}/reports/trial-balance/${id}`),
     uom: (id: string) => generatePath(`${x}/items/uom/${id}`),
     uoms: `${x}/items/uom`,
     updateAssemblyUnit: (id: string, unitId: string) =>
       generatePath(`${x}/assembly/${id}/units/${unitId}`),
-    updateAssemblyUnit: (id: string, unitId: string) =>
-      generatePath(`${x}/assembly/${id}/units/${unitId}`),
     updateChangeNotice: `${x}/items/change-notice/update`,
     updateInspectionDocumentName: (id: string) =>
-      generatePath(`${x}/inspection/${id}/update-name`),
-    updateInspectionDocumentName: (id: string) =>
       generatePath(`${x}/inspection-document/${id}/update-name`),
-    updateIssueItem: `${x}/issue/item/update`,
     updateIssueItem: `${x}/issue/item/update`,
     userAttribute: (id: string) => generatePath(`${x}/account/${id}/attribute`),
     users: `${x}/users`,
@@ -2791,7 +2260,23 @@ export const path = {
       generatePath(`${x}/resources/work-centers/${id}`),
     workCenterActivate: (id: string) =>
       generatePath(`${x}/resources/work-centers/activate/${id}`),
-    workCenters: `${x}/resources/work-centers`
+    workCenters: `${x}/resources/work-centers`,
+    workflow: (id: string) => generatePath(`${x}/workflow/${id}`),
+    workflowCanvas: (id: string) => generatePath(`${x}/workflow/${id}/canvas`),
+    workflowDelete: (id: string) => generatePath(`${x}/workflows/delete/${id}`),
+    workflowNew: `${x}/workflows/new`,
+    workflowPublish: (id: string) =>
+      generatePath(`${x}/workflow/${id}/publish`),
+    workflowRename: (id: string) => generatePath(`${x}/workflows/${id}/rename`),
+    workflowRun: (id: string) => generatePath(`${x}/workflows/runs/${id}`),
+    workflowRuns: `${x}/workflows/runs`,
+    workflowSave: (id: string) => generatePath(`${x}/workflow/${id}/save`),
+    workflows: `${x}/workflows`,
+    workflowTestRun: (id: string) =>
+      generatePath(`${x}/workflow/${id}/test-run`),
+    workflowToggle: (id: string) => generatePath(`${x}/workflow/${id}/toggle`),
+    workflowVersionNew: (id: string) =>
+      generatePath(`${x}/workflow/${id}/version/new`)
   }
 } as const;
 

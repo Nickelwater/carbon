@@ -22,6 +22,7 @@ import {
   ShipmentNotes
 } from "~/modules/inventory/ui/Shipments";
 import type { Note } from "~/modules/shared";
+import { getEdgeFunctionErrorMessage } from "~/utils/error";
 import { getCustomFields, setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
 
@@ -89,7 +90,13 @@ export async function action({ request }: ActionFunctionArgs) {
             path.to.shipment(id),
             await flash(
               request,
-              error(purchaseOrderShipment.error, "Failed to create shipment")
+              error(
+                purchaseOrderShipment.error,
+                await getEdgeFunctionErrorMessage(
+                  purchaseOrderShipment.error,
+                  "Failed to create shipment"
+                )
+              )
             )
           );
         }
@@ -119,7 +126,10 @@ export async function action({ request }: ActionFunctionArgs) {
               request,
               error(
                 warehouseTransferShipment.error,
-                "Failed to create shipment"
+                await getEdgeFunctionErrorMessage(
+                  warehouseTransferShipment.error,
+                  "Failed to create shipment"
+                )
               )
             )
           );

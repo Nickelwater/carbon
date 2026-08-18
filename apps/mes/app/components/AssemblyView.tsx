@@ -50,7 +50,6 @@ import type {
 } from "@carbon/viewer";
 import { AssemblyPlayer } from "@carbon/viewer";
 import { ModelPreview } from "@carbon/viewer/model-preview";
-import { getLocalTimeZone } from "@internationalized/date";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   LuBox,
@@ -98,6 +97,7 @@ import { ReworkModal } from "~/components/JobOperation/components/ReworkModal";
 import { SerialSelectorModal } from "~/components/JobOperation/components/SerialSelectorModal";
 import { RecordModal } from "~/components/JobOperation/components/Step";
 import { useUser } from "~/hooks";
+import { isSerialEntityIncompleteForOperation } from "~/services/operations.service";
 import type {
   JobMaterial,
   JobOperationStep,
@@ -270,6 +270,7 @@ type Props = {
     id: string;
     readableId?: string | null;
     status?: string | null;
+    attributes?: unknown;
   }[];
   trackedEntityId: string | null;
   materials: { materials?: any[]; trackedInputs?: any[] } | null;
@@ -287,6 +288,7 @@ type Props = {
   ncrs: any[];
   requiresSerialTracking: boolean;
   requiresBatchTracking: boolean;
+  isFirstOperation: boolean;
   openEvent: { id: string; startTime: string } | null;
   events: ProductionEvent[];
   nonConformanceActions: ContainmentAction[];
@@ -470,6 +472,21 @@ function SlidePins({
   );
 }
 
+// The view's `trackedEntities` prop is a hand-written subset of the DB row that widens
+// `status`/`attributes`, so bridge to the shared helper's Row-derived shape here rather
+// than duplicating the "done for this operation" rule.
+function isUnitIncompleteForOperation(
+  entity: { attributes?: unknown; status?: string | null },
+  operationId: string
+): boolean {
+  return isSerialEntityIncompleteForOperation(
+    entity as unknown as Parameters<
+      typeof isSerialEntityIncompleteForOperation
+    >[0],
+    operationId
+  );
+}
+
 export function AssemblyView({
   operationId,
   job,
@@ -483,6 +500,7 @@ export function AssemblyView({
   ncrs,
   requiresSerialTracking,
   requiresBatchTracking,
+  isFirstOperation,
   openEvent,
   events,
   nonConformanceActions,
@@ -519,7 +537,10 @@ export function AssemblyView({
   const completeAllFetcher = useFetcher<{ success?: boolean }>();
   // Silent auto-completion of a single unit once its final step is recorded
   // (multi-quantity assembly builds one at a time — see the effect below).
-  const completeUnitFetcher = useFetcher<{ id?: string }>();
+  const completeUnitFetcher = useFetcher<{
+    id?: string;
+    completed?: boolean;
+  }>();
   // Lazily creates NCR containment inspection steps for this operation (see effect below).
   const inspectionStepsFetcher = useFetcher();
   const imageViewer = useDisclosure();
@@ -1106,7 +1127,6 @@ export function AssemblyView({
     ) {
       const fd = new FormData();
       fd.set("jobOperationId", operation.id);
-      fd.set("timezone", getLocalTimeZone());
       fd.set("type", "Labor");
       fd.set("action", "Start");
       // Recording the first step means hands-on build has begun: end any open
@@ -1141,7 +1161,6 @@ export function AssemblyView({
     ) {
       const fd = new FormData();
       fd.set("jobOperationId", operation.id);
-      fd.set("timezone", getLocalTimeZone());
       fd.set("type", "Labor");
       fd.set("action", "End");
       fd.set("id", openLaborEvent.id);
@@ -1167,8 +1186,14 @@ export function AssemblyView({
     if (!isMultiQuantity || unitsRemaining <= 0) return;
     // Only auto-complete the unit currently being built. Guards against
     // re-completing an already-finished unit whose step records still read
-    // "done" if the operator navigates back to it.
-    if (currentUnitIndex < quantityComplete) return;
+    // "done" if the operator navigates back to it. Serial parents may be worked
+    // in any order (scan/select on later ops), so "already built" is per-entity
+    // (its completion marker); batch/untracked build strictly in order by index.
+    const currentAlreadyBuilt =
+      navigatesByEntity && currentEntity
+        ? !isUnitIncompleteForOperation(currentEntity, operationId)
+        : currentUnitIndex < quantityComplete;
+    if (currentAlreadyBuilt) return;
     if (!allStepsRecorded) {
       // On a not-yet-finished unit — arm for its eventual completion.
       autoCompleteSubmittedRef.current = false;
@@ -1223,6 +1248,7 @@ export function AssemblyView({
   // auto-complete effect only re-fires when its deps actually change, and a
   // failed completion leaves quantityComplete (hence unitsRemaining) unchanged.
   const prevCompleteUnitStateRef = useRef(completeUnitFetcher.state);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: settle-detect on the fetcher
   useEffect(() => {
     const settled =
       prevCompleteUnitStateRef.current !== "idle" &&
@@ -1235,8 +1261,50 @@ export function AssemblyView({
       !Array.isArray(result) &&
       typeof result === "object" &&
       Object.keys(result).length === 0;
-    if (failed) autoCompleteSubmittedRef.current = false;
+    if (failed) {
+      autoCompleteSubmittedRef.current = false;
+      return;
+    }
+    // A serial unit just completed (complete.tsx returns { completed: true } and no
+    // longer redirects to a next unit — the client is the single advancement
+    // authority). Advance to the next unit still to build: on the first operation
+    // auto-select it (no printed labels to scan yet); on later operations prompt the
+    // operator to scan/select (every unit already carries a label). The final unit
+    // finishes the operation server-side and redirects, so `result` is undefined
+    // there and nothing happens.
+    if (navigatesByEntity && result?.completed) {
+      // Search the capped unit axis (unitEntities), not the raw prop: a job can
+      // pre-generate more serials than the operation quantity, and navigating to
+      // one of those would fall outside currentUnitIndex / the maxNavigableUnitIndex
+      // clamp and desync the URL from the rendered unit.
+      const next = unitEntities.find((entity) =>
+        isUnitIncompleteForOperation(entity, operationId)
+      );
+      if (!next) return;
+      if (isFirstOperation) navigateEntity(next);
+      else serialModal.onOpen();
+    }
   }, [completeUnitFetcher.state, completeUnitFetcher.data]);
+
+  // Later operations: prompt the operator to scan/select the unit on arrival. Every
+  // unit already carries a printed label (labels print at the first operation's
+  // completion), so there is nothing to auto-select. Prompt once per mount — even if
+  // the loader seeded a ?trackedEntityId — and only while units remain to build. The
+  // first operation auto-selects instead (loader default + the settle effect above).
+  const arrivalPromptedRef = useRef(false);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: one-shot arrival prompt
+  useEffect(() => {
+    if (!navigatesByEntity || isFirstOperation) return;
+    if (arrivalPromptedRef.current) return;
+    // Cap to the unit axis (see the settle effect): don't prompt for serials the
+    // job pre-generated beyond the operation quantity.
+    const hasIncomplete = unitEntities.some((entity) =>
+      isUnitIncompleteForOperation(entity, operationId)
+    );
+    if (!hasIncomplete) return;
+    arrivalPromptedRef.current = true;
+    serialModal.onOpen();
+  }, [navigatesByEntity, isFirstOperation, trackedEntities, operationId]);
 
   // Return to step 1 on a new unit. Whenever the active unit changes — the
   // auto-complete rolls quantityComplete forward (untracked), a serial/batch
@@ -1524,13 +1592,27 @@ export function AssemblyView({
               </p>
             )}
             {!isMultiQuantity && currentEntity ? (
-              <div className="mt-1.5 flex items-center gap-1.5">
-                <Badge variant="secondary" className="font-mono text-[10px]">
+              <div className="mt-1.5 flex items-center gap-1.5 min-w-0">
+                <Badge
+                  variant="secondary"
+                  className="font-mono text-[10px] shrink-0"
+                >
                   {requiresBatchTracking ? "Batch" : "S/N"}
                 </Badge>
-                <span className="truncate font-mono text-[10px] text-muted-foreground">
-                  {currentEntity.readableId ?? currentEntity.id.slice(0, 8)}
-                </span>
+                {currentEntity.readableId ? (
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-[10px] font-medium">
+                      {currentEntity.readableId}
+                    </span>
+                    <span className="truncate font-mono text-[10px] text-muted-foreground">
+                      {currentEntity.id.slice(0, 8)}
+                    </span>
+                  </span>
+                ) : (
+                  <span className="truncate font-mono text-[10px] text-muted-foreground">
+                    {currentEntity.id.slice(0, 8)}
+                  </span>
+                )}
               </div>
             ) : null}
           </div>
@@ -2225,6 +2307,7 @@ export function AssemblyView({
           parentIsSerial={requiresSerialTracking}
           parentIsBatch={requiresBatchTracking}
           trackedEntityId={currentEntity?.id ?? ""}
+          trackedEntityReadableId={currentEntity?.readableId ?? undefined}
           setupProductionEvent={openByType("Setup")}
           laborProductionEvent={openByType("Labor")}
           machineProductionEvent={openByType("Machine")}
@@ -2269,7 +2352,11 @@ export function AssemblyView({
 
       {serialModal.isOpen && (
         <SerialSelectorModal
-          availableEntities={unitEntities as never}
+          availableEntities={
+            unitEntities.filter((entity) =>
+              isUnitIncompleteForOperation(entity, operationId)
+            ) as never
+          }
           onClose={serialModal.onClose}
           onCancel={serialModal.onClose}
           onSelect={(entity) => {
@@ -2463,7 +2550,6 @@ function AutoTimer({
     if (running || busy) return;
     const fd = new FormData();
     fd.set("jobOperationId", operationId);
-    fd.set("timezone", getLocalTimeZone());
     fd.set("type", workType);
     fd.set("action", "Start");
     fd.set("exclusive", "true");
@@ -2537,7 +2623,6 @@ function TimerControl({
       className="h-full shrink-0"
     >
       <input type="hidden" name="jobOperationId" value={operation.id} />
-      <input type="hidden" name="timezone" value={getLocalTimeZone()} />
       <input type="hidden" name="type" value={workType} />
       {/* Single-phase clocking: starting this type ends any other open type. */}
       <input type="hidden" name="exclusive" value="true" />
@@ -2936,11 +3021,12 @@ function StepCompleteAction({
 // Units section for the left sidebar — its own labeled section (like Time), sitting
 // directly below the timers. A compact prev/next pager sits top-right by the label,
 // and the full, scrollable list of EVERY unit gives full visibility. A serial parent
-// binds a distinct entity per unit, so it lists those by readableId; a batch parent
-// binds a single lot to unit 0 (the rest are null), so listing that one id is more
-// noise than signal — batch and untracked parents both list "Unit 1 / Unit 2 / …".
-// The list auto-scrolls to keep the current unit in view; units with an out-of-spec
-// measurement (or a failed inspection) are flagged red, fully-recorded units green.
+// binds a distinct entity per unit, so it lists those by readableId (with muted
+// entity id when both exist); a batch parent binds a single lot to unit 0 (the rest
+// are null), so listing that one id is more noise than signal — batch and untracked
+// parents both list "Unit 1 / Unit 2 / …". The list auto-scrolls to keep the current
+// unit in view; units with an out-of-spec measurement (or a failed inspection) are
+// flagged red, fully-recorded units green.
 function UnitNavigator({
   units,
   currentUnitIndex,
@@ -2955,7 +3041,11 @@ function UnitNavigator({
 }: {
   units: {
     index: number;
-    entity: { id: string; readableId?: string | null } | null;
+    entity: {
+      id: string;
+      readableId?: string | null;
+      status?: string | null;
+    } | null;
   }[];
   currentUnitIndex: number;
   // Highest unit index the operator may open. For a serial parent this is the last
@@ -2975,10 +3065,6 @@ function UnitNavigator({
     labelByEntity && !!u.entity;
   const isNavigable = (u: (typeof units)[number]) =>
     u.index <= maxNavigableIndex;
-  const labelFor = (u: (typeof units)[number]) =>
-    labelByEntity && u.entity
-      ? (u.entity.readableId ?? u.entity.id.slice(0, 8))
-      : `Unit ${u.index + 1}`;
 
   // Keep the selected unit visible as the operator pages/jumps between units.
   // currentUnitIndex is a real dep: the ref points at a different row after it
@@ -3025,9 +3111,12 @@ function UnitNavigator({
           const isCurrent = u.index === currentUnitIndex;
           const bad = unitHasBadResult(u.index);
           const recorded = unitIsRecorded(u.index);
+          // A scrapped serial is terminal — it can't be worked or selected; show
+          // it muted with a Scrapped marker instead.
+          const isScrapped = u.entity?.status === "Scrapped";
           // A serial unit with no minted serial yet can't be opened (nothing to
           // scan or complete against). Show it as a disabled placeholder.
-          const navigable = isNavigable(u);
+          const navigable = isNavigable(u) && !isScrapped;
           return (
             <button
               key={u.index}
@@ -3035,7 +3124,13 @@ function UnitNavigator({
               ref={isCurrent ? currentRef : undefined}
               aria-pressed={isCurrent}
               disabled={!navigable}
-              title={navigable ? undefined : "Not started yet"}
+              title={
+                isScrapped
+                  ? "Scrapped"
+                  : navigable
+                    ? undefined
+                    : "Not started yet"
+              }
               onClick={() => onSelectUnit(u.index)}
               className={cn(
                 "flex w-full items-center gap-2 px-3 py-2 text-left text-xs transition-colors",
@@ -3044,22 +3139,53 @@ function UnitNavigator({
                   : navigable
                     ? "text-muted-foreground hover:bg-muted/60"
                     : "cursor-not-allowed text-muted-foreground/40",
-                bad && "text-red-500"
+                bad && "text-red-500",
+                isScrapped && "opacity-50"
               )}
             >
               <span
                 className={cn(
                   "size-1.5 shrink-0 rounded-full",
-                  bad
+                  bad || isScrapped
                     ? "bg-red-500"
                     : recorded
                       ? "bg-emerald-500"
                       : "bg-transparent"
                 )}
               />
-              <span className={cn("truncate", isEntityLabel(u) && "font-mono")}>
-                {labelFor(u)}
-              </span>
+              {isEntityLabel(u) && u.entity ? (
+                u.entity.readableId ? (
+                  <span className="flex min-w-0 flex-col">
+                    <span
+                      className={cn(
+                        "truncate font-medium",
+                        isScrapped && "line-through"
+                      )}
+                    >
+                      {u.entity.readableId}
+                    </span>
+                    <span className="truncate font-mono text-[10px] text-muted-foreground">
+                      {u.entity.id.slice(0, 8)}
+                    </span>
+                  </span>
+                ) : (
+                  <span
+                    className={cn(
+                      "truncate font-mono",
+                      isScrapped && "line-through"
+                    )}
+                  >
+                    {u.entity.id.slice(0, 8)}
+                  </span>
+                )
+              ) : (
+                <span className="truncate">{`Unit ${u.index + 1}`}</span>
+              )}
+              {isScrapped && (
+                <span className="ml-auto shrink-0 text-[10px] font-semibold uppercase tracking-wide text-red-500">
+                  Scrapped
+                </span>
+              )}
             </button>
           );
         })}

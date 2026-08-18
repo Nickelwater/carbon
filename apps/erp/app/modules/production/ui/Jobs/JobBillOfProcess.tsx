@@ -49,10 +49,10 @@ import {
   VStack
 } from "@carbon/react";
 import { Editor } from "@carbon/react/Editor";
-import { formatDurationMilliseconds } from "@carbon/utils";
+import { formatDurationMilliseconds, INPUT_FORMAT } from "@carbon/utils";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useLocale, useNumberFormatter } from "@react-aria/i18n";
+import { useNumberFormatter } from "@react-aria/i18n";
 import type { DragControls } from "framer-motion";
 import { motion, Reorder, useDragControls } from "framer-motion";
 import { nanoid } from "nanoid";
@@ -88,6 +88,7 @@ import {
 import type { z } from "zod";
 import {
   Assignee,
+  DateTime,
   DirectionAwareTabs,
   EmployeeAvatar,
   Empty,
@@ -132,7 +133,7 @@ import {
 } from "~/components/SortableList";
 import { StepLinkEditor } from "~/components/StepLinkEditor";
 import {
-  useDateFormatter,
+  useCurrencyDecimals,
   usePermissions,
   useRouteData,
   useUrlParams,
@@ -1076,13 +1077,15 @@ const JobBillOfProcess = ({
         </CardAction>
       </HStack>
       <CardContent>
-        <SortableList
-          items={items}
-          onReorder={onReorder}
-          onToggleItem={onToggleItem}
-          onRemoveItem={onRemoveItem}
-          renderItem={renderListItem}
-        />
+        <ScrollArea type="auto" className="max-h-[60dvh]">
+          <SortableList
+            items={items}
+            onReorder={onReorder}
+            onToggleItem={onToggleItem}
+            onRemoveItem={onRemoveItem}
+            renderItem={renderListItem}
+          />
+        </ScrollArea>
       </CardContent>
     </Card>
   );
@@ -1112,6 +1115,7 @@ function StepsForm({
   const [type, setType] = useState<OperationStep["type"]>("Task");
   const [description, setDescription] = useState<JSONContent>({});
   const [numericControls, setNumericControls] = useState<string[]>([]);
+  const toastedStepId = useRef<string | null>(null);
 
   // Initialize sort order state based on existing steps
   const [sortOrder, setSortOrder] = useState<string[]>(() =>
@@ -1329,8 +1333,10 @@ function StepsForm({
     const newStepId = (fetcher.data as { id?: string | null } | undefined)?.id;
     if (!newStepId || draftSlides.length === 0 || !carbon) return;
     let cancelled = false;
+    // Snapshot the batch so anything added for the next step survives this save.
+    const batch = draftSlides;
     (async () => {
-      const slideRows = draftSlides.map((slide, index) => ({
+      const slideRows = batch.map((slide, index) => ({
         stepId: newStepId,
         imagePath: slide.imagePath,
         modelUploadId: slide.modelUploadId,
@@ -1349,7 +1355,8 @@ function StepsForm({
         toast.error(t`Failed to save slides`);
         return;
       }
-      setDraftSlides([]);
+      const savedIds = new Set(batch.map((slide) => slide.id));
+      setDraftSlides((prev) => prev.filter((slide) => !savedIds.has(slide.id)));
       revalidator.revalidate();
     })();
     return () => {
@@ -1363,9 +1370,10 @@ function StepsForm({
     const newStepId = (fetcher.data as { id?: string | null } | undefined)?.id;
     if (!newStepId || draftParts.length === 0 || !carbon) return;
     let cancelled = false;
+    const batch = draftParts;
     (async () => {
       const { error } = await carbon.from("jobMaterialStep").insert(
-        draftParts.map((jobMaterialId) => ({
+        batch.map((jobMaterialId) => ({
           jobMaterialId,
           jobOperationStepId: newStepId
         }))
@@ -1375,7 +1383,8 @@ function StepsForm({
         toast.error(t`Failed to save parts`);
         return;
       }
-      setDraftParts([]);
+      const savedIds = new Set(batch);
+      setDraftParts((prev) => prev.filter((id) => !savedIds.has(id)));
       revalidator.revalidate();
     })();
     return () => {
@@ -1389,9 +1398,10 @@ function StepsForm({
     const newStepId = (fetcher.data as { id?: string | null } | undefined)?.id;
     if (!newStepId || draftTools.length === 0 || !carbon) return;
     let cancelled = false;
+    const batch = draftTools;
     (async () => {
       const { error } = await carbon.from("jobOperationToolStep").insert(
-        draftTools.map((jobOperationToolId) => ({
+        batch.map((jobOperationToolId) => ({
           jobOperationToolId,
           jobOperationStepId: newStepId
         }))
@@ -1401,7 +1411,8 @@ function StepsForm({
         toast.error(t`Failed to save tools`);
         return;
       }
-      setDraftTools([]);
+      const savedIds = new Set(batch);
+      setDraftTools((prev) => prev.filter((id) => !savedIds.has(id)));
       revalidator.revalidate();
     })();
     return () => {
@@ -1424,10 +1435,7 @@ function StepsForm({
   }
 
   return (
-    <Loading
-      className="flex flex-col gap-6"
-      isLoading={fetcher.state !== "idle"}
-    >
+    <div className="flex flex-col gap-6">
       {disclosure.isOpen ? (
         <div className="p-6 border rounded-lg bg-card mb-6">
           <ValidatedForm
@@ -1450,9 +1458,17 @@ function StepsForm({
                 1,
               operationId
             }}
-            onSubmit={() => {
-              setType("Value");
+            onAfterSubmit={() => {
+              const newStepId = (
+                fetcher.data as { id?: string | null } | undefined
+              )?.id;
+              if (!newStepId || newStepId === toastedStepId.current) return;
+              toastedStepId.current = newStepId;
+              // Only clear the controlled fields once the step actually saved.
+              setType("Task");
               setDescription({});
+              setNumericControls([]);
+              toast.success(t`Step added`);
             }}
             className="w-full"
           >
@@ -1671,7 +1687,7 @@ function StepsForm({
           </Reorder.Group>
         </div>
       )}
-    </Loading>
+    </div>
   );
 }
 
@@ -1998,7 +2014,6 @@ function StepsListItem({
     createdAt
   } = attribute;
 
-  const { formatRelativeTime } = useDateFormatter();
   const disclosure = useDisclosure();
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
@@ -2267,7 +2282,8 @@ function StepsListItem({
             <div className="flex items-center justify-end gap-2">
               <HStack spacing={2}>
                 <span className="text-xs text-muted-foreground">
-                  {isUpdated ? "Updated" : "Created"} {formatRelativeTime(date)}
+                  {isUpdated ? "Updated" : "Created"}{" "}
+                  <DateTime value={date} variant="relative" />
                 </span>
                 <EmployeeAvatar employeeId={person} withName={false} />
               </HStack>
@@ -2327,7 +2343,6 @@ function StepsListItem({
 }
 
 function PreviewStepRecords({ attribute }: { attribute: JobOperationStep }) {
-  const { formatRelativeTime } = useDateFormatter();
   if (
     !attribute.jobOperationStepRecord ||
     !Array.isArray(attribute.jobOperationStepRecord) ||
@@ -2362,7 +2377,8 @@ function PreviewStepRecords({ attribute }: { attribute: JobOperationStep }) {
             <div className="flex items-center justify-end gap-2 w-1/2">
               <HStack spacing={2}>
                 <span className="text-xs text-muted-foreground">
-                  Created {formatRelativeTime(record.createdAt ?? "")}
+                  Created{" "}
+                  <DateTime value={record.createdAt ?? ""} variant="relative" />
                 </span>
                 <EmployeeAvatar
                   employeeId={record.createdBy}
@@ -2384,7 +2400,6 @@ function PreviewStepRecord({
   attribute: JobOperationStep;
   record: any;
 }) {
-  const { formatDateTime } = useDateFormatter();
   const unitOfMeasures = useUnitOfMeasure();
   const [employees] = usePeople();
   const numberFormatter = useNumberFormatter();
@@ -2422,7 +2437,9 @@ function PreviewStepRecord({
           </p>
         )}
       {attribute.type === "Timestamp" && (
-        <p className="text-sm">{formatDateTime(record.value ?? "")}</p>
+        <p className="text-sm">
+          <DateTime value={record.value ?? ""} variant="absolute" />
+        </p>
       )}
       {attribute.type === "List" && <p className="text-sm">{record.value}</p>}
       {attribute.type === "Person" && (
@@ -2559,7 +2576,6 @@ function ParametersListItem({
   operationId: string;
   className?: string;
 }) {
-  const { formatRelativeTime } = useDateFormatter();
   const disclosure = useDisclosure();
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
@@ -2635,7 +2651,8 @@ function ParametersListItem({
           <div className="flex items-center justify-end gap-2">
             <HStack spacing={2}>
               <span className="text-xs text-muted-foreground">
-                {isUpdated ? "Updated" : "Created"} {formatRelativeTime(date)}
+                {isUpdated ? "Updated" : "Created"}{" "}
+                <DateTime value={date} variant="relative" />
               </span>
               <EmployeeAvatar employeeId={person} withName={false} />
             </HStack>
@@ -2717,6 +2734,7 @@ function OperationForm({
   }>();
   const { carbon } = useCarbon();
   const baseCurrency = company?.baseCurrencyCode ?? "USD";
+  const currencyDecimals = useCurrencyDecimals(baseCurrency);
 
   useEffect(() => {
     if (fetcher.data?.id) {
@@ -3005,10 +3023,7 @@ function OperationForm({
               label={t`Minimum Cost`}
               minValue={0}
               value={processData.operationMinimumCost}
-              formatOptions={{
-                style: "currency",
-                currency: baseCurrency
-              }}
+              formatOptions={INPUT_FORMAT.rate(baseCurrency, currencyDecimals)}
               onChange={(newValue) =>
                 setProcessData((d) => ({
                   ...d,
@@ -3021,10 +3036,7 @@ function OperationForm({
               label={t`Unit Cost`}
               minValue={0}
               value={processData.operationUnitCost}
-              formatOptions={{
-                style: "currency",
-                currency: baseCurrency
-              }}
+              formatOptions={INPUT_FORMAT.rate(baseCurrency, currencyDecimals)}
               onChange={(newValue) =>
                 setProcessData((d) => ({
                   ...d,
@@ -3406,10 +3418,10 @@ function OperationForm({
                 label={t`Labor Rate`}
                 minValue={0}
                 value={processData.laborRate}
-                formatOptions={{
-                  style: "currency",
-                  currency: baseCurrency
-                }}
+                formatOptions={INPUT_FORMAT.rate(
+                  baseCurrency,
+                  currencyDecimals
+                )}
                 onChange={(newValue) =>
                   setProcessData((d) => ({
                     ...d,
@@ -3423,10 +3435,10 @@ function OperationForm({
                   label={t`Machine Rate`}
                   minValue={0}
                   value={processData.machineRate}
-                  formatOptions={{
-                    style: "currency",
-                    currency: baseCurrency
-                  }}
+                  formatOptions={INPUT_FORMAT.rate(
+                    baseCurrency,
+                    currencyDecimals
+                  )}
                   onChange={(newValue) =>
                     setProcessData((d) => ({
                       ...d,
@@ -3440,10 +3452,10 @@ function OperationForm({
                 label={t`Overhead Rate`}
                 minValue={0}
                 value={processData.overheadRate}
-                formatOptions={{
-                  style: "currency",
-                  currency: baseCurrency
-                }}
+                formatOptions={INPUT_FORMAT.rate(
+                  baseCurrency,
+                  currencyDecimals
+                )}
                 onChange={(newValue) =>
                   setProcessData((d) => ({
                     ...d,
@@ -3861,12 +3873,11 @@ const getActivityText = (
 };
 
 const ProductionEventActivity = ({ item }: ProductionEventActivityProps) => {
-  const { formatDateTime } = useDateFormatter();
   return (
     <Activity
       employeeId={item.employeeId ?? item.createdBy}
       activityMessage={getActivityText(item)}
-      activityTime={formatDateTime(item.startTime)}
+      activityTime={item.startTime}
       activityIcon={
         item.type ? (
           <TimeTypeIcon
@@ -3894,7 +3905,6 @@ function ToolsListItem({
   operationId: string;
   className?: string;
 }) {
-  const { formatRelativeTime } = useDateFormatter();
   const disclosure = useDisclosure();
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
@@ -3982,7 +3992,8 @@ function ToolsListItem({
           <div className="flex items-center justify-end gap-2">
             <HStack spacing={2}>
               <span className="text-xs text-muted-foreground">
-                {isUpdated ? "Updated" : "Created"} {formatRelativeTime(date)}
+                {isUpdated ? "Updated" : "Created"}{" "}
+                <DateTime value={date} variant="relative" />
               </span>
               <EmployeeAvatar employeeId={person} withName={false} />
             </HStack>
@@ -4128,7 +4139,6 @@ function OperationChat({ jobOperationId }: { jobOperationId: string }) {
   const [employees] = usePeople();
   const [messages, setMessages] = useState<Message[]>([]);
   const { t } = useLingui();
-  const { locale } = useLocale();
   const [isLoading, setIsLoading] = useState(false);
   // biome-ignore lint/correctness/noUnusedVariables: suppressed due to migration
   const { carbon, accessToken } = useCarbon();
@@ -4278,18 +4288,17 @@ function OperationChat({ jobOperationId }: { jobOperationId: string }) {
                         )}
                         <div
                           className={cn(
-                            "rounded-2xl p-3 w-full flex flex-col gap-1",
+                            "rounded-lg p-3 w-full flex flex-col gap-1",
                             isUser ? "bg-blue-500 text-white" : "bg-muted"
                           )}
                         >
                           <p className="text-sm">{m.note}</p>
 
-                          <span className="text-xs opacity-70">
-                            {new Date(m.createdAt).toLocaleTimeString(locale, {
-                              hour: "2-digit",
-                              minute: "2-digit"
-                            })}
-                          </span>
+                          <DateTime
+                            value={m.createdAt}
+                            variant="time"
+                            className="text-xs opacity-70"
+                          />
                         </div>
                       </div>
                     </div>

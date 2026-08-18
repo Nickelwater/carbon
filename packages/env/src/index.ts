@@ -50,6 +50,7 @@ declare global {
       POSTHOG_API_HOST: string;
       POSTHOG_PROJECT_PUBLIC_KEY: string;
       QUICKBOOKS_CLIENT_SECRET: string;
+      QUICKBOOKS_ENVIRONMENT: string;
       QUICKBOOKS_WEBHOOK_SECRET: string;
       RESEND_API_KEY: string;
       RESEND_DOMAIN: string;
@@ -236,6 +237,16 @@ const itarEnvironment = getEnv("CONTROLLED_ENVIRONMENT", {
 
 export const CONTROLLED_ENVIRONMENT = parseBoolean(itarEnvironment, false);
 
+// Carbon GovCloud Rider metadata. These are the authoritative `docVersion` /
+// `docHash` stamped onto every ITAR certification, and the target of the
+// "View the full Rider" link. `ITAR_RIDER_SHA256` is the sha256 of the Rider PDF
+// served at `ITAR_RIDER_PDF_PATH` — recompute and update it whenever that PDF
+// changes so certifications stamp the exact document that was accepted.
+export const ITAR_RIDER_VERSION = "1.0";
+export const ITAR_RIDER_SHA256 =
+  "e5ec082dfa511561edd86043060b0eff82c019ff95dda2cc7a6d79eff9560874";
+export const ITAR_RIDER_PDF_PATH = "https://carbon.ms/itar-rider.pdf";
+
 export const ONSHAPE_CLIENT_ID = getEnv("ONSHAPE_CLIENT_ID", {
   isRequired: false
 });
@@ -264,6 +275,13 @@ export const QUICKBOOKS_CLIENT_SECRET = getEnv("QUICKBOOKS_CLIENT_SECRET", {
   isRequired: false,
   isSecret: true
 });
+
+/** Intuit environment: "sandbox" or "production" (default). */
+export const QUICKBOOKS_ENVIRONMENT =
+  getEnv("QUICKBOOKS_ENVIRONMENT", {
+    isRequired: false,
+    isSecret: false
+  }) ?? "production";
 
 export const QUICKBOOKS_WEBHOOK_SECRET = getEnv("QUICKBOOKS_WEBHOOK_SECRET", {
   isRequired: false,
@@ -396,6 +414,16 @@ export const VERCEL_ENV =
     isRequired: false,
     isSecret: false
   }) ?? NODE_ENV;
+
+// True only on a developer's local stack — never in prod, preview, or a
+// self-hosted deployment (those all run NODE_ENV=production). Gates features
+// that stay internal-only in real deployments but should be exercisable by
+// anyone locally. Derived from vars already in `getBrowserEnv()`, so it is
+// correct client-side too.
+export const IS_LOCAL_DEV =
+  NODE_ENV !== "production" &&
+  VERCEL_ENV !== "production" &&
+  VERCEL_ENV !== "preview";
 
 export const POSTHOG_API_HOST = getEnv("POSTHOG_API_HOST", {
   isSecret: false

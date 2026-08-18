@@ -25,7 +25,7 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
-import { convertKbToString, isInternalEmail } from "@carbon/utils";
+import { convertKbToString } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -40,6 +40,7 @@ import {
   useRevalidator
 } from "react-router";
 import { z } from "zod";
+import { DateTime } from "~/components";
 import { Confirm } from "~/components/Modals";
 import type { CompanyBackupSummary } from "~/modules/settings";
 import {
@@ -66,6 +67,7 @@ import {
   RestoreReviewRow,
   RestoreSubmit
 } from "~/modules/settings/ui/Backups";
+import { canAccessBackups } from "~/utils/backups";
 import { getEdgeFunctionErrorMessage } from "~/utils/error";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
@@ -90,9 +92,10 @@ const restoreValidator = z.object({
   includeStorage: z.enum(["none", "all"])
 });
 
-function requireInternal(email: string | null) {
-  // Internal-only while multi-tenant hardening is pending.
-  if (!isInternalEmail(email)) {
+function requireBackupAccess(email: string | null) {
+  // Internal-only in real deployments while multi-tenant hardening is pending;
+  // open to everyone on a local dev stack.
+  if (!canAccessBackups(email)) {
     throw redirect(path.to.settings);
   }
 }
@@ -101,7 +104,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const { client, companyId, email } = await requirePermissions(request, {
     update: "settings"
   });
-  requireInternal(email);
+  requireBackupAccess(email);
 
   const [backupsList, restoreRuns, exportRun] = await Promise.all([
     listCompanyBackups(client, companyId),
@@ -125,7 +128,7 @@ export async function action({ request }: ActionFunctionArgs) {
       update: "settings"
     }
   );
-  requireInternal(email);
+  requireBackupAccess(email);
 
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -605,7 +608,7 @@ function BackupRow({ file }: { file: CompanyBackupSummary }) {
             <>Incomplete backup — not restorable</>
           ) : (
             <>
-              {formatBackupDate(file.exportedAt)}
+              <DateTime value={file.exportedAt} variant="absolute" />
               {file.sizeBytes ? (
                 <>
                   {" · "}

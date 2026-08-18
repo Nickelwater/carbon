@@ -17,7 +17,9 @@ import {
   LuLayoutDashboard,
   LuNetwork,
   LuPrinter,
+  LuScanBarcode,
   LuSheet,
+  LuShieldCheck,
   LuShoppingCart,
   LuUsers,
   LuWebhook,
@@ -29,19 +31,22 @@ import { useFlags } from "~/hooks/useFlags";
 import type { AuthenticatedRouteGroup, Role } from "~/types";
 import { path } from "~/utils/path";
 
-const internalOnlyRoutes = new Set<string>([
-  path.to.companies,
-  path.to.backups
-]);
+const internalOnlyRoutes = new Set<string>([path.to.companies]);
+
+// Internal-only in real deployments, but usable by anyone on a local dev stack —
+// mirrors `canAccessBackups`, which gates the route and the backup APIs.
+const localOrInternalRoutes = new Set<string>([path.to.backups]);
 
 export default function useSettingsSubmodules() {
   const { t } = useLingui();
   const permissions = usePermissions();
-  const { isCloud, isInternal } = useFlags();
+  const { isCloud, isControlledEnvironment, isInternal, isLocalDev } =
+    useFlags();
 
   const settingsRoutes: AuthenticatedRouteGroup<{
     requiresOwnership?: boolean;
     requiresCloudEnvironment?: boolean;
+    requiresControlledEnvironment?: boolean;
   }>[] = useMemo(
     () => [
       {
@@ -186,10 +191,29 @@ export default function useSettingsSubmodules() {
             icon: <LuWorkflow />
           },
           {
+            name: t`ITAR Certifications`,
+            to: path.to.itarCertifications,
+            role: "employee",
+            icon: <LuClipboardCheck />,
+            requiresControlledEnvironment: true
+          },
+          {
+            name: t`Security`,
+            to: path.to.security,
+            role: "employee",
+            icon: <LuShieldCheck />
+          },
+          {
             name: t`Sequences`,
             to: path.to.sequences,
             role: "employee",
             icon: <LuSheet />
+          },
+          {
+            name: t`Serial Numbers`,
+            to: path.to.serialNumberSequences,
+            role: "employee",
+            icon: <LuScanBarcode />
           },
           {
             name: t`Webhooks`,
@@ -208,11 +232,16 @@ export default function useSettingsSubmodules() {
     role?: string;
     requiresOwnership?: boolean;
     requiresCloudEnvironment?: boolean;
+    requiresControlledEnvironment?: boolean;
   }) => {
     if (route.role && !permissions.is(route.role as Role)) return false;
     if (route.requiresOwnership && !permissions.isOwner()) return false;
     if (route.requiresCloudEnvironment && !isCloud) return false;
+    if (route.requiresControlledEnvironment && !isControlledEnvironment)
+      return false;
     if (!isInternal && internalOnlyRoutes.has(route.to)) return false;
+    if (!isInternal && !isLocalDev && localOrInternalRoutes.has(route.to))
+      return false;
     return true;
   };
 

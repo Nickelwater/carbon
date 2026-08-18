@@ -18,6 +18,7 @@ import {
 import {
   convertKbToString,
   getFileSizeLimit,
+  INPUT_FORMAT,
   supportedModelTypes
 } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -47,6 +48,7 @@ import {
 import { ReplenishmentSystemIcon } from "~/components/Icons";
 import { ModelUploadProgress } from "~/components/ModelUploadProgress";
 import {
+  useCurrencyDecimals,
   useModelUpload,
   useNextItemId,
   usePermissions,
@@ -76,6 +78,7 @@ const PartForm = ({ initialValues, type = "card", onClose }: PartFormProps) => {
   const { t } = useLingui();
   const { company } = useUser();
   const baseCurrency = company?.baseCurrencyCode ?? "USD";
+  const currencyDecimals = useCurrencyDecimals(baseCurrency);
 
   const fetcher = useFetcher<PostgrestResponse<{ id: string }>>();
 
@@ -339,10 +342,10 @@ const PartForm = ({ initialValues, type = "card", onClose }: PartFormProps) => {
                   <Number
                     name="unitCost"
                     label={t`Unit Cost`}
-                    formatOptions={{
-                      style: "currency",
-                      currency: baseCurrency
-                    }}
+                    formatOptions={INPUT_FORMAT.rate(
+                      baseCurrency,
+                      currencyDecimals
+                    )}
                     minValue={0}
                   />
                 )}

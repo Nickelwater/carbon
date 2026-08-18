@@ -44,6 +44,10 @@ msgstr "{0} / {1} parts ({2} per cycle)"
 msgid "{0} Active"
 msgstr "{0} Active"
 
+#. placeholder {0}: precise?.text
+msgid "{0} ago"
+msgstr "{0} ago"
+
 #. placeholder {0}: qty.targetCycleCount
 msgid "{0} cycles"
 msgstr "{0} cycles"
@@ -72,6 +76,14 @@ msgstr "{0} of {1} completed"
 msgid "{0} parts ({1} per cycle)"
 msgstr "{0} parts ({1} per cycle)"
 
+#. placeholder {0}: rows.length
+msgid "{0} queued"
+msgstr "{0} queued"
+
+#. placeholder {0}: activeWork.length
+msgid "{0} running"
+msgstr "{0} running"
+
 #. placeholder {0}: item.quantityScrapped
 msgid "{0} Scrapped"
 msgstr "{0} Scrapped"
@@ -93,6 +105,9 @@ msgstr "{fails} sampled failure(s) are recorded and will NOT be completed — re
 
 msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
 msgstr "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
+
+msgid "+{overflow} more"
+msgstr "+{overflow} more"
 
 msgid "3D Model"
 msgstr "3D Model"
@@ -145,6 +160,9 @@ msgstr "Add tools on the part method Bill of Process → Tools tab, then refresh
 msgid "All"
 msgstr "All"
 
+msgid "All clear"
+msgstr "All clear"
+
 msgid "All rework"
 msgstr "All rework"
 
@@ -190,6 +208,9 @@ msgstr "Auto-issued"
 msgid "available"
 msgstr "available"
 
+msgid "Available"
+msgstr "Available"
+
 msgid "Batch"
 msgstr "Batch"
 
@@ -215,6 +236,9 @@ msgstr "But don't worry. You can use the forgot password flow to request a new m
 
 msgid "By signing in, you agree to the <0>Terms of Service</0> and <1>Privacy Policy.</1>"
 msgstr "By signing in, you agree to the <0>Terms of Service</0> and <1>Privacy Policy.</1>"
+
+msgid "By?"
+msgstr "By?"
 
 msgid "Cancel"
 msgstr "Cancel"
@@ -249,9 +273,8 @@ msgstr "Clock In"
 msgid "Clock Out"
 msgstr "Clock Out"
 
-#. placeholder {0}: formatTime(openEntry.clockIn, locale)
-msgid "Clocked in since {0}"
-msgstr "Clocked in since {0}"
+msgid "Clocked in since <0/>"
+msgstr "Clocked in since <0/>"
 
 msgid "Close"
 msgstr "Close"
@@ -294,14 +317,24 @@ msgstr "Complete passed"
 msgid "Completed"
 msgstr "Completed"
 
+msgid "Connecting"
+msgstr "Connecting"
+
 msgid "Console"
 msgstr "Console"
 
 msgid "Console Mode"
 msgstr "Console Mode"
 
+msgid "Consumed"
+msgstr "Consumed"
+
 msgid "Consumed expired"
 msgstr "Consumed expired"
+
+#. placeholder {0}: board.unplannedCost.days
+msgid "Cost of unplanned maintenance, last {0} days"
+msgstr "Cost of unplanned maintenance, last {0} days"
 
 #. placeholder {0}: search.trim() === "" ? (createLabel ?? label) : search
 #. placeholder {0}: search.trim() === "" ? label : search
@@ -316,6 +349,9 @@ msgstr "Create Quality Issue"
 
 msgid "Create Rework"
 msgstr "Create Rework"
+
+msgid "Current work"
+msgstr "Current work"
 
 msgid "Customer"
 msgstr "Customer"
@@ -347,9 +383,8 @@ msgstr "Delete"
 msgid "Delete Step"
 msgstr "Delete Step"
 
-#. placeholder {0}: new Date(deletingEntry.clockIn).toLocaleString(locale)
-msgid "Delete Timecard ({0})"
-msgstr "Delete Timecard ({0})"
+msgid "Delete Timecard (<0/>)"
+msgstr "Delete Timecard (<0/>)"
 
 msgid "Describe the problem..."
 msgstr "Describe the problem..."
@@ -369,8 +404,21 @@ msgstr "Dispatch not found"
 msgid "Display"
 msgstr "Display"
 
+msgid "Displays"
+msgstr "Displays"
+
 msgid "Down"
 msgstr "Down"
+
+msgid "Down for maintenance"
+msgstr "Down for maintenance"
+
+#. placeholder {0}: workCenter.blockingDispatchReadableId
+msgid "Down for maintenance · {0}"
+msgstr "Down for maintenance · {0}"
+
+msgid "Down for planned maintenance"
+msgstr "Down for planned maintenance"
 
 msgid "Download"
 msgstr "Download"
@@ -403,6 +451,13 @@ msgstr "Due {0}"
 msgid "Due Date"
 msgstr "Due Date"
 
+#. placeholder {0}: board.dueSoon.days
+msgid "Due in the next {0} days?"
+msgstr "Due in the next {0} days?"
+
+msgid "Due today?"
+msgstr "Due today?"
+
 msgid "Duplicate batch number"
 msgstr "Duplicate batch number"
 
@@ -414,6 +469,9 @@ msgstr "Duration"
 
 msgid "Edit"
 msgstr "Edit"
+
+msgid "Elapsed"
+msgstr "Elapsed"
 
 msgid "Email Address"
 msgstr "Email Address"
@@ -427,6 +485,9 @@ msgstr "End Operations"
 #. placeholder {0}: selectedPerson.name
 msgid "Enter PIN for {0}"
 msgstr "Enter PIN for {0}"
+
+msgid "Enter the 6-digit code from your authenticator app"
+msgstr "Enter the 6-digit code from your authenticator app"
 
 msgid "Error"
 msgstr "Error"
@@ -443,11 +504,12 @@ msgstr "Expand features table"
 msgid "Expired"
 msgstr "Expired"
 
-msgid "Expired {date}"
-msgstr "Expired {date}"
+#. placeholder {0}: formatDate(date)
+msgid "Expired {0}"
+msgstr "Expired {0}"
 
-msgid "Expires {date}"
-msgstr "Expires {date}"
+msgid "Expires <0/>"
+msgstr "Expires <0/>"
 
 msgid "Expiring first"
 msgstr "Expiring first"
@@ -501,6 +563,9 @@ msgstr "Files related to the job and the opportunity line."
 msgid "Filter"
 msgstr "Filter"
 
+msgid "Filter by location"
+msgstr "Filter by location"
+
 msgid "Finish"
 msgstr "Finish"
 
@@ -526,6 +591,9 @@ msgstr "hours"
 msgid "How many were actually picked?"
 msgstr "How many were actually picked?"
 
+msgid "How many?"
+msgstr "How many?"
+
 msgid "I understand and want to complete without issuing"
 msgstr "I understand and want to complete without issuing"
 
@@ -535,11 +603,18 @@ msgstr "I'm Still Working"
 msgid "Ideas, suggestions or problems?"
 msgstr "Ideas, suggestions or problems?"
 
+msgid "Idle for"
+msgstr "Idle for"
+
 msgid "Impact"
 msgstr "Impact"
 
 msgid "Imperial"
 msgstr "Imperial"
+
+#. placeholder {0}: precise?.text
+msgid "in {0}"
+msgstr "in {0}"
 
 msgid "In Progress"
 msgstr "In Progress"
@@ -552,6 +627,9 @@ msgstr "Inspect Item"
 
 msgid "inspected"
 msgstr "inspected"
+
+msgid "Instructions"
+msgstr "Instructions"
 
 msgid "Insufficient quantity"
 msgstr "Insufficient quantity"
@@ -587,6 +665,12 @@ msgstr "Issue Type"
 msgid "Issued"
 msgstr "Issued"
 
+msgid "Issued {issuedQuantity} of {lotLabel}"
+msgstr "Issued {issuedQuantity} of {lotLabel}"
+
+msgid "Issued {issuedQuantity} of {lotLabel} — {remainingQuantity} remains"
+msgstr "Issued {issuedQuantity} of {lotLabel} — {remainingQuantity} remains"
+
 msgid "Item"
 msgstr "Item"
 
@@ -614,6 +698,9 @@ msgstr "Kit"
 msgid "Labor"
 msgstr "Labor"
 
+msgid "Last completed"
+msgstr "Last completed"
+
 msgid "Learn more"
 msgstr "Learn more"
 
@@ -637,6 +724,9 @@ msgstr "Loading item details..."
 
 msgid "Loading..."
 msgstr "Loading..."
+
+msgid "Local"
+msgstr "Local"
 
 msgid "Location"
 msgstr "Location"
@@ -674,11 +764,20 @@ msgstr "Low"
 msgid "Machine"
 msgstr "Machine"
 
+msgid "Machine down for maintenance now?"
+msgstr "Machine down for maintenance now?"
+
 msgid "Maintenance"
 msgstr "Maintenance"
 
 msgid "Maintenance Completed"
 msgstr "Maintenance Completed"
+
+msgid "Maintenance overdue"
+msgstr "Maintenance overdue"
+
+msgid "Make a replacement"
+msgstr "Make a replacement"
 
 msgid "Manually add items to inventory"
 msgstr "Manually add items to inventory"
@@ -744,14 +843,23 @@ msgstr "Newest first"
 msgid "Next"
 msgstr "Next"
 
+msgid "No"
+msgstr "No"
+
 msgid "No 3D model uploaded for this tool"
 msgstr "No 3D model uploaded for this tool"
+
+msgid "No active job at this work center"
+msgstr "No active job at this work center"
 
 msgid "No active maintenance dispatches"
 msgstr "No active maintenance dispatches"
 
 msgid "No active operations"
 msgstr "No active operations"
+
+msgid "No active work centers at this location."
+msgstr "No active work centers at this location."
 
 msgid "No assigned operations"
 msgstr "No assigned operations"
@@ -855,11 +963,23 @@ msgstr "No work centers are blocked"
 msgid "No work centers exist"
 msgstr "No work centers exist"
 
+msgid "None"
+msgstr "None"
+
 msgid "Not issued"
 msgstr "Not issued"
 
 msgid "Notes"
 msgstr "Notes"
+
+msgid "Nothing running"
+msgstr "Nothing running"
+
+msgid "Nothing scheduled at this work center"
+msgstr "Nothing scheduled at this work center"
+
+msgid "Nothing to scrap"
+msgstr "Nothing to scrap"
 
 msgid "OEE Impact"
 msgstr "OEE Impact"
@@ -883,6 +1003,9 @@ msgstr "Oops. You shouldn't see this page. Eventually it will be a landing page.
 msgid "Open"
 msgstr "Open"
 
+msgid "Open a display on the screen mounted at the work center and leave it running. Each board refreshes on its own."
+msgstr "Open a display on the screen mounted at the work center and leave it running. Each board refreshes on its own."
+
 msgid "Open an NCR for MRB disposition"
 msgstr "Open an NCR for MRB disposition"
 
@@ -898,6 +1021,9 @@ msgstr "Operations"
 msgid "Operations ended"
 msgstr "Operations ended"
 
+msgid "Operator"
+msgstr "Operator"
+
 msgid "Operator Performed"
 msgstr "Operator Performed"
 
@@ -906,6 +1032,9 @@ msgstr "Optional"
 
 msgid "Overall result"
 msgstr "Overall result"
+
+msgid "Overdue PMs?"
+msgstr "Overdue PMs?"
 
 msgid "Package"
 msgstr "Package"
@@ -961,6 +1090,9 @@ msgstr "Please record all steps for this operation before closing."
 msgid "Please select an item"
 msgstr "Please select an item"
 
+msgid "PM schedule lapsed"
+msgstr "PM schedule lapsed"
+
 msgid "Prev"
 msgstr "Prev"
 
@@ -1006,6 +1138,9 @@ msgstr "Quantity"
 msgid "Quantity must be greater than 0"
 msgstr "Quantity must be greater than 0"
 
+msgid "Queue empty"
+msgstr "Queue empty"
+
 msgid "Reason for rework"
 msgstr "Reason for rework"
 
@@ -1043,6 +1178,9 @@ msgstr "Remove Inventory"
 msgid "Remove part"
 msgstr "Remove part"
 
+msgid "Reopen the subassembly and create a replacement unit"
+msgstr "Reopen the subassembly and create a replacement unit"
+
 msgid "Result"
 msgstr "Result"
 
@@ -1057,6 +1195,9 @@ msgstr "Rework quantity"
 
 msgid "Run"
 msgstr "Run"
+
+msgid "Running"
+msgstr "Running"
 
 msgid "Sales Order"
 msgstr "Sales Order"
@@ -1091,6 +1232,12 @@ msgstr "Schedule"
 msgid "Scrap"
 msgstr "Scrap"
 
+msgid "Scrap {readableId}"
+msgstr "Scrap {readableId}"
+
+msgid "Scrap material"
+msgstr "Scrap material"
+
 msgid "Scrap quantity"
 msgstr "Scrap quantity"
 
@@ -1099,6 +1246,12 @@ msgstr "Scrap Reason"
 
 msgid "Scrapped"
 msgstr "Scrapped"
+
+msgid "Scrapping serial {trackedEntityReadableId}"
+msgstr "Scrapping serial {trackedEntityReadableId}"
+
+msgid "Scrapping the selected serial"
+msgstr "Scrapping the selected serial"
 
 msgid "Search"
 msgstr "Search"
@@ -1199,6 +1352,9 @@ msgstr "Set Clock Out"
 msgid "Set clock-out time"
 msgstr "Set clock-out time"
 
+msgid "Set up in Carbon"
+msgstr "Set up in Carbon"
+
 msgid "Setup"
 msgstr "Setup"
 
@@ -1225,6 +1381,9 @@ msgstr "Sign in with Outlook"
 
 msgid "Sign in with Passkey"
 msgstr "Sign in with Passkey"
+
+msgid "Sign out"
+msgstr "Sign out"
 
 msgid "Sign Out"
 msgstr "Sign Out"
@@ -1293,14 +1452,17 @@ msgstr "Tag"
 msgid "The completed cycles for this operation are less than the required {targetCycleCount} cycles."
 msgstr "The completed cycles for this operation are less than the required {targetCycleCount} cycles."
 
-msgid "The completed quantity for this operation is less than the required quantity of {requiredParts}."
-msgstr "The completed quantity for this operation is less than the required quantity of {requiredParts}."
+msgid "The completed quantity for this operation is less than the required quantity of {targetQuantity}."
+msgstr "The completed quantity for this operation is less than the required quantity of {targetQuantity}."
 
 msgid "The lot will be marked Passed and {remaining} remaining unit(s) will be completed at this operation."
 msgstr "The lot will be marked Passed and {remaining} remaining unit(s) will be completed at this operation."
 
 msgid "The lot will still be dispositioned, but an NCR cannot be created until at least one Issue Type is configured."
 msgstr "The lot will still be dispositioned, but an NCR cannot be created until at least one Issue Type is configured."
+
+msgid "There are no available or consumed tracked parts for this material."
+msgstr "There are no available or consumed tracked parts for this material."
 
 msgid "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
 msgstr "There are serial or batch tracked materials on the bill of material that have not been fully issued. Completing without issuing may result in incorrect traceability records."
@@ -1310,6 +1472,15 @@ msgstr "These items still have material to pick. Finishing now marks the list Pa
 
 msgid "This lot is expired and can't be picked."
 msgstr "This lot is expired and can't be picked."
+
+msgid "This part was made to order. Scrapping it can reopen its routing to make a replacement."
+msgstr "This part was made to order. Scrapping it can reopen its routing to make a replacement."
+
+msgid "This part will be scrapped from stock. Its requirement stays open so you can issue a replacement."
+msgstr "This part will be scrapped from stock. Its requirement stays open so you can issue a replacement."
+
+msgid "This unit will be permanently scrapped and a replacement serial number will be created."
+msgstr "This unit will be permanently scrapped and a replacement serial number will be created."
 
 msgid "Thumbnail"
 msgstr "Thumbnail"
@@ -1350,6 +1521,12 @@ msgstr "Tracked Entity"
 msgid "Tracking"
 msgstr "Tracking"
 
+msgid "Two-factor authentication"
+msgstr "Two-factor authentication"
+
+msgid "Two-factor authentication required"
+msgstr "Two-factor authentication required"
+
 msgid "Type a message..."
 msgstr "Type a message..."
 
@@ -1366,14 +1543,28 @@ msgstr "Unpick"
 msgid "Unpick {0}"
 msgstr "Unpick {0}"
 
+msgid "Unplanned downtime"
+msgstr "Unplanned downtime"
+
+#. placeholder {0}: board.unplannedCount.days
+msgid "Unplanned maintenance items, last {0} days"
+msgstr "Unplanned maintenance items, last {0} days"
+
 msgid "Unsaved changes"
 msgstr "Unsaved changes"
+
+msgid "Up next"
+msgstr "Up next"
 
 msgid "Up to {maxAllocatable} unit(s) can be allocated; the rest is recorded without a posting."
 msgstr "Up to {maxAllocatable} unit(s) can be allocated; the rest is recorded without a posting."
 
 msgid "Update"
 msgstr "Update"
+
+#. placeholder {0}: formatClock(lastUpdated)
+msgid "Updated {0}"
+msgstr "Updated {0}"
 
 msgid "Updated successfully"
 msgstr "Updated successfully"
@@ -1385,6 +1576,12 @@ msgstr "Uploaded: {0}"
 #. placeholder {0}: fileUpload.name
 msgid "Uploading {0}"
 msgstr "Uploading {0}"
+
+msgid "Use a different account"
+msgstr "Use a different account"
+
+msgid "Verify"
+msgstr "Verify"
 
 msgid "View maintenance dispatch"
 msgstr "View maintenance dispatch"
@@ -1401,9 +1598,17 @@ msgstr "WIP"
 msgid "Work Center"
 msgstr "Work Center"
 
-#. placeholder {0}: new Date(openClockEntry.clockIn).toLocaleString(locale)
-msgid "You clocked in at {0}. You can edit your clock-out time below or acknowledge that you're still working."
-msgstr "You clocked in at {0}. You can edit your clock-out time below or acknowledge that you're still working."
+msgid "Work Center Displays"
+msgstr "Work Center Displays"
+
+msgid "Yes"
+msgstr "Yes"
+
+msgid "You clocked in at <0/>. You can edit your clock-out time below or acknowledge that you're still working."
+msgstr "You clocked in at <0/>. You can edit your clock-out time below or acknowledge that you're still working."
 
 msgid "You've been clocked in for {hoursElapsed} hours. Did you forget to clock out?"
 msgstr "You've been clocked in for {hoursElapsed} hours. Did you forget to clock out?"
+
+msgid "Your organization requires an authenticator app. Set it up in Carbon, then come back here."
+msgstr "Your organization requires an authenticator app. Set it up in Carbon, then come back here."

@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { computeInsideOperationCostEffects } from "./operation-costing.ts";
+import { round } from "../shared/precision.ts";
 import type { Database } from "./types.ts";
 
 export type JobMethod = NonNullable<
@@ -718,7 +719,7 @@ export async function calculateQuoteLinePrices(
         return sum + cost * (1 + markup / 100);
       }, 0);
 
-      const roundedUnitPrice = Number(unitPrice.toFixed(precision));
+      const roundedUnitPrice = round(unitPrice, precision);
 
       return {
         quoteId,
