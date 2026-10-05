@@ -74,7 +74,7 @@ import {
   batchSamplesRemaining,
   isBatchInspectionLot
 } from "../../inspectionLot.utils";
-import ScanInspectionSample from "./ScanInspectionSample";
+import ScanInspectionSample from "../Inspections/ScanInspectionSample";
 
 export type InboundInspectionLotViewProps = {
   inspection: InboundInspectionRow;

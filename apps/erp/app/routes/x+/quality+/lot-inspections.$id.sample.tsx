@@ -1,1 +1,1 @@
-export { action } from "./inbound-inspections.$id.sample";
+export { action } from "../inspection+/$id.sample";

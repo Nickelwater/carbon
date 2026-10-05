@@ -13,7 +13,7 @@ import {
 } from "react-icons/lu";
 import { EmployeeAvatar, Hyperlink, Table } from "~/components";
 import { useDateFormatter, useUrlParams } from "~/hooks";
-import { inboundInspectionStatus } from "~/modules/quality/quality.models";
+import { inspectionStatusType as inboundInspectionStatus } from "~/modules/quality/quality.models";
 import type { InboundInspection } from "~/modules/quality/types";
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";

@@ -1,0 +1,1 @@
+../../.ai/rules/inbound-inspection-system.md
