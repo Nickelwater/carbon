@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -15,6 +19,7 @@ import {
   HStack,
   IconButton,
   LabelWithHelp,
+  MENU_ITEM_SHORTCUTS,
   Status,
   useDisclosure,
   VStack
@@ -183,7 +188,7 @@ const JournalEntryForm = ({
         >
           <CardHeader className="flex-row items-center justify-between">
             <HStack>
-              <Heading as="h1" size="h3">
+              <Heading as="h1" size="h3" className="font-sans">
                 {displayId}
               </Heading>
               <Copy text={displayId} />
@@ -213,6 +218,7 @@ const JournalEntryForm = ({
                       <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
+                          shortcut={MENU_ITEM_SHORTCUTS.delete}
                           disabled={
                             !permissions.can("delete", "accounting") ||
                             !permissions.is("employee")

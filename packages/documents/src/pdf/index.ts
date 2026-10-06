@@ -1,3 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { getPurchaseOrderDisplayId } from "../utils/purchase-order";
+import { getQuoteDisplayId } from "../utils/quote";
+import type { BatchListMember } from "./BatchListPDF";
+import { BatchListPDF } from "./BatchListPDF";
 import type { JobTravelerMaterial } from "./blocks/jobTraveler";
 import { Footer } from "./components";
 import { ensureFont, getSafeFontFamily, registerDocumentFonts } from "./fonts";
@@ -9,21 +17,28 @@ import KanbanLabelPDF from "./KanbanLabelPDF";
 import PackingSlipPDF from "./PackingSlipPDF";
 import ProductLabelPDF from "./ProductLabelPDF";
 import PurchaseOrderPDF from "./PurchaseOrderPDF";
+import PurchaseReturnOrderPDF from "./PurchaseReturnOrderPDF";
 import { DOCUMENT_PDFS } from "./preview-documents";
+import { SAMPLE_PURCHASE_RETURN_ORDER } from "./purchaseReturnOrder.samples";
 import QuotePDF from "./QuotePDF";
 import SalesInvoicePDF from "./SalesInvoicePDF";
 import SalesOrderPDF from "./SalesOrderPDF";
 import ShippingLabelPDF from "./ShippingLabelPDF";
+import SalesReturnOrderPDF from "./SalesReturnOrderPDF";
 import StockTransferPDF from "./StockTransferPDF";
 import StorageUnitLabelPDF from "./StorageUnitLabelPDF";
 import { SAMPLE_SALES_ORDER } from "./salesOrder.samples";
+import { SAMPLE_SALES_RETURN_ORDER } from "./salesReturnOrder.samples";
 import { SAMPLE_SALES_INVOICE } from "./samples";
 import { SAMPLE_TRACKING_LABEL } from "./trackingLabel.samples";
-export type { JobTravelerMaterial };
+export type { BatchListMember, JobTravelerMaterial };
 export {
+  BatchListPDF,
   DOCUMENT_PDFS,
   ensureFont,
   Footer,
+  getPurchaseOrderDisplayId,
+  getQuoteDisplayId,
   getSafeFontFamily,
   IssuePDF,
   JobTravelerPageContent,
@@ -32,16 +47,20 @@ export {
   PackingSlipPDF,
   ProductLabelPDF,
   PurchaseOrderPDF,
+  PurchaseReturnOrderPDF,
   QuotePDF,
   registerDocumentFonts,
   SalesInvoicePDF,
   SAMPLE_ISSUE,
   SAMPLE_JOB_TRAVELER,
+  SAMPLE_PURCHASE_RETURN_ORDER,
   SAMPLE_SALES_INVOICE,
   SAMPLE_SALES_ORDER,
+  SAMPLE_SALES_RETURN_ORDER,
   SAMPLE_TRACKING_LABEL,
   SalesOrderPDF,
   ShippingLabelPDF,
+SalesReturnOrderPDF,
   StockTransferPDF,
   StorageUnitLabelPDF
 };

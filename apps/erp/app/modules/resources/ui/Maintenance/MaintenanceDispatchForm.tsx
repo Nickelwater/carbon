@@ -1,4 +1,7 @@
-import { useCarbon } from "@carbon/auth";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { DateTimePicker, Select, ValidatedForm } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import {
@@ -9,21 +12,25 @@ import {
   CardHeader,
   CardTitle,
   Label,
-  toast,
   VStack
 } from "@carbon/react";
 import { Editor } from "@carbon/react/Editor";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { nanoid } from "nanoid";
 import { useState } from "react";
 import { BsExclamationSquareFill } from "react-icons/bs";
 import type { z } from "zod";
 import { HighPriorityIcon } from "~/assets/icons/HighPriorityIcon";
 import { LowPriorityIcon } from "~/assets/icons/LowPriorityIcon";
 import { MediumPriorityIcon } from "~/assets/icons/MediumPriorityIcon";
-import { Hidden, Location, Submit, WorkCenter } from "~/components/Form";
-import { usePermissions, useRouteData, useUser } from "~/hooks";
-import { getPrivateUrl, path } from "~/utils/path";
+import {
+  Boolean,
+  Hidden,
+  Location,
+  Submit,
+  WorkCenter
+} from "~/components/Form";
+import { useImageUpload, usePermissions, useRouteData } from "~/hooks";
+import { path } from "~/utils/path";
 import {
   isMaintenanceDispatchLocked,
   maintenanceDispatchPriority,
@@ -63,10 +70,6 @@ const MaintenanceDispatchForm = ({
 }: MaintenanceDispatchFormProps) => {
   const { t } = useLingui();
   const permissions = usePermissions();
-  const {
-    company: { id: companyId }
-  } = useUser();
-  const { carbon } = useCarbon();
 
   const isEditing = initialValues.id !== undefined;
 
@@ -92,23 +95,7 @@ const MaintenanceDispatchForm = ({
   const showFailureModes =
     oeeImpactValue === "Down" || oeeImpactValue === "Impact";
 
-  const onUploadImage = async (file: File) => {
-    const fileType = file.name.split(".").pop();
-    const fileName = `${companyId}/maintenance/${nanoid()}.${fileType}`;
-
-    const result = await carbon?.storage.from("private").upload(fileName, file);
-
-    if (result?.error) {
-      toast.error("Failed to upload image");
-      throw new Error(result.error.message);
-    }
-
-    if (!result?.data) {
-      throw new Error("Failed to upload image");
-    }
-
-    return getPrivateUrl(result.data.path);
-  };
+  const onUploadImage = useImageUpload("maintenance");
 
   return (
     <Card>
@@ -147,6 +134,7 @@ const MaintenanceDispatchForm = ({
                   <Trans>Description</Trans>
                 </Label>
                 <Editor
+                  autoFocus={!isEditing}
                   initialValue={content}
                   onUpload={onUploadImage}
                   onChange={(value) => {
@@ -213,6 +201,14 @@ const MaintenanceDispatchForm = ({
               <DateTimePicker
                 name="plannedEndTime"
                 label={t`Planned End Time`}
+              />
+
+              <Boolean
+                bordered
+                className="col-span-2"
+                name="takesWorkCenterOffline"
+                label={t`Takes work center offline`}
+                description={t`While this dispatch is open, the work center is unavailable to the schedule (until the planned end time, or until the dispatch is completed).`}
               />
               {showFailureModes ? (
                 <Select

@@ -1,4 +1,8 @@
-import { Submit, useControlField } from "@carbon/form";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { useControlField } from "@carbon/form";
 import { ChoiceSelect } from "@carbon/react";
 import { LuDatabaseBackup, LuFiles } from "react-icons/lu";
 
@@ -64,11 +68,4 @@ export function RestoreIncludeChoice() {
       <input type="hidden" name="includeStorage" value={current} />
     </>
   );
-}
-
-// Submit for the restore form — disabled until a source is chosen (the rest of
-// the disabled/loading states come from Submit itself).
-export function RestoreSubmit() {
-  const [source] = useControlField<string>("source");
-  return <Submit isDisabled={!source}>Restore</Submit>;
 }

@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { readWorkflowVersion } from "@carbon/ee/workflows";
 import { Alert, AlertDescription, AlertTitle, Badge, cn } from "@carbon/react";
 import { formatDateTime, formatDurationMilliseconds } from "@carbon/utils";
-import { readWorkflowVersion } from "@carbon/workflows";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { LuCircleAlert, LuCircleSlash, LuTriangle } from "react-icons/lu";
@@ -11,7 +15,7 @@ import type {
   WorkflowRunDetail as WorkflowRunDetailType,
   WorkflowRunStep
 } from "../../workflows.service";
-import { useWorkflowLabel } from "../Builder/catalog";
+import { useWorkflowEventLabel, useWorkflowLabel } from "../Builder/catalog";
 import { EntityRecordLink } from "./EntityRecordLink";
 import { RunLiveUpdates } from "./RunLiveUpdates";
 import { RunStatus, TestRunBadge } from "./RunStatus";
@@ -97,7 +101,10 @@ export function WorkflowRunDetail({
     (run.workflow as { name?: string } | null)?.name ?? run.workflowId;
 
   const label = useWorkflowLabel();
-  const eventLabel = run.eventId ? label(run.eventId, run.eventId) : null;
+  const triggerLabel = useWorkflowEventLabel();
+  const eventLabel = run.eventId
+    ? triggerLabel(run.eventId, run.eventId)
+    : null;
 
   const isInFlight = run.status === "Queued" || run.status === "Running";
   const compacted = run.compactedAt !== null;

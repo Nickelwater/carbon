@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   cn,
@@ -176,7 +180,7 @@ const SupplierForm = ({
                     name="supplierStatus"
                     label={t`Supplier Status`}
                     placeholder={t`Select Supplier Status`}
-                    disabled={supplierApprovalRequired}
+                    isReadOnly={supplierApprovalRequired}
                     termId="supplier-status"
                   />
                   <SupplierType

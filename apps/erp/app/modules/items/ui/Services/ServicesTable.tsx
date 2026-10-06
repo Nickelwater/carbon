@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
@@ -13,6 +18,7 @@ import {
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   MenuSub,
@@ -25,7 +31,7 @@ import {
 
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   LuAlignJustify,
   LuBookMarked,
@@ -41,7 +47,7 @@ import {
   LuUser
 } from "react-icons/lu";
 import { RxCodesandboxLogo } from "react-icons/rx";
-import { Link, useFetcher, useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   DateTime,
   EmployeeAvatar,
@@ -51,8 +57,10 @@ import {
   ItemThumbnail,
   MethodIcon,
   New,
+  SupplierAvatarGroup,
   Table
 } from "~/components";
+import { Enumerable } from "~/components/Enumerable";
 import { useItemPostingGroups } from "~/components/Form/ItemPostingGroup";
 import { ReplenishmentSystemIcon } from "~/components/Icons";
 import { ConfirmDelete } from "~/components/Modals";
@@ -60,7 +68,7 @@ import { usePermissions } from "~/hooks";
 import { useCustomColumns } from "~/hooks/useCustomColumns";
 import { methodType } from "~/modules/shared";
 import type { action } from "~/routes/x+/items+/update";
-import { usePeople } from "~/stores";
+import { usePeople, useSuppliers } from "~/stores";
 import { path } from "~/utils/path";
 import { serviceReplenishmentSystems } from "../../items.models";
 import type { ServiceListItem } from "../../types";
@@ -97,6 +105,11 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
   );
 
   const [people] = usePeople();
+  const [suppliers] = useSuppliers();
+  const supplierMap = useMemo(
+    () => new Map(suppliers.map((supplier) => [supplier.id, supplier.name])),
+    [suppliers]
+  );
   const itemPostingGroups = useItemPostingGroups();
   const customColumns = useCustomColumns<ServiceListItem>("service");
 
@@ -154,15 +167,14 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
           const itemPostingGroup = itemPostingGroups.find(
             (group) => group.value === itemPostingGroupId
           );
-          const label = itemPostingGroup?.label;
-          return label ? <Badge variant="secondary">{label}</Badge> : null;
+          return <Enumerable value={itemPostingGroup?.label ?? null} />;
         },
         meta: {
           filter: {
             type: "static",
             options: itemPostingGroups.map((group) => ({
               value: group.value,
-              label: <Badge variant="secondary">{group.label}</Badge>
+              label: <Enumerable value={group.label} />
             }))
           },
           icon: <LuGroup />
@@ -282,6 +294,29 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
         }
       },
       {
+        accessorKey: "suppliers",
+        header: t`Supplier`,
+        cell: ({ row }) => (
+          <SupplierAvatarGroup supplierIds={row.original.suppliers ?? []} />
+        ),
+        meta: {
+          filter: {
+            type: "static",
+            options: suppliers.map((supplier) => ({
+              value: supplier.id,
+              label: supplier.name
+            })),
+            isArray: true
+          },
+          icon: <LuTruck />,
+          exportValue: (row) =>
+            row.suppliers
+              ?.map((supplierId) => supplierMap.get(supplierId))
+              .filter(Boolean)
+              .join(", ") ?? null
+        }
+      },
+      {
         accessorKey: "active",
         header: t`Active`,
         cell: (item) => <Checkbox isChecked={item.getValue<boolean>()} />,
@@ -356,6 +391,8 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
   }, [
     customColumns,
     people,
+    supplierMap,
+    suppliers,
     tags,
     itemPostingGroups,
     t,
@@ -363,13 +400,13 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
     translateReplenishment
   ]);
 
-  const fetcher = useFetcher<typeof action>();
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error(fetcher.data.error.message);
+  const fetcher = useAction<typeof action>({
+    onError: (data) => {
+      if (data?.error) {
+        toast.error(data.error.message);
+      }
     }
-  }, [fetcher.data]);
-
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   const onBulkUpdate = useCallback(
     (
@@ -418,7 +455,7 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
                         )
                       }
                     >
-                      <span>{group.label}</span>
+                      <Enumerable value={group.label} />
                     </DropdownMenuItem>
                   ))}
                 </DropdownMenuSubContent>
@@ -460,7 +497,10 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
         }[]) ?? [];
       return (
         <>
-          <MenuItem onClick={() => navigate(path.to.service(row.id!))}>
+          <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.edit}
+            onClick={() => navigate(path.to.service(row.id!))}
+          >
             <MenuIcon icon={<LuPencil />} />
             <Trans>Edit Service</Trans>
           </MenuItem>
@@ -484,6 +524,7 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
             </MenuSub>
           )}
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.delete}
             destructive
             disabled={!permissions.can("delete", "parts")}
             onClick={() => {
@@ -516,6 +557,12 @@ const ServicesTable = memo(({ data, tags, count }: ServicesTableProps) => {
           updatedBy: false,
           updatedAt: false
         }}
+        importCSV={[
+          {
+            table: "service" as const,
+            label: t`Services`
+          }
+        ]}
         primaryAction={
           permissions.can("create", "parts") && (
             <div className="flex items-center gap-2">

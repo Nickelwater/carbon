@@ -1,8 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -40,12 +43,6 @@ const ProfileForm = ({ user }: ProfileFormProps) => {
           <CardTitle>
             <Trans>Profile</Trans>
           </CardTitle>
-          <CardDescription>
-            <Trans>
-              This information will be visible to all users, so be careful what
-              you share.
-            </Trans>
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-4 w-full">

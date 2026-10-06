@@ -1,34 +1,37 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   assertIsPost,
   CONTROLLED_ENVIRONMENT,
   error,
-  getAppUrl,
-  RESEND_DOMAIN,
   success
 } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
+import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { InviteEmail } from "@carbon/documents/email";
+import { companyHasFeature } from "@carbon/ee/plan.server";
+import { getSsoAwareInviteLink } from "@carbon/ee/sso.server";
 import { validationError, validator } from "@carbon/form";
-import { sendEmail } from "@carbon/lib/resend.server";
+import { sendEmail } from "@carbon/lib/email.server";
 import { getLogger } from "@carbon/logger";
-import { datetime } from "@carbon/utils";
+import { datetime, getClientIp, redirect } from "@carbon/utils";
 import { render } from "@react-email/components";
 import { nanoid } from "nanoid";
-import type {
-  ActionFunctionArgs,
-  ClientActionFunctionArgs,
-  LoaderFunctionArgs
-} from "react-router";
-import { redirect, useLoaderData } from "react-router";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useLoaderData } from "react-router";
 import {
   CreateEmployeeModal,
   createEmployeeValidator,
   getInvitable
 } from "~/modules/users";
-import { createEmployeeAccount } from "~/modules/users/users.server";
+import {
+  createEmployeeAccount,
+  getSsoInviteDomainError
+} from "~/modules/users/users.server";
 import { path } from "~/utils/path";
-import { getCompanyId, invalidateUserSelectQueries } from "~/utils/react-query";
 
 const logger = getLogger("erp", "employees-new");
 
@@ -76,6 +79,26 @@ export async function action({ request }: ActionFunctionArgs) {
     usPersonAttestation
   } = validation.data;
 
+  // Community / Starter ships "everyone is an admin": authoring roles is gated,
+  // so an invited user always receives the seeded Admin employee type,
+  // regardless of what the (hidden) form control submitted. `companyHasFeature`
+  // blocks the Community edition outright and applies the plan check on Cloud.
+  let effectiveEmployeeType = employeeType;
+  const canAuthorRoles = await companyHasFeature(client, companyId, {
+    feature: "PERMISSIONS"
+  });
+  if (!canAuthorRoles) {
+    const adminType = await client
+      .from("employeeType")
+      .select("id")
+      .eq("companyId", companyId)
+      .eq("systemType", "Admin")
+      .maybeSingle();
+    if (adminType.data?.id) {
+      effectiveEmployeeType = adminType.data.id;
+    }
+  }
+
   // Controlled environments require the inviter to attest the invitee is a
   // U.S. person (22 CFR 120.62) before the invite can be created.
   if (CONTROLLED_ENVIRONMENT && !usPersonAttestation) {
@@ -87,11 +110,24 @@ export async function action({ request }: ActionFunctionArgs) {
     });
   }
 
+  // Once SSO is active for the company, an employee invite outside its
+  // covered domains is refused before anything is created or emailed.
+  const ssoDomainError = await getSsoInviteDomainError(
+    getCarbonServiceRole(),
+    companyId,
+    email
+  );
+  if (ssoDomainError) {
+    return validationError({
+      fieldErrors: { email: ssoDomainError }
+    });
+  }
+
   const result = await createEmployeeAccount(client, {
     email: email.toLowerCase(),
     firstName,
     lastName,
-    employeeType,
+    employeeType: effectiveEmployeeType,
     locationId,
     companyId,
     createdBy: userId,
@@ -111,7 +147,7 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   const location = request.headers.get("x-vercel-ip-city") ?? "Unknown";
-  const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  const ip = getClientIp(request) ?? "127.0.0.1";
   const [company, user] = await Promise.all([
     client.from("company").select("name").eq("id", companyId).single(),
     client.from("user").select("email, fullName").eq("id", userId).single()
@@ -121,8 +157,14 @@ export async function action({ request }: ActionFunctionArgs) {
     throw new Error("Failed to load company or user");
   }
 
+  const inviteLink = await getSsoAwareInviteLink(
+    getCarbonServiceRole(),
+    email,
+    result.code,
+    companyId
+  );
+
   await sendEmail({
-    from: `Carbon <no-reply@${RESEND_DOMAIN}>`,
     to: email,
     subject: `You have been invited to join ${company.data?.name} on Carbon`,
     headers: {
@@ -135,7 +177,7 @@ export async function action({ request }: ActionFunctionArgs) {
         email,
         name: `${firstName} ${lastName}`.trim(),
         companyName: company.data.name,
-        inviteLink: `${getAppUrl()}/invite/${result.code}`,
+        inviteLink,
         ip,
         location,
         controlledEnvironment: CONTROLLED_ENVIRONMENT
@@ -147,11 +189,6 @@ export async function action({ request }: ActionFunctionArgs) {
     path.to.personJob(result.userId),
     await flash(request, success("Successfully invited employee"))
   );
-}
-
-export async function clientAction({ serverAction }: ClientActionFunctionArgs) {
-  invalidateUserSelectQueries(getCompanyId());
-  return await serverAction();
 }
 
 export default function () {

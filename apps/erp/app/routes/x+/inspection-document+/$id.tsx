@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
@@ -6,21 +10,27 @@ import { validationError, validator } from "@carbon/form";
 import { trigger } from "@carbon/jobs";
 import { NotificationEvent } from "@carbon/notifications";
 import { ClientOnly, Spinner } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import { lazy, Suspense } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useLoaderData } from "react-router";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { useLoaderData } from "react-router";
 import { getUnitOfMeasuresList } from "~/modules/items/items.service";
 import { inspectionDocumentApprovalValidator } from "~/modules/production/production.models";
-import type { InspectionDocumentContent } from "~/modules/production/types";
-import InspectionDocumentHeader from "~/modules/production/ui/InspectionDocument/InspectionDocumentHeader";
-import type { SamplingRule } from "~/modules/production/ui/InspectionDocument/SamplingRuleModal";
+import InspectionDocumentHeader from "~/modules/quality/ui/InspectionDocument/InspectionDocumentHeader";
 import {
   getBalloons,
+  getGaugeTypesList,
   getInspectionDocument,
   getInspectionDocumentVersions,
   getInspectionFeatures
-} from "~/modules/quality/quality.service";
+} from "~/modules/quality";
+import type { InspectionDocumentContent } from "~/modules/quality/types";
+import type { SamplingRule } from "~/modules/quality/ui/InspectionDocument/SamplingRuleModal";
 import { getCompanySettings } from "~/modules/settings";
 import {
   approveRequest,
@@ -36,9 +46,7 @@ import { path } from "~/utils/path";
 
 const InspectionDocumentEditor = lazy(
   () =>
-    import(
-      "~/modules/production/ui/InspectionDocument/InspectionDocumentEditor"
-    )
+    import("~/modules/quality/ui/InspectionDocument/InspectionDocumentEditor")
 );
 
 type ApprovalContext = {
@@ -105,13 +113,13 @@ async function getInspectionDocumentApprovalContext(
 export const handle: Handle = {
   breadcrumb: (_params: unknown, data: any): BreadcrumbSegment[] => {
     const segments: BreadcrumbSegment[] = [
-      { breadcrumb: msg`Production`, to: path.to.production },
+      { breadcrumb: msg`Quality`, to: path.to.quality },
       { breadcrumb: msg`Inspection Plans`, to: path.to.inspectionDocuments }
     ];
     const name = data?.diagram?.name;
     return name ? [...segments, { breadcrumb: name }] : segments;
   },
-  module: "production"
+  module: "quality"
 };
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -216,6 +224,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
   );
 }
 
+// The editor saves itself, and each save's response already carries the
+// saved rows — reloading the plan after every edit would only slow the next
+// save down.
+export const shouldRevalidate: ShouldRevalidateFunction = ({
+  formAction,
+  defaultShouldRevalidate
+}) => (formAction?.endsWith("/save") ? false : defaultShouldRevalidate);
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId, userId } = await requirePermissions(request, {
     view: "quality"
@@ -231,6 +247,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     featuresResult,
     balloonsResult,
     unitOfMeasuresResult,
+    gaugeTypesResult,
     companySettings,
     approval
   ] = await Promise.all([
@@ -238,6 +255,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     getInspectionFeatures(serviceRole, id),
     getBalloons(serviceRole, id),
     getUnitOfMeasuresList(client, companyId),
+    getGaugeTypesList(client, companyId),
     getCompanySettings(client, companyId),
     diagramPromise.then((d) =>
       getInspectionDocumentApprovalContext(
@@ -283,6 +301,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     features,
     balloons,
     unitOfMeasures,
+    gaugeTypes: gaugeTypesResult.data ?? [],
     samplingStandard:
       ((companySettings.data as any)?.samplingStandard as
         | "ANSI_Z1_4"
@@ -292,13 +311,19 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 }
 
 export default function BalloonDetailRoute() {
-  const { diagram, features, balloons, unitOfMeasures, samplingStandard } =
-    useLoaderData<typeof loader>();
+  const {
+    diagram,
+    features,
+    balloons,
+    unitOfMeasures,
+    gaugeTypes,
+    samplingStandard
+  } = useLoaderData<typeof loader>();
   const content = diagram.content as InspectionDocumentContent | null;
   const readOnly = diagram.status !== "Draft";
 
   return (
-    <div className="flex flex-col h-[calc(100dvh-49px)] overflow-hidden w-full">
+    <div className="flex flex-col h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] overflow-hidden w-full">
       <InspectionDocumentHeader />
       {readOnly && (
         <div className="flex-shrink-0 border-b border-border bg-muted/40 px-4 py-2 text-sm text-muted-foreground">
@@ -321,6 +346,7 @@ export default function BalloonDetailRoute() {
             }
           >
             <InspectionDocumentEditor
+              key={diagram.id}
               diagramId={diagram.id}
               name={diagram.name}
               partId={diagram.partId}
@@ -328,6 +354,7 @@ export default function BalloonDetailRoute() {
               features={features}
               balloons={balloons}
               unitOfMeasures={unitOfMeasures}
+              gaugeTypes={gaugeTypes}
               sampling={(diagram.sampling as SamplingRule | null) ?? null}
               samplingStandard={samplingStandard}
               readOnly={readOnly}

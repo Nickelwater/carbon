@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 /// <reference path="./.sst/platform/config.d.ts" />
 
 
@@ -40,6 +44,10 @@ export default $config({
       scaling: {
         min: 1,
         max: 10,
+        // Scale on sustained request volume too — CPU/mem stay low under an
+        // I/O-bound request pile-up, so those triggers alone never fire.
+        // Safe alongside the WAF: floods are blocked before they reach targets.
+        requestCount: 500,
         cpuUtilization: 70,
         memoryUtilization: 80,
       },
@@ -47,6 +55,7 @@ export default $config({
         ASSEMBLER_SERVICE_API_KEY: process.env.ASSEMBLER_SERVICE_API_KEY,
         ASSEMBLER_SERVICE_URL: process.env.ASSEMBLER_SERVICE_URL,
         AUTH_PROVIDERS: process.env.AUTH_PROVIDERS,
+        BOT_PROTECTION: process.env.BOT_PROTECTION,
         CARBON_EDITION: process.env.CARBON_EDITION,
         CLOUDFLARE_TURNSTILE_SECRET_KEY:
           process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
@@ -76,9 +85,15 @@ export default $config({
         QUICKBOOKS_CLIENT_ID: process.env.QUICKBOOKS_CLIENT_ID,
         QUICKBOOKS_CLIENT_SECRET: process.env.QUICKBOOKS_CLIENT_SECRET,
         QUICKBOOKS_WEBHOOK_SECRET: process.env.QUICKBOOKS_WEBHOOK_SECRET,
+        RAMP_CLIENT_ID: process.env.RAMP_CLIENT_ID,
+        RAMP_CLIENT_SECRET: process.env.RAMP_CLIENT_SECRET,
         RESEND_API_KEY: process.env.RESEND_API_KEY,
         REDIS_URL: process.env.REDIS_URL,
-        RESEND_DOMAIN: process.env.RESEND_DOMAIN ?? "carbon.ms",
+        SMTP_FROM: process.env.SMTP_FROM,
+        SMTP_HOST: process.env.SMTP_HOST,
+        SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+        SMTP_PORT: process.env.SMTP_PORT,
+        SMTP_USER: process.env.SMTP_USER,
         SESSION_SECRET: process.env.SESSION_SECRET,
         SLACK_BOT_TOKEN: process.env.SLACK_BOT_TOKEN,
         SLACK_CLIENT_ID: process.env.SLACK_CLIENT_ID,
@@ -89,6 +104,8 @@ export default $config({
         STRIPE_BYPASS_COMPANY_IDS: process.env.STRIPE_BYPASS_COMPANY_IDS,
         STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
         STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+        STRIPE_CONNECT_WEBHOOK_SECRET:
+          process.env.STRIPE_CONNECT_WEBHOOK_SECRET,
         SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
         SUPABASE_DB_URL: process.env.SUPABASE_DB_URL,
         SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
@@ -140,6 +157,10 @@ export default $config({
       scaling: {
         min: 1,
         max: 10,
+        // Scale on sustained request volume too — CPU/mem stay low under an
+        // I/O-bound request pile-up, so those triggers alone never fire.
+        // Safe alongside the WAF: floods are blocked before they reach targets.
+        requestCount: 500,
         cpuUtilization: 70,
         memoryUtilization: 80,
       },
@@ -147,6 +168,7 @@ export default $config({
         ASSEMBLER_SERVICE_API_KEY: process.env.ASSEMBLER_SERVICE_API_KEY,
         ASSEMBLER_SERVICE_URL: process.env.ASSEMBLER_SERVICE_URL,
         AUTH_PROVIDERS: process.env.AUTH_PROVIDERS,
+        BOT_PROTECTION: process.env.BOT_PROTECTION,
         CARBON_EDITION: process.env.CARBON_EDITION,
         CLOUDFLARE_TURNSTILE_SECRET_KEY:
           process.env.CLOUDFLARE_TURNSTILE_SECRET_KEY,
@@ -170,7 +192,11 @@ export default $config({
         POSTHOG_PROJECT_PUBLIC_KEY: process.env.POSTHOG_PROJECT_PUBLIC_KEY,
         REDIS_URL: process.env.REDIS_URL,
         RESEND_API_KEY: process.env.RESEND_API_KEY,
-        RESEND_DOMAIN: process.env.RESEND_DOMAIN ?? "carbon.ms",
+        SMTP_FROM: process.env.SMTP_FROM,
+        SMTP_HOST: process.env.SMTP_HOST,
+        SMTP_PASSWORD: process.env.SMTP_PASSWORD,
+        SMTP_PORT: process.env.SMTP_PORT,
+        SMTP_USER: process.env.SMTP_USER,
         SESSION_SECRET: process.env.SESSION_SECRET,
         SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
         SUPABASE_DB_URL: process.env.SUPABASE_DB_URL,
@@ -218,6 +244,20 @@ export default $config({
         managedRuleGroupStatement: {
           name: "AWSManagedRulesCommonRuleSet",
           vendorName: "AWS",
+          // SizeRestrictions_BODY blocks any request body over 8 KB with a 403
+          // at the WAF, before it reaches the app (so it never shows in app
+          // logs). Carbon legitimately posts larger bodies: bulk account-mapping
+          // saves ship the whole chart of accounts in one POST, and some
+          // /api/inngest steps and /api/webhook/stripe exceed 8 KB too. Count
+          // instead of Block so these are still inspected/counted but not rejected.
+          ruleActionOverrides: [
+            {
+              name: "SizeRestrictions_BODY",
+              actionToUse: {
+                count: {},
+              },
+            },
+          ],
         },
       },
       priority: 2,
@@ -231,9 +271,8 @@ export default $config({
       },
     };
 
-    // WAF configuration kept for manual association with load balancer
-    // To use: Associate this WAF ACL with your manually created load balancer in AWS Console
-    new aws.wafv2.WebAcl("AppAlbWebAcl", {
+    // WAF web ACL: rate-limit (1000 req/IP/5min) + AWS managed common rule set.
+    const webAcl = new aws.wafv2.WebAcl("AppAlbWebAcl", {
       defaultAction: { allow: {} },
       scope: "REGIONAL",
       visibilityConfig: {
@@ -242,6 +281,17 @@ export default $config({
         metricName: "AppAlbWebAcl",
       },
       rules: [rateLimitRule, awsManagedRules],
+    });
+
+    // Associate the web ACL with each service's ALB so the rules actually run.
+    // Without this the ACL exists but inspects no traffic (the prior state).
+    new aws.wafv2.WebAclAssociation("ErpAlbWebAclAssociation", {
+      resourceArn: erp.nodes.loadBalancer.arn,
+      webAclArn: webAcl.arn,
+    });
+    new aws.wafv2.WebAclAssociation("MesAlbWebAclAssociation", {
+      resourceArn: mes.nodes.loadBalancer.arn,
+      webAclArn: webAcl.arn,
     });
 
     return {};

@@ -1,4 +1,8 @@
-import type { TermId } from "@carbon/glossary";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { TermId } from "@carbon/content/glossary";
 import type { InputProps } from "@carbon/react";
 import {
   Button,
@@ -56,7 +60,7 @@ const PhoneInput: ForwardRefExoticComponent<PhoneInputProps> = forwardRef<
 
   const onChange = (value: string) => {
     setValue(value);
-    // @ts-ignore
+    // @ts-expect-error
     props.onChange?.(value);
   };
 
@@ -89,7 +93,7 @@ const PhoneInput: ForwardRefExoticComponent<PhoneInputProps> = forwardRef<
          *
          * @param {E164Number | undefined} value - The entered value
          */
-        // @ts-ignore
+        // @ts-expect-error
         onChange={onChange}
         {...props}
       />

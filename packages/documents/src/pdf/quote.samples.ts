@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 /** Sample data for previewing the Quote template. Cast `any`. */
 export const SAMPLE_QUOTE = {
   company: {
@@ -18,6 +22,7 @@ export const SAMPLE_QUOTE = {
   exchangeRate: 1,
   quote: {
     quoteId: "QUO-001042",
+    revisionId: 0,
     currencyCode: "USD",
     expirationDate: "2026-07-01",
     customerReference: "RFQ-88421",

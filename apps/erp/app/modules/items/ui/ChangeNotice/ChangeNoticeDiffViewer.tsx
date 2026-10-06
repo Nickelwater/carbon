@@ -1,4 +1,8 @@
-import type { TermId } from "@carbon/glossary";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { TermId } from "@carbon/content/glossary";
 import {
   Collapsible,
   CollapsibleContent,
@@ -6,6 +10,7 @@ import {
   cn,
   HStack,
   LabelWithHelp,
+  Subheading,
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
@@ -583,9 +588,9 @@ function OperationEntry({ entry }: { entry: OperationDiffEntry }) {
       <EntryBody entry={entry} skip={OPERATION_LABEL_FIELDS} />
       {buckets.map(({ bucket, changed }) => (
         <div key={bucket.key} className="w-full">
-          <div className="text-[0.65rem] font-medium uppercase text-muted-foreground pb-0.5">
+          <Subheading variant="heavy" className="block pb-0.5">
             {bucket.title}
-          </div>
+          </Subheading>
           <TreeChildren>
             {changed.map((child, i) => (
               <TreeNode
@@ -664,9 +669,13 @@ export default function ChangeNoticeDiffViewer({
     // non-hidden field to show.
     return entryHasBody(a, skip);
   });
-  const supplierParts = (diff?.supplierParts ?? []).filter(
-    (s) => s.status !== "unchanged"
-  );
+  const supplierParts = (diff?.supplierParts ?? []).filter((s) => {
+    if (s.status === "unchanged") return false;
+    // As with materials: a modified row whose only change is a hidden field
+    // reads as unchanged.
+    if (s.status !== "modified") return true;
+    return entryHasBody(s, SUPPLIER_PART_LABEL_FIELDS);
+  });
 
   const isEmpty =
     materials.length === 0 &&
@@ -731,9 +740,9 @@ export default function ChangeNoticeDiffViewer({
     <div className="w-full rounded-lg border border-border p-3">
       <div className="pb-2">
         <LabelWithHelp termId="change-order" variant="inline">
-          <span className="text-xs font-medium uppercase text-muted-foreground">
+          <Subheading variant="heavy">
             <Trans>Changes</Trans>
-          </span>
+          </Subheading>
         </LabelWithHelp>
       </div>
       {body}

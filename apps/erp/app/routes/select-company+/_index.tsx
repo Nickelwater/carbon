@@ -1,12 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { CONTROLLED_ENVIRONMENT, error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { Avatar, cn, ScrollArea, useMode } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMemo } from "react";
 import { LuChevronRight, LuLoaderCircle } from "react-icons/lu";
 import type { LoaderFunctionArgs } from "react-router";
-import { Form, redirect, useLoaderData, useNavigation } from "react-router";
+import { Form, useLoaderData, useNavigation } from "react-router";
 import type { Company } from "~/modules/settings";
 import { getEmployeeCompanies } from "~/modules/settings";
 import { path } from "~/utils/path";

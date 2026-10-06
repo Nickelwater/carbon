@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Boolean,
   Number,
@@ -199,6 +203,13 @@ const MaintenanceScheduleForm = ({
                   label={t`Estimated Duration (minutes)`}
                   termId="maintenance-schedule-estimated-duration"
                   minValue={0}
+                  isOptional={false}
+                />
+                <Boolean
+                  name="takesWorkCenterOffline"
+                  label={t`Takes Work Center Offline`}
+                  description={t`Reserve the work center's capacity for this PM. Requires an estimated duration.`}
+                  bordered
                 />
                 {/* When the next preventive-maintenance dispatch should be
                     generated. Blank on a new schedule → the first one is

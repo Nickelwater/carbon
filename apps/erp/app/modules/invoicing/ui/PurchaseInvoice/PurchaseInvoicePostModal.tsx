@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Alert,
   AlertDescription,
@@ -92,7 +96,7 @@ const PurchaseInvoicePostModal = ({
             <div className="gap-4 w-full flex flex-col">
               {hasTrackedItems ? (
                 <>
-                  <p>
+                  <p className="text-sm text-muted-foreground">
                     Are you sure you want to post this invoice? A receipt will
                     be created for:
                   </p>
@@ -109,7 +113,7 @@ const PurchaseInvoicePostModal = ({
                   </Alert>
                 </>
               ) : (
-                <p>
+                <p className="text-sm text-muted-foreground">
                   Are you sure you want to post this invoice? A receipt will be
                   automatically created and posted for:
                 </p>
@@ -145,7 +149,9 @@ const PurchaseInvoicePostModal = ({
               </Table>
             </div>
           ) : (
-            <p>Are you sure you want to post this invoice?</p>
+            <p className="text-sm text-muted-foreground">
+              Are you sure you want to post this invoice?
+            </p>
           )}
         </ModalBody>
         <ModalFooter>

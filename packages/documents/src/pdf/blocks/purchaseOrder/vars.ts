@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { getPurchaseOrderDisplayId } from "../../../utils/purchase-order";
 import type { PurchaseOrderData } from "./types";
 
 /** Merge-field variable map for a Purchase Order. */
@@ -12,7 +17,8 @@ export function buildPurchaseOrderVars(
   const str = (v: unknown): string => (v == null ? "" : String(v));
 
   return {
-    "order.number": str(po?.purchaseOrderId),
+    "order.number": po ? getPurchaseOrderDisplayId(po) : "",
+    "order.revision": str(po?.revisionId ?? 0),
     "order.date": str(po?.orderDate),
     "order.supplierReference": str(po?.supplierReference),
     "order.currency": str(data.currencyCode),

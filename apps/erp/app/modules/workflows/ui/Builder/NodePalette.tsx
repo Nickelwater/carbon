@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { NODE_DRAG_TYPE } from "./constants";
 import { useBuilderStore } from "./context";
 import { NODE_KIND_META, NODE_KIND_ORDER } from "./nodes/meta";
@@ -6,7 +10,7 @@ export function NodePalette() {
   const addNode = useBuilderStore((state) => state.addNode);
 
   return (
-    <aside className="flex h-full flex-col gap-1 overflow-y-auto border-r bg-background p-2">
+    <aside className="flex h-full flex-col gap-1 overflow-y-auto border-r bg-card p-2">
       {NODE_KIND_ORDER.map((type) => {
         const meta = NODE_KIND_META[type];
 

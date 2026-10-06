@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
+import { useRuleViolations } from "@carbon/ee/rules";
 import { Select, Submit, ValidatedForm } from "@carbon/form";
 import {
   Alert,
@@ -14,6 +19,7 @@ import {
   Heading,
   HStack,
   IconButton,
+  MENU_ITEM_SHORTCUTS,
   Modal,
   ModalBody,
   ModalContent,
@@ -26,7 +32,7 @@ import {
   VStack
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   LuCircleCheck,
   LuCircleX,
@@ -75,7 +81,7 @@ const SalesRFQHeader = () => {
   const statusFetcher = useFetcher<{}>();
 
   return (
-    <div className="flex flex-shrink-0 items-center justify-between p-2 bg-background border-b h-[50px] overflow-x-auto scrollbar-hide ">
+    <div className="flex flex-shrink-0 items-center justify-between gap-x-4 p-2 bg-card border-b h-[var(--header-height)] overflow-x-auto scrollbar-hide ">
       <HStack className="w-full justify-between">
         <HStack>
           <IconButton
@@ -121,6 +127,7 @@ const SalesRFQHeader = () => {
                 <Trans>Reopen</Trans>
               </DropdownMenuItem>
               <DropdownMenuItem
+                shortcut={MENU_ITEM_SHORTCUTS.delete}
                 disabled={
                   isLocked ||
                   !permissions.can("delete", "sales") ||
@@ -176,6 +183,7 @@ const SalesRFQHeader = () => {
           )}
 
           <Button
+            isLoading={statusFetcher.state !== "idle"}
             isDisabled={
               status !== "Ready for Quote" ||
               routeData?.lines?.length === 0 ||
@@ -414,17 +422,27 @@ function ConvertToQuoteModal({
     path.to.salesRfq(rfqId)
   );
 
-  const fetcher = useFetcher<{ error: string | null }>();
+  // Converting re-evaluates sales rules across the RFQ's mapped lines (the
+  // terminal gate in the action) before the server function mints quote lines.
+  // Route the submission through the violations hook so a blocked convert
+  // opens the shared modal instead of silently doing nothing.
+  const ruleViolations = useRuleViolations({
+    action: path.to.salesRfqConvert(rfqId),
+    onSuccess: onClose
+  });
+  const fetcher = ruleViolations.fetcher as ReturnType<
+    typeof useFetcher<{ error: string | null; violations?: unknown[] }>
+  >;
   const isLoading = fetcher.state !== "idle";
   const linesWithoutItems = lines.filter((line) => !line.itemId);
   const requiresPartNumbers = linesWithoutItems.length > 0;
   const requiresCustomer = !routeData?.rfqSummary?.customerId;
 
-  useEffect(() => {
-    if (fetcher.state === "loading") {
-      onClose();
-    }
-  }, [fetcher.state, onClose]);
+  // NOTE: do NOT close on `fetcher.state === "loading"`. A fetcher passes
+  // through `loading` (revalidation) even when the action RETURNS data, so that
+  // would unmount this modal — and the nested ViolationModal — the moment the
+  // sales-rule gate returns violations. Closing is owned by the hook's
+  // `onSuccess`, which fires only when the action actually succeeded.
 
   return (
     <Modal
@@ -508,6 +526,7 @@ function ConvertToQuoteModal({
           </fetcher.Form>
         </ModalFooter>
       </ModalContent>
+      <ruleViolations.ViolationModal />
     </Modal>
   );
 }

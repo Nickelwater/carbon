@@ -1,8 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 "use client";
 import { useCarbon } from "@carbon/auth";
 import type { Database } from "@carbon/database";
+import { getCompanyPrivateBucket, storage } from "@carbon/files";
+import { convertHeicToJpeg, isHeic } from "@carbon/files/media";
 import { Array as ArrayInput, Input, ValidatedForm } from "@carbon/form";
 import { getLogger } from "@carbon/logger";
+import { useAction, useChangedRows } from "@carbon/query";
 import type { JSONContent } from "@carbon/react";
 import {
   Alert,
@@ -29,6 +36,7 @@ import {
   Input as InputField,
   Label,
   Loading,
+  MENU_ITEM_SHORTCUTS,
   Modal,
   ModalBody,
   ModalContent,
@@ -45,16 +53,19 @@ import {
   useDebounce,
   useDisclosure,
   useMount,
-  useRealtimeChannel,
   VStack
 } from "@carbon/react";
 import { Editor } from "@carbon/react/Editor";
-import { formatDurationMilliseconds, INPUT_FORMAT } from "@carbon/utils";
-import { getLocalTimeZone, today } from "@internationalized/date";
+import {
+  formatDate,
+  formatDurationMilliseconds,
+  INPUT_FORMAT
+} from "@carbon/utils";
+import { getLocalTimeZone, parseDate, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useNumberFormatter } from "@react-aria/i18n";
-import type { DragControls } from "framer-motion";
-import { motion, Reorder, useDragControls } from "framer-motion";
+import type { DragControls } from "motion/react";
+import { motion, Reorder, useDragControls } from "motion/react";
 import { nanoid } from "nanoid";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -134,6 +145,7 @@ import {
 import { StepLinkEditor } from "~/components/StepLinkEditor";
 import {
   useCurrencyDecimals,
+  useImageUpload,
   usePermissions,
   useRouteData,
   useUrlParams,
@@ -179,10 +191,18 @@ export type Operation = z.infer<typeof jobOperationValidator> & {
   assignee: string | null;
   dueDate?: string | null;
   manuallyScheduled?: boolean;
+  projectedCompletionAt?: string | null;
   status: JobOperation["status"];
   tags: string[] | null;
   workInstruction: JSONContent | null;
   reworkId: string | null;
+  // Embedded by getJobOperationsByMethodId: which operation batch (if any)
+  // this operation runs in. Only Active/Completing render a badge.
+  jobOperationBatch?: {
+    id: string;
+    readableId: string | null;
+    status: string | null;
+  } | null;
 };
 
 type ItemWithData = Item & {
@@ -202,7 +222,9 @@ type JobMaterial = {
   description?: string | null;
   quantity?: number | null;
   jobOperationId?: string | null;
-  jobMaterialStep?: { jobOperationStepId: string }[] | null;
+  jobMaterialStep?:
+    | { jobOperationStepId: string; quantity?: number | null }[]
+    | null;
 };
 
 type JobBillOfProcessProps = {
@@ -239,15 +261,38 @@ function makeItem(
   urlParams: { [key: string]: string },
   t: ReturnType<typeof useLingui>["t"]
 ): ItemWithData {
+  // Forward forecast vs backward need-by target: calendar-day comparison via
+  // parseDate (never JS Date arithmetic). Positive = projected finish is late.
+  const projectedDate = operation.projectedCompletionAt
+    ? operation.projectedCompletionAt.slice(0, 10)
+    : null;
+  const behindDays =
+    projectedDate && operation.dueDate
+      ? parseDate(projectedDate).compare(parseDate(operation.dueDate))
+      : 0;
+
   return {
     id: operation.id!,
     title: (
       <VStack spacing={0}>
-        <HStack spacing={2}>
-          <h3 className="font-semibold truncate cursor-pointer">
+        <HStack spacing={2} className="w-full min-w-0">
+          <h3 className="font-semibold min-w-0 truncate cursor-pointer">
             {operation.description}
           </h3>
           {operation.reworkId && <Badge variant="red">Rework</Badge>}
+          {operation.jobOperationBatch &&
+            (operation.jobOperationBatch.status === "Active" ||
+              operation.jobOperationBatch.status === "Completing") && (
+              <Badge
+                variant={
+                  operation.jobOperationBatch.status === "Completing"
+                    ? "yellow"
+                    : "secondary"
+                }
+              >
+                {operation.jobOperationBatch.readableId}
+              </Badge>
+            )}
         </HStack>
         {operation.operationType === "Outside Processing" && (
           <SupplierProcessPreview
@@ -300,6 +345,25 @@ function makeItem(
           />
         </HStack>
         <HStack>
+          {projectedDate &&
+            (behindDays > 0 ? (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Badge variant="red">
+                    <Trans>Projected {formatDate(projectedDate)}</Trans>
+                  </Badge>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <span>
+                    <Trans>Behind target by {behindDays} day(s)</Trans>
+                  </span>
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span className="text-xs text-muted-foreground whitespace-nowrap">
+                <Trans>Projected {formatDate(projectedDate)}</Trans>
+              </span>
+            ))}
           <OperationDueDatePicker
             operationId={operation.id!}
             dueDate={operation.dueDate ?? null}
@@ -671,23 +735,7 @@ const JobBillOfProcess = ({
     true
   );
 
-  const onUploadImage = async (file: File) => {
-    const fileType = file.name.split(".").pop();
-    const fileName = `${companyId}/parts/${selectedItemId}/${nanoid()}.${fileType}`;
-    const result = await carbon?.storage
-      .from("private")
-      .upload(fileName, file, { upsert: true });
-
-    if (result?.error) {
-      throw new Error(result.error.message);
-    }
-
-    if (!result?.data) {
-      throw new Error("Failed to upload image");
-    }
-
-    return getPrivateUrl(result.data.path);
-  };
+  const onUploadImage = useImageUpload(`parts/${selectedItemId}`);
 
   const [productionEvents, setProductionEvents] = useState<
     Database["public"]["Tables"]["productionEvent"]["Row"][]
@@ -697,76 +745,27 @@ const JobBillOfProcess = ({
   const [hasMore, setHasMore] = useState(true);
   const addOperationButtonRef = useRef<HTMLButtonElement>(null);
 
-  useRealtimeChannel({
-    topic: `production-events:${selectedItemId}`,
+  useChangedRows<Database["public"]["Tables"]["productionEvent"]["Row"]>({
+    companyId,
+    table: "productionEvent",
     enabled: !!selectedItemId && !temporaryItems[selectedItemId],
-    setup(channel) {
-      return channel.on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "productionEvent",
-          filter: `jobOperationId=eq.${selectedItemId}`
-        },
-        (payload) => {
-          switch (payload.eventType) {
-            case "INSERT":
-              const { new: inserted } = payload;
-              setProductionEvents((prevEvents) => [
-                ...prevEvents,
-                inserted as Database["public"]["Tables"]["productionEvent"]["Row"]
-              ]);
-              break;
-            case "UPDATE":
-              const { new: updated } = payload;
-              setProductionEvents((prevEvents) =>
-                prevEvents.map((event) =>
-                  event.id === updated.id
-                    ? (updated as Database["public"]["Tables"]["productionEvent"]["Row"])
-                    : event
-                )
-              );
-              break;
-            case "DELETE":
-              const { old: deleted } = payload;
-              setProductionEvents((prevEvents) =>
-                prevEvents.filter((event) => event.id !== deleted.id)
-              );
-              break;
-            default:
-              break;
-          }
-        }
-      );
-    }
-  });
-
-  // Phase 3: keep the live job's BOP steps fresh without closing the panel. When steps are
-  // added/edited/reordered for the open operation, or an operator records a step on the shop
-  // floor (jobOperationStepRecord), revalidate so the loader re-serves the latest steps.
-  const revalidator = useRevalidator();
-  useRealtimeChannel({
-    topic: `bop-steps:${selectedItemId}`,
-    enabled: !!selectedItemId && !temporaryItems[selectedItemId],
-    setup(channel) {
-      const refresh = () => revalidator.revalidate();
-      return channel
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "jobOperationStep",
-            filter: `operationId=eq.${selectedItemId}`
-          },
-          refresh
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "jobOperationStepRecord" },
-          refresh
+    onChange: ({ op, ids, rows }) => {
+      if (op === "DELETE") {
+        setProductionEvents((prevEvents) =>
+          prevEvents.filter((event) => !ids.includes(event.id))
         );
+        return;
+      }
+      const mine = rows.filter((row) => row.jobOperationId === selectedItemId);
+      setProductionEvents((prevEvents) => {
+        let next = prevEvents;
+        for (const row of mine) {
+          next = next.some((event) => event.id === row.id)
+            ? next.map((event) => (event.id === row.id ? row : event))
+            : [...next, row];
+        }
+        return next;
+      });
     }
   });
 
@@ -836,9 +835,8 @@ const JobBillOfProcess = ({
               animate={{ opacity: 1, filter: "blur(0px)" }}
               transition={{
                 type: "spring",
-                bounce: 0.2,
-                duration: 0.75,
-                delay: 0.15
+                bounce: 0,
+                duration: 0.3
               }}
             >
               <OperationForm
@@ -997,9 +995,8 @@ const JobBillOfProcess = ({
               animate={{ opacity: 1, filter: "blur(0px)" }}
               transition={{
                 type: "spring",
-                bounce: 0.2,
-                duration: 0.75,
-                delay: 0.15
+                bounce: 0,
+                duration: 0.3
               }}
             >
               <InfiniteScroll
@@ -1077,15 +1074,13 @@ const JobBillOfProcess = ({
         </CardAction>
       </HStack>
       <CardContent>
-        <ScrollArea type="auto" className="max-h-[60dvh]">
-          <SortableList
-            items={items}
-            onReorder={onReorder}
-            onToggleItem={onToggleItem}
-            onRemoveItem={onRemoveItem}
-            renderItem={renderListItem}
-          />
-        </ScrollArea>
+        <SortableList
+          items={items}
+          onReorder={onReorder}
+          onToggleItem={onToggleItem}
+          onRemoveItem={onRemoveItem}
+          renderItem={renderListItem}
+        />
       </CardContent>
     </Card>
   );
@@ -1197,38 +1192,52 @@ function StepsForm({
   const draftFileInputRef = useRef<HTMLInputElement>(null);
   const draftModelInputRef = useRef<HTMLInputElement>(null);
 
-  // Parts (this operation's BOM materials) the operator can assign to a step. Parts picked
-  // while CREATING a step are buffered here and attached right after the step is created.
+  // Parts the operator can assign to a step. The whole bill of material is offered —
+  // the BOM is the source of truth, and a line needn't be assigned to this operation
+  // to be referenced by a step. Parts picked while CREATING a step are buffered here
+  // and attached right after the step is created.
   const operationParts = useMemo(
     () =>
-      (materials ?? [])
-        .filter((m) => m.jobOperationId === operationId)
-        .map((m) => ({
-          id: m.id,
-          name: m.description || m.itemId,
-          quantity: m.quantity ?? 1
-        })),
-    [materials, operationId]
-  );
-  const [draftParts, setDraftParts] = useState<string[]>([]);
-
-  // Tools (this operation's tools) the operator can assign to a step — the tool twin of
-  // operationParts/draftParts. Tools picked while CREATING a step are buffered here and
-  // attached right after the step is created (see the effect below).
-  const allTools = useTools();
-  const operationTools = useMemo(
-    () =>
-      (tools ?? []).map((tl) => {
-        const tool = allTools.find((x) => x.id === tl.toolId);
+      (materials ?? []).map((m) => {
+        const item = allItems.find((i) => i.id === m.itemId);
         return {
-          id: tl.id ?? "",
-          name: tool?.readableIdWithRevision ?? tl.toolId ?? "",
-          secondary: tool?.name ?? undefined,
-          quantity: tl.quantity ?? 1
+          id: m.id,
+          name: item?.readableIdWithRevision ?? m.description ?? m.itemId,
+          secondary: item
+            ? (m.description ?? item.name ?? undefined)
+            : undefined,
+          quantity: m.quantity ?? 1
         };
       }),
-    [tools, allTools]
+    [materials, allItems]
   );
+  const [draftParts, setDraftParts] = useState<string[]>([]);
+  // Per-step share of each buffered part's BOM line (absent = the full line
+  // quantity), keyed by jobMaterial id; written with the links on step create.
+  const [draftPartQuantities, setDraftPartQuantities] = useState<
+    Record<string, number>
+  >({});
+
+  // Tools the operator can assign to a step — the tool twin of operationParts/
+  // draftParts. The whole tool LIBRARY is offered (keyed by tool item id); the
+  // operation tool row is created server-side on attach when it doesn't exist
+  // yet. Tools picked while CREATING a step are buffered here and attached
+  // right after the step is created (see the effect below).
+  const allTools = useTools();
+  const operationTools = useMemo(() => {
+    const opToolByToolId = new Map(
+      (tools ?? []).flatMap((tl) =>
+        tl.toolId ? [[tl.toolId, tl] as const] : []
+      )
+    );
+    return allTools.map((tool) => ({
+      id: tool.id,
+      name: tool.readableIdWithRevision,
+      secondary: tool.name ?? undefined,
+      quantity: opToolByToolId.get(tool.id)?.quantity ?? 1,
+      primary: opToolByToolId.has(tool.id)
+    }));
+  }, [tools, allTools]);
   const [draftTools, setDraftTools] = useState<string[]>([]);
 
   const materialItemIds = useMemo(
@@ -1248,23 +1257,7 @@ function StepsForm({
     [allItems, materialItemIds]
   );
 
-  const onUploadImage = async (file: File) => {
-    const fileType = file.name.split(".").pop();
-    const fileName = `${companyId}/parts/${nanoid()}.${fileType}`;
-
-    const result = await carbon?.storage.from("private").upload(fileName, file);
-
-    if (result?.error) {
-      toast.error(t`Failed to upload image`);
-      throw new Error(result.error.message);
-    }
-
-    if (!result?.data) {
-      throw new Error("Failed to upload image");
-    }
-
-    return getPrivateUrl(result.data.path);
-  };
+  const onUploadImage = useImageUpload("parts");
 
   const onAddDraftSlide = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1272,11 +1265,18 @@ function StepsForm({
     if (!file || !carbon) return;
     setDraftUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      const upload = isHeic(file.name, file.type)
+        ? await convertHeicToJpeg(carbon, {
+            bucket: getCompanyPrivateBucket(companyId),
+            directory: `${companyId}/tmp`,
+            file
+          })
+        : file;
+      const ext = upload.name.split(".").pop();
       const fileName = `${companyId}/parts/${nanoid()}.${ext}`;
-      const result = await carbon.storage
-        .from("private")
-        .upload(fileName, file);
+      const result = await storage(carbon)
+        .company(companyId)
+        .upload(fileName, upload);
       if (result.error || !result.data) {
         toast.error(t`Failed to upload image`);
         return;
@@ -1292,6 +1292,8 @@ function StepsForm({
           annotations: []
         }
       ]);
+    } catch {
+      toast.error(t`Failed to convert image`);
     } finally {
       setDraftUploading(false);
     }
@@ -1372,10 +1374,15 @@ function StepsForm({
     let cancelled = false;
     const batch = draftParts;
     (async () => {
+      // Omit the quantity column when unset so the default path still works
+      // against a pre-migration schema (the column only ships on main).
       const { error } = await carbon.from("jobMaterialStep").insert(
         batch.map((jobMaterialId) => ({
           jobMaterialId,
-          jobOperationStepId: newStepId
+          jobOperationStepId: newStepId,
+          ...(draftPartQuantities[jobMaterialId] != null
+            ? { quantity: draftPartQuantities[jobMaterialId] }
+            : {})
         }))
       );
       if (cancelled) return;
@@ -1385,6 +1392,7 @@ function StepsForm({
       }
       const savedIds = new Set(batch);
       setDraftParts((prev) => prev.filter((id) => !savedIds.has(id)));
+      setDraftPartQuantities({});
       revalidator.revalidate();
     })();
     return () => {
@@ -1393,6 +1401,9 @@ function StepsForm({
   }, [fetcher.data]);
 
   // When the new step is created, attach any buffered tools, then revalidate + reset.
+  // Goes through the step-tool route (not a direct insert) because the buffer holds
+  // tool ITEM ids and the operation tool row may not exist yet — the route creates
+  // it before linking. Sequential so a repeated tool never races its own creation.
   // biome-ignore lint/correctness/useExhaustiveDependencies: keyed off the created step id
   useEffect(() => {
     const newStepId = (fetcher.data as { id?: string | null } | undefined)?.id;
@@ -1400,14 +1411,20 @@ function StepsForm({
     let cancelled = false;
     const batch = draftTools;
     (async () => {
-      const { error } = await carbon.from("jobOperationToolStep").insert(
-        batch.map((jobOperationToolId) => ({
-          jobOperationToolId,
-          jobOperationStepId: newStepId
-        }))
-      );
+      let failed = false;
+      for (const toolId of batch) {
+        const fd = new FormData();
+        fd.append("toolId", toolId);
+        fd.append("stepId", newStepId);
+        fd.append("linked", "true");
+        const res = await fetch(path.to.jobOperationStepTool, {
+          method: "POST",
+          body: fd
+        });
+        if (!res.ok) failed = true;
+      }
       if (cancelled) return;
-      if (error) {
+      if (failed) {
         toast.error(t`Failed to save tools`);
         return;
       }
@@ -1595,7 +1612,10 @@ function StepsForm({
                 emptyLabel={t`No parts`}
                 searchPlaceholder={t`Search parts...`}
                 removeLabel={t`Remove part`}
-                items={operationParts}
+                items={operationParts.map((p) => ({
+                  ...p,
+                  linkedQuantity: draftPartQuantities[p.id] ?? null
+                }))}
                 linkedIds={draftParts}
                 isDisabled={isDisabled}
                 onAdd={(partId) =>
@@ -1603,8 +1623,18 @@ function StepsForm({
                     prev.includes(partId) ? prev : [...prev, partId]
                   )
                 }
-                onRemove={(partId) =>
-                  setDraftParts((prev) => prev.filter((id) => id !== partId))
+                onRemove={(partId) => {
+                  setDraftParts((prev) => prev.filter((id) => id !== partId));
+                  setDraftPartQuantities((prev) => {
+                    const { [partId]: _removed, ...rest } = prev;
+                    return rest;
+                  });
+                }}
+                onQuantityChange={(partId, quantity) =>
+                  setDraftPartQuantities((prev) => ({
+                    ...prev,
+                    [partId]: quantity
+                  }))
                 }
               />
 
@@ -1617,6 +1647,8 @@ function StepsForm({
                 icon={<LuHammer />}
                 items={operationTools}
                 linkedIds={draftTools}
+                primaryGroupLabel={t`On this operation`}
+                secondaryGroupLabel={t`All tools`}
                 isDisabled={isDisabled}
                 onAdd={(toolId) =>
                   setDraftTools((prev) =>
@@ -1693,27 +1725,34 @@ function StepsForm({
 
 // Parts assigned to an EXISTING job step — the step-side of the part↔step link. Toggles each
 // jobMaterialStep link immediately via the material route. Job-tier twin of StepParts.
+// Lists the method's whole bill of material — the BOM is the source of truth, and a
+// line needn't be assigned to this operation to be referenced by a step.
 function JobStepParts({
   step,
-  operationId,
   materials,
   isDisabled
 }: {
   step: JobOperationStep;
-  operationId: string;
   materials: JobMaterial[];
   isDisabled: boolean;
 }) {
   const { t } = useLingui();
   const fetcher = useFetcher();
+  const [allItems] = useItems();
 
-  const operationParts = (materials ?? [])
-    .filter((m) => m.jobOperationId === operationId)
-    .map((m) => ({
+  const operationParts = (materials ?? []).map((m) => {
+    const item = allItems.find((i) => i.id === m.itemId);
+    const link = (m.jobMaterialStep ?? []).find(
+      (s) => s.jobOperationStepId === step.id
+    );
+    return {
       id: m.id,
-      name: m.description || m.itemId,
-      quantity: m.quantity ?? 1
-    }));
+      name: item?.readableIdWithRevision ?? m.description ?? m.itemId,
+      secondary: item ? (m.description ?? item.name ?? undefined) : undefined,
+      quantity: m.quantity ?? 1,
+      linkedQuantity: link?.quantity ?? null
+    };
+  });
 
   const linkedPartIds = (materials ?? [])
     .filter((m) =>
@@ -1721,12 +1760,15 @@ function JobStepParts({
     )
     .map((m) => m.id);
 
-  const toggle = (partId: string, linked: boolean) => {
+  const toggle = (partId: string, linked: boolean, quantity?: number) => {
     if (!step.id) return;
     const fd = new FormData();
     fd.append("materialId", partId);
     fd.append("stepId", step.id);
     fd.append("linked", String(linked));
+    if (linked && quantity !== undefined) {
+      fd.append("quantity", String(quantity));
+    }
     fetcher.submit(fd, {
       method: "post",
       action: path.to.jobOperationStepMaterial
@@ -1746,6 +1788,7 @@ function JobStepParts({
       busy={fetcher.state !== "idle"}
       onAdd={(id) => toggle(id, true)}
       onRemove={(id) => toggle(id, false)}
+      onQuantityChange={(id, quantity) => toggle(id, true, quantity)}
     />
   );
 }
@@ -1765,15 +1808,19 @@ function JobStepTools({
   const fetcher = useFetcher();
   const allTools = useTools();
 
-  const operationTools = (tools ?? []).map((tl) => {
-    const tool = allTools.find((x) => x.id === tl.toolId);
-    return {
-      id: tl.id ?? "",
-      name: tool?.readableIdWithRevision ?? tl.toolId ?? "",
-      secondary: tool?.name ?? undefined,
-      quantity: tl.quantity ?? 1
-    };
-  });
+  // The whole tool LIBRARY is offered (keyed by tool item id) — an operation
+  // needn't have a tool on its Tools tab first; picking one here creates the
+  // operation tool row (quantity 1) server-side before linking it to the step.
+  const opToolByToolId = new Map(
+    (tools ?? []).flatMap((tl) => (tl.toolId ? [[tl.toolId, tl] as const] : []))
+  );
+  const stepTools = allTools.map((tool) => ({
+    id: tool.id,
+    name: tool.readableIdWithRevision,
+    secondary: tool.name ?? undefined,
+    quantity: opToolByToolId.get(tool.id)?.quantity ?? 1,
+    primary: opToolByToolId.has(tool.id)
+  }));
 
   const linkedToolIds = (tools ?? [])
     .filter((tl) =>
@@ -1785,7 +1832,7 @@ function JobStepTools({
         ).map((s) => s.jobOperationStepId)
       ).some((stepId) => stepId === step.id)
     )
-    .map((tl) => tl.id ?? "");
+    .flatMap((tl) => (tl.toolId ? [tl.toolId] : []));
 
   const toggle = (toolId: string, linked: boolean) => {
     if (!step.id) return;
@@ -1807,7 +1854,9 @@ function JobStepTools({
       searchPlaceholder={t`Search tools...`}
       removeLabel={t`Remove tool`}
       icon={<LuHammer />}
-      items={operationTools}
+      items={stepTools}
+      primaryGroupLabel={t`On this operation`}
+      secondaryGroupLabel={t`All tools`}
       linkedIds={linkedToolIds}
       isDisabled={isDisabled}
       busy={fetcher.state !== "idle"}
@@ -1852,11 +1901,18 @@ function JobStepSlides({
     if (!file || !carbon || !step.id) return;
     setUploading(true);
     try {
-      const ext = file.name.split(".").pop();
+      const upload = isHeic(file.name, file.type)
+        ? await convertHeicToJpeg(carbon, {
+            bucket: getCompanyPrivateBucket(companyId),
+            directory: `${companyId}/tmp`,
+            file
+          })
+        : file;
+      const ext = upload.name.split(".").pop();
       const fileName = `${companyId}/parts/${nanoid()}.${ext}`;
-      const result = await carbon.storage
-        .from("private")
-        .upload(fileName, file);
+      const result = await storage(carbon)
+        .company(companyId)
+        .upload(fileName, upload);
       if (result.error || !result.data) {
         toast.error(t`Failed to upload image`);
         return;
@@ -1869,6 +1925,8 @@ function JobStepSlides({
         method: "post",
         action: path.to.newJobOperationStepSlide
       });
+    } catch {
+      toast.error(t`Failed to convert image`);
     } finally {
       setUploading(false);
     }
@@ -2017,7 +2075,14 @@ function StepsListItem({
   const disclosure = useDisclosure();
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
-  const fetcher = useFetcher<typeof editJobOperationStepAction>();
+  const fetcher = useAction<typeof editJobOperationStepAction>({
+    onSettled: () => {
+      if (submitted.current) {
+        disclosure.onClose();
+        submitted.current = false;
+      }
+    }
+  });
   const duplicateStepFetcher = useFetcher();
   const { t } = useLingui();
   const [description, setDescription] = useState<JSONContent>(() => {
@@ -2033,14 +2098,6 @@ function StepsListItem({
       return {};
     }
   });
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
-  useEffect(() => {
-    if (submitted.current && fetcher.state === "idle") {
-      disclosure.onClose();
-      submitted.current = false;
-    }
-  }, [fetcher.state]);
 
   const [type, setType] = useState<OperationStep["type"]>(attribute.type);
   const [numericControls, setNumericControls] = useState<string[]>(() => {
@@ -2061,28 +2118,8 @@ function StepsListItem({
   const date = updatedAt ?? createdAt;
 
   const unitOfMeasures = useUnitOfMeasure();
-  const { carbon } = useCarbon();
-  const {
-    company: { id: companyId }
-  } = useUser();
 
-  const onUploadImage = async (file: File) => {
-    const fileType = file.name.split(".").pop();
-    const fileName = `${companyId}/parts/${nanoid()}.${fileType}`;
-
-    const result = await carbon?.storage.from("private").upload(fileName, file);
-
-    if (result?.error) {
-      toast.error(t`Failed to upload image`);
-      throw new Error(result.error.message);
-    }
-
-    if (!result?.data) {
-      throw new Error("Failed to upload image");
-    }
-
-    return getPrivateUrl(result.data.path);
-  };
+  const onUploadImage = useImageUpload("parts");
 
   if (!id) return null;
 
@@ -2187,7 +2224,6 @@ function StepsListItem({
             <JobStepSlides step={attribute} isDisabled={isDisabled} />
             <JobStepParts
               step={attribute}
-              operationId={operationId}
               materials={materials}
               isDisabled={isDisabled}
             />
@@ -2296,10 +2332,14 @@ function StepsListItem({
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={disclosure.onOpen}>
+                  <DropdownMenuItem
+                    shortcut={MENU_ITEM_SHORTCUTS.edit}
+                    onClick={disclosure.onOpen}
+                  >
                     Edit
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    shortcut={MENU_ITEM_SHORTCUTS.duplicate}
                     onClick={() =>
                       duplicateStepFetcher.submit(null, {
                         method: "post",
@@ -2310,6 +2350,7 @@ function StepsListItem({
                     Duplicate
                   </DropdownMenuItem>
                   <DropdownMenuItem
+                    shortcut={MENU_ITEM_SHORTCUTS.delete}
                     destructive
                     onClick={deleteModalDisclosure.onOpen}
                   >
@@ -2579,16 +2620,15 @@ function ParametersListItem({
   const disclosure = useDisclosure();
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
-  const fetcher = useFetcher<typeof editJobOperationParameterAction>();
-  const { t } = useLingui();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
-  useEffect(() => {
-    if (submitted.current && fetcher.state === "idle") {
-      disclosure.onClose();
-      submitted.current = false;
+  const fetcher = useAction<typeof editJobOperationParameterAction>({
+    onSettled: () => {
+      if (submitted.current) {
+        disclosure.onClose();
+        submitted.current = false;
+      }
     }
-  }, [fetcher.state]);
+  });
+  const { t } = useLingui();
 
   const isUpdated = updatedBy !== null;
   const person = isUpdated ? updatedBy : createdBy;
@@ -2665,10 +2705,14 @@ function ParametersListItem({
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={disclosure.onOpen}>
+                <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.edit}
+                  onClick={disclosure.onOpen}
+                >
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   destructive
                   onClick={deleteModalDisclosure.onOpen}
                 >
@@ -3058,20 +3102,22 @@ function OperationForm({
             />
           </>
         ) : (
-          <WorkCenter
-            name="workCenterId"
-            label={t`Work Center`}
-            termId="work-center"
-            autoSelectSingleOption={Boolean(processData.processId)}
-            locationId={locationId}
-            isOptional={["Draft", "Planned"].includes(job?.status ?? "")}
-            processId={processData.processId}
-            onChange={(value) => {
-              if (value) {
-                onWorkCenterChange(value?.value as string);
-              }
-            }}
-          />
+          <>
+            <WorkCenter
+              name="workCenterId"
+              label={t`Work Center`}
+              termId="work-center"
+              autoSelectSingleOption={Boolean(processData.processId)}
+              locationId={locationId}
+              isOptional={["Draft", "Planned"].includes(job?.status ?? "")}
+              processId={processData.processId}
+              onChange={(value) => {
+                if (value) {
+                  onWorkCenterChange(value?.value as string);
+                }
+              }}
+            />
+          </>
         )}
 
         <InputControlled
@@ -3690,7 +3736,7 @@ function OperationForm({
         transition={{
           type: "spring",
           bounce: 0,
-          duration: 0.55
+          duration: 0.25
         }}
       >
         <motion.div layout className="ml-auto mr-1 pt-2">
@@ -3712,13 +3758,13 @@ function ProcedureSyncModal({
   procedureId: string;
   onClose: () => void;
 }) {
-  const fetcher = useFetcher<{ success: boolean }>();
-  useEffect(() => {
-    if (fetcher.data?.success) {
-      onClose();
+  const fetcher = useAction<{ success: boolean }>({
+    onSuccess: (data) => {
+      if (data?.success) {
+        onClose();
+      }
     }
-  }, [fetcher.data?.success, onClose]);
-
+  });
   return (
     <Modal
       open
@@ -3785,13 +3831,13 @@ function AssemblyStepsSyncModal({
   assemblyInstructionId: string;
   onClose: () => void;
 }) {
-  const fetcher = useFetcher<{ success: boolean }>();
-  useEffect(() => {
-    if (fetcher.data?.success) {
-      onClose();
+  const fetcher = useAction<{ success: boolean }>({
+    onSuccess: (data) => {
+      if (data?.success) {
+        onClose();
+      }
     }
-  }, [fetcher.data?.success, onClose]);
-
+  });
   return (
     <Modal
       open
@@ -3908,16 +3954,15 @@ function ToolsListItem({
   const disclosure = useDisclosure();
   const deleteModalDisclosure = useDisclosure();
   const submitted = useRef(false);
-  const fetcher = useFetcher<typeof editJobOperationToolAction>();
-  const { t } = useLingui();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
-  useEffect(() => {
-    if (submitted.current && fetcher.state === "idle") {
-      disclosure.onClose();
-      submitted.current = false;
+  const fetcher = useAction<typeof editJobOperationToolAction>({
+    onSettled: () => {
+      if (submitted.current) {
+        disclosure.onClose();
+        submitted.current = false;
+      }
     }
-  }, [fetcher.state]);
+  });
+  const { t } = useLingui();
 
   const tools = useTools();
   const tool = tools.find((t) => t.id === toolId);
@@ -4006,10 +4051,14 @@ function ToolsListItem({
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={disclosure.onOpen}>
+                <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.edit}
+                  onClick={disclosure.onOpen}
+                >
                   Edit
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   destructive
                   onClick={deleteModalDisclosure.onOpen}
                 >
@@ -4167,26 +4216,17 @@ function OperationChat({ jobOperationId }: { jobOperationId: string }) {
     fetchChat();
   });
 
-  useRealtimeChannel({
-    topic: `job-operation-notes-${jobOperationId}`,
-    setup(channel) {
-      return channel.on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "jobOperationNote",
-          filter: `jobOperationId=eq.${jobOperationId}`
-        },
-        (payload) => {
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === payload.new.id)) {
-              return prev;
-            }
-            return [...prev, payload.new as Message];
-          });
-        }
-      );
+  useChangedRows<Message & { jobOperationId: string }>({
+    companyId: user.company.id,
+    table: "jobOperationNote",
+    onResync: fetchChat,
+    onChange: ({ op, rows }) => {
+      if (op !== "INSERT") return;
+      const notes = rows.filter((row) => row.jobOperationId === jobOperationId);
+      setMessages((prev) => [
+        ...prev,
+        ...notes.filter((note) => !prev.some((m) => m.id === note.id))
+      ]);
     }
   });
 

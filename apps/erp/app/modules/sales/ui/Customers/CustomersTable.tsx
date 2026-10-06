@@ -1,7 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Badge,
   Button,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   useDisclosure
@@ -51,7 +56,7 @@ type CustomersTableProps = {
 
 const CustomersTable = memo(
   ({ data, count, customerStatuses, tags }: CustomersTableProps) => {
-    const { t, i18n } = useLingui();
+    const { t } = useLingui();
     const navigate = useNavigate();
     const permissions = usePermissions();
     const [people] = usePeople();
@@ -69,7 +74,7 @@ const CustomersTable = memo(
           if (!row.id) continue;
           byId.set(row.id, {
             id: row.id,
-            name: row.name,
+            name: row.name ?? "",
             website: row.website ?? null,
             readableId: row.readableId ?? null
           });
@@ -81,11 +86,6 @@ const CustomersTable = memo(
     }, [data, setCustomers]);
     const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(
       null
-    );
-
-    const translateStatus = useCallback(
-      (value: string) => i18n._(value),
-      [i18n]
     );
 
     const customerTypes = useCustomerTypes();
@@ -117,8 +117,8 @@ const CustomersTable = memo(
               <Hyperlink to={path.to.customerDetails(row.original.id!)}>
                 <CustomerAvatar
                   customerId={row.original.id!}
-                  name={row.original.name}
-                  website={row.original.website}
+                  name={row.original.name ?? ""}
+                  website={row.original.website ?? undefined}
                 />
               </Hyperlink>
             </div>
@@ -130,15 +130,13 @@ const CustomersTable = memo(
         {
           accessorKey: "status",
           header: t`Status`,
-          cell: (item) => (
-            <Enumerable value={translateStatus(item.getValue<string>())} />
-          ),
+          cell: (item) => <Enumerable value={item.getValue<string>()} />,
           meta: {
             filter: {
               type: "static",
               options: customerStatuses?.map((status) => ({
                 value: status.name,
-                label: <Enumerable value={translateStatus(status.name ?? "")} />
+                label: <Enumerable value={status.name ?? ""} />
               }))
             },
             pluralHeader: t`Statuses`,
@@ -303,18 +301,21 @@ const CustomersTable = memo(
       customColumns,
       tags,
       t,
-      translateStatus,
       showCustomerReadableId
     ]);
 
     const renderContextMenu = useMemo(
       () => (row: Customer) => (
         <>
-          <MenuItem onClick={() => navigate(path.to.customer(row.id!))}>
+          <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.edit}
+            onClick={() => navigate(path.to.customer(row.id!))}
+          >
             <MenuIcon icon={<LuPencil />} />
             <Trans>Edit</Trans>
           </MenuItem>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.delete}
             destructive
             disabled={!permissions.can("delete", "sales")}
             onClick={() => {

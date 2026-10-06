@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { VariantProps } from "class-variance-authority";
 import { cva } from "class-variance-authority";
 import type { HTMLAttributes, InputHTMLAttributes } from "react";
@@ -192,7 +196,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
       isFirstChild = true,
       isLastChild = true,
       isInvalid = false,
-      isDisabled = false,
+      isDisabled,
       isReadOnly = false,
       borderless = false,
       type = "text",
@@ -201,6 +205,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     const isInputGroup = useContext(InputGroupContext) ?? false;
+    const disabled = isDisabled ?? props.disabled ?? false;
 
     return (
       <ReactAria.Input
@@ -212,13 +217,14 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             isLastChild,
             isInvalid,
             isReadOnly,
-            isDisabled,
+            isDisabled: disabled,
             borderless
           }),
           className
         )}
         {...props}
-        disabled={isDisabled}
+        // Explicit disabled must survive the spread; it was being overwritten.
+        disabled={disabled}
         readOnly={isReadOnly}
         ref={ref}
         type={type}

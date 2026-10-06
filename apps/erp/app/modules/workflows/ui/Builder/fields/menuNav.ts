@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { VariableMenuItem, VariableTreeNode } from "./variableMenu";
 
 // The keyboard behaviour of the variable menu, with no React and no DOM, so the two
@@ -32,6 +36,24 @@ export function rowsAt(
     rows = next;
   }
   return rows;
+}
+
+/** Every selectable item at or below `path`, in tree order. Search runs on this, so
+ * drilling into a record searches that record instead of every step in the workflow —
+ * the same field name usually exists under several of them. */
+export function itemsUnder(
+  tree: VariableTreeNode[],
+  path: string[]
+): VariableMenuItem[] {
+  const items: VariableMenuItem[] = [];
+  const walk = (nodes: VariableTreeNode[]) => {
+    for (const node of nodes) {
+      if (node.item) items.push(node.item);
+      if (node.children?.length) walk(node.children);
+    }
+  };
+  walk(rowsAt(tree, path));
+  return items;
 }
 
 type NavOptions = {

@@ -1,16 +1,25 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database, Json } from "@carbon/database";
 import { fetchAllFromTable, getCompanyTimeZone } from "@carbon/database";
 import type { Kysely, KyselyDatabase, KyselyTx } from "@carbon/database/client";
+import { storage } from "@carbon/files";
 import { trackWorkEvent } from "@carbon/lib/telemetry";
 import { raiseMoment } from "@carbon/lib/workflows";
 import { getLogger } from "@carbon/logger";
+import { serverFns } from "@carbon/server-functions";
 import type { PickPartial } from "@carbon/utils";
 import {
   computeInsideOperationCostEffects,
   datetime,
+  EPSILON,
+  getSalesReturnOrderStatus,
   round
 } from "@carbon/utils";
 import { getLocalTimeZone, today } from "@internationalized/date";
+import type { FileObject } from "@supabase/storage-js";
 import type {
   PostgrestError,
   PostgrestSingleResponse,
@@ -19,12 +28,13 @@ import type {
 import { FunctionRegion } from "@supabase/supabase-js";
 import { sql } from "kysely";
 import type { z } from "zod";
+import { createDocumentUploadUrl } from "~/modules/documents/documents.service";
 import { getSupplierPriceBreaksForItems } from "~/modules/items/items.service";
 import { getEmployeeJob } from "~/modules/people";
 import type { GenericQueryFilters } from "~/utils/query";
 import { LIST_COUNT, setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
-import { getCurrencyByCode } from "../accounting";
+import { getCurrencyByCode, getExchangeRate } from "../accounting";
 import type {
   operationParameterValidator,
   operationStepValidator,
@@ -32,11 +42,15 @@ import type {
 } from "../shared";
 import { normalizeOperationSourceIds } from "../shared";
 import {
+  getModelByItemId,
   lookupBuyPriceFromMap,
+  resolveBuyUnitCost,
   upsertExternalLink
 } from "../shared/shared.service";
+import { updateSortOrder } from "../shared/sort-order";
 import type {
   customerAccountingValidator,
+  customerBankAccountValidator,
   customerContactValidator,
   customerPaymentValidator,
   customerShippingValidator,
@@ -56,20 +70,38 @@ import type {
   quoteShipmentValidator,
   quoteStatusType,
   quoteValidator,
+  returnReasonValidator,
   salesOrderLineValidator,
   salesOrderPaymentValidator,
   salesOrderShipmentValidator,
   salesOrderStatusType,
   salesOrderValidator,
+  salesReturnOrderLineValidator,
+  salesReturnOrderStatusType,
+  salesReturnOrderValidator,
   salesRFQStatusType,
   salesRfqLineValidator,
   salesRfqValidator,
   selectedLinesValidator
 } from "./sales.models";
-import { costCategoryKeys, OPEN_SALES_ORDER_STATUSES } from "./sales.models";
-import { decideRecalcPricing, getEffectiveDefaultMarkups } from "./sales.utils";
+import {
+  costCategoryKeys,
+  isQuoteLocked,
+  OPEN_SALES_ORDER_STATUSES
+} from "./sales.models";
+import type { CategoryMarkups, QuoteLinePriceSource } from "./sales.utils";
+import {
+  applyPriceRules,
+  asConfiguration,
+  configuredQuoteBasePrice,
+  decideRecalcPricing,
+  getEffectiveDefaultMarkups,
+  QUOTE_BASE_PRICE_SOURCES,
+  resolvePreservedQuoteLinePriceFields,
+  toMatchedRule,
+  withBasePriceSource
+} from "./sales.utils";
 import type {
-  MatchedRule,
   OverrideEntry,
   PriceListResult,
   PriceListRow,
@@ -79,6 +111,7 @@ import type {
   PriceSource,
   PriceTraceStep,
   Quotation,
+  QuoteLinePriceTrace,
   SalesOrder,
   SalesRFQ
 } from "./types";
@@ -90,78 +123,6 @@ const SALES_ORDERS_LIST_COLUMNS =
   "id,salesOrderId,status,orderDate,customerId,customerReference,assignee,companyId,customFields,createdAt,createdBy,updatedAt,updatedBy,locationId,displayStatus,thumbnailPath,itemType,orderTotal,jobs,lines,paymentTermId,shippingMethodId,receiptPromisedDate,dropShipment" as const;
 
 const logger = getLogger("erp", "sales");
-
-export function applyPriceRules(
-  startingPrice: number,
-  matchedRules: MatchedRule[]
-): { finalPrice: number; appendedTrace: PriceTraceStep[] } {
-  const appendedTrace: PriceTraceStep[] = [];
-  let finalPrice = startingPrice;
-
-  const markupRules = matchedRules.filter((r) => r.ruleType === "Markup");
-  const discountRules = matchedRules.filter((r) => r.ruleType === "Discount");
-
-  // Discounts: highest priority wins (non-stacking); ties broken by best
-  // effective amount against the current running price.
-  if (discountRules.length > 0) {
-    const ranked = discountRules
-      .map((rule) => ({
-        rule,
-        effective:
-          rule.amountType === "Percentage"
-            ? finalPrice * rule.amount
-            : rule.amount
-      }))
-      .sort((a, b) => {
-        if (b.rule.priority !== a.rule.priority) {
-          return b.rule.priority - a.rule.priority;
-        }
-        return b.effective - a.effective;
-      });
-
-    const winner = ranked[0];
-    if (winner && winner.effective > 0) {
-      finalPrice = finalPrice - winner.effective;
-      appendedTrace.push({
-        step: "Discount",
-        source: `Rule: ${winner.rule.name}`,
-        amount: finalPrice,
-        adjustment: -winner.effective,
-        ruleId: winner.rule.id
-      });
-    }
-  }
-
-  // Markups: stack in priority order (highest first), compounding on the
-  // running price so ordering + basis are both deterministic.
-  const sortedMarkups = [...markupRules].sort(
-    (a, b) => b.priority - a.priority
-  );
-  for (const rule of sortedMarkups) {
-    const adjustment =
-      rule.amountType === "Percentage" ? finalPrice * rule.amount : rule.amount;
-    finalPrice = finalPrice + adjustment;
-    appendedTrace.push({
-      step: "Markup",
-      source: `Rule: ${rule.name}`,
-      amount: finalPrice,
-      adjustment,
-      ruleId: rule.id
-    });
-  }
-
-  if (finalPrice < 0) {
-    appendedTrace.push({
-      step: "Floor",
-      source: "Clamped to 0 (rules drove price negative)",
-      amount: 0,
-      adjustment: -finalPrice
-    });
-    finalPrice = 0;
-  }
-
-  return { finalPrice, appendedTrace };
-}
 
 export async function closeSalesOrder(
   client: SupabaseClient<Database>,
@@ -180,33 +141,37 @@ export async function closeSalesOrder(
   return client
     .from("salesOrder")
     .update({
-      closed: true,
+      status: "Closed",
       closedAt: datetime.today(companyTz).toString(),
-      closedBy: userId
+      closedBy: userId,
+      updatedBy: userId
     })
     .eq("id", salesOrderId)
     .select("id")
     .single();
 }
 
+/** @mcp update */
 export async function convertSalesRfqToQuote(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   payload: {
     id: string;
     companyId: string;
     userId: string;
   }
 ) {
-  return client.functions.invoke<{ convertedId: string }>("convert", {
-    body: {
-      type: "salesRfqToQuote",
-      ...payload
-    }
+  const { companyId, userId, id } = payload;
+  return serverFns.as({ client, db, companyId, userId }).invoke("convert", {
+    type: "salesRfqToQuote",
+    id
   });
 }
 
+/** @mcp update */
 export async function convertQuoteToOrder(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   payload: {
     id: string;
     selectedLines: z.infer<typeof selectedLinesValidator>;
@@ -217,15 +182,13 @@ export async function convertQuoteToOrder(
     digitalQuoteAcceptedByEmail?: string;
   }
 ) {
-  const result = await client.functions.invoke<{ convertedId: string }>(
-    "convert",
-    {
-      body: {
-        type: "quoteToSalesOrder",
-        ...payload
-      }
-    }
-  );
+  const { companyId, userId, ...input } = payload;
+  const result = await serverFns
+    .as({ client, db, companyId, userId })
+    .invoke("convert", {
+      type: "quoteToSalesOrder",
+      ...input
+    });
 
   if (!result.error && result.data?.convertedId) {
     await raiseMoment("sales.quoteAccepted", {
@@ -254,15 +217,18 @@ export async function convertQuoteToOrder(
   return result;
 }
 
+/** @mcp create */
 export async function copyQuoteLine(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   payload: z.infer<typeof getMethodValidator> & {
     companyId: string;
     userId: string;
   }
 ) {
-  return client.functions.invoke<{ copiedId: string }>("get-method", {
-    body: {
+  return serverFns
+    .as({ client, db, companyId: payload.companyId, userId: payload.userId })
+    .invoke("get-method", {
       ...payload,
       type: "quoteLineToQuoteLine",
       parts: {
@@ -273,49 +239,57 @@ export async function copyQuoteLine(
         steps: payload.steps,
         workInstructions: payload.workInstructions
       }
-    }
-  });
+    });
 }
 
+/** @mcp create */
 export async function copyQuote(
   client: SupabaseClient<Database>,
-  payload: Omit<z.infer<typeof getMethodValidator>, "type"> & {
+  db: Kysely<KyselyDatabase>,
+  payload: {
+    /** The quote to copy. */
+    sourceId: string;
+    /** The same quote id for a new revision, "" for a new quote. */
+    targetId: string;
     companyId: string;
     userId: string;
   }
 ) {
-  return client.functions.invoke<{ newQuoteId: string }>("get-method", {
-    body: {
+  return serverFns
+    .as({ client, db, companyId: payload.companyId, userId: payload.userId })
+    .invoke("get-method", {
       ...payload,
       type: "quoteToQuote"
-    }
-  });
+    });
 }
 
+/** @mcp create */
 export async function createPricingRule(
   client: SupabaseClient<Database>,
   companyId: string,
   userId: string,
   data: z.infer<typeof pricingRuleValidator>
 ) {
+  const rule = normalizePricingRule(data);
   return client
     .from("pricingRule")
     .insert([
       {
-        name: data.name,
-        ruleType: data.ruleType,
-        amountType: data.amountType,
-        amount: data.amount,
-        minQuantity: data.minQuantity ?? null,
-        maxQuantity: data.maxQuantity ?? null,
-        customerIds: data.customerIds ?? [],
-        customerTypeIds: data.customerTypeIds ?? [],
-        itemIds: data.itemIds ?? [],
-        itemPostingGroupId: data.itemPostingGroupId ?? null,
-        validFrom: data.validFrom || null,
-        validTo: data.validTo || null,
-        priority: data.priority ?? 0,
-        active: data.active ?? true,
+        name: rule.name,
+        ruleType: rule.ruleType,
+        amountType: rule.amountType,
+        amount: rule.amount,
+        minQuantity: rule.minQuantity ?? null,
+        maxQuantity: rule.maxQuantity ?? null,
+        customerIds: rule.customerIds ?? [],
+        customerTypeIds: rule.customerTypeIds ?? [],
+        itemIds: rule.itemIds ?? [],
+        itemPostingGroupId: rule.itemPostingGroupId ?? null,
+        validFrom: rule.validFrom || null,
+        validTo: rule.validTo || null,
+        priority: rule.priority ?? 0,
+        active: rule.active ?? true,
+        configurationPrices: rule.configurationPrices ?? null,
         companyId,
         createdBy: userId
       }
@@ -324,6 +298,42 @@ export async function createPricingRule(
     .single();
 }
 
+// A Configuration rule is one configurable item's parameter prices and
+// nothing else: its item comes from `itemId`, and it has no item group and
+// no discount/markup amount. Any other rule type carries no configuration
+// prices. A partial update that leaves `ruleType` alone is passed through.
+function normalizePricingRule<
+  T extends Partial<z.infer<typeof pricingRuleValidator>>
+>(
+  data: T
+): Omit<T, "itemId" | "configurationPrices"> & {
+  configurationPrices?: Json | null;
+} {
+  const { itemId, configurationPrices, ...rule } = data;
+  if (rule.ruleType === undefined) {
+    return configurationPrices === undefined
+      ? rule
+      : { ...rule, configurationPrices: configurationPrices as Json };
+  }
+  if (rule.ruleType !== "Configuration") {
+    return { ...rule, configurationPrices: null };
+  }
+  const itemIds = itemId ? [itemId] : (rule.itemIds ?? []);
+  const prices = (configurationPrices ?? []).filter(
+    (price) => price.amount !== 0
+  );
+  return {
+    ...rule,
+    itemIds,
+    itemPostingGroupId: undefined,
+    amountType: "Fixed" as const,
+    amount: 0,
+    configurationPrices:
+      itemIds.length === 1 && prices.length > 0 ? (prices as Json) : null
+  };
+}
+
+/** @mcp delete */
 export async function deleteCustomer(
   client: SupabaseClient<Database>,
   customerId: string
@@ -331,6 +341,68 @@ export async function deleteCustomer(
   return client.from("customer").delete().eq("id", customerId);
 }
 
+/** @mcp delete */
+export async function deleteCustomerBankAccount(
+  client: SupabaseClient<Database>,
+  id: string
+) {
+  return client.from("customerBankAccount").delete().eq("id", id);
+}
+
+/** @mcp read */
+export async function getCustomerBankAccounts(
+  client: SupabaseClient<Database>,
+  customerId: string
+) {
+  return client
+    .from("customerBankAccount")
+    .select("*")
+    .eq("customerId", customerId)
+    .order("name");
+}
+
+/** @mcp upsert */
+export async function upsertCustomerBankAccount(
+  db: Kysely<KyselyDatabase>,
+  bankAccount:
+    | (Omit<z.infer<typeof customerBankAccountValidator>, "id"> & {
+        companyId: string;
+        createdBy: string;
+        customFields?: Json;
+      })
+    | (Omit<z.infer<typeof customerBankAccountValidator>, "id"> & {
+        id: string;
+        companyId: string;
+        updatedBy: string;
+        customFields?: Json;
+      })
+) {
+  const { customerId, companyId } = bankAccount;
+
+  if ("createdBy" in bankAccount) {
+    return await db
+      .insertInto("customerBankAccount")
+      .values(bankAccount)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+  }
+
+  const { id, ...update } = bankAccount;
+
+  // customerId and companyId are scoping columns, not editable fields. They are
+  // also re-asserted in the WHERE clause so a forged form value cannot move
+  // this row to another customer.
+  return await db
+    .updateTable("customerBankAccount")
+    .set({ ...update, updatedAt: datetime.timestamp() })
+    .where("id", "=", id)
+    .where("customerId", "=", customerId)
+    .where("companyId", "=", companyId)
+    .returning("id")
+    .executeTakeFirstOrThrow();
+}
+
+/** @mcp delete */
 export async function deleteCustomerContact(
   client: SupabaseClient<Database>,
   customerId: string,
@@ -356,6 +428,7 @@ export async function deleteCustomerContact(
   return customerContact;
 }
 
+/** @mcp delete */
 export async function deleteCustomerLocation(
   client: SupabaseClient<Database>,
   customerId: string,
@@ -380,6 +453,7 @@ export async function deleteCustomerLocation(
   }
 }
 
+/** @mcp delete */
 export async function deleteCustomerStatus(
   client: SupabaseClient<Database>,
   customerStatusId: string
@@ -387,6 +461,7 @@ export async function deleteCustomerStatus(
   return client.from("customerStatus").delete().eq("id", customerStatusId);
 }
 
+/** @mcp delete */
 export async function deleteCustomerType(
   client: SupabaseClient<Database>,
   customerTypeId: string
@@ -394,6 +469,7 @@ export async function deleteCustomerType(
   return client.from("customerType").delete().eq("id", customerTypeId);
 }
 
+/** @mcp delete */
 export async function deleteNoQuoteReason(
   client: SupabaseClient<Database>,
   noQuoteReasonId: string
@@ -401,6 +477,7 @@ export async function deleteNoQuoteReason(
   return client.from("noQuoteReason").delete().eq("id", noQuoteReasonId);
 }
 
+/** @mcp delete */
 export async function deletePricingRule(
   client: SupabaseClient<Database>,
   pricingRuleId: string
@@ -408,6 +485,7 @@ export async function deletePricingRule(
   return client.from("pricingRule").delete().eq("id", pricingRuleId);
 }
 
+/** @mcp delete */
 export async function deleteQuote(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -422,6 +500,7 @@ export async function deleteQuoteMakeMethod(
   return client.from("quoteMakeMethod").delete().eq("id", quoteMakeMethodId);
 }
 
+/** @mcp delete */
 export async function deleteQuoteLine(
   client: SupabaseClient<Database>,
   quoteLineId: string
@@ -429,6 +508,7 @@ export async function deleteQuoteLine(
   return client.from("quoteLine").delete().eq("id", quoteLineId);
 }
 
+/** @mcp delete */
 export async function deleteQuoteMaterial(
   client: SupabaseClient<Database>,
   quoteMaterialId: string
@@ -443,6 +523,7 @@ export async function deleteQuoteOperation(
   return client.from("quoteOperation").delete().eq("id", quoteOperationId);
 }
 
+/** @mcp delete */
 export async function deleteQuoteOperationStep(
   client: SupabaseClient<Database>,
   id: string
@@ -450,6 +531,7 @@ export async function deleteQuoteOperationStep(
   return client.from("quoteOperationStep").delete().eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteQuoteOperationParameter(
   client: SupabaseClient<Database>,
   id: string
@@ -457,6 +539,7 @@ export async function deleteQuoteOperationParameter(
   return client.from("quoteOperationParameter").delete().eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteQuoteOperationTool(
   client: SupabaseClient<Database>,
   id: string
@@ -464,6 +547,7 @@ export async function deleteQuoteOperationTool(
   return client.from("quoteOperationTool").delete().eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteSalesOrder(
   client: SupabaseClient<Database>,
   salesOrderId: string
@@ -471,6 +555,7 @@ export async function deleteSalesOrder(
   return client.from("salesOrder").delete().eq("id", salesOrderId);
 }
 
+/** @mcp delete */
 export async function deleteSalesOrderLine(
   client: SupabaseClient<Database>,
   salesOrderLineId: string
@@ -478,6 +563,7 @@ export async function deleteSalesOrderLine(
   return client.from("salesOrderLine").delete().eq("id", salesOrderLineId);
 }
 
+/** @mcp delete */
 export async function deleteSalesRFQ(
   client: SupabaseClient<Database>,
   salesRfqId: string
@@ -485,6 +571,7 @@ export async function deleteSalesRFQ(
   return client.from("salesRfq").delete().eq("id", salesRfqId);
 }
 
+/** @mcp delete */
 export async function deleteSalesRFQLine(
   client: SupabaseClient<Database>,
   salesRFQLineId: string
@@ -492,6 +579,7 @@ export async function deleteSalesRFQLine(
   return client.from("salesRfqLine").delete().eq("id", salesRFQLineId);
 }
 
+/** @mcp create */
 export async function duplicatePricingRule(
   client: SupabaseClient<Database>,
   id: string,
@@ -521,6 +609,7 @@ export async function duplicatePricingRule(
         validFrom: original.validFrom,
         validTo: original.validTo,
         priority: original.priority,
+        configurationPrices: original.configurationPrices,
         active: false,
         companyId,
         createdBy: userId
@@ -530,6 +619,7 @@ export async function duplicatePricingRule(
     .single();
 }
 
+/** @mcp read */
 export async function getConfigurationParametersByQuoteLineId(
   client: SupabaseClient<Database>,
   quoteLineId: string,
@@ -545,16 +635,21 @@ export async function getConfigurationParametersByQuoteLineId(
     return { groups: [], parameters: [] };
   }
 
+  const quoteLineItemId = quoteLine.data.itemId;
+  if (!quoteLineItemId) {
+    return { groups: [], parameters: [] };
+  }
+
   const [parameters, groups] = await Promise.all([
     client
       .from("configurationParameter")
       .select("*")
-      .eq("itemId", quoteLine.data.itemId)
+      .eq("itemId", quoteLineItemId)
       .eq("companyId", companyId),
     client
       .from("configurationParameterGroup")
       .select("*")
-      .eq("itemId", quoteLine.data.itemId)
+      .eq("itemId", quoteLineItemId)
       .eq("companyId", companyId)
   ]);
 
@@ -575,38 +670,50 @@ export async function getConfigurationParametersByQuoteLineId(
   return { groups: groups.data ?? [], parameters: parameters.data ?? [] };
 }
 
+/** @mcp read */
 export async function getCustomer(
   client: SupabaseClient<Database>,
-  customerId: string
+  customerId: string,
+  companyId?: string
 ) {
-  return client.from("customers").select("*").eq("id", customerId).single();
+  let query = client.from("customers").select("*").eq("id", customerId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query.single();
 }
 
+/** @mcp read */
 export async function getCustomerContact(
   client: SupabaseClient<Database>,
-  customerContactId: string
+  customerContactId: string,
+  companyId?: string
 ) {
-  return client
+  let query = client
     .from("customerContact")
     .select(
       "*, contact(id, firstName, lastName, email, mobilePhone, homePhone, workPhone, fax, title, notes)"
     )
-    .eq("id", customerContactId)
-    .single();
+    .eq("id", customerContactId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query.single();
 }
 
+/** @mcp read */
 export async function getCustomerContacts(
   client: SupabaseClient<Database>,
-  customerId: string
+  customerId: string,
+  companyId?: string
 ) {
-  return client
+  let query = client
     .from("customerContact")
     .select(
       "*, contact(id, fullName, firstName, lastName, email, mobilePhone, homePhone, workPhone, fax, title, notes), user(id, active)"
     )
     .eq("customerId", customerId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query;
 }
 
+/** @mcp read */
 export async function getCustomerItemPriceOverride(
   client: SupabaseClient<Database>,
   customerId: string,
@@ -630,53 +737,67 @@ export async function getCustomerItemPriceOverride(
   return { data: applyBreakToParent(data, quantity, date), error: null };
 }
 
+/** @mcp read */
 export async function getCustomerLocation(
   client: SupabaseClient<Database>,
-  customerLocationId: string
+  customerLocationId: string,
+  companyId?: string
 ) {
-  return client
+  let query = client
     .from("customerLocation")
     .select(
       "*, address(id, addressLine1, addressLine2, city, stateProvince, countryCode, country(alpha2, name), postalCode)"
     )
-    .eq("id", customerLocationId)
-    .single();
+    .eq("id", customerLocationId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query.single();
 }
 
+/** @mcp read */
 export async function getCustomerLocations(
   client: SupabaseClient<Database>,
-  customerId: string
+  customerId: string,
+  companyId?: string
 ) {
-  return client
+  let query = client
     .from("customerLocation")
     .select(
       "*, address(id, addressLine1, addressLine2, city, stateProvince, country(alpha2, name), postalCode)"
     )
     .eq("customerId", customerId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query;
 }
 
+/** @mcp read */
 export async function getCustomerPayment(
   client: SupabaseClient<Database>,
-  customerId: string
+  customerId: string,
+  companyId?: string
 ) {
-  return client
+  let query = client
     .from("customerPayment")
     .select("*")
-    .eq("customerId", customerId)
-    .single();
+    .eq("customerId", customerId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query.single();
 }
 
+/** @mcp read */
 export async function getCustomerShipping(
   client: SupabaseClient<Database>,
-  customerId: string
+  customerId: string,
+  companyId?: string
 ) {
-  return client
+  let query = client
     .from("customerShipping")
     .select("*")
-    .eq("customerId", customerId)
-    .single();
+    .eq("customerId", customerId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query.single();
 }
 
+/** @mcp read */
 export async function getCustomerPartsForCustomer(
   client: SupabaseClient<Database>,
   customerId: string,
@@ -691,17 +812,21 @@ export async function getCustomerPartsForCustomer(
     .order("customerPartRevision");
 }
 
+/** @mcp read */
 export async function getCustomerTax(
   client: SupabaseClient<Database>,
-  customerId: string
+  customerId: string,
+  companyId?: string
 ) {
-  return client
+  let query = client
     .from("customerTax")
     .select("*")
-    .eq("customerId", customerId)
-    .single();
+    .eq("customerId", customerId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query.single();
 }
 
+/** @mcp read */
 export async function getCustomerTypeItemPriceOverride(
   client: SupabaseClient<Database>,
   customerTypeId: string,
@@ -725,6 +850,7 @@ export async function getCustomerTypeItemPriceOverride(
   return { data: applyBreakToParent(data, quantity, date), error: null };
 }
 
+/** @mcp read */
 export async function getAllCustomersItemPriceOverride(
   client: SupabaseClient<Database>,
   itemId: string,
@@ -813,6 +939,7 @@ function pickBestBreak(
   return best;
 }
 
+/** @mcp read */
 export async function getCustomers(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -823,7 +950,7 @@ export async function getCustomers(
   let query = client
     .from("customers")
     .select("*", {
-      count: "exact"
+      count: LIST_COUNT
     })
     .eq("companyId", companyId);
 
@@ -837,6 +964,7 @@ export async function getCustomers(
   return query;
 }
 
+/** @mcp read */
 export async function getCustomersList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -849,6 +977,7 @@ export async function getCustomersList(
   );
 }
 
+/** @mcp read */
 export async function getCustomerDocumentDefaults(
   client: SupabaseClient<Database>,
   customerId: string
@@ -880,6 +1009,7 @@ export async function getCustomerDocumentDefaults(
   };
 }
 
+/** @mcp read */
 export async function getCustomerStatus(
   client: SupabaseClient<Database>,
   customerStatusId: string
@@ -891,6 +1021,7 @@ export async function getCustomerStatus(
     .single();
 }
 
+/** @mcp read */
 export async function getCustomerStatuses(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -898,7 +1029,7 @@ export async function getCustomerStatuses(
 ) {
   let query = client
     .from("customerStatus")
-    .select("id, name, customFields", { count: "exact" })
+    .select("id, name, customFields", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -914,6 +1045,7 @@ export async function getCustomerStatuses(
   return query;
 }
 
+/** @mcp read */
 export async function getCustomerStatusesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -925,6 +1057,7 @@ export async function getCustomerStatusesList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getCustomerType(
   client: SupabaseClient<Database>,
   customerTypeId: string
@@ -936,6 +1069,7 @@ export async function getCustomerType(
     .single();
 }
 
+/** @mcp read */
 export async function getCustomerTypes(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -943,7 +1077,7 @@ export async function getCustomerTypes(
 ) {
   let query = client
     .from("customerType")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -959,6 +1093,7 @@ export async function getCustomerTypes(
   return query;
 }
 
+/** @mcp read */
 export async function getCustomerTypesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -970,6 +1105,7 @@ export async function getCustomerTypesList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getExternalSalesOrderLines(
   client: SupabaseClient<Database>,
   customerId: string,
@@ -979,7 +1115,7 @@ export async function getExternalSalesOrderLines(
     "get_sales_order_lines_by_customer_id",
     { customer_id: customerId },
     {
-      count: "exact"
+      count: LIST_COUNT
     }
   );
 
@@ -998,6 +1134,7 @@ export async function getExternalSalesOrderLines(
   return query;
 }
 
+/** @mcp read */
 export async function getModelByQuoteLineId(
   client: SupabaseClient<Database>,
   quoteLineId: string
@@ -1008,43 +1145,12 @@ export async function getModelByQuoteLineId(
     .eq("id", quoteLineId)
     .single();
 
-  if (!quoteLine.data) return null;
+  if (!quoteLine.data?.itemId) return null;
 
-  const item = await client
-    .from("item")
-    .select("id, type, modelUploadId")
-    .eq("id", quoteLine.data.itemId)
-    .single();
-
-  if (!item.data || !item.data.modelUploadId) {
-    return {
-      itemId: item.data?.id ?? null,
-      type: item.data?.type ?? null,
-      modelPath: null
-    };
-  }
-
-  const model = await client
-    .from("modelUpload")
-    .select("*")
-    .eq("id", item.data.modelUploadId)
-    .maybeSingle();
-
-  if (!model.data) {
-    return {
-      itemId: item.data?.id ?? null,
-      type: item.data?.type ?? null,
-      modelSize: null
-    };
-  }
-
-  return {
-    itemId: item.data!.id,
-    type: item.data!.type,
-    ...model.data
-  };
+  return getModelByItemId(client, quoteLine.data.itemId);
 }
 
+/** @mcp read */
 export async function getNoQuoteReasonsList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1056,6 +1162,7 @@ export async function getNoQuoteReasonsList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getNoQuoteReason(
   client: SupabaseClient<Database>,
   noQuoteReasonId: string
@@ -1067,6 +1174,7 @@ export async function getNoQuoteReason(
     .single();
 }
 
+/** @mcp read */
 export async function getNoQuoteReasons(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1074,7 +1182,7 @@ export async function getNoQuoteReasons(
 ) {
   let query = client
     .from("noQuoteReason")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -1090,6 +1198,7 @@ export async function getNoQuoteReasons(
   return query;
 }
 
+/** @mcp read */
 export async function getOpportunity(
   client: SupabaseClient<Database>,
   opportunityId: string | null
@@ -1130,13 +1239,14 @@ export async function getOpportunity(
   }>;
 }
 
+/** @mcp read */
 export async function getOpportunityDocuments(
   client: SupabaseClient<Database>,
   companyId: string,
   opportunityId: string
 ) {
-  const result = await client.storage
-    .from("private")
+  const result = await storage(client)
+    .company(companyId)
     .list(`${companyId}/opportunity/${opportunityId}`);
 
   if (result.error) {
@@ -1146,9 +1256,13 @@ export async function getOpportunityDocuments(
     return [];
   }
 
-  return result.data?.map((f) => ({ ...f, bucket: "opportunity" })) ?? [];
+  return result.data.map((f) => ({
+    ...f,
+    bucket: "opportunity"
+  }));
 }
 
+/** @mcp read */
 export async function getOpportunityLineDocuments(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1156,12 +1270,12 @@ export async function getOpportunityLineDocuments(
   itemId?: string | null
 ) {
   const [opportunityLineResult, itemResult] = await Promise.all([
-    client.storage
-      .from("private")
+    storage(client)
+      .company(companyId)
       .list(`${companyId}/opportunity-line/${lineId}`),
     itemId
-      ? client.storage.from("private").list(`${companyId}/parts/${itemId}`)
-      : Promise.resolve({ data: [] as any[], error: null })
+      ? storage(client).company(companyId).list(`${companyId}/parts/${itemId}`)
+      : Promise.resolve({ data: [] as FileObject[], error: null })
   ]);
 
   if (opportunityLineResult.error) {
@@ -1170,20 +1284,24 @@ export async function getOpportunityLineDocuments(
     });
   }
   if (itemResult.error) {
-    logger.error("Failed to list item documents", { error: itemResult.error });
+    logger.error("Failed to list item documents", {
+      error: itemResult.error
+    });
   }
 
-  const opportunityLineDocs =
-    opportunityLineResult.data?.map((f) => ({
-      ...f,
-      bucket: "opportunity-line"
-    })) ?? [];
-  const itemDocs =
-    itemResult.data?.map((f) => ({ ...f, bucket: "parts" })) ?? [];
+  const opportunityLineDocs = (opportunityLineResult.data ?? []).map((f) => ({
+    ...f,
+    bucket: "opportunity-line"
+  }));
+  const itemDocs = (itemResult.data ?? []).map((f) => ({
+    ...f,
+    bucket: "parts"
+  }));
 
   return [...opportunityLineDocs, ...itemDocs];
 }
 
+/** @mcp read */
 export async function getPricingRule(
   client: SupabaseClient<Database>,
   id: string
@@ -1191,6 +1309,7 @@ export async function getPricingRule(
   return client.from("pricingRule").select("*").eq("id", id).single();
 }
 
+/** @mcp read */
 export async function getPricingRules(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1198,7 +1317,7 @@ export async function getPricingRules(
 ) {
   let query = client
     .from("pricingRule")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -1220,6 +1339,7 @@ export const priceSourceTypes = [
   "Rule"
 ] as const;
 
+/** @mcp read */
 export async function getQuote(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1227,18 +1347,7 @@ export async function getQuote(
   return client.from("quotes").select("*").eq("id", quoteId).single();
 }
 
-export async function getQuoteFavorites(
-  client: SupabaseClient<Database>,
-  companyId: string,
-  userId: string
-) {
-  return client
-    .from("quoteFavorite")
-    .select("*")
-    .eq("companyId", companyId)
-    .eq("userId", userId);
-}
-
+/** @mcp read */
 export async function getQuotes(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1263,6 +1372,7 @@ export async function getQuotes(
   return query;
 }
 
+/** @mcp read */
 export async function getQuotesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1276,6 +1386,7 @@ export async function getQuotesList(
   );
 }
 
+/** @mcp read */
 export async function getQuoteAssembliesByLine(
   client: SupabaseClient<Database>,
   quoteLineId: string
@@ -1286,6 +1397,7 @@ export async function getQuoteAssembliesByLine(
     .eq("quoteLineId", quoteLineId);
 }
 
+/** @mcp read */
 export async function getQuoteAssemblies(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1293,6 +1405,7 @@ export async function getQuoteAssemblies(
   return client.from("quoteMakeMethod").select("*").eq("quoteId", quoteId);
 }
 
+/** @mcp read */
 export async function getQuoteCustomerDetails(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1304,6 +1417,7 @@ export async function getQuoteCustomerDetails(
     .single();
 }
 
+/** @mcp read */
 export async function getQuoteLine(
   client: SupabaseClient<Database>,
   quoteLineId: string
@@ -1311,6 +1425,7 @@ export async function getQuoteLine(
   return client.from("quoteLines").select("*").eq("id", quoteLineId).single();
 }
 
+/** @mcp read */
 export async function getQuoteLinesList(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1330,6 +1445,7 @@ type QuoteMethodTreeItem = {
   children: QuoteMethodTreeItem[];
 };
 
+/** @mcp read */
 export async function getQuoteMakeMethod(
   client: SupabaseClient<Database>,
   quoteMakeMethodId: string
@@ -1341,6 +1457,7 @@ export async function getQuoteMakeMethod(
     .single();
 }
 
+/** @mcp read */
 export async function getRootQuoteMakeMethod(
   client: SupabaseClient<Database>,
   quoteLineId: string
@@ -1353,6 +1470,7 @@ export async function getRootQuoteMakeMethod(
     .single();
 }
 
+/** @mcp read */
 export async function getQuoteMethodTrees(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1368,6 +1486,7 @@ export async function getQuoteMethodTrees(
   };
 }
 
+/** @mcp read */
 export async function getQuoteMethodTreeArray(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1395,7 +1514,7 @@ function getQuoteMethodTreeArrayToTree(
     const parentId = item.parentMaterialId;
 
     if (!Object.prototype.hasOwnProperty.call(lookup, itemId)) {
-      // @ts-ignore
+      // @ts-expect-error
       lookup[itemId] = { id: itemId, children: [] };
     }
 
@@ -1408,7 +1527,7 @@ function getQuoteMethodTreeArrayToTree(
       rootItems.push(treeItem);
     } else {
       if (!Object.prototype.hasOwnProperty.call(lookup, parentId)) {
-        // @ts-ignore
+        // @ts-expect-error
         lookup[parentId] = { id: parentId, children: [] };
       }
 
@@ -1420,6 +1539,7 @@ function getQuoteMethodTreeArrayToTree(
   // return rootItems.map((item) => traverseAndRenameIds(item));
 }
 
+/** @mcp read */
 export async function getQuoteLines(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1432,6 +1552,7 @@ export async function getQuoteLines(
     .order("itemReadableId", { ascending: true });
 }
 
+/** @mcp read */
 export async function getQuoteByExternalId(
   client: SupabaseClient<Database>,
   externalId: string
@@ -1443,6 +1564,7 @@ export async function getQuoteByExternalId(
     .single();
 }
 
+/** @mcp read */
 export async function getQuoteLinePrices(
   client: SupabaseClient<Database>,
   quoteLineId: string
@@ -1453,6 +1575,7 @@ export async function getQuoteLinePrices(
     .eq("quoteLineId", quoteLineId);
 }
 
+/** @mcp read */
 export async function getQuoteLinePricesByQuoteId(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1464,6 +1587,7 @@ export async function getQuoteLinePricesByQuoteId(
     .order("quoteLineId", { ascending: true });
 }
 
+/** @mcp read */
 export async function getQuoteLinePricesByItemId(
   client: SupabaseClient<Database>,
   itemId: string,
@@ -1478,6 +1602,7 @@ export async function getQuoteLinePricesByItemId(
     .order("qty", { ascending: true });
 }
 
+/** @mcp read */
 export async function getQuoteLinePricesByItemIds(
   client: SupabaseClient<Database>,
   itemIds: string[],
@@ -1493,6 +1618,7 @@ export async function getQuoteLinePricesByItemIds(
     .limit(10);
 }
 
+/** @mcp read */
 export async function getQuoteMaterials(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1500,6 +1626,7 @@ export async function getQuoteMaterials(
   return client.from("quoteMaterial").select("*").eq("quoteId", quoteId);
 }
 
+/** @mcp read */
 export async function getQuoteMaterial(
   client: SupabaseClient<Database>,
   materialId: string
@@ -1511,6 +1638,7 @@ export async function getQuoteMaterial(
     .single();
 }
 
+/** @mcp read */
 export async function getQuoteMaterialsByLine(
   client: SupabaseClient<Database>,
   quoteLineId: string
@@ -1521,6 +1649,7 @@ export async function getQuoteMaterialsByLine(
     .eq("quoteLineId", quoteLineId);
 }
 
+/** @mcp read */
 export async function getQuoteMaterialsByMethodId(
   client: SupabaseClient<Database>,
   quoteMakeMethodId: string
@@ -1532,6 +1661,7 @@ export async function getQuoteMaterialsByMethodId(
     .order("order", { ascending: true });
 }
 
+/** @mcp read */
 export async function getQuoteMaterialsByOperation(
   client: SupabaseClient<Database>,
   quoteOperationId: string
@@ -1542,6 +1672,7 @@ export async function getQuoteMaterialsByOperation(
     .eq("quoteOperationId", quoteOperationId);
 }
 
+/** @mcp read */
 export async function getQuoteOperation(
   client: SupabaseClient<Database>,
   quoteOperationId: string
@@ -1553,6 +1684,7 @@ export async function getQuoteOperation(
     .single();
 }
 
+/** @mcp read */
 export async function getQuoteOperationsByLine(
   client: SupabaseClient<Database>,
   quoteLineId: string
@@ -1563,6 +1695,7 @@ export async function getQuoteOperationsByLine(
     .eq("quoteLineId", quoteLineId);
 }
 
+/** @mcp read */
 export async function getQuoteOperationsByMethodId(
   client: SupabaseClient<Database>,
   quoteMakeMethodId: string
@@ -1576,6 +1709,7 @@ export async function getQuoteOperationsByMethodId(
     .order("order", { ascending: true });
 }
 
+/** @mcp read */
 export async function getQuoteOperations(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1583,6 +1717,7 @@ export async function getQuoteOperations(
   return client.from("quoteOperation").select("*").eq("quoteId", quoteId);
 }
 
+/** @mcp read */
 export async function getQuotePayment(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1590,6 +1725,7 @@ export async function getQuotePayment(
   return client.from("quotePayment").select("*").eq("id", quoteId).single();
 }
 
+/** @mcp read */
 export async function getQuoteShipment(
   client: SupabaseClient<Database>,
   quoteId: string
@@ -1597,6 +1733,7 @@ export async function getQuoteShipment(
   return client.from("quoteShipment").select("*").eq("id", quoteId).single();
 }
 
+/** @mcp read */
 export async function getRelatedPricesForQuoteLine(
   client: SupabaseClient<Database>,
   itemId: string,
@@ -1625,6 +1762,7 @@ export async function getRelatedPricesForQuoteLine(
   };
 }
 
+/** @mcp read */
 export async function getSalesDocumentsAssignedToMe(
   client: SupabaseClient<Database>,
   userId: string,
@@ -1657,6 +1795,7 @@ export async function getSalesDocumentsAssignedToMe(
   return merged;
 }
 
+/** @mcp read */
 export async function getSalesOrder(
   client: SupabaseClient<Database>,
   salesOrderId: string
@@ -1664,6 +1803,7 @@ export async function getSalesOrder(
   return client.from("salesOrders").select("*").eq("id", salesOrderId).single();
 }
 
+/** @mcp read */
 export async function getSalesOrderCustomerDetails(
   client: SupabaseClient<Database>,
   salesOrderId: string
@@ -1675,42 +1815,59 @@ export async function getSalesOrderCustomerDetails(
     .single();
 }
 
-export async function getSalesOrderFavorites(
-  client: SupabaseClient<Database>,
-  companyId: string,
-  userId: string
-) {
-  return client
-    .from("salesOrderFavorite")
-    .select("*")
-    .eq("companyId", companyId)
-    .eq("userId", userId);
-}
-
+/** @mcp read */
 export async function getSalesOrderRelatedItems(
   client: SupabaseClient<Database>,
   salesOrderId: string,
   opportunityId: string
 ) {
-  const [jobs, shipments, invoices] = await Promise.all([
-    client.from("job").select("*").eq("salesOrderId", salesOrderId),
-    client
-      .from("shipment")
-      .select("*, shipmentLine(*)")
-      .eq("opportunityId", opportunityId),
-    client
-      .from("salesInvoice")
-      .select("id, invoiceId, status")
-      .eq("opportunityId", opportunityId)
-  ]);
+  const [jobs, shipments, invoices, returnOrders, lineLinkedReturns] =
+    await Promise.all([
+      client.from("job").select("*").eq("salesOrderId", salesOrderId),
+      client
+        .from("shipment")
+        .select("*, shipmentLine(*)")
+        .eq("opportunityId", opportunityId),
+      client
+        .from("salesInvoice")
+        .select("id, invoiceId, status")
+        .eq("opportunityId", opportunityId),
+      // RMAs linked at the header level
+      client
+        .from("salesReturnOrder")
+        .select("id, salesReturnOrderId, status")
+        .eq("salesOrderId", salesOrderId),
+      // RMAs linked only through their lines (salesOrderLineId provenance)
+      client
+        .from("salesReturnOrderLine")
+        .select(
+          "salesReturnOrder!salesReturnOrderLine_salesReturnOrderId_fkey(id, salesReturnOrderId, status), salesOrderLine!inner(salesOrderId)"
+        )
+        .eq("salesOrderLine.salesOrderId", salesOrderId)
+    ]);
+
+  // Union of header-linked and line-linked, de-duplicated by id
+  const returnsById = new Map<
+    string,
+    { id: string; salesReturnOrderId: string; status: string }
+  >();
+  for (const row of returnOrders.data ?? []) {
+    returnsById.set(row.id, row);
+  }
+  for (const row of lineLinkedReturns.data ?? []) {
+    const order = row.salesReturnOrder;
+    if (order) returnsById.set(order.id, order);
+  }
 
   return {
     jobs: jobs.data ?? [],
     shipments: shipments.data ?? [],
-    invoices: invoices.data ?? []
+    invoices: invoices.data ?? [],
+    salesReturnOrders: Array.from(returnsById.values())
   };
 }
 
+/** @mcp read */
 export async function getSalesOrders(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1742,6 +1899,7 @@ export async function getSalesOrders(
   return query;
 }
 
+/** @mcp read */
 export async function getSalesOrdersList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1754,6 +1912,7 @@ export async function getSalesOrdersList(
   );
 }
 
+/** @mcp read */
 export async function getSalesOrdersByIds(
   client: SupabaseClient<Database>,
   ids: string[]
@@ -1764,6 +1923,7 @@ export async function getSalesOrdersByIds(
     .in("id", ids);
 }
 
+/** @mcp read */
 export async function getSalesOrderPayment(
   client: SupabaseClient<Database>,
   salesOrderId: string
@@ -1775,6 +1935,7 @@ export async function getSalesOrderPayment(
     .single();
 }
 
+/** @mcp read */
 export async function getSalesTerms(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1782,6 +1943,7 @@ export async function getSalesTerms(
   return client.from("terms").select("salesTerms").eq("id", companyId).single();
 }
 
+/** @mcp read */
 export async function getSalesOrderShipment(
   client: SupabaseClient<Database>,
   salesOrderId: string
@@ -1793,10 +1955,12 @@ export async function getSalesOrderShipment(
     .single();
 }
 
+/** @mcp read */
 export async function getSalesOrderCustomers(client: SupabaseClient<Database>) {
   return client.from("salesOrderCustomers").select("id, name");
 }
 
+/** @mcp read */
 export async function getSalesOrderLines(
   client: SupabaseClient<Database>,
   salesOrderId: string
@@ -1809,6 +1973,7 @@ export async function getSalesOrderLines(
     .order("itemReadableId", { ascending: true });
 }
 
+/** @mcp read */
 export async function getSalesOrderInvoiceLines(
   client: SupabaseClient<Database>,
   salesOrderId: string
@@ -1819,16 +1984,42 @@ export async function getSalesOrderInvoiceLines(
     .eq("salesOrderId", salesOrderId);
 }
 
+/** @mcp read */
 export async function getSalesOrderInvoicesByIds(
   client: SupabaseClient<Database>,
   invoiceIds: string[]
 ) {
   return client
     .from("salesInvoices")
-    .select("id, invoiceTotal, status, currencyCode")
+    .select("id, invoiceTotal, balance, status, currencyCode, exchangeRate")
     .in("id", invoiceIds);
 }
 
+/** @mcp read */
+export async function getSalesOrderInvoicePaymentsByIds(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  invoiceIds: string[]
+) {
+  return fetchAllFromTable<{
+    targetSalesInvoiceId: string | null;
+    appliedAmount: number;
+    payment: { status: string } | null;
+  }>(
+    client,
+    "invoiceSettlement",
+    "targetSalesInvoiceId, appliedAmount, payment:payment!invoiceSettlement_paymentId_fkey!inner(status)",
+    (query) =>
+      query
+        .eq("companyId", companyId)
+        .eq("payment.companyId", companyId)
+        .eq("payment.status", "Posted")
+        .in("targetSalesInvoiceId", invoiceIds)
+        .order("id")
+  );
+}
+
+/** @mcp read */
 export async function getSalesOrderLinesByItemId(
   client: SupabaseClient<Database>,
   itemId: string
@@ -1846,6 +2037,7 @@ export async function getSalesOrderLinesByItemId(
  * job's item, on sales orders that are still open (not Completed/Invoiced/
  * Cancelled/Closed). Joins the base salesOrder header so we can filter on its
  * status (the salesOrderLines view only exposes the line-level status).
+ * @mcp read
  */
 export async function getOpenSalesOrderLinesForItem(
   client: SupabaseClient<Database>,
@@ -1863,6 +2055,7 @@ export async function getOpenSalesOrderLinesForItem(
     .order("createdAt", { ascending: false });
 }
 
+/** @mcp read */
 export async function getSalesOrderLinesByItemIds(
   client: SupabaseClient<Database>,
   itemIds: string[]
@@ -1876,6 +2069,7 @@ export async function getSalesOrderLinesByItemIds(
     .limit(10);
 }
 
+/** @mcp read */
 export async function getSalesOrderLine(
   client: SupabaseClient<Database>,
   salesOrderLineId: string
@@ -1887,6 +2081,7 @@ export async function getSalesOrderLine(
     .single();
 }
 
+/** @mcp read */
 export async function getSalesOrderLineShipments(
   client: SupabaseClient<Database>,
   salesOrderLineId: string
@@ -1898,6 +2093,7 @@ export async function getSalesOrderLineShipments(
     .gt("shippedQuantity", 0);
 }
 
+/** @mcp read */
 export async function getSalesRFQ(
   client: SupabaseClient<Database>,
   id: string
@@ -1905,18 +2101,7 @@ export async function getSalesRFQ(
   return client.from("salesRfqs").select("*").eq("id", id).single();
 }
 
-export async function getSalesRFQFavorites(
-  client: SupabaseClient<Database>,
-  companyId: string,
-  userId: string
-) {
-  return client
-    .from("salesRfqFavorite")
-    .select("*")
-    .eq("companyId", companyId)
-    .eq("userId", userId);
-}
-
+/** @mcp read */
 export async function getSalesRFQs(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1926,7 +2111,7 @@ export async function getSalesRFQs(
 ) {
   let query = client
     .from("salesRfqs")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args.search) {
@@ -1941,6 +2126,7 @@ export async function getSalesRFQs(
   return query;
 }
 
+/** @mcp read */
 export async function getSalesRFQLine(
   client: SupabaseClient<Database>,
   lineId: string
@@ -1948,6 +2134,7 @@ export async function getSalesRFQLine(
   return client.from("salesRfqLines").select("*").eq("id", lineId).single();
 }
 
+/** @mcp read */
 export async function getSalesRFQLines(
   client: SupabaseClient<Database>,
   salesRfqId: string
@@ -1960,6 +2147,7 @@ export async function getSalesRFQLines(
     .order("customerPartId", { ascending: true });
 }
 
+/** @mcp create */
 export async function insertCustomerContact(
   client: SupabaseClient<Database>,
   customerContact: {
@@ -2005,6 +2193,7 @@ export async function insertCustomerContact(
     .single();
 }
 
+/** @mcp create */
 export async function insertCustomerLocation(
   client: SupabaseClient<Database>,
   customerLocation: {
@@ -2061,20 +2250,23 @@ export async function insertSalesOrderLines(
     customFields?: Json;
   })[]
 ) {
-  const linesWithDefaults = salesOrderLines.map((line, index) => ({
-    ...line,
-    setupPrice: line.setupPrice ?? 0,
-    unitPrice: line.unitPrice ?? 0,
-    shippingCost: line.shippingCost ?? 0,
-    addOnCost: line.addOnCost ?? 0,
-    nonTaxableAddOnCost: line.nonTaxableAddOnCost ?? 0,
-    taxPercent: line.taxPercent ?? 0,
-    sortOrder: index + 1,
-    lineNumber: index + 1
-  }));
+  const linesWithDefaults = salesOrderLines.map(
+    ({ serviceId: _serviceId, ...line }, index) => ({
+      ...line,
+      setupPrice: line.setupPrice ?? 0,
+      unitPrice: line.unitPrice ?? 0,
+      shippingCost: line.shippingCost ?? 0,
+      addOnCost: line.addOnCost ?? 0,
+      nonTaxableAddOnCost: line.nonTaxableAddOnCost ?? 0,
+      taxPercent: line.taxPercent ?? 0,
+      sortOrder: index + 1,
+      lineNumber: index + 1
+    })
+  );
   return client.from("salesOrderLine").insert(linesWithDefaults).select("id");
 }
 
+/** @mcp update */
 export async function finalizeQuote(
   client: SupabaseClient<Database>,
   quoteId: string,
@@ -2119,6 +2311,29 @@ export async function finalizeQuote(
   return lineUpdate;
 }
 
+export async function reorderQuoteLines(
+  client: SupabaseClient<Database>,
+  quoteId: string,
+  lineIds: string[],
+  updatedBy: string
+) {
+  const updatePromises = lineIds.map((id, index) =>
+    client
+      .from("quoteLine")
+      .update({ sortOrder: index + 1, updatedBy })
+      .eq("id", id)
+      .eq("quoteId", quoteId)
+      .select("id")
+      .single()
+  );
+  const results = await Promise.all(updatePromises);
+  const firstError = results.find((r) => r.error);
+  return firstError
+    ? { error: firstError.error }
+    : { data: results.map((r) => r.data?.id).filter(Boolean) };
+}
+
+/** @mcp update */
 export async function releaseSalesOrder(
   client: SupabaseClient<Database>,
   salesOrderId: string,
@@ -2134,6 +2349,7 @@ export async function releaseSalesOrder(
     .eq("id", salesOrderId);
 }
 
+/** @mcp action */
 export async function resolvePrice(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -2266,8 +2482,10 @@ export async function resolvePrice(
     }
   }
 
+  // An override that skips the rules still takes the line's configuration
+  // prices — they price the chosen options, not the part.
   let finalPrice = startingPrice;
-  if (!skipRules) {
+  if (!skipRules || input.configuration) {
     let rulesQuery = client
       .from("pricingRule")
       .select("*")
@@ -2279,7 +2497,7 @@ export async function resolvePrice(
 
     const { data: allRules } = await rulesQuery;
 
-    const matchedRules: MatchedRule[] = (allRules ?? []).filter((rule) => {
+    const matchedRules = (allRules ?? []).filter((rule) => {
       if (rule.minQuantity !== null && input.quantity < rule.minQuantity)
         return false;
       if (rule.maxQuantity !== null && input.quantity > rule.maxQuantity)
@@ -2310,9 +2528,13 @@ export async function resolvePrice(
           return false;
       }
       return true;
-    }) as MatchedRule[];
+    });
 
-    const ruleResult = applyPriceRules(startingPrice, matchedRules);
+    const ruleResult = applyPriceRules(
+      startingPrice,
+      matchedRules.map(toMatchedRule),
+      { configuration: input.configuration, configurationOnly: skipRules }
+    );
     finalPrice = ruleResult.finalPrice;
     trace.push(...ruleResult.appendedTrace);
   }
@@ -2362,6 +2584,7 @@ async function resolvePostingGroupFilter(
   return { itemIds, filters: remaining };
 }
 
+/** @mcp action */
 export async function resolvePriceList(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -2401,7 +2624,7 @@ export async function resolvePriceList(
     .from("item")
     .select(
       "id, readableId, name, thumbnailPath, itemUnitSalePrice(unitSalePrice), itemCost(itemPostingGroupId)",
-      { count: "exact" }
+      { count: LIST_COUNT }
     )
     .eq("active", true)
     .in("id", overriddenItemIds);
@@ -2594,7 +2817,7 @@ export async function resolvePriceList(
     let hasRuleAdjustment = false;
 
     if (!skipRules) {
-      const matchedRules: MatchedRule[] = (allRules ?? []).filter((rule) => {
+      const matchedRules = (allRules ?? []).filter((rule) => {
         if (rule.minQuantity !== null && previewQuantity < rule.minQuantity)
           return false;
         if (rule.maxQuantity !== null && previewQuantity > rule.maxQuantity)
@@ -2632,7 +2855,10 @@ export async function resolvePriceList(
         return true;
       });
 
-      const ruleResult = applyPriceRules(startingPrice, matchedRules);
+      const ruleResult = applyPriceRules(
+        startingPrice,
+        matchedRules.map(toMatchedRule)
+      );
       finalPrice = ruleResult.finalPrice;
       trace.push(...ruleResult.appendedTrace);
       hasRuleAdjustment = ruleResult.appendedTrace.length > 0;
@@ -2675,6 +2901,7 @@ export async function resolvePriceList(
   };
 }
 
+/** @mcp read */
 export async function getBaseCatalog(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -2684,7 +2911,7 @@ export async function getBaseCatalog(
     .from("item")
     .select(
       "id, readableId, name, thumbnailPath, itemUnitSalePrice(unitSalePrice), itemCost(itemPostingGroupId)",
-      { count: "exact" }
+      { count: LIST_COUNT }
     )
     .eq("companyId", companyId)
     .eq("active", true);
@@ -2744,6 +2971,7 @@ export async function getBaseCatalog(
   return { data: rows, count: count ?? 0 };
 }
 
+/** @mcp upsert */
 export async function upsertCustomer(
   client: SupabaseClient<Database>,
   customer:
@@ -2776,6 +3004,7 @@ export async function upsertCustomer(
     .single();
 }
 
+/** @mcp upsert destructive */
 export async function upsertCustomerItemPriceOverride(
   db: Kysely<KyselyDatabase>,
   companyId: string,
@@ -2797,6 +3026,44 @@ export async function upsertCustomerItemPriceOverride(
     return {
       data: null,
       error: { message: "Cannot set both customerId and customerTypeId" }
+    };
+  }
+
+  // Kysely bypasses RLS and the dispatcher reaches this with caller-supplied
+  // ids, so the item and the customer (or customer type) must belong to this
+  // company before either is written onto the override.
+  const [item, customer, customerType] = await Promise.all([
+    db
+      .selectFrom("item")
+      .select("id")
+      .where("id", "=", data.itemId)
+      .where("companyId", "=", companyId)
+      .executeTakeFirst(),
+    data.customerId
+      ? db
+          .selectFrom("customer")
+          .select("id")
+          .where("id", "=", data.customerId)
+          .where("companyId", "=", companyId)
+          .executeTakeFirst()
+      : null,
+    data.customerTypeId
+      ? db
+          .selectFrom("customerType")
+          .select("id")
+          .where("id", "=", data.customerTypeId)
+          .where("companyId", "=", companyId)
+          .executeTakeFirst()
+      : null
+  ]);
+  if (
+    !item ||
+    (data.customerId && !customer) ||
+    (data.customerTypeId && !customerType)
+  ) {
+    return {
+      data: null,
+      error: { message: "Item, customer or customer type not found" }
     };
   }
 
@@ -2951,6 +3218,7 @@ export async function upsertCustomerItemPriceOverride(
   }
 }
 
+/** @mcp delete */
 export async function deleteCustomerItemPriceOverride(
   client: SupabaseClient<Database>,
   id: string,
@@ -2976,12 +3244,12 @@ type CustomerItemPriceOverrideWithRelations =
     }[];
   };
 
+/** @mcp read */
 export async function getCustomerItemPriceOverrideById(
   client: SupabaseClient<Database>,
   id: string,
   companyId: string
 ): Promise<PostgrestSingleResponse<CustomerItemPriceOverrideWithRelations>> {
-  // @ts-ignore - nested select instantiation exceeds tsgo depth limit
   return client
     .from("customerItemPriceOverride")
     .select(
@@ -2998,6 +3266,7 @@ export async function getCustomerItemPriceOverrideById(
     .single();
 }
 
+/** @mcp read */
 export async function getCustomerItemPriceOverridesList(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -3017,7 +3286,7 @@ export async function getCustomerItemPriceOverridesList(
       customerType:customerTypeId(id, name),
       item:itemId(id, name, unitSalePrice:itemUnitSalePrice(unitSalePrice))
     `,
-      { count: "exact" }
+      { count: LIST_COUNT }
     )
     .eq("companyId", companyId);
 
@@ -3058,6 +3327,7 @@ export async function updateCustomerAccounting(
     .eq("id", customerAccounting.id);
 }
 
+/** @mcp update */
 export async function updateCustomerContact(
   client: SupabaseClient<Database>,
   customerContact: {
@@ -3080,14 +3350,22 @@ export async function updateCustomerContact(
       return customFieldUpdate;
     }
   }
+  // The contact id is the row key and the location is set on customerContact
+  // above; neither is a contact column.
+  const {
+    contactId: _contactId,
+    customerLocationId: _customerLocationId,
+    ...contact
+  } = customerContact.contact;
   return client
     .from("contact")
-    .update(sanitize(customerContact.contact))
+    .update(sanitize(contact))
     .eq("id", customerContact.contactId)
     .select("id")
     .single();
 }
 
+/** @mcp update */
 export async function updateCustomerLocation(
   client: SupabaseClient<Database>,
   customerLocation: {
@@ -3124,6 +3402,7 @@ export async function updateCustomerLocation(
     .select("id")
     .single();
 }
+/** @mcp update */
 export async function updateCustomerPayment(
   client: SupabaseClient<Database>,
   customerPayment: z.infer<typeof customerPaymentValidator> & {
@@ -3136,6 +3415,7 @@ export async function updateCustomerPayment(
     .eq("customerId", customerPayment.customerId);
 }
 
+/** @mcp update */
 export async function updateCustomerShipping(
   client: SupabaseClient<Database>,
   customerShipping: z.infer<typeof customerShippingValidator> & {
@@ -3148,6 +3428,7 @@ export async function updateCustomerShipping(
     .eq("customerId", customerShipping.customerId);
 }
 
+/** @mcp update */
 export async function updateCustomerTax(
   client: SupabaseClient<Database>,
   customerTax: z.infer<typeof customerTaxValidator> & {
@@ -3157,10 +3438,11 @@ export async function updateCustomerTax(
 ) {
   return client
     .from("customerTax")
-    .update(sanitize(customerTax))
+    .update(sanitize({ ...customerTax, updatedAt: new Date().toISOString() }))
     .eq("customerId", customerTax.customerId);
 }
 
+/** @mcp update */
 export async function updatePricingRule(
   client: SupabaseClient<Database>,
   id: string,
@@ -3171,7 +3453,7 @@ export async function updatePricingRule(
     .from("pricingRule")
     .update(
       sanitize({
-        ...data,
+        ...normalizePricingRule(data),
         updatedBy: userId,
         updatedAt: new Date().toISOString()
       })
@@ -3181,6 +3463,7 @@ export async function updatePricingRule(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertCustomerStatus(
   client: SupabaseClient<Database>,
   customerStatus:
@@ -3205,6 +3488,7 @@ export async function upsertCustomerStatus(
   }
 }
 
+/** @mcp upsert */
 export async function upsertCustomerType(
   client: SupabaseClient<Database>,
   customerType:
@@ -3229,6 +3513,7 @@ export async function upsertCustomerType(
   }
 }
 
+/** @mcp upsert */
 export async function upsertNoQuoteReason(
   client: SupabaseClient<Database>,
   noQuoteReason:
@@ -3275,6 +3560,7 @@ export async function updateSalesRFQFavorite(
   }
 }
 
+/** @mcp update */
 export async function updateQuoteExchangeRate(
   client: SupabaseClient<Database>,
   data: {
@@ -3291,6 +3577,7 @@ export async function updateQuoteExchangeRate(
   return client.from("quote").update(update).eq("id", update.id);
 }
 
+/** @mcp update */
 export async function updateQuoteLinePrecision(
   db: Kysely<KyselyDatabase>,
   companyId: string,
@@ -3317,6 +3604,7 @@ export async function updateQuoteLinePrecision(
   });
 }
 
+/** @mcp update */
 export async function updateSalesOrderExchangeRate(
   client: SupabaseClient<Database>,
   data: {
@@ -3353,6 +3641,7 @@ export async function updateQuoteFavorite(
   }
 }
 
+/** @mcp update */
 export async function updateSalesRFQStatus(
   client: SupabaseClient<Database>,
   update: {
@@ -3379,6 +3668,7 @@ export async function updateSalesRFQStatus(
   return client.from("salesRfq").update(updateData).eq("id", update.id);
 }
 
+/** @mcp update */
 export async function updateQuoteMaterialOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -3393,6 +3683,7 @@ export async function updateQuoteMaterialOrder(
   return Promise.all(updatePromises);
 }
 
+/** @mcp update */
 export async function updateQuoteOperationOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -3407,6 +3698,7 @@ export async function updateQuoteOperationOrder(
   return Promise.all(updatePromises);
 }
 
+/** @mcp update */
 export async function updateQuoteStatus(
   client: SupabaseClient<Database>,
   update: {
@@ -3427,8 +3719,10 @@ export async function updateQuoteStatus(
   return client.from("quote").update(updateData).eq("id", update.id);
 }
 
+/** @mcp upsert */
 export async function upsertMakeMethodFromQuoteLine(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   lineMethod: {
     itemId: string;
     quoteId: string;
@@ -3445,20 +3739,25 @@ export async function upsertMakeMethodFromQuoteLine(
     };
   }
 ) {
-  return client.functions.invoke("get-method", {
-    body: {
+  return serverFns
+    .as({
+      client,
+      db,
+      companyId: lineMethod.companyId,
+      userId: lineMethod.userId
+    })
+    .invoke("get-method", {
       type: "quoteLineToItem",
       sourceId: `${lineMethod.quoteId}:${lineMethod.quoteLineId}`,
       targetId: lineMethod.itemId,
-      companyId: lineMethod.companyId,
-      userId: lineMethod.userId,
       parts: lineMethod.parts
-    }
-  });
+    });
 }
 
+/** @mcp upsert */
 export async function upsertMakeMethodFromQuoteMethod(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   quoteMethod: {
     sourceId: string;
     targetId: string;
@@ -3474,16 +3773,19 @@ export async function upsertMakeMethodFromQuoteMethod(
     };
   }
 ) {
-  const { error } = await client.functions.invoke("get-method", {
-    body: {
+  const { error } = await serverFns
+    .as({
+      client,
+      db,
+      companyId: quoteMethod.companyId,
+      userId: quoteMethod.userId
+    })
+    .invoke("get-method", {
       type: "quoteMakeMethodToItem",
       sourceId: quoteMethod.sourceId,
       targetId: quoteMethod.targetId,
-      companyId: quoteMethod.companyId,
-      userId: quoteMethod.userId,
       parts: quoteMethod.parts
-    }
-  });
+    });
 
   if (error) {
     return {
@@ -3495,6 +3797,7 @@ export async function upsertMakeMethodFromQuoteMethod(
   return { data: null, error: null };
 }
 
+/** @mcp create */
 export async function insertQuote(
   client: SupabaseClient<Database>,
   input: {
@@ -3579,15 +3882,16 @@ export async function insertQuote(
   let exchangeRate = 1;
   let exchangeRateUpdatedAt = new Date().toISOString();
   if (input.currencyCode) {
-    const currency = await getCurrencyByCode(
+    const exchangeRateResult = await getExchangeRate(
       client,
-      input.companyGroupId,
+      input.companyId,
       input.currencyCode
     );
-    if (currency.data) {
-      exchangeRate = currency.data.exchangeRate ?? 1;
-      exchangeRateUpdatedAt = new Date().toISOString();
+    if (exchangeRateResult.error) {
+      return { data: null, error: exchangeRateResult.error };
     }
+    exchangeRate = exchangeRateResult.data;
+    exchangeRateUpdatedAt = new Date().toISOString();
   }
 
   const locationId = input.locationId ?? seller?.data?.locationId ?? null;
@@ -3666,6 +3970,7 @@ export async function insertQuote(
   return { data: { id: createdQuoteId, quoteId }, error: null };
 }
 
+/** @mcp update */
 export async function updateQuote(
   client: SupabaseClient<Database>,
   input: {
@@ -3687,8 +3992,7 @@ export async function updateQuote(
     digitalQuoteAcceptedByEmail?: string | null;
     notes?: string | null;
     customFields?: Json;
-  },
-  companyGroupId?: string
+  }
 ): Promise<{
   data: { id: string } | null;
   error: PostgrestError | null;
@@ -3700,7 +4004,7 @@ export async function updateQuote(
 
   const existing = await client
     .from("quote")
-    .select("currencyCode, opportunityId")
+    .select("companyId, currencyCode, opportunityId")
     .eq("id", id)
     .single();
 
@@ -3708,18 +4012,18 @@ export async function updateQuote(
 
   if (
     updates.currencyCode &&
-    companyGroupId &&
     existing.data.currencyCode !== updates.currencyCode
   ) {
-    const currency = await getCurrencyByCode(
+    const exchangeRateResult = await getExchangeRate(
       client,
-      companyGroupId,
+      existing.data.companyId,
       updates.currencyCode
     );
-    if (currency.data) {
-      exchangeRate = currency.data.exchangeRate ?? 1;
-      exchangeRateUpdatedAt = new Date().toISOString();
+    if (exchangeRateResult.error) {
+      return { data: null, error: exchangeRateResult.error };
     }
+    exchangeRate = exchangeRateResult.data;
+    exchangeRateUpdatedAt = new Date().toISOString();
   }
 
   if (updates.customerId && existing.data.opportunityId) {
@@ -3744,7 +4048,10 @@ export async function updateQuote(
     .single();
 }
 
-/** @deprecated Use insertQuote for new quotes, updateQuote for existing quotes */
+/**
+ * @deprecated Use insertQuote for new quotes, updateQuote for existing quotes
+ * @mcp upsert
+ */
 export async function upsertQuote(
   client: SupabaseClient<Database>,
   quote:
@@ -3780,6 +4087,9 @@ export async function upsertQuote(
 
     if (customerPayment.error) return customerPayment;
     if (customerShipping.error) return customerShipping;
+    // Without this the quote is inserted with a null opportunityId, and its
+    // detail page then fails to load for good.
+    if (opportunity.error) return opportunity;
 
     const {
       paymentTermId,
@@ -3792,15 +4102,16 @@ export async function upsertQuote(
       customerShipping.data;
 
     if (quote.currencyCode) {
-      const currency = await getCurrencyByCode(
+      const exchangeRateResult = await getExchangeRate(
         client,
-        quote.companyGroupId,
+        quote.companyId,
         quote.currencyCode
       );
-      if (currency.data) {
-        quote.exchangeRate = currency.data.exchangeRate ?? undefined;
-        quote.exchangeRateUpdatedAt = new Date().toISOString();
+      if (exchangeRateResult.error) {
+        return { data: null, error: exchangeRateResult.error };
       }
+      quote.exchangeRate = exchangeRateResult.data;
+      quote.exchangeRateUpdatedAt = new Date().toISOString();
     } else {
       quote.exchangeRate = 1;
       quote.exchangeRateUpdatedAt = new Date().toISOString();
@@ -3888,15 +4199,16 @@ export async function upsertQuote(
     const { currencyCode, opportunityId } = existingQuote.data;
 
     if (quote.currencyCode && currencyCode !== quote.currencyCode) {
-      const currency = await getCurrencyByCode(
+      const exchangeRateResult = await getExchangeRate(
         client,
-        quote.companyGroupId,
+        existingQuote.data.companyId,
         quote.currencyCode
       );
-      if (currency.data) {
-        quote.exchangeRate = currency.data.exchangeRate ?? undefined;
-        quote.exchangeRateUpdatedAt = new Date().toISOString();
+      if (exchangeRateResult.error) {
+        return { data: null, error: exchangeRateResult.error };
       }
+      quote.exchangeRate = exchangeRateResult.data;
+      quote.exchangeRateUpdatedAt = new Date().toISOString();
     }
 
     // If customerId is being updated, also update the opportunity's customerId
@@ -3907,7 +4219,13 @@ export async function upsertQuote(
         .eq("id", opportunityId);
     }
 
-    const { companyGroupId: _cgId, ...quoteUpdateData } = quote;
+    // quote has no name column, and stores notes as internalNotes/externalNotes.
+    const {
+      companyGroupId: _cgId,
+      name: _name,
+      notes: _notes,
+      ...quoteUpdateData
+    } = quote;
     return client
       .from("quote")
       .update({
@@ -3938,9 +4256,18 @@ export async function upsertQuotePart(
       .select("id")
       .single();
   }
+  const createPayload = quotePart as z.infer<typeof quotePartValidator> & {
+    companyId: string;
+    createdBy: string;
+  };
   return client
     .from("quotePart")
-    .insert([sanitize(quotePart)])
+    .insert([
+      sanitize({
+        ...createPayload,
+        readableId: null
+      })
+    ])
     .select("*")
     .single();
 }
@@ -4003,7 +4330,8 @@ export async function promoteQuotePartToItem(
       description: shortDescription || undefined,
       type: "Part",
       replenishmentSystem: "Make",
-      defaultMethodType: qp.defaultMethodType,
+      defaultMethodType:
+        qp.defaultMethodType as Database["public"]["Enums"]["methodType"],
       itemTrackingType: "Inventory",
       unitOfMeasureCode: qp.unitOfMeasureCode ?? "EA",
       active: true,
@@ -4029,7 +4357,7 @@ export async function promoteQuotePartToItem(
     .from("quoteLine")
     .update({
       itemId,
-      quotePartId: null,
+      quotePartId: null as string | null,
       updatedBy: userId,
       updatedAt: today(getLocalTimeZone()).toString()
     })
@@ -4101,6 +4429,7 @@ export async function promoteQuotePartToItem(
   return { data: { itemId, readableId }, error: null };
 }
 
+/** @mcp upsert */
 export async function upsertQuoteLine(
   client: SupabaseClient<Database>,
   quotationLine:
@@ -4141,21 +4470,25 @@ export async function upsertQuoteLine(
     .single();
 }
 
+/** @mcp update */
 export async function updateQuoteLineOrder(
   db: Kysely<KyselyDatabase>,
-  updates: { id: string; sortOrder: number; updatedBy: string }[]
+  companyId: string,
+  userId: string,
+  quoteId: string,
+  updates: { id: string; sortOrder: number }[]
 ) {
-  return db.transaction().execute(async (trx) => {
-    for (const { id, sortOrder, updatedBy } of updates) {
-      await trx
-        .updateTable("quoteLine")
-        .set({ sortOrder, updatedBy })
-        .where("id", "=", id)
-        .execute();
-    }
+  return updateSortOrder(db, {
+    table: "quoteLine",
+    column: "sortOrder",
+    companyId,
+    userId,
+    parent: { column: "quoteId", id: quoteId },
+    updates
   });
 }
 
+/** @mcp upsert */
 export async function upsertQuoteLineAdditionalCharges(
   client: SupabaseClient<Database>,
   lineId: string,
@@ -4170,14 +4503,26 @@ export async function upsertQuoteLineAdditionalCharges(
 type QuoteLinePriceInput = {
   quoteLineId: string;
   unitPrice: number;
-  leadTime: number;
-  discountPercent: number;
   quantity: number;
   createdBy: string;
+  // Optional: an explicit value wins, an omitted one preserves the stored value
+  // for that quantity (so a cost recalc can leave user-entered fields alone).
+  leadTime?: number;
+  discountPercent?: number;
+  shippingCost?: number;
   categoryMarkups?: Record<string, number>;
   priceSource?: "system" | "manual";
+  // How unitPrice was resolved. Unlike the fields above, an omitted trace is
+  // NOT carried over: it explains the unit price, which every caller restates.
+  priceTrace?: PriceTraceStep[] | null;
 };
 
+/**
+ * @mcp upsert destructive — it delegates to rewriteQuoteLinePrices, which
+ *                  deleteFrom("quoteLinePrice") then re-inserts. The body of
+ *                  THIS function holds no delete, so reading it cannot show
+ *                  that; declaring it is the point.
+ */
 export async function upsertQuoteLinePrices(
   db: Kysely<KyselyDatabase>,
   companyId: string,
@@ -4186,12 +4531,14 @@ export async function upsertQuoteLinePrices(
   quoteLinePrices: {
     quoteLineId: string;
     unitPrice: number;
-    leadTime: number;
-    discountPercent: number;
     quantity: number;
     createdBy: string;
+    leadTime?: number;
+    discountPercent?: number;
+    shippingCost?: number;
     categoryMarkups?: Record<string, number>;
     priceSource?: "system" | "manual";
+    priceTrace?: PriceTraceStep[] | null;
   }[]
 ) {
   return db
@@ -4223,6 +4570,8 @@ async function rewriteQuoteLinePrices(
       unitPrice: Number(price.unitPrice),
       leadTime: Number(price.leadTime),
       discountPercent: Number(price.discountPercent),
+      // A precision rebuild only re-rounds the price; its explanation stands.
+      priceTrace: (price.priceTrace as PriceTraceStep[] | null) ?? null,
       createdBy: price.createdBy
     }));
 
@@ -4239,12 +4588,20 @@ async function rewriteQuoteLinePrices(
     .selectFrom("quoteLine")
     .select("unitPricePrecision")
     .where("id", "=", lineId)
+    .where("quoteId", "=", quoteId)
     .where("companyId", "=", companyId)
     .executeTakeFirst();
 
   if (!quote || !quoteLine) {
     throw new Error(
       `Quote ${quoteId} / line ${lineId} was not found for company ${companyId}`
+    );
+  }
+
+  const exchangeRate = quote.exchangeRate;
+  if (exchangeRate === null) {
+    throw new Error(
+      `Quote ${quoteId} has no exchange rate for company ${companyId}`
     );
   }
 
@@ -4270,21 +4627,49 @@ async function rewriteQuoteLinePrices(
           companyId,
           quoteId,
           unitPrice: round(p.unitPrice, quoteLine.unitPricePrecision),
-          discountPercent: existing?.discountPercent ?? p.discountPercent,
-          leadTime: existing?.leadTime ?? p.leadTime,
-          shippingCost: existing?.shippingCost ?? 0,
-          categoryMarkups: p.categoryMarkups ?? existing?.categoryMarkups ?? {},
-          priceSource: p.priceSource ?? existing?.priceSource ?? "system",
-          exchangeRate: quote.exchangeRate ?? 1
+          // Kysely sends a JS array as a Postgres array literal; jsonb needs
+          // JSON text.
+          priceTrace: p.priceTrace ? JSON.stringify(p.priceTrace) : null,
+          // Explicit value wins, omitted value is preserved from the stored row.
+          ...resolvePreservedQuoteLinePriceFields(p, {
+            leadTime: existing ? Number(existing.leadTime) : undefined,
+            discountPercent: existing
+              ? Number(existing.discountPercent)
+              : undefined,
+            shippingCost: existing ? Number(existing.shippingCost) : undefined,
+            categoryMarkups:
+              (existing?.categoryMarkups as CategoryMarkups | null) ??
+              undefined,
+            priceSource:
+              (existing?.priceSource as QuoteLinePriceSource | null) ??
+              undefined
+          }),
+          exchangeRate
         };
       })
     )
     .execute();
+
+  // Keep quoteLine.quantity in step with the rows that now exist, but only when
+  // the caller supplied an explicit price set — the precision rebuild
+  // (quoteLinePrices omitted) must not touch the line's quantity breaks.
+  if (quoteLinePrices) {
+    const quantities = [
+      ...new Set(replacements.map((p) => Number(p.quantity)))
+    ].sort((a, b) => a - b);
+    await trx
+      .updateTable("quoteLine")
+      .set({ quantity: quantities })
+      .where("id", "=", lineId)
+      .where("companyId", "=", companyId)
+      .execute();
+  }
 }
 
 async function buildCostEffects(
   client: SupabaseClient<Database>,
-  quoteLineId: string
+  quoteLineId: string,
+  { refreshBuyCosts = true }: { refreshBuyCosts?: boolean } = {}
 ) {
   const operationsResult = await client
     .from("quoteOperation")
@@ -4293,10 +4678,12 @@ async function buildCostEffects(
 
   const operations = operationsResult.data ?? [];
 
-  // Fix Buy material costs
+  // Refresh Buy material costs from supplier price breaks; resolveBuyUnitCost
+  // leaves a typed cost alone. A read-only caller skips the write — the cost
+  // effects below price Buy materials from the same breaks either way.
   const buyMaterials = await client
     .from("quoteMaterial")
-    .select("id, itemId, unitCost")
+    .select("id, itemId, unitCost, unitCostSource")
     .eq("quoteLineId", quoteLineId)
     .eq("methodType", "Purchase to Order");
 
@@ -4305,8 +4692,9 @@ async function buildCostEffects(
   ];
   const priceMap = await getSupplierPriceBreaksForItems(client, buyItemIds);
 
-  for (const mat of buyMaterials.data ?? []) {
-    const price = lookupBuyPriceFromMap(mat.itemId, 1, priceMap, mat.unitCost);
+  for (const mat of refreshBuyCosts ? (buyMaterials.data ?? []) : []) {
+    if (mat.unitCostSource === "manual") continue;
+    const price = resolveBuyUnitCost(mat, 1, priceMap);
     if (price !== mat.unitCost) {
       await client
         .from("quoteMaterial")
@@ -4378,13 +4766,17 @@ async function buildCostEffects(
     itemId: string,
     itemType: string,
     quantity: number,
-    unitCost: number
+    unitCost: number,
+    unitCostSource: string | null
   ) {
     const costFn = (outerQty: number) => {
       const requestedQty = quantity * outerQty;
       return (
-        lookupBuyPriceFromMap(itemId, requestedQty, priceMap, unitCost) *
-        requestedQty
+        resolveBuyUnitCost(
+          { itemId, unitCost, unitCostSource },
+          requestedQty,
+          priceMap
+        ) * requestedQty
       );
     };
     const key =
@@ -4407,7 +4799,13 @@ async function buildCostEffects(
     const qty = d.quantity * parentQuantity;
 
     if (d.methodType === "Purchase to Order") {
-      pushBuyCostEffect(d.itemId, d.itemType, qty, d.unitCost);
+      pushBuyCostEffect(
+        d.itemId,
+        d.itemType,
+        qty,
+        d.unitCost,
+        d.unitCostSource
+      );
     } else if (d.methodType === "Pull from Inventory") {
       const costFn = (outerQty: number) => d.unitCost * qty * outerQty;
       const key =
@@ -4503,6 +4901,7 @@ export type QuoteLinePriceRow = {
   discountPercent: number;
   categoryMarkups?: Record<string, number>;
   priceSource?: string;
+  priceTrace?: PriceTraceStep[] | null;
 };
 
 type BuildPriceRowsResult = {
@@ -4510,6 +4909,26 @@ type BuildPriceRowsResult = {
   error: unknown | null;
 };
 
+// The part's unit sale price for a configured line (see
+// configuredQuoteBasePrice); null data for an unconfigured line, which never
+// reads it.
+async function getConfiguredSalePrice(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  itemId: string | null | undefined,
+  configuration: Record<string, unknown> | null
+): Promise<{ data: number | null; error: PostgrestError | null }> {
+  if (!itemId || !configuration) return { data: null, error: null };
+  const { data, error } = await client
+    .from("itemUnitSalePrice")
+    .select("unitSalePrice")
+    .eq("itemId", itemId)
+    .eq("companyId", companyId)
+    .maybeSingle();
+  return { data: data?.unitSalePrice ?? null, error };
+}
+
+/** @mcp action */
 export async function buildMakeToOrderPriceRows(
   client: SupabaseClient<Database>,
   quoteId: string,
@@ -4529,7 +4948,7 @@ export async function buildMakeToOrderPriceRows(
       .single(),
     client
       .from("quoteLine")
-      .select("itemId, unitPricePrecision")
+      .select("itemId, unitPricePrecision, configuration")
       .eq("id", quoteLineId)
       .single()
   ]);
@@ -4552,7 +4971,13 @@ export async function buildMakeToOrderPriceRows(
     itemIdOverride === undefined
       ? (lineResult.data.itemId ?? undefined)
       : (itemIdOverride ?? undefined);
-  const exchangeRate = quoteResult.data.exchangeRate ?? 1;
+  const exchangeRate = quoteResult.data.exchangeRate;
+  if (exchangeRate === null) {
+    return {
+      rows: [],
+      error: new Error(`Quote ${quoteId} has no exchange rate`)
+    };
+  }
   const precision = lineResult.data.unitPricePrecision ?? 2;
 
   // Parse default markups (settings stores decimals, convert to whole numbers)
@@ -4573,6 +4998,15 @@ export async function buildMakeToOrderPriceRows(
 
   const { effects } = result;
 
+  const configuration = asConfiguration(lineResult.data.configuration);
+  const salePrice = await getConfiguredSalePrice(
+    client,
+    companyId,
+    itemId,
+    configuration
+  );
+  if (salePrice.error) return { rows: [], error: salePrice.error };
+
   const priceRows: QuoteLinePriceRow[] = [];
   for (const qty of quantities) {
     const categoryCosts: Record<string, number> = {};
@@ -4587,25 +5021,38 @@ export async function buildMakeToOrderPriceRows(
       return sum + cost * (1 + markup / 100);
     }, 0);
 
-    const finalPrice = itemId
-      ? (
-          await resolvePrice(client, companyId, {
-            itemId,
-            quantity: qty,
-            customerId,
-            existingBasePrice: rollupPrice
-          })
-        ).finalPrice
-      : rollupPrice;
+    const basePrice = configuredQuoteBasePrice({
+      configuration,
+      unitSalePrice: salePrice.data,
+      categoryMarkups: null,
+      defaultMarkups: effectiveDefaults
+    });
+
+    const resolved = itemId
+      ? await resolvePrice(client, companyId, {
+          itemId,
+          quantity: qty,
+          customerId,
+          existingBasePrice: basePrice ?? rollupPrice,
+          configuration
+        })
+      : null;
 
     priceRows.push({
       quoteId,
       quoteLineId,
       companyId,
       quantity: qty,
-      unitPrice: round(finalPrice, precision),
-      categoryMarkups: effectiveDefaults,
+      unitPrice: round(resolved?.finalPrice ?? rollupPrice, precision),
+      // A row priced from the sale price is not cost-plus.
+      categoryMarkups: basePrice === null ? effectiveDefaults : {},
       priceSource: "system",
+      priceTrace: resolved
+        ? withBasePriceSource(
+            resolved.trace,
+            basePrice === null ? QUOTE_BASE_PRICE_SOURCES.costPlus : null
+          )
+        : null,
       exchangeRate,
       createdBy: userId,
       leadTime: 0,
@@ -4616,6 +5063,7 @@ export async function buildMakeToOrderPriceRows(
   return { rows: priceRows, error: null };
 }
 
+/** @mcp action */
 export async function calculatePricesForQuantities(
   client: SupabaseClient<Database>,
   quoteId: string,
@@ -4644,6 +5092,7 @@ export async function calculatePricesForQuantities(
   return { error: null };
 }
 
+/** @mcp action */
 export async function buildPullFromInventoryPriceRows(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -4663,7 +5112,7 @@ export async function buildPullFromInventoryPriceRows(
       .single(),
     client
       .from("quoteLine")
-      .select("itemId, unitPricePrecision")
+      .select("itemId, unitPricePrecision, configuration")
       .eq("id", quoteLineId)
       .single()
   ]);
@@ -4676,7 +5125,13 @@ export async function buildPullFromInventoryPriceRows(
   // Missing itemId is a benign draft state, not an error.
   if (!itemId) return { rows: [], error: null };
 
-  const exchangeRate = quoteResult.data.exchangeRate ?? 1;
+  const exchangeRate = quoteResult.data.exchangeRate;
+  if (exchangeRate === null) {
+    return {
+      rows: [],
+      error: new Error(`Quote ${quoteId} has no exchange rate`)
+    };
+  }
   const precision = lineResult.data.unitPricePrecision ?? 2;
   const customerId = quoteResult.data.customerId ?? undefined;
 
@@ -4685,7 +5140,8 @@ export async function buildPullFromInventoryPriceRows(
     const resolved = await resolvePrice(client, companyId, {
       itemId,
       quantity: qty,
-      customerId
+      customerId,
+      configuration: asConfiguration(lineResult.data.configuration)
     });
 
     priceRows.push({
@@ -4694,6 +5150,7 @@ export async function buildPullFromInventoryPriceRows(
       companyId,
       quantity: qty,
       unitPrice: round(resolved.finalPrice, precision),
+      priceTrace: resolved.trace,
       exchangeRate,
       createdBy: userId,
       leadTime: 0,
@@ -4704,6 +5161,7 @@ export async function buildPullFromInventoryPriceRows(
   return { rows: priceRows, error: null };
 }
 
+/** @mcp action */
 export async function resolveQuoteLinePrices(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -4734,6 +5192,7 @@ export async function resolveQuoteLinePrices(
   return { error: null };
 }
 
+/** @mcp action */
 export async function buildPurchaseToOrderPriceRows(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -4753,7 +5212,7 @@ export async function buildPurchaseToOrderPriceRows(
       .single(),
     client
       .from("quoteLine")
-      .select("itemId, unitPricePrecision")
+      .select("itemId, unitPricePrecision, configuration")
       .eq("id", quoteLineId)
       .single()
   ]);
@@ -4765,7 +5224,13 @@ export async function buildPurchaseToOrderPriceRows(
     itemIdOverride === undefined ? lineResult.data.itemId : itemIdOverride;
   if (!itemId) return { rows: [], error: null };
 
-  const exchangeRate = quoteResult.data.exchangeRate ?? 1;
+  const exchangeRate = quoteResult.data.exchangeRate;
+  if (exchangeRate === null) {
+    return {
+      rows: [],
+      error: new Error(`Quote ${quoteId} has no exchange rate`)
+    };
+  }
   const precision = lineResult.data.unitPricePrecision ?? 2;
   const customerId = quoteResult.data.customerId ?? undefined;
 
@@ -4778,7 +5243,8 @@ export async function buildPurchaseToOrderPriceRows(
       itemId,
       quantity: qty,
       customerId,
-      existingBasePrice: supplierPrice
+      existingBasePrice: supplierPrice,
+      configuration: asConfiguration(lineResult.data.configuration)
     });
 
     priceRows.push({
@@ -4787,6 +5253,10 @@ export async function buildPurchaseToOrderPriceRows(
       companyId,
       quantity: qty,
       unitPrice: round(resolved.finalPrice, precision),
+      priceTrace: withBasePriceSource(
+        resolved.trace,
+        QUOTE_BASE_PRICE_SOURCES.supplier
+      ),
       exchangeRate,
       createdBy: userId,
       leadTime: 0,
@@ -4797,6 +5267,7 @@ export async function buildPurchaseToOrderPriceRows(
   return { rows: priceRows, error: null };
 }
 
+/** @mcp action */
 export async function resolvePurchaseToOrderPrices(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -4827,39 +5298,59 @@ export async function resolvePurchaseToOrderPrices(
   return { error: null };
 }
 
+/** @mcp update */
 export async function recalculateQuoteLinePrices(
   client: SupabaseClient<Database>,
+  companyId: string,
   quoteId: string,
   quoteLineId: string,
   userId: string
 ) {
+  // Callers pass a service-role client and URL ids: the line must belong to
+  // this quote AND this company before any price row is read or rewritten.
+  const [lineResult, quoteResult] = await Promise.all([
+    client
+      .from("quoteLine")
+      .select("itemId, unitPricePrecision, configuration")
+      .eq("id", quoteLineId)
+      .eq("quoteId", quoteId)
+      .eq("companyId", companyId)
+      .maybeSingle(),
+    client
+      .from("quote")
+      .select("customerId")
+      .eq("id", quoteId)
+      .eq("companyId", companyId)
+      .maybeSingle()
+  ]);
+
+  if (lineResult.error) return { error: lineResult.error };
+  if (quoteResult.error) return { error: quoteResult.error };
+  if (!lineResult.data || !quoteResult.data) {
+    logger.error("Quote line not found for price recalculation", {
+      companyId,
+      quoteId,
+      quoteLineId
+    });
+    return {
+      error: { message: "Quote line not found" } as PostgrestError
+    };
+  }
+
   // 1. Fetch existing price rows
   const existingPrices = await client
     .from("quoteLinePrice")
     .select("*")
-    .eq("quoteLineId", quoteLineId);
+    .eq("quoteLineId", quoteLineId)
+    .eq("companyId", companyId);
 
   if (existingPrices.error) return { error: existingPrices.error };
   if (!existingPrices.data?.length) return { error: null };
 
-  // 2. Fetch line precision and company + customer context for engine pipe-through
-  const [lineResult, quoteResult] = await Promise.all([
-    client
-      .from("quoteLine")
-      .select("itemId, unitPricePrecision")
-      .eq("id", quoteLineId)
-      .single(),
-    client
-      .from("quote")
-      .select("companyId, customerId")
-      .eq("id", quoteId)
-      .single()
-  ]);
-
-  const precision = lineResult.data?.unitPricePrecision ?? 2;
-  const itemId = lineResult.data?.itemId ?? undefined;
-  const companyId = quoteResult.data?.companyId;
-  const customerId = quoteResult.data?.customerId ?? undefined;
+  // 2. Line precision and customer context for engine pipe-through
+  const precision = lineResult.data.unitPricePrecision ?? 2;
+  const itemId = lineResult.data.itemId ?? undefined;
+  const customerId = quoteResult.data.customerId ?? undefined;
 
   // Fetch default markups to use as fallback for legacy rows without categoryMarkups
   let defaultMarkups: Record<string, number> = {};
@@ -4888,10 +5379,20 @@ export async function recalculateQuoteLinePrices(
 
   const effectiveDefaults = getEffectiveDefaultMarkups(defaultMarkups);
 
+  const configuration = asConfiguration(lineResult.data.configuration);
+  const salePrice = await getConfiguredSalePrice(
+    client,
+    companyId,
+    itemId,
+    configuration
+  );
+  if (salePrice.error) return { error: salePrice.error };
+
   const repricedRows: {
     quantity: number;
     unitPrice: number;
     categoryMarkups: Record<string, number>;
+    priceTrace: PriceTraceStep[] | null;
   }[] = [];
   for (const row of existingPrices.data) {
     const qty = row.quantity;
@@ -4925,22 +5426,35 @@ export async function recalculateQuoteLinePrices(
       return sum + cost * (1 + markup / 100);
     }, 0);
 
-    const finalPrice =
+    const basePrice = configuredQuoteBasePrice({
+      configuration,
+      unitSalePrice: salePrice.data,
+      categoryMarkups: row.categoryMarkups as Record<string, number> | null,
+      defaultMarkups: effectiveDefaults
+    });
+
+    const resolved =
       itemId && companyId
-        ? (
-            await resolvePrice(client, companyId, {
-              itemId,
-              quantity: qty,
-              customerId,
-              existingBasePrice: rollupPrice
-            })
-          ).finalPrice
-        : rollupPrice;
+        ? await resolvePrice(client, companyId, {
+            itemId,
+            quantity: qty,
+            customerId,
+            existingBasePrice: basePrice ?? rollupPrice,
+            configuration
+          })
+        : null;
 
     repricedRows.push({
       quantity: qty,
-      unitPrice: round(finalPrice, precision),
-      categoryMarkups: markups
+      unitPrice: round(resolved?.finalPrice ?? rollupPrice, precision),
+      // A row priced from the sale price is not cost-plus.
+      categoryMarkups: basePrice === null ? markups : {},
+      priceTrace: resolved
+        ? withBasePriceSource(
+            resolved.trace,
+            basePrice === null ? QUOTE_BASE_PRICE_SOURCES.costPlus : null
+          )
+        : null
     });
   }
 
@@ -4953,9 +5467,11 @@ export async function recalculateQuoteLinePrices(
         unitPrice: row.unitPrice,
         categoryMarkups: row.categoryMarkups,
         priceSource: "system",
+        priceTrace: row.priceTrace,
         updatedBy: userId
       })
       .eq("quoteLineId", quoteLineId)
+      .eq("companyId", companyId)
       .eq("quantity", row.quantity);
 
     if (updateResult.error) {
@@ -4970,8 +5486,243 @@ export async function recalculateQuoteLinePrices(
   return { error: null };
 }
 
+/**
+ * Explains each quantity's price on a quote line. `trace` is the snapshot
+ * written with the price — how it was actually reached, whatever the rules say
+ * now. `currentTrace` re-runs today's pipeline from the base the row's builder
+ * starts from — the cost-plus rollup (or a configured part's sale price) for
+ * Make to Order, the supplier price break for Purchase to Order, the item's
+ * sale price for Pull from Inventory — so the UI can show what repricing would
+ * change. A manual row has neither: a person stated that price and no rule
+ * touched it. Read-only — null data when the line is not this quote's in this
+ * company.
+ * @mcp read
+ */
+export async function getQuoteLinePriceTraces(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  quoteId: string,
+  quoteLineId: string
+): Promise<{
+  data: QuoteLinePriceTrace[] | null;
+  error: PostgrestError | null;
+}> {
+  const [lineResult, quoteResult, pricesResult] = await Promise.all([
+    client
+      .from("quoteLine")
+      .select("itemId, methodType, configuration")
+      .eq("id", quoteLineId)
+      .eq("quoteId", quoteId)
+      .eq("companyId", companyId)
+      .maybeSingle(),
+    client
+      .from("quote")
+      .select("customerId")
+      .eq("id", quoteId)
+      .eq("companyId", companyId)
+      .maybeSingle(),
+    client
+      .from("quoteLinePrice")
+      .select("quantity, unitPrice, priceSource, categoryMarkups, priceTrace")
+      .eq("quoteLineId", quoteLineId)
+      .eq("companyId", companyId)
+      .order("quantity")
+  ]);
+
+  const error = lineResult.error ?? quoteResult.error ?? pricesResult.error;
+  if (error) return { data: null, error };
+  if (!lineResult.data || !quoteResult.data) return { data: null, error: null };
+
+  const itemId = lineResult.data.itemId;
+  const methodType = lineResult.data.methodType;
+  const customerId = quoteResult.data.customerId ?? undefined;
+  const configuration = asConfiguration(lineResult.data.configuration);
+  const rows = pricesResult.data ?? [];
+
+  const stored = (row: (typeof rows)[number]): QuoteLinePriceTrace => ({
+    quantity: row.quantity,
+    unitPrice: row.unitPrice,
+    priceSource: row.priceSource as QuoteLinePriceSource,
+    trace: (row.priceTrace as PriceTraceStep[] | null) ?? null,
+    currentTrace: null
+  });
+
+  if (!itemId) return { data: rows.map(stored), error: null };
+
+  // The base price each system row starts from today, and what it is; an
+  // undefined amount lets resolvePrice read the item's sale price, as the Pull
+  // from Inventory builder does.
+  type BasePrice = { amount: number | undefined; source: string | null };
+  let basePriceFor: (row: (typeof rows)[number]) => BasePrice = () => ({
+    amount: undefined,
+    source: null
+  });
+
+  if (methodType === "Make to Order") {
+    const [settingsResult, salePrice, costEffects] = await Promise.all([
+      client
+        .from("companySettings")
+        .select("quoteLineCategoryMarkups")
+        .eq("id", companyId)
+        .single(),
+      getConfiguredSalePrice(client, companyId, itemId, configuration),
+      buildCostEffects(client, quoteLineId, { refreshBuyCosts: false })
+    ]);
+    if (settingsResult.error)
+      return { data: null, error: settingsResult.error };
+    if (salePrice.error) return { data: null, error: salePrice.error };
+    // No costed method yet: nothing to roll up, so nothing to compare against.
+    if (!costEffects) return { data: rows.map(stored), error: null };
+
+    const defaultMarkups: Record<string, number> = {};
+    for (const [key, value] of Object.entries(
+      (settingsResult.data.quoteLineCategoryMarkups as Record<
+        string,
+        number
+      >) ?? {}
+    )) {
+      defaultMarkups[key] = value * 100;
+    }
+    const effectiveDefaults = getEffectiveDefaultMarkups(defaultMarkups);
+    const { effects } = costEffects;
+
+    basePriceFor = (row) => {
+      const categoryMarkups = row.categoryMarkups as CategoryMarkups | null;
+      const decision = decideRecalcPricing(
+        { priceSource: row.priceSource, categoryMarkups },
+        effectiveDefaults
+      );
+      const markups = decision.mode === "reprice" ? decision.markups : {};
+      const qty = row.quantity;
+      const rollupPrice = costCategoryKeys.reduce((sum, key) => {
+        const total = effects[key].reduce((acc, fn) => acc + fn(qty), 0);
+        const cost = qty > 0 ? total / qty : 0;
+        return sum + cost * (1 + (markups[key] ?? 0) / 100);
+      }, 0);
+      const configuredPrice = configuredQuoteBasePrice({
+        configuration,
+        unitSalePrice: salePrice.data,
+        categoryMarkups,
+        defaultMarkups: effectiveDefaults
+      });
+      return configuredPrice === null
+        ? { amount: rollupPrice, source: QUOTE_BASE_PRICE_SOURCES.costPlus }
+        : { amount: configuredPrice, source: null };
+    };
+  } else if (methodType === "Purchase to Order") {
+    const priceMap = await getSupplierPriceBreaksForItems(client, [itemId]);
+    basePriceFor = (row) => ({
+      amount: lookupBuyPriceFromMap(itemId, row.quantity, priceMap, 0),
+      source: QUOTE_BASE_PRICE_SOURCES.supplier
+    });
+  }
+
+  const data = await Promise.all(
+    rows.map(async (row) => {
+      if (row.priceSource === "manual") return stored(row);
+      const base = basePriceFor(row);
+      const { trace } = await resolvePrice(client, companyId, {
+        itemId,
+        quantity: row.quantity,
+        customerId,
+        existingBasePrice: base.amount,
+        configuration
+      });
+      return {
+        ...stored(row),
+        currentTrace: withBasePriceSource(trace, base.source)
+      };
+    })
+  );
+
+  return { data, error: null };
+}
+
+export class QuoteLockedError extends Error {
+  constructor() {
+    super("Cannot modify a locked quote. Reopen it first.");
+  }
+}
+
+/**
+ * Reprices a quote line's system rows to what today's rules give — the
+ * `currentTrace` getQuoteLinePriceTraces shows — storing that trace with the
+ * price. Manual rows, and rows today's pipeline cannot price, are rewritten
+ * unchanged; one transaction either way. Draft quotes only (QuoteLockedError
+ * otherwise) — checked here, not in the route, because this is also an MCP
+ * tool.
+ * @mcp action
+ */
+export async function repriceQuoteLineFromRules(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  companyId: string,
+  quoteId: string,
+  quoteLineId: string,
+  userId: string
+): Promise<{ data: null; error: PostgrestError | Error | null }> {
+  const quote = await client
+    .from("quote")
+    .select("status")
+    .eq("id", quoteId)
+    .eq("companyId", companyId)
+    .maybeSingle();
+  if (quote.error) return { data: null, error: quote.error };
+  if (!quote.data) return { data: null, error: new Error("Quote not found") };
+  if (isQuoteLocked(quote.data.status)) {
+    return { data: null, error: new QuoteLockedError() };
+  }
+
+  const traces = await getQuoteLinePriceTraces(
+    client,
+    companyId,
+    quoteId,
+    quoteLineId
+  );
+  if (traces.error) return { data: null, error: traces.error };
+  if (!traces.data) {
+    return { data: null, error: new Error("Quote line not found") };
+  }
+
+  const prices = traces.data.map((price) => {
+    const finalPrice = price.currentTrace?.at(-1)?.amount;
+    if (!price.currentTrace || finalPrice === undefined) {
+      return {
+        quoteLineId,
+        quantity: price.quantity,
+        unitPrice: price.unitPrice,
+        priceTrace: price.trace,
+        createdBy: userId
+      };
+    }
+    return {
+      quoteLineId,
+      quantity: price.quantity,
+      unitPrice: finalPrice,
+      priceTrace: price.currentTrace,
+      priceSource: "system" as const,
+      createdBy: userId
+    };
+  });
+
+  try {
+    await upsertQuoteLinePrices(db, companyId, quoteId, quoteLineId, prices);
+  } catch (error) {
+    logger.error("Failed to reprice quote line from rules", {
+      companyId,
+      quoteId,
+      quoteLineId,
+      error
+    });
+    return { data: null, error: error as Error };
+  }
+  return { data: null, error: null };
+}
+
+/** @mcp upsert */
 export async function upsertQuoteLineMethod(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   lineMethod: {
     itemId: string;
     quoteId: string;
@@ -5022,11 +5773,15 @@ export async function upsertQuoteLineMethod(
     body.parts = lineMethod.parts;
   }
 
-  return client.functions.invoke("get-method", {
-    body
-  });
+  return serverFns
+    .as({ client, db, companyId: body.companyId, userId: body.userId })
+    .invoke("get-method", body);
 }
 
+/**
+ * @mcp upsert
+ * @mcp key quoteMaterial id
+ */
 export async function upsertQuoteMaterial(
   client: SupabaseClient<Database>,
   quoteMaterial:
@@ -5042,15 +5797,28 @@ export async function upsertQuoteMaterial(
         quoteId: string;
         quoteLineId: string;
         quoteOperationId?: string;
+        companyId: string;
         updatedBy: string;
         customFields?: Json;
       })
 ) {
   if ("updatedBy" in quoteMaterial) {
+    // A material never moves between quotes, lines, make methods or tenants —
+    // strip the parent columns so an update cannot re-parent the row, and
+    // scope it to the caller's company (callers may pass a service-role client).
+    const {
+      id,
+      companyId,
+      quoteId: _quoteId,
+      quoteLineId: _quoteLineId,
+      quoteMakeMethodId: _quoteMakeMethodId,
+      ...update
+    } = quoteMaterial;
     return client
       .from("quoteMaterial")
-      .update(sanitize(quoteMaterial))
-      .eq("id", quoteMaterial.id)
+      .update(sanitize(update))
+      .eq("id", id)
+      .eq("companyId", companyId)
       .select("id, methodType")
       .single();
   }
@@ -5061,8 +5829,10 @@ export async function upsertQuoteMaterial(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertQuoteMaterialMakeMethod(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   quoteMethod: {
     sourceId: string;
     targetId: string;
@@ -5112,9 +5882,9 @@ export async function upsertQuoteMaterialMakeMethod(
     body.parts = quoteMethod.parts;
   }
 
-  const { error } = await client.functions.invoke("get-method", {
-    body
-  });
+  const { error } = await serverFns
+    .as({ client, db, companyId: body.companyId, userId: body.userId })
+    .invoke("get-method", body);
 
   if (error) {
     return {
@@ -5126,6 +5896,10 @@ export async function upsertQuoteMaterialMakeMethod(
   return { data: null, error: null };
 }
 
+/**
+ * @mcp upsert
+ * @mcp key quoteOperation id
+ */
 export async function upsertQuoteOperation(
   client: SupabaseClient<Database>,
   operation:
@@ -5147,6 +5921,7 @@ export async function upsertQuoteOperation(
         id: string;
         quoteId: string;
         quoteLineId: string;
+        companyId: string;
         updatedBy: string;
         customFields?: Json;
       })
@@ -5158,14 +5933,26 @@ export async function upsertQuoteOperation(
       .select("id")
       .single();
   }
+  // An operation never moves between quotes, lines, make methods or tenants —
+  // strip the parent columns so an update cannot re-parent the row.
+  const {
+    id,
+    companyId,
+    quoteId: _quoteId,
+    quoteLineId: _quoteLineId,
+    quoteMakeMethodId: _quoteMakeMethodId,
+    ...update
+  } = operation;
   return client
     .from("quoteOperation")
-    .update(sanitize(normalizeOperationSourceIds(operation)))
-    .eq("id", operation.id)
+    .update(sanitize(normalizeOperationSourceIds(update)))
+    .eq("id", id)
+    .eq("companyId", companyId)
     .select("id")
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertQuoteOperationStep(
   client: SupabaseClient<Database>,
   quoteOperationStep:
@@ -5200,6 +5987,7 @@ export async function upsertQuoteOperationStep(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertQuoteOperationParameter(
   client: SupabaseClient<Database>,
   quoteOperationParameter:
@@ -5229,6 +6017,7 @@ export async function upsertQuoteOperationParameter(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertQuoteOperationTool(
   client: SupabaseClient<Database>,
   quoteOperationTool:
@@ -5258,6 +6047,7 @@ export async function upsertQuoteOperationTool(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertQuotePayment(
   client: SupabaseClient<Database>,
   quotePayment:
@@ -5286,6 +6076,7 @@ export async function upsertQuotePayment(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertQuoteShipment(
   client: SupabaseClient<Database>,
   quoteShipment:
@@ -5334,6 +6125,7 @@ export async function updateSalesOrderFavorite(
   }
 }
 
+/** @mcp update */
 export async function updateSalesOrderStatus(
   client: SupabaseClient<Database>,
   update: {
@@ -5357,6 +6149,7 @@ export async function updateSalesOrderStatus(
   return client.from("salesOrder").update(updateData).eq("id", update.id);
 }
 
+/** @mcp create */
 export async function insertSalesOrder(
   client: SupabaseClient<Database>,
   input: {
@@ -5379,9 +6172,6 @@ export async function insertSalesOrder(
     requestedDate?: string;
     promisedDate?: string;
     notes?: string;
-    customerReference?: string;
-    customerEngineeringContactId?: string;
-    salesPersonId?: string;
     customFields?: Json;
   }
 ): Promise<{
@@ -5457,15 +6247,16 @@ export async function insertSalesOrder(
   let exchangeRate = 1;
   let exchangeRateUpdatedAt = new Date().toISOString();
   if (currencyCode) {
-    const currency = await getCurrencyByCode(
+    const exchangeRateResult = await getExchangeRate(
       client,
-      input.companyGroupId,
+      input.companyId,
       currencyCode
     );
-    if (currency.data) {
-      exchangeRate = currency.data.exchangeRate ?? 1;
-      exchangeRateUpdatedAt = new Date().toISOString();
+    if (exchangeRateResult.error) {
+      return { data: null, error: exchangeRateResult.error };
     }
+    exchangeRate = exchangeRateResult.data;
+    exchangeRateUpdatedAt = new Date().toISOString();
   }
 
   const locationId = input.locationId ?? seller?.data?.locationId ?? null;
@@ -5534,6 +6325,7 @@ export async function insertSalesOrder(
   return { data: { id: orderId, salesOrderId }, error: null };
 }
 
+/** @mcp update */
 export async function updateSalesOrder(
   client: SupabaseClient<Database>,
   input: {
@@ -5547,8 +6339,7 @@ export async function updateSalesOrder(
     customerId?: string;
     notes?: string | null;
     customFields?: Json;
-  },
-  companyGroupId?: string
+  }
 ): Promise<{
   data: { id: string } | null;
   error: PostgrestError | null;
@@ -5560,7 +6351,7 @@ export async function updateSalesOrder(
 
   const existing = await client
     .from("salesOrder")
-    .select("currencyCode, opportunityId")
+    .select("companyId, currencyCode, opportunityId")
     .eq("id", id)
     .single();
 
@@ -5568,18 +6359,18 @@ export async function updateSalesOrder(
 
   if (
     updates.currencyCode &&
-    companyGroupId &&
     existing.data.currencyCode !== updates.currencyCode
   ) {
-    const currency = await getCurrencyByCode(
+    const exchangeRateResult = await getExchangeRate(
       client,
-      companyGroupId,
+      existing.data.companyId,
       updates.currencyCode
     );
-    if (currency.data) {
-      exchangeRate = currency.data.exchangeRate ?? 1;
-      exchangeRateUpdatedAt = new Date().toISOString();
+    if (exchangeRateResult.error) {
+      return { data: null, error: exchangeRateResult.error };
     }
+    exchangeRate = exchangeRateResult.data;
+    exchangeRateUpdatedAt = new Date().toISOString();
   }
 
   if (updates.customerId && existing.data.opportunityId) {
@@ -5611,6 +6402,7 @@ export const LIVE_JOB_STATUSES: Database["public"]["Enums"]["jobStatus"][] = [
   "Paused"
 ];
 
+/** @mcp action */
 export async function cancelSalesOrder(
   client: SupabaseClient<Database>,
   args: {
@@ -5698,7 +6490,10 @@ export async function cancelSalesOrder(
   };
 }
 
-/** @deprecated Use insertSalesOrder for new orders, updateSalesOrder for existing orders */
+/**
+ * @deprecated Use insertSalesOrder for new orders, updateSalesOrder for existing orders
+ * @mcp upsert
+ */
 export async function upsertSalesOrder(
   client: SupabaseClient<Database>,
   salesOrder:
@@ -5730,15 +6525,16 @@ export async function upsertSalesOrder(
     const { currencyCode, opportunityId } = existingSalesOrder.data;
 
     if (salesOrder.currencyCode && currencyCode !== salesOrder.currencyCode) {
-      const currency = await getCurrencyByCode(
+      const exchangeRateResult = await getExchangeRate(
         client,
-        salesOrder.companyGroupId,
+        existingSalesOrder.data.companyId,
         salesOrder.currencyCode
       );
-      if (currency.data) {
-        salesOrder.exchangeRate = currency.data.exchangeRate ?? undefined;
-        salesOrder.exchangeRateUpdatedAt = new Date().toISOString();
+      if (exchangeRateResult.error) {
+        return { data: null, error: exchangeRateResult.error };
       }
+      salesOrder.exchangeRate = exchangeRateResult.data;
+      salesOrder.exchangeRateUpdatedAt = new Date().toISOString();
     }
 
     // If customerId is being updated, also update the opportunity's customerId
@@ -5749,7 +6545,16 @@ export async function upsertSalesOrder(
         .eq("id", opportunityId);
     }
 
-    const { companyGroupId: _cgId, ...salesOrderUpdateData } = salesOrder;
+    // Dates live on salesOrderShipment, the quote link on the opportunity, and
+    // notes as internalNotes/externalNotes; none is a salesOrder column.
+    const {
+      companyGroupId: _cgId,
+      notes: _notes,
+      requestedDate: _requestedDate,
+      promisedDate: _promisedDate,
+      quoteId: _quoteId,
+      ...salesOrderUpdateData
+    } = salesOrder;
     return client
       .from("salesOrder")
       .update(sanitize(salesOrderUpdateData))
@@ -5776,6 +6581,9 @@ export async function upsertSalesOrder(
 
   if (customerPayment.error) return customerPayment;
   if (customerShipping.error) return customerShipping;
+  // Without this the sales order is inserted with a null opportunityId, and its
+  // detail page then fails to load for good.
+  if (opportunity.error) return opportunity;
 
   const {
     paymentTermId,
@@ -5790,15 +6598,16 @@ export async function upsertSalesOrder(
   const locationId = employee?.data?.locationId ?? null;
 
   if (salesOrder.currencyCode) {
-    const currency = await getCurrencyByCode(
+    const exchangeRateResult = await getExchangeRate(
       client,
-      salesOrder.companyGroupId,
+      salesOrder.companyId,
       salesOrder.currencyCode
     );
-    if (currency.data) {
-      salesOrder.exchangeRate = currency.data.exchangeRate ?? undefined;
-      salesOrder.exchangeRateUpdatedAt = new Date().toISOString();
+    if (exchangeRateResult.error) {
+      return { data: null, error: exchangeRateResult.error };
     }
+    salesOrder.exchangeRate = exchangeRateResult.data;
+    salesOrder.exchangeRateUpdatedAt = new Date().toISOString();
   } else {
     salesOrder.exchangeRate = 1;
     salesOrder.exchangeRateUpdatedAt = new Date().toISOString();
@@ -5875,6 +6684,7 @@ export async function upsertSalesOrder(
   return order;
 }
 
+/** @mcp upsert */
 export async function upsertSalesOrderShipment(
   client: SupabaseClient<Database>,
   salesOrderShipment:
@@ -5903,6 +6713,7 @@ export async function upsertSalesOrderShipment(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertSalesOrderLine(
   client: SupabaseClient<Database>,
   salesOrderLine:
@@ -5918,9 +6729,11 @@ export async function upsertSalesOrderLine(
       })
 ) {
   if ("id" in salesOrderLine) {
+    // salesOrderLine has no serviceId column.
+    const { serviceId: _serviceId, ...lineUpdate } = salesOrderLine;
     return client
       .from("salesOrderLine")
-      .update(sanitize(salesOrderLine))
+      .update(sanitize(lineUpdate))
       .eq("id", salesOrderLine.id)
       .select("id")
       .single();
@@ -5928,6 +6741,16 @@ export async function upsertSalesOrderLine(
 
   const salesOrder = await getSalesOrder(client, salesOrderLine.salesOrderId);
   if (salesOrder.error) return salesOrder;
+
+  const exchangeRate = salesOrder.data.exchangeRate;
+  if (exchangeRate === null) {
+    return {
+      data: null,
+      error: new Error(
+        `Sales order ${salesOrderLine.salesOrderId} has no exchange rate`
+      )
+    };
+  }
 
   const existing = await client
     .from("salesOrderLine")
@@ -5958,7 +6781,7 @@ export async function upsertSalesOrderLine(
         addOnCost: salesOrderLine.addOnCost ?? 0,
         nonTaxableAddOnCost: salesOrderLine.nonTaxableAddOnCost ?? 0,
         taxPercent: salesOrderLine.taxPercent ?? 0,
-        exchangeRate: salesOrder.data?.exchangeRate ?? 1,
+        exchangeRate,
         sortOrder: nextOrder,
         lineNumber: nextOrder
       }) as Database["public"]["Tables"]["salesOrderLine"]["Insert"]
@@ -5967,24 +6790,37 @@ export async function upsertSalesOrderLine(
     .single();
 }
 
+/** @mcp update */
 export async function updateSalesOrderLineOrder(
   db: Kysely<KyselyDatabase>,
-  updates: { id: string; sortOrder: number; updatedBy: string }[]
+  companyId: string,
+  userId: string,
+  salesOrderId: string,
+  updates: { id: string; sortOrder: number }[]
 ) {
-  return db.transaction().execute(async (trx) => {
-    for (const { id, sortOrder, updatedBy } of updates) {
-      const lineNumber = Math.trunc(sortOrder);
-      await sql`
-        UPDATE "salesOrderLine"
-        SET "sortOrder" = ${sortOrder},
-            "lineNumber" = ${lineNumber},
-            "updatedBy" = ${updatedBy}
-        WHERE "id" = ${id}
-      `.execute(trx);
+  return updateSortOrder(db, {
+    table: "salesOrderLine",
+    column: "sortOrder",
+    companyId,
+    userId,
+    parent: { column: "salesOrderId", id: salesOrderId },
+    updates,
+    afterUpdate: async (trx) => {
+      for (const { id, sortOrder } of updates) {
+        const lineNumber = Math.trunc(sortOrder);
+        await sql`
+          UPDATE "salesOrderLine"
+          SET "lineNumber" = ${lineNumber}
+          WHERE "id" = ${id}
+            AND "companyId" = ${companyId}
+            AND "salesOrderId" = ${salesOrderId}
+        `.execute(trx);
+      }
     }
   });
 }
 
+/** @mcp upsert */
 export async function upsertSalesOrderPayment(
   client: SupabaseClient<Database>,
   salesOrderPayment:
@@ -5998,10 +6834,12 @@ export async function upsertSalesOrderPayment(
         customFields?: Json;
       })
 ) {
+  // The currency is the order's; salesOrderPayment has no currencyCode column.
   if ("id" in salesOrderPayment) {
+    const { currencyCode: _currencyCode, ...paymentUpdate } = salesOrderPayment;
     return client
       .from("salesOrderPayment")
-      .update(sanitize(salesOrderPayment))
+      .update(sanitize(paymentUpdate))
       .eq("id", salesOrderPayment.id)
       .select("id")
       .single();
@@ -6013,6 +6851,7 @@ export async function upsertSalesOrderPayment(
     .single();
 }
 
+/** @mcp create */
 export async function insertSalesRFQ(
   client: SupabaseClient<Database>,
   db: Kysely<KyselyDatabase>,
@@ -6037,6 +6876,76 @@ export async function insertSalesRFQ(
   data: { id: string; rfqId: string } | null;
   error: PostgrestError | null;
 }> {
+  // Kysely bypasses RLS and the dispatcher reaches this with caller-supplied
+  // ids: the customer, its contacts and location, the location and the sales
+  // person must all belong to this company (the contacts and location to this
+  // customer) before any of them is written onto the RFQ.
+  const { companyId, customerId } = input;
+  const contactIds = [
+    ...new Set(
+      [input.customerContactId, input.customerEngineeringContactId].filter(
+        (id): id is string => !!id
+      )
+    )
+  ];
+  const [customer, contacts, customerLocation, location, salesPerson] =
+    await Promise.all([
+      db
+        .selectFrom("customer")
+        .select("id")
+        .where("id", "=", customerId)
+        .where("companyId", "=", companyId)
+        .executeTakeFirst(),
+      contactIds.length > 0
+        ? db
+            .selectFrom("customerContact")
+            .select("id")
+            .where("id", "in", contactIds)
+            .where("customerId", "=", customerId)
+            .where("companyId", "=", companyId)
+            .execute()
+        : [],
+      input.customerLocationId
+        ? db
+            .selectFrom("customerLocation")
+            .select("id")
+            .where("id", "=", input.customerLocationId)
+            .where("customerId", "=", customerId)
+            .where("companyId", "=", companyId)
+            .executeTakeFirst()
+        : null,
+      input.locationId
+        ? db
+            .selectFrom("location")
+            .select("id")
+            .where("id", "=", input.locationId)
+            .where("companyId", "=", companyId)
+            .executeTakeFirst()
+        : null,
+      input.salesPersonId
+        ? db
+            .selectFrom("employee")
+            .select("id")
+            .where("id", "=", input.salesPersonId)
+            .where("companyId", "=", companyId)
+            .executeTakeFirst()
+        : null
+    ]);
+  if (
+    !customer ||
+    contacts.length !== contactIds.length ||
+    (input.customerLocationId && !customerLocation) ||
+    (input.locationId && !location) ||
+    (input.salesPersonId && !salesPerson)
+  ) {
+    return {
+      data: null,
+      error: {
+        message: "Customer, contact, location or sales person not found"
+      } as PostgrestError
+    };
+  }
+
   let rfqId: string;
   if (input.rfqId) {
     rfqId = input.rfqId;
@@ -6168,7 +7077,10 @@ export async function updateSalesRFQ(
     .single();
 }
 
-/** @deprecated Use insertSalesRFQ for new RFQs, updateSalesRFQ for existing RFQs */
+/**
+ * @deprecated Use insertSalesRFQ for new RFQs, updateSalesRFQ for existing RFQs
+ * @mcp upsert
+ */
 export async function upsertSalesRFQ(
   client: SupabaseClient<Database>,
   rfq:
@@ -6237,6 +7149,7 @@ export async function upsertSalesRFQ(
   }
 }
 
+/** @mcp upsert */
 export async function upsertSalesRFQLine(
   client: SupabaseClient<Database>,
 
@@ -6277,17 +7190,1608 @@ export async function upsertSalesRFQLine(
     .single();
 }
 
+/** @mcp update */
 export async function updateSalesRFQLineOrder(
   db: Kysely<KyselyDatabase>,
-  updates: { id: string; sortOrder: number; updatedBy: string }[]
+  companyId: string,
+  userId: string,
+  salesRfqId: string,
+  updates: { id: string; sortOrder: number }[]
+) {
+  return updateSortOrder(db, {
+    table: "salesRfqLine",
+    column: "order",
+    companyId,
+    userId,
+    parent: { column: "salesRfqId", id: salesRfqId },
+    updates
+  });
+}
+
+// ─── Sales Return Orders (RMAs) ───
+
+/** @mcp read */
+export async function getReturnReasons(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args?: GenericQueryFilters & { search: string | null }
+) {
+  let query = client
+    .from("returnReason")
+    .select("*", { count: LIST_COUNT })
+    .eq("companyId", companyId);
+
+  if (args?.search) {
+    query = query.ilike("name", `%${args.search}%`);
+  }
+
+  if (args) {
+    query = setGenericQueryFilters(query, args, [
+      { column: "name", ascending: true }
+    ]);
+  }
+
+  return query;
+}
+
+/** @mcp read */
+export async function getReturnReasonsList(
+  client: SupabaseClient<Database>,
+  companyId: string
+) {
+  return client
+    .from("returnReason")
+    .select("id, name, inventoryValueZero")
+    .eq("companyId", companyId)
+    .order("name");
+}
+
+/** @mcp read */
+export async function getReturnReason(
+  client: SupabaseClient<Database>,
+  returnReasonId: string
+) {
+  return client
+    .from("returnReason")
+    .select("*")
+    .eq("id", returnReasonId)
+    .single();
+}
+
+/** @mcp upsert */
+export async function upsertReturnReason(
+  client: SupabaseClient<Database>,
+  returnReason:
+    | (Omit<z.infer<typeof returnReasonValidator>, "id"> & {
+        companyId: string;
+        createdBy: string;
+        customFields?: Json;
+      })
+    | (Omit<z.infer<typeof returnReasonValidator>, "id"> & {
+        id: string;
+        updatedBy: string;
+        customFields?: Json;
+      })
+) {
+  if ("createdBy" in returnReason) {
+    return client
+      .from("returnReason")
+      .insert([returnReason])
+      .select("id")
+      .single();
+  }
+  return client
+    .from("returnReason")
+    .update({
+      ...sanitize(returnReason),
+      inventoryValueZero: returnReason.inventoryValueZero,
+      updatedAt: datetime.timestamp()
+    })
+    .eq("id", returnReason.id)
+    .select("id")
+    .single();
+}
+
+/** @mcp delete */
+export async function deleteReturnReason(
+  client: SupabaseClient<Database>,
+  returnReasonId: string
+) {
+  return client.from("returnReason").delete().eq("id", returnReasonId);
+}
+
+/** @mcp read */
+export async function getSalesReturnOrders(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: GenericQueryFilters & {
+    search: string | null;
+    status: string | null;
+    customerId: string | null;
+  }
+) {
+  let query = client
+    .from("salesReturnOrders")
+    .select("*", { count: LIST_COUNT })
+    .eq("companyId", companyId);
+
+  if (args.search) {
+    query = query.or(
+      `salesReturnOrderId.ilike.%${args.search}%,customerReference.ilike.%${args.search}%`
+    );
+  }
+
+  if (args.status) {
+    query = query.eq(
+      "status",
+      args.status as (typeof salesReturnOrderStatusType)[number]
+    );
+  }
+
+  if (args.customerId) {
+    query = query.eq("customerId", args.customerId);
+  }
+
+  query = setGenericQueryFilters(query, args, [
+    { column: "createdAt", ascending: false }
+  ]);
+  return query;
+}
+
+/** @mcp read */
+export async function getSalesReturnOrder(
+  client: SupabaseClient<Database>,
+  salesReturnOrderId: string
+) {
+  return client
+    .from("salesReturnOrders")
+    .select("*")
+    .eq("id", salesReturnOrderId)
+    .single();
+}
+
+/** @mcp read */
+export async function getSalesReturnOrderLines(
+  client: SupabaseClient<Database>,
+  salesReturnOrderId: string,
+  companyId: string
+) {
+  return client
+    .from("salesReturnOrderLine")
+    .select(
+      "*, returnReason(name), item(name, readableIdWithRevision, itemTrackingType, thumbnailPath)"
+    )
+    .eq("salesReturnOrderId", salesReturnOrderId)
+    .eq("companyId", companyId)
+    .order("lineNumber");
+}
+
+/** @mcp read */
+export async function getSalesReturnOrderLine(
+  client: SupabaseClient<Database>,
+  lineId: string
+) {
+  return client
+    .from("salesReturnOrderLine")
+    .select("*")
+    .eq("id", lineId)
+    .single();
+}
+
+/** @mcp read */
+export async function getSalesReturnOrderLineTrackedEntities(
+  client: SupabaseClient<Database>,
+  lineIds: string[]
+) {
+  return client
+    .from("salesReturnOrderLineTrackedEntity")
+    .select("*, trackedEntity(id, readableId, status, quantity)")
+    .in("salesReturnOrderLineId", lineIds);
+}
+
+/** @mcp create */
+export async function insertSalesReturnOrder(
+  client: SupabaseClient<Database>,
+  input: {
+    customerId: string;
+    companyId: string;
+    companyGroupId: string;
+    createdBy: string;
+    salesReturnOrderId?: string;
+    orderDate: string;
+    customerLocationId?: string;
+    customerContactId?: string;
+    customerReference?: string;
+    locationId?: string;
+    salesOrderId?: string;
+    currencyCode?: string;
+    expirationDate?: string;
+    assignee?: string;
+    customFields?: Json;
+  }
+): Promise<{
+  data: { id: string; salesReturnOrderId: string } | null;
+  error: PostgrestError | null;
+}> {
+  let salesReturnOrderId: string;
+  if (input.salesReturnOrderId) {
+    salesReturnOrderId = input.salesReturnOrderId;
+  } else {
+    const seq = await client.rpc("get_next_sequence", {
+      sequence_name: "salesReturnOrder",
+      company_id: input.companyId
+    });
+    if (seq.error || !seq.data) {
+      return {
+        data: null,
+        error:
+          seq.error ??
+          ({ message: "Failed to generate RMA sequence" } as PostgrestError)
+      };
+    }
+    salesReturnOrderId = seq.data;
+  }
+
+  let currencyCode = input.currencyCode;
+  if (!currencyCode) {
+    const [customer, company] = await Promise.all([
+      client
+        .from("customer")
+        .select("currencyCode")
+        .eq("id", input.customerId)
+        .single(),
+      client
+        .from("company")
+        .select("baseCurrencyCode")
+        .eq("id", input.companyId)
+        .single()
+    ]);
+    currencyCode =
+      customer.data?.currencyCode ?? company.data?.baseCurrencyCode ?? "USD";
+  }
+
+  let exchangeRate = 1;
+  if (currencyCode) {
+    // Main's currency refactor: rates come from the get_exchange_rate RPC
+    // (base=1, per-company override, else global market store) — the old
+    // currency.exchangeRate column was dropped.
+    const exchangeRateResult = await getExchangeRate(
+      client,
+      input.companyId,
+      currencyCode
+    );
+    if (exchangeRateResult.error) {
+      return { data: null, error: exchangeRateResult.error };
+    }
+    exchangeRate = exchangeRateResult.data;
+  }
+
+  const order = await client
+    .from("salesReturnOrder")
+    .insert({
+      salesReturnOrderId,
+      customerId: input.customerId,
+      customerLocationId: input.customerLocationId,
+      customerContactId: input.customerContactId,
+      customerReference: input.customerReference ?? null,
+      locationId: input.locationId,
+      salesOrderId: input.salesOrderId,
+      currencyCode,
+      exchangeRate,
+      orderDate: input.orderDate,
+      expirationDate: input.expirationDate,
+      assignee: input.assignee,
+      companyId: input.companyId,
+      createdBy: input.createdBy,
+      customFields: input.customFields
+    })
+    .select("id, salesReturnOrderId")
+    .single();
+
+  return order;
+}
+
+export async function updateSalesReturnOrder(
+  client: SupabaseClient<Database>,
+  salesReturnOrder: Omit<
+    z.infer<typeof salesReturnOrderValidator>,
+    "id" | "salesReturnOrderId" | "status"
+  > & {
+    id: string;
+    updatedBy: string;
+    customFields?: Json;
+  }
+) {
+  const { id, ...update } = salesReturnOrder;
+  return client
+    .from("salesReturnOrder")
+    .update({ ...sanitize(update), updatedAt: datetime.timestamp() })
+    .eq("id", id)
+    .select("id")
+    .single();
+}
+
+/** @mcp upsert */
+export async function upsertSalesReturnOrderLine(
+  client: SupabaseClient<Database>,
+  line:
+    | (Omit<
+        z.infer<typeof salesReturnOrderLineValidator>,
+        "id" | "trackedEntityIds"
+      > & {
+        companyId: string;
+        createdBy: string;
+        customFields?: Json;
+      })
+    | (Omit<
+        z.infer<typeof salesReturnOrderLineValidator>,
+        "id" | "trackedEntityIds"
+      > & {
+        id: string;
+        updatedBy: string;
+        customFields?: Json;
+      })
+) {
+  if ("createdBy" in line) {
+    const existing = await client
+      .from("salesReturnOrderLine")
+      .select("lineNumber")
+      .eq("salesReturnOrderId", line.salesReturnOrderId)
+      .eq("companyId", line.companyId)
+      .order("lineNumber", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return client
+      .from("salesReturnOrderLine")
+      .insert([
+        {
+          ...line,
+          lineNumber: (existing.data?.lineNumber ?? 0) + 1
+        }
+      ])
+      .select("id")
+      .single();
+  }
+  const { id, ...update } = line;
+  return client
+    .from("salesReturnOrderLine")
+    .update({ ...sanitize(update), updatedAt: datetime.timestamp() })
+    .eq("id", id)
+    .select("id")
+    .single();
+}
+
+/** @mcp delete */
+export async function deleteSalesReturnOrder(
+  client: SupabaseClient<Database>,
+  salesReturnOrderId: string
+) {
+  return client.from("salesReturnOrder").delete().eq("id", salesReturnOrderId);
+}
+
+/** @mcp delete */
+export async function deleteSalesReturnOrderLine(
+  client: SupabaseClient<Database>,
+  lineId: string
+) {
+  return client.from("salesReturnOrderLine").delete().eq("id", lineId);
+}
+
+/** @mcp read */
+export async function getSalesReturnOrderReceipts(
+  client: SupabaseClient<Database>,
+  salesReturnOrderId: string,
+  companyId: string
+) {
+  return client
+    .from("receipt")
+    .select("id, receiptId, status, postingDate, createdAt")
+    .eq("sourceDocumentId", salesReturnOrderId)
+    .eq("sourceDocument", "Sales Return Order")
+    .eq("companyId", companyId)
+    .order("createdAt", { ascending: false });
+}
+
+/** @mcp read */
+export async function getSalesReturnOrderCredits(
+  client: SupabaseClient<Database>,
+  salesReturnOrderId: string,
+  companyId: string
+) {
+  return client
+    .from("memo")
+    .select("id, memoId, status, amount, currencyCode, memoDate, postingDate")
+    .eq("salesReturnOrderId", salesReturnOrderId)
+    .eq("companyId", companyId)
+    .order("createdAt", { ascending: false });
+}
+
+/** @mcp read */
+export async function getSalesReturnOrderIssues(
+  client: SupabaseClient<Database>,
+  salesReturnOrderId: string,
+  companyId: string
+) {
+  return client
+    .from("nonConformanceSalesReturnOrderLine")
+    .select(
+      "id, salesReturnOrderLineId, nonConformance(id, nonConformanceId, name, status)"
+    )
+    .eq("salesReturnOrderId", salesReturnOrderId)
+    .eq("companyId", companyId);
+}
+
+/**
+ * Confirm an RMA. The reversible-quantity cap is a transactional invariant:
+ * the governing SOURCE rows (shipment/SO/invoice lines) are row-locked so two
+ * concurrent confirms against the same source line serialize, and the
+ * aggregates are re-read under that lock (replaceInvoiceSettlements pattern).
+ * @mcp action
+ */
+export async function confirmSalesReturnOrder(
+  db: Kysely<KyselyDatabase>,
+  { id, companyId }: { id: string; companyId: string },
+  userId: string
 ) {
   return db.transaction().execute(async (trx) => {
-    for (const { id, sortOrder, updatedBy } of updates) {
+    const order = await trx
+      .selectFrom("salesReturnOrder")
+      .select(["id", "status"])
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!order) throw new Error("Return order not found");
+    if (order.status !== "Draft") {
+      throw new Error(
+        `Cannot confirm a return order in ${order.status} status`
+      );
+    }
+
+    const lines = await trx
+      .selectFrom("salesReturnOrderLine")
+      .select([
+        "id",
+        "lineNumber",
+        "quantity",
+        "salesOrderLineId",
+        "shipmentLineId",
+        "salesInvoiceLineId"
+      ])
+      .where("salesReturnOrderId", "=", id)
+      .where("companyId", "=", companyId)
+      .forUpdate()
+      .execute();
+
+    if (lines.length === 0) {
+      throw new Error("Cannot confirm a return order with no lines");
+    }
+
+    // Reversible caps, checked per source-line link under a row lock on the
+    // governing source row. Blind lines (no links) skip the check.
+    const checks: {
+      lineNumbers: number[];
+      requested: number;
+      linkColumn: "shipmentLineId" | "salesOrderLineId" | "salesInvoiceLineId";
+      linkId: string;
+    }[] = [];
+
+    const byLink = new Map<string, (typeof checks)[number]>();
+    for (const line of lines) {
+      const linkColumn = line.shipmentLineId
+        ? ("shipmentLineId" as const)
+        : line.salesOrderLineId
+          ? ("salesOrderLineId" as const)
+          : line.salesInvoiceLineId
+            ? ("salesInvoiceLineId" as const)
+            : null;
+      if (!linkColumn) continue;
+      const linkId = line[linkColumn]!;
+      const key = `${linkColumn}:${linkId}`;
+      const existing = byLink.get(key);
+      if (existing) {
+        existing.requested += Number(line.quantity);
+        existing.lineNumbers.push(line.lineNumber);
+      } else {
+        const check = {
+          lineNumbers: [line.lineNumber],
+          requested: Number(line.quantity),
+          linkColumn,
+          linkId
+        };
+        byLink.set(key, check);
+        checks.push(check);
+      }
+    }
+
+    for (const check of checks) {
+      // Lock the governing source row, then read its shipped/sent base.
+      let base = 0;
+      if (check.linkColumn === "shipmentLineId") {
+        const src = await trx
+          .selectFrom("shipmentLine")
+          .select(["shippedQuantity"])
+          .where("id", "=", check.linkId)
+          .where("companyId", "=", companyId)
+          .forUpdate()
+          .executeTakeFirst();
+        base = Number(src?.shippedQuantity ?? 0);
+      } else if (check.linkColumn === "salesOrderLineId") {
+        const src = await trx
+          .selectFrom("salesOrderLine")
+          .select(["quantitySent"])
+          .where("id", "=", check.linkId)
+          .where("companyId", "=", companyId)
+          .forUpdate()
+          .executeTakeFirst();
+        base = Number(src?.quantitySent ?? 0);
+      } else {
+        const src = await trx
+          .selectFrom("salesInvoiceLine")
+          .select(["quantity"])
+          .where("id", "=", check.linkId)
+          .where("companyId", "=", companyId)
+          .forUpdate()
+          .executeTakeFirst();
+        base = Number(src?.quantity ?? 0);
+      }
+
+      // Everything already authorized against this source line by OTHER
+      // non-cancelled return orders (re-read under the source-row lock).
+      // An SO-line check must ALSO count returns linked via a shipment line
+      // OF that SO line: shipment-linked and SO-linked returns draw on the
+      // same shipped base, and per-column counting let the two link types
+      // jointly over-authorize the same goods. (A line carrying both links
+      // matches the OR once — rows are counted, not columns.) The
+      // shipment-line check deliberately does NOT count SO-linked returns the
+      // other way: they cannot be attributed to one shipment line of a
+      // multi-shipment SO line, and blocking on them would refuse legitimate
+      // returns.
+      let siblingShipmentLineIds: string[] = [];
+      if (check.linkColumn === "salesOrderLineId") {
+        const shipmentLinesOfSoLine = await trx
+          .selectFrom("shipmentLine")
+          .select(["id"])
+          .where("lineId", "=", check.linkId)
+          .where("companyId", "=", companyId)
+          .execute();
+        siblingShipmentLineIds = shipmentLinesOfSoLine.map((r) => r.id);
+      }
+
+      const others = await trx
+        .selectFrom("salesReturnOrderLine")
+        .innerJoin(
+          "salesReturnOrder",
+          "salesReturnOrder.id",
+          "salesReturnOrderLine.salesReturnOrderId"
+        )
+        .select(({ fn }) => [
+          fn
+            .coalesce(fn.sum("salesReturnOrderLine.quantity"), sql<number>`0`)
+            .as("authorized")
+        ])
+        .where((eb) =>
+          siblingShipmentLineIds.length > 0
+            ? eb.or([
+                eb(
+                  `salesReturnOrderLine.${check.linkColumn}`,
+                  "=",
+                  check.linkId
+                ),
+                eb(
+                  "salesReturnOrderLine.shipmentLineId",
+                  "in",
+                  siblingShipmentLineIds
+                )
+              ])
+            : eb(`salesReturnOrderLine.${check.linkColumn}`, "=", check.linkId)
+        )
+        .where("salesReturnOrderLine.companyId", "=", companyId)
+        .where("salesReturnOrder.status", "!=", "Cancelled")
+        .where("salesReturnOrder.id", "!=", id)
+        .executeTakeFirst();
+
+      const alreadyAuthorized = Number(others?.authorized ?? 0);
+      const cap = base - alreadyAuthorized;
+      if (check.requested > cap + EPSILON) {
+        throw new Error(
+          `Line ${check.lineNumbers.join(", ")}: cannot authorize ${
+            check.requested
+          } — only ${Math.max(0, cap)} of ${base} remains returnable for the linked document line`
+        );
+      }
+    }
+
+    // Confirm releases the RMA for receiving. Status is derived, not fixed — a
+    // fresh confirm from Draft has nothing received, so it lands on "To Receive",
+    // but deriving keeps this consistent with the receipt/short-close paths.
+    const { status } = getSalesReturnOrderStatus(
+      lines.map((line) => ({
+        quantity: line.quantity,
+        quantityReceived: 0,
+        closedComplete: false
+      }))
+    );
+
+    await trx
+      .updateTable("salesReturnOrder")
+      .set({
+        status,
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .execute();
+  });
+}
+
+/**
+ * Cancel an RMA. THROWS. A Kysely transaction that locks the order row first —
+ * post-receipt re-checks the order status under the same lock, so a receipt
+ * posting racing this cancel serializes: whichever commits first wins, and the
+ * loser sees the new state instead of producing a Cancelled order with
+ * received stock (whose caps a fresh RMA would then double-authorize).
+ */
+/**
+ * Reopen an RMA to Draft so its lines can be edited again. THROWS. Row-locks the
+ * order (serializes against a concurrent receipt posting). To Receive → Draft
+ * (un-confirm) and Cancelled → Draft (revive; the cancel guard enforces no
+ * receipt exists and nothing received, so reviving is safe). "To Receive" no
+ * longer implies nothing received (it also covers partially received), so the
+ * nothing-received invariant is enforced on the line quantities directly.
+ * @mcp action
+ */
+export async function reopenSalesReturnOrder(
+  db: Kysely<KyselyDatabase>,
+  { id, companyId, userId }: { id: string; companyId: string; userId: string }
+) {
+  return db.transaction().execute(async (trx) => {
+    const order = await trx
+      .selectFrom("salesReturnOrder")
+      .select(["id", "status"])
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!order) throw new Error("Return order not found");
+    if (!["To Receive", "Cancelled"].includes(order.status)) {
+      throw new Error(
+        `Only a to-receive or cancelled return can be reopened — this one is ${order.status}`
+      );
+    }
+
+    // "To Receive" can be partially received; reopening one that has received
+    // stock would strand it. Refuse unless nothing has been received yet.
+    if (order.status === "To Receive") {
+      const receivedLines = await trx
+        .selectFrom("salesReturnOrderLine")
+        .select(["quantityReceived"])
+        .where("salesReturnOrderId", "=", id)
+        .where("companyId", "=", companyId)
+        .execute();
+      if (receivedLines.some((l) => Number(l.quantityReceived) > EPSILON)) {
+        throw new Error(
+          "Cannot reopen: quantity has already been received. Void the receipt first."
+        );
+      }
+    }
+
+    await trx
+      .updateTable("salesReturnOrder")
+      .set({
+        status: "Draft",
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .execute();
+  });
+}
+
+/** @mcp action */
+export async function cancelSalesReturnOrder(
+  db: Kysely<KyselyDatabase>,
+  { id, companyId, userId }: { id: string; companyId: string; userId: string }
+) {
+  return db.transaction().execute(async (trx) => {
+    const order = await trx
+      .selectFrom("salesReturnOrder")
+      .select(["status"])
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!order) throw new Error("Return order not found");
+    if (["Completed", "Cancelled"].includes(order.status)) {
+      throw new Error(`Cannot cancel a return order in ${order.status} status`);
+    }
+
+    const [receipts, lines] = await Promise.all([
+      trx
+        .selectFrom("receipt")
+        .select(["id"])
+        .where("sourceDocumentId", "=", id)
+        .where("sourceDocument", "=", "Sales Return Order")
+        .where("companyId", "=", companyId)
+        .where("status", "!=", "Voided")
+        .execute(),
+      trx
+        .selectFrom("salesReturnOrderLine")
+        .select(["quantityReceived"])
+        .where("salesReturnOrderId", "=", id)
+        .where("companyId", "=", companyId)
+        .execute()
+    ]);
+
+    if (receipts.length > 0) {
+      throw new Error(
+        "Cannot cancel: a receipt exists for this return order. Delete or void it first."
+      );
+    }
+    if (lines.some((l) => Number(l.quantityReceived) > 0)) {
+      throw new Error("Cannot cancel: quantity has already been received");
+    }
+
+    await trx
+      .updateTable("salesReturnOrder")
+      .set({
+        status: "Cancelled",
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .execute();
+
+    return { id };
+  });
+}
+
+/**
+ * Short-close ("stop expecting") an RMA line — the shortClosePurchaseOrderLine
+ * mechanic. The header status is derived from the lines afterwards, so
+ * short-closing the last open line completes the RMA (there is no separate
+ * manual Complete action, mirroring the Purchase Order). Disposition is tracked
+ * independently and does not gate completion.
+ * @mcp action
+ */
+export async function shortCloseSalesReturnOrderLine(
+  db: Kysely<KyselyDatabase>,
+  {
+    lineId,
+    salesReturnOrderId,
+    companyId,
+    userId,
+    intent
+  }: {
+    lineId: string;
+    salesReturnOrderId: string;
+    companyId: string;
+    userId: string;
+    intent: "close" | "reopen";
+  }
+) {
+  return db.transaction().execute(async (trx) => {
+    const line = await trx
+      .selectFrom("salesReturnOrderLine")
+      .select(["id"])
+      .where("id", "=", lineId)
+      .where("salesReturnOrderId", "=", salesReturnOrderId)
+      .where("companyId", "=", companyId)
+      .executeTakeFirst();
+
+    if (!line) throw new Error("Return order line not found");
+
+    await trx
+      .updateTable("salesReturnOrderLine")
+      .set({
+        closedComplete: intent === "close",
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .where("id", "=", lineId)
+      .where("companyId", "=", companyId)
+      .execute();
+
+    const [order, lines] = await Promise.all([
+      trx
+        .selectFrom("salesReturnOrder")
+        .select(["status"])
+        .where("id", "=", salesReturnOrderId)
+        .where("companyId", "=", companyId)
+        .executeTakeFirst(),
+      trx
+        .selectFrom("salesReturnOrderLine")
+        .select(["quantity", "quantityReceived", "closedComplete"])
+        .where("salesReturnOrderId", "=", salesReturnOrderId)
+        .where("companyId", "=", companyId)
+        .execute()
+    ]);
+
+    // Recompute in both the To Receive and Completed working states: short-closing
+    // the last open line completes the RMA, and reopening a line on a completed
+    // RMA drops it back to To Receive.
+    if (!order || !["To Receive", "Completed"].includes(order.status)) {
+      return;
+    }
+
+    const { status } = getSalesReturnOrderStatus(lines);
+
+    if (status !== order.status) {
       await trx
-        .updateTable("salesRfqLine")
-        .set({ order: sortOrder, updatedBy })
-        .where("id", "=", id)
+        .updateTable("salesReturnOrder")
+        .set({
+          status,
+          updatedBy: userId,
+          updatedAt: datetime.timestamp()
+        })
+        .where("id", "=", salesReturnOrderId)
+        .where("companyId", "=", companyId)
         .execute();
     }
+  });
+}
+
+/**
+ * "From document" picker source: posted shipment lines for the customer with
+ * their reversible remainders (shipped − already authorized on non-cancelled
+ * RMAs). BC's "Show Reversible Lines Only".
+ */
+/**
+ * Returnable shipment lines for a customer, searched + paginated in the database
+ * via the get_returnable_shipment_lines RPC. The `shipped − already-authorized
+ * > 0` filter, the text search (shipment #, sales order #, item readable id,
+ * item name), the recency ordering, and pagination all run in SQL so the "Add
+ * lines from shipment" modal stays responsive when a customer has thousands of
+ * shipment lines. Each row carries `totalCount` — the size of the full
+ * returnable set before limit/offset — so the UI can page through the rest.
+ * @mcp read
+ */
+export async function getReturnableLinesForCustomer(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  customerId: string,
+  args?: {
+    salesOrderId?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+) {
+  return client.rpc("get_returnable_shipment_lines", {
+    company_id: companyId,
+    customer_id: customerId,
+    sales_order_id: args?.salesOrderId || undefined,
+    search: args?.search?.trim() || undefined,
+    limit_count: args?.limit ?? 5,
+    offset_count: args?.offset ?? 0
+  });
+}
+
+/**
+ * Entity picker source for RMA lines: serials/batches shipped to this
+ * customer (Consumed entities tagged with a posted shipment's id — the
+ * attributes->>X query pattern from getTrackedEntitiesByMakeMethodId).
+ * @mcp read
+ */
+export async function getShippedTrackedEntitiesForCustomer(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  customerId: string,
+  itemId: string
+) {
+  // Entity-first, then verify the shipments: the old shape fetched EVERY
+  // posted shipment id for the customer unpaged (PostgREST silently caps at
+  // 1000 rows, and the .in() list has a URL-length ceiling), so a high-volume
+  // customer's picker silently missed candidates. The item's Consumed
+  // entities are the small, relevant set; their shipment ids are verified in
+  // chunks.
+  const entities = await fetchAllFromTable<{
+    id: string;
+    readableId: string | null;
+    quantity: number;
+    status: Database["public"]["Enums"]["trackedEntityStatus"];
+    attributes: Json;
+  }>(
+    client,
+    "trackedEntity",
+    "id, readableId, quantity, status, attributes",
+    (query) =>
+      query
+        .eq("companyId", companyId)
+        .eq("itemId", itemId)
+        .eq("status", "Consumed")
+  );
+  if (entities.error) return { data: null, error: entities.error };
+
+  const entityShipmentIds = [
+    ...new Set(
+      (entities.data ?? [])
+        .map(
+          (entity) =>
+            (entity.attributes as Record<string, unknown> | null)?.Shipment
+        )
+        .filter((value): value is string => typeof value === "string")
+    )
+  ];
+  if (entityShipmentIds.length === 0) return { data: [], error: null };
+
+  const customerShipmentIds = new Set<string>();
+  const CHUNK = 300;
+  for (let i = 0; i < entityShipmentIds.length; i += CHUNK) {
+    const chunk = entityShipmentIds.slice(i, i + CHUNK);
+    const shipments = await client
+      .from("shipment")
+      .select("id")
+      .in("id", chunk)
+      .eq("companyId", companyId)
+      .eq("customerId", customerId)
+      .eq("status", "Posted");
+    if (shipments.error) return { data: null, error: shipments.error };
+    for (const shipment of shipments.data ?? []) {
+      customerShipmentIds.add(shipment.id);
+    }
+  }
+
+  return {
+    data: (entities.data ?? []).filter((entity) => {
+      const shipmentId = (entity.attributes as Record<string, unknown> | null)
+        ?.Shipment;
+      return (
+        typeof shipmentId === "string" && customerShipmentIds.has(shipmentId)
+      );
+    }),
+    error: null
+  };
+}
+
+/**
+ * Per-line creditable pool = received − already credited. Draft memos count
+ * against the pool (two Drafts must not double-credit); the VIEW's displayed
+ * quantityCredited still derives from Posted memos only.
+ * @mcp read
+ */
+export async function getCreditableQuantities(
+  client: SupabaseClient<Database>,
+  salesReturnOrderId: string,
+  companyId: string
+) {
+  const lines = await client
+    .from("salesReturnOrderLine")
+    .select("id, lineNumber, quantityReceived, unitPrice, restockFeePercent")
+    .eq("salesReturnOrderId", salesReturnOrderId)
+    .eq("companyId", companyId)
+    .order("lineNumber");
+  if (lines.error) return { data: null, error: lines.error };
+  const lineIds = (lines.data ?? []).map((l) => l.id);
+  if (lineIds.length === 0) return { data: [], error: null };
+
+  const credits = await client
+    .from("salesReturnOrderCreditLine")
+    .select("salesReturnOrderLineId, quantity, memo!inner(status)")
+    .in("salesReturnOrderLineId", lineIds)
+    .eq("companyId", companyId)
+    .neq("memo.status", "Voided");
+  if (credits.error) return { data: null, error: credits.error };
+
+  const creditedByLine = new Map<string, number>();
+  for (const row of credits.data ?? []) {
+    creditedByLine.set(
+      row.salesReturnOrderLineId,
+      (creditedByLine.get(row.salesReturnOrderLineId) ?? 0) +
+        Number(row.quantity)
+    );
+  }
+
+  return {
+    data: (lines.data ?? []).map((line) => {
+      const received = Number(line.quantityReceived);
+      const credited = creditedByLine.get(line.id) ?? 0;
+      return {
+        salesReturnOrderLineId: line.id,
+        lineNumber: line.lineNumber,
+        quantityReceived: received,
+        quantityCredited: credited,
+        creditableQuantity: Math.max(0, received - credited),
+        unitPrice: Number(line.unitPrice),
+        restockFeePercent: Number(line.restockFeePercent)
+      };
+    }),
+    error: null
+  };
+}
+
+/**
+ * Issue Credit: one AR memo (direction Credit, linked via
+ * memo.salesReturnOrderId) + per-line salesReturnOrderCreditLine breakdown.
+ * The creditable cap (received − already credited over NON-VOIDED memos —
+ * Drafts count so two drafts can't double-credit) is validated inside the
+ * transaction under a row lock on the RMA lines. Amount is rounded ONCE at
+ * the currency's decimals (settlement boundary). Returns the memo id.
+ * @mcp create
+ * @mcp audit companyGroupId, createdBy, updatedBy, userId
+ */
+export async function createSalesReturnOrderCredit(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  {
+    salesReturnOrderId,
+    companyId,
+    companyGroupId,
+    userId,
+    memoDate,
+    lines
+  }: {
+    salesReturnOrderId: string;
+    companyId: string;
+    companyGroupId: string;
+    userId: string;
+    memoDate: string;
+    lines: { salesReturnOrderLineId: string; quantity: number }[];
+  }
+) {
+  const order = await client
+    .from("salesReturnOrder")
+    .select(
+      "id, status, customerId, currencyCode, exchangeRate, salesReturnOrderId"
+    )
+    .eq("id", salesReturnOrderId)
+    .eq("companyId", companyId)
+    .single();
+  if (order.error) throw new Error("Return order not found");
+  if (["Draft", "Cancelled"].includes(order.data.status)) {
+    throw new Error(
+      `Cannot issue credit for a return order in ${order.data.status} status`
+    );
+  }
+
+  const currency = await getCurrencyByCode(
+    client,
+    companyGroupId,
+    order.data.currencyCode
+  );
+  const decimalPlaces = currency.data?.decimalPlaces ?? 2;
+
+  const seq = await client.rpc("get_next_sequence", {
+    sequence_name: "creditMemo",
+    company_id: companyId
+  });
+  if (seq.error || !seq.data) {
+    throw new Error("Failed to allocate credit memo number");
+  }
+  const memoId = seq.data;
+
+  const requested = new Map(
+    lines
+      .filter((l) => l.quantity > 0)
+      .map((l) => [l.salesReturnOrderLineId, l.quantity])
+  );
+  if (requested.size === 0) {
+    throw new Error("Nothing to credit");
+  }
+
+  return db.transaction().execute(async (trx) => {
+    const orderLines = await trx
+      .selectFrom("salesReturnOrderLine")
+      .select([
+        "id",
+        "lineNumber",
+        "quantityReceived",
+        "unitPrice",
+        "restockFeePercent"
+      ])
+      .where("salesReturnOrderId", "=", salesReturnOrderId)
+      .where("companyId", "=", companyId)
+      .where("id", "in", [...requested.keys()])
+      .forUpdate()
+      .execute();
+
+    if (orderLines.length !== requested.size) {
+      throw new Error(
+        "One or more credit lines do not belong to this return order"
+      );
+    }
+
+    const credited = await trx
+      .selectFrom("salesReturnOrderCreditLine")
+      .innerJoin("memo", "memo.id", "salesReturnOrderCreditLine.memoId")
+      .select(({ fn }) => [
+        "salesReturnOrderCreditLine.salesReturnOrderLineId",
+        fn
+          .coalesce(
+            fn.sum("salesReturnOrderCreditLine.quantity"),
+            sql<number>`0`
+          )
+          .as("credited")
+      ])
+      .where("salesReturnOrderCreditLine.salesReturnOrderLineId", "in", [
+        ...requested.keys()
+      ])
+      .where("salesReturnOrderCreditLine.companyId", "=", companyId)
+      .where("memo.status", "!=", "Voided")
+      .groupBy("salesReturnOrderCreditLine.salesReturnOrderLineId")
+      .execute();
+    const creditedByLine = new Map(
+      credited.map((row) => [row.salesReturnOrderLineId, Number(row.credited)])
+    );
+
+    let total = 0;
+    const creditLineValues: {
+      memoId: string;
+      salesReturnOrderLineId: string;
+      quantity: number;
+      unitPrice: number;
+      restockFee: number;
+      companyId: string;
+      createdBy: string;
+    }[] = [];
+
+    for (const line of orderLines) {
+      const quantity = requested.get(line.id)!;
+      const received = Number(line.quantityReceived ?? 0);
+      const alreadyCredited = creditedByLine.get(line.id) ?? 0;
+      const creditable = received - alreadyCredited;
+      if (quantity > creditable + EPSILON) {
+        throw new Error(
+          `Line ${line.lineNumber}: cannot credit ${quantity} — only ${Math.max(
+            0,
+            creditable
+          )} of ${received} received remains creditable`
+        );
+      }
+      const unitPrice = Number(line.unitPrice ?? 0);
+      const feePercent = Number(line.restockFeePercent ?? 0);
+      const gross = quantity * unitPrice;
+      const restockFee = gross * feePercent;
+      total += gross - restockFee;
+      creditLineValues.push({
+        memoId: "", // filled after the memo insert
+        salesReturnOrderLineId: line.id,
+        quantity,
+        unitPrice,
+        restockFee,
+        companyId,
+        createdBy: userId
+      });
+    }
+
+    if (total <= 0) {
+      throw new Error("Credit amount must be positive");
+    }
+
+    const memo = await trx
+      .insertInto("memo")
+      .values({
+        memoId,
+        direction: "Credit",
+        status: "Draft",
+        customerId: order.data.customerId,
+        memoDate,
+        currencyCode: order.data.currencyCode,
+        exchangeRate: order.data.exchangeRate ?? 1,
+        amount: round(total, decimalPlaces),
+        reference: order.data.salesReturnOrderId,
+        salesReturnOrderId,
+        companyId,
+        createdBy: userId
+      })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+
+    await trx
+      .insertInto("salesReturnOrderCreditLine")
+      .values(creditLineValues.map((v) => ({ ...v, memoId: memo.id })))
+      .execute();
+
+    return memo.id;
+  });
+}
+
+/**
+ * Create Replacement Order: a draft sales order pre-filled from the RMA
+ * lines, priced via resolvePrice (user adjusts on the draft — e.g. to zero
+ * for warranty). One replacement per RMA; re-invoking returns the existing
+ * link. Rollback-by-delete on line failure (the insertSalesOrder pattern).
+ * @mcp create
+ */
+export async function createReplacementSalesOrder(
+  client: SupabaseClient<Database>,
+  {
+    salesReturnOrderId,
+    companyId,
+    companyGroupId,
+    userId
+  }: {
+    salesReturnOrderId: string;
+    companyId: string;
+    companyGroupId: string;
+    userId: string;
+  }
+): Promise<{ data: { id: string } | null; error: PostgrestError | null }> {
+  const order = await client
+    .from("salesReturnOrder")
+    .select("*")
+    .eq("id", salesReturnOrderId)
+    .eq("companyId", companyId)
+    .single();
+  if (order.error) return { data: null, error: order.error };
+  if (["Draft", "Cancelled"].includes(order.data.status)) {
+    return {
+      data: null,
+      error: {
+        message: `Cannot create a replacement for a ${order.data.status} return order`
+      } as PostgrestError
+    };
+  }
+  if (order.data.replacementSalesOrderId) {
+    return { data: { id: order.data.replacementSalesOrderId }, error: null };
+  }
+
+  const lines = await client
+    .from("salesReturnOrderLine")
+    .select("*, item(type)")
+    .eq("salesReturnOrderId", salesReturnOrderId)
+    .eq("companyId", companyId);
+  if (lines.error) return { data: null, error: lines.error };
+  if ((lines.data ?? []).length === 0) {
+    return {
+      data: null,
+      error: { message: "Return order has no lines" } as PostgrestError
+    };
+  }
+
+  const salesOrder = await insertSalesOrder(client, {
+    customerId: order.data.customerId,
+    companyId,
+    companyGroupId,
+    createdBy: userId,
+    currencyCode: order.data.currencyCode,
+    customerContactId: order.data.customerContactId ?? undefined,
+    customerLocationId: order.data.customerLocationId ?? undefined,
+    locationId: order.data.locationId ?? undefined,
+    customerReference: order.data.salesReturnOrderId
+  });
+  if (salesOrder.error || !salesOrder.data) {
+    return { data: null, error: salesOrder.error };
+  }
+  const salesOrderId = salesOrder.data.id;
+
+  const lineTypeFor = (
+    itemType: string | null | undefined
+  ): Database["public"]["Enums"]["salesOrderLineType"] => {
+    switch (itemType) {
+      case "Part":
+      case "Material":
+      case "Tool":
+      case "Consumable":
+      case "Service":
+        return itemType;
+      default:
+        return "Part";
+    }
+  };
+
+  for (const line of lines.data ?? []) {
+    const price = await resolvePrice(client, companyId, {
+      customerId: order.data.customerId,
+      itemId: line.itemId,
+      quantity: Number(line.quantity)
+    });
+
+    const insertLine = await client.from("salesOrderLine").insert({
+      salesOrderId,
+      salesOrderLineType: lineTypeFor(line.item?.type),
+      itemId: line.itemId,
+      saleQuantity: Number(line.quantity),
+      unitPrice: price.finalPrice,
+      priceTrace: price.trace,
+      unitOfMeasureCode: line.unitOfMeasureCode,
+      companyId,
+      createdBy: userId
+    });
+
+    if (insertLine.error) {
+      await deleteSalesOrder(client, salesOrderId);
+      return { data: null, error: insertLine.error };
+    }
+  }
+
+  const link = await client
+    .from("salesReturnOrder")
+    .update({
+      replacementSalesOrderId: salesOrderId,
+      updatedBy: userId,
+      updatedAt: datetime.timestamp()
+    })
+    .eq("id", salesReturnOrderId)
+    .eq("companyId", companyId);
+  if (link.error) return { data: null, error: link.error };
+
+  return { data: { id: salesOrderId }, error: null };
+}
+
+/**
+ * Set an RMA line's disposition. "Use As Is" additionally releases the line's
+ * returned (On Hold) tracked entities to Available and records one
+ * `trackedActivity` (+ one input per entity) for the genealogy — the same
+ * shape the NCR disposition writes. Scrap/Rework are set via Issue escalation
+ * (the line's issue route), not through this function's callers' UI, but the
+ * write itself is shared: those dispositions have no entity side effects here.
+ * @mcp update
+ */
+export async function setSalesReturnOrderLineDisposition(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  {
+    lineId,
+    companyId,
+    disposition,
+    userId
+  }: {
+    lineId: string;
+    companyId: string;
+    disposition: Database["public"]["Enums"]["disposition"];
+    userId: string;
+  }
+): Promise<{ data: { id: string } | null; error: PostgrestError | null }> {
+  const line = await client
+    .from("salesReturnOrderLine")
+    .select(
+      "id, salesReturnOrderId, quantityReceived, salesReturnOrder(status)"
+    )
+    .eq("id", lineId)
+    .eq("companyId", companyId)
+    .single();
+  if (line.error) return { data: null, error: line.error };
+
+  const orderStatus = (line.data.salesReturnOrder as { status: string } | null)
+    ?.status;
+  // Only Cancelled blocks. Completed must not: post-receipt auto-completes
+  // the RMA on full receipt, and disposition is a post-receipt decision —
+  // blocking Completed left entities stuck On Hold forever.
+  if (orderStatus === "Cancelled") {
+    return {
+      data: null,
+      error: {
+        message: `Cannot change disposition on a ${orderStatus} return order`
+      } as PostgrestError
+    };
+  }
+
+  if (
+    disposition !== "Pending" &&
+    Number(line.data.quantityReceived ?? 0) <= 0
+  ) {
+    return {
+      data: null,
+      error: {
+        message: "Cannot set a disposition before any quantity is received"
+      } as PostgrestError
+    };
+  }
+
+  if (disposition !== "Use As Is") {
+    const update = await client
+      .from("salesReturnOrderLine")
+      .update({
+        disposition,
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .eq("id", lineId)
+      .eq("companyId", companyId)
+      .select("id")
+      .single();
+    if (update.error) return { data: null, error: update.error };
+    return { data: { id: lineId }, error: null };
+  }
+
+  const order = await client
+    .from("salesReturnOrder")
+    .select("id, salesReturnOrderId")
+    .eq("id", line.data.salesReturnOrderId)
+    .eq("companyId", companyId)
+    .single();
+  if (order.error) return { data: null, error: order.error };
+
+  // The line's returned entities: expected serials/batches linked to the line
+  // that are still On Hold from receipt...
+  const linked = await client
+    .from("salesReturnOrderLineTrackedEntity")
+    .select("trackedEntityId, trackedEntity(status)")
+    .eq("salesReturnOrderLineId", lineId)
+    .eq("companyId", companyId);
+  if (linked.error) return { data: null, error: linked.error };
+
+  const linkedOnHoldIds = (linked.data ?? [])
+    .filter((row) => row.trackedEntity?.status === "On Hold")
+    .map((row) => row.trackedEntityId);
+
+  // ...plus blind returns: On Hold entities created at receipt against this
+  // RMA line's receipt lines, which have no salesReturnOrderLineTrackedEntity
+  // row because the customer never declared them up front.
+  const receipts = await client
+    .from("receipt")
+    .select("id")
+    .eq("sourceDocument", "Sales Return Order")
+    .eq("sourceDocumentId", line.data.salesReturnOrderId)
+    .eq("companyId", companyId);
+  if (receipts.error) return { data: null, error: receipts.error };
+
+  let blindOnHoldIds: string[] = [];
+  const receiptIds = (receipts.data ?? []).map((receipt) => receipt.id);
+  if (receiptIds.length > 0) {
+    const receiptLines = await client
+      .from("receiptLine")
+      .select("id")
+      .in("receiptId", receiptIds)
+      .eq("lineId", lineId)
+      .eq("companyId", companyId);
+    if (receiptLines.error) return { data: null, error: receiptLines.error };
+
+    const receiptLineIds = (receiptLines.data ?? []).map((row) => row.id);
+    if (receiptLineIds.length > 0) {
+      const blind = await client
+        .from("trackedEntity")
+        .select("id")
+        .eq("companyId", companyId)
+        .eq("status", "On Hold")
+        .in("attributes ->> Receipt Line", receiptLineIds);
+      if (blind.error) return { data: null, error: blind.error };
+      blindOnHoldIds = (blind.data ?? []).map((entity) => entity.id);
+    }
+  }
+
+  const entityIds = Array.from(
+    new Set([...linkedOnHoldIds, ...blindOnHoldIds])
+  );
+
+  const entities =
+    entityIds.length > 0
+      ? await client
+          .from("trackedEntity")
+          .select("id, quantity")
+          .in("id", entityIds)
+          .eq("companyId", companyId)
+      : { data: [], error: null };
+  if (entities.error) return { data: null, error: entities.error };
+
+  // One transaction: a partially-applied release (entities Available with no
+  // genealogy record, or a flipped entity on a still-Pending line) is a bug.
+  try {
+    await db.transaction().execute(async (trx) => {
+      // The gathering reads above ran unlocked — re-check the order under a
+      // row lock so a Complete/Cancel that landed in between cannot be
+      // dispositioned over.
+      const lockedOrder = await trx
+        .selectFrom("salesReturnOrder")
+        .select(["status"])
+        .where("id", "=", line.data.salesReturnOrderId)
+        .where("companyId", "=", companyId)
+        .forUpdate()
+        .executeTakeFirstOrThrow();
+      // Mirrors the pre-check: only Cancelled blocks disposition.
+      if (lockedOrder.status === "Cancelled") {
+        throw new Error(
+          `Cannot change disposition on a ${lockedOrder.status} return order`
+        );
+      }
+
+      await trx
+        .updateTable("salesReturnOrderLine")
+        .set({
+          disposition,
+          updatedBy: userId,
+          updatedAt: datetime.timestamp()
+        })
+        .where("id", "=", lineId)
+        .where("companyId", "=", companyId)
+        .execute();
+
+      if (entityIds.length === 0) return;
+
+      // Flip only entities STILL On Hold — the condition re-checks inside the
+      // write itself, so an entity consumed or shipped elsewhere between the
+      // unlocked read and this transaction is never forced back to Available.
+      const flipped = await trx
+        .updateTable("trackedEntity")
+        .set({ status: "Available" })
+        .where("id", "in", entityIds)
+        .where("companyId", "=", companyId)
+        .where("status", "=", "On Hold")
+        .returning(["id"])
+        .execute();
+      const flippedIds = new Set(flipped.map((row) => row.id));
+      if (flippedIds.size === 0) return;
+
+      const activity = await trx
+        .insertInto("trackedActivity")
+        .values({
+          type: "Disposition",
+          sourceDocument: "Sales Return Order",
+          sourceDocumentId: order.data.id,
+          sourceDocumentReadableId: order.data.salesReturnOrderId,
+          attributes: JSON.stringify({
+            "Sales Return Order": order.data.id,
+            Disposition: disposition,
+            Employee: userId
+          }),
+          companyId,
+          createdBy: userId
+        })
+        .returning(["id"])
+        .executeTakeFirstOrThrow();
+
+      await trx
+        .insertInto("trackedActivityInput")
+        .values(
+          (entities.data ?? [])
+            .filter((entity) => flippedIds.has(entity.id))
+            .map((entity) => ({
+              trackedActivityId: activity.id,
+              trackedEntityId: entity.id,
+              quantity: Number(entity.quantity ?? 1),
+              companyId,
+              createdBy: userId
+            }))
+        )
+        .execute();
+    });
+  } catch (err) {
+    return {
+      data: null,
+      error: { message: (err as Error).message } as PostgrestError
+    };
+  }
+
+  return { data: { id: lineId }, error: null };
+}
+
+/**
+ * Create a presigned upload URL for an opportunity (quote/sales order/RFQ/sales
+ * invoice) document. First step of the two-step upload flow: PUT the file bytes to
+ * the returned `signedUrl`, then call `documents_insertUploadedDocument` with the
+ * returned `path`, the document type as `sourceDocument`, and the quote/order id as
+ * `sourceDocumentId`. The storage folder is scoped by `opportunityId`, which is a
+ * different id from `sourceDocumentId`.
+ * @mcp create — part of the documented MCP signed-URL upload flow
+ *       (packages/files/AGENTS.md): a non-browser caller mints a staged
+ *       upload URL, then insertUploadedDocument converts and lands it.
+ */
+export async function createOpportunityDocumentUploadUrl(
+  client: SupabaseClient<Database>,
+  args: { companyId: string; opportunityId: string; name: string }
+) {
+  return createDocumentUploadUrl(client, {
+    companyId: args.companyId,
+    folder: "opportunity",
+    entityId: args.opportunityId,
+    name: args.name
+  });
+}
+
+/**
+ * Create a presigned upload URL for an opportunity LINE document. First step of the
+ * two-step upload flow: PUT the file bytes to the returned `signedUrl`, then call
+ * `documents_insertUploadedDocument` with the returned `path`, the line's document
+ * type as `sourceDocument`, and the line id as `sourceDocumentId`.
+ * @mcp create — part of the documented MCP signed-URL upload flow
+ *       (packages/files/AGENTS.md): a non-browser caller mints a staged
+ *       upload URL, then insertUploadedDocument converts and lands it.
+ */
+export async function createOpportunityLineDocumentUploadUrl(
+  client: SupabaseClient<Database>,
+  args: { companyId: string; lineId: string; name: string }
+) {
+  return createDocumentUploadUrl(client, {
+    companyId: args.companyId,
+    folder: "opportunity-line",
+    entityId: args.lineId,
+    name: args.name
   });
 }

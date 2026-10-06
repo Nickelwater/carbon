@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 // Hierarchical parent-storage-unit picker — drill-down + breadcrumb + search.
 // Local to the Storage Unit form: the only place a *non-leaf* unit is the
 // target (choosing where a unit sits in the tree). Everywhere else picks a
@@ -5,8 +9,9 @@
 //
 // Backed by the same `useStorageUnitsTree` data hook as `<StorageUnit>`.
 
+import type { TermId } from "@carbon/content/glossary";
 import { useControlField, useField } from "@carbon/form";
-import type { TermId } from "@carbon/glossary";
+import { useLoaderQuery } from "@carbon/query";
 import {
   cn,
   FormControl,
@@ -21,7 +26,6 @@ import {
 } from "@carbon/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { LuChevronDown, LuChevronRight, LuMapPin, LuX } from "react-icons/lu";
-import { useFetcher } from "react-router";
 import { useLocations } from "~/components/Form/Location";
 import {
   type StorageUnitTreeRow,
@@ -36,14 +40,9 @@ import { path } from "~/utils/path";
 // ---------------------------------------------------------------------------
 
 function useExcludedDescendantIds(rootId?: string): Set<string> {
-  const descendantsFetcher = useFetcher<{ data: { id: string }[] }>();
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fetcher identity changes every render
-  useEffect(() => {
-    if (rootId) {
-      descendantsFetcher.load(path.to.api.storageUnitDescendants(rootId));
-    }
-  }, [rootId]);
+  const descendantsFetcher = useLoaderQuery<{ data: { id: string }[] }>(
+    rootId ? path.to.api.storageUnitDescendants(rootId) : null
+  );
 
   return useMemo(() => {
     if (!rootId) return new Set<string>();

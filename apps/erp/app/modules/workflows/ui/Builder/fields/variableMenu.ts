@@ -1,22 +1,30 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type {
   AvailableVariable,
   ValueType,
   VariableRef,
   WorkflowCatalog
-} from "@carbon/workflows";
-import { canAssign, rendersAsText } from "@carbon/workflows";
+} from "@carbon/ee/workflows";
+import { canAssign, rendersAsText } from "@carbon/ee/workflows";
 import {
   describeVariable,
   nodeNameLabel,
   outputLabel,
   propertyLabelKey
 } from "../labelKeys";
-import { encodeTokenId, refLabel } from "./tokenId";
+import { encodeTokenId, refLabel, refLeafLabel } from "./tokenId";
 
 export type VariableMenuItem = {
   id: string;
   label: string;
   helper?: string;
+  /** Just the variable's own name. Search rows title themselves with this and show
+   * `label` underneath — a full breadcrumb in a narrow menu truncates away the one
+   * word the user typed. */
+  leaf?: string;
 };
 
 /** One row in the drill-down menu. `item` means selectable, `children` means drillable,
@@ -27,6 +35,9 @@ export type VariableTreeNode = {
   helper?: string;
   /** Plain-English explanation of what this field holds, shown as a tooltip. */
   description?: string;
+  /** `Step › output › property`, shown on hover. Only search rows set it: they are
+   * the only rows the tree's own breadcrumb does not already place. */
+  fullPath?: string;
   item?: VariableMenuItem;
   children?: VariableTreeNode[];
 };
@@ -78,6 +89,22 @@ function withoutDuplicateOutputs(
 }
 
 /**
+ * What one property is called. The shipped translation first, then the catalog's own
+ * label — a custom field lives only there — and the raw column name last.
+ */
+function propertyLabel(
+  catalog: WorkflowCatalog,
+  labelFor: (key: string, fallback: string) => string,
+  entity: string,
+  property: string
+): string {
+  return labelFor(
+    propertyLabelKey(entity, property),
+    catalog.getPropertyLabel(entity, property) ?? property
+  );
+}
+
+/**
  * Flattens the variable list into menu entries, expanding entity properties up to
  * `MAX_PATH` hops. Labels come from `refLabel`, the same function that renders an
  * already-placed token, so a chip reads the same whether it was just inserted or
@@ -100,7 +127,7 @@ export function variableMenuItems(
     (!accepts || canAssign(type, accepts, { batching }));
 
   for (const variable of withoutDuplicateOutputs(variables)) {
-    const add = (path: string[], type: ValueType) => {
+    const add = (path: string[], labels: string[], type: ValueType) => {
       if (!fits(type)) return;
       const ref: VariableRef = {
         kind: "ref",
@@ -110,12 +137,15 @@ export function variableMenuItems(
       };
       items.push({
         id: encodeTokenId(ref),
-        label: refLabel(ref, variable.nodeName),
+        // Named as the tree names them: search matches what the customer can see, which
+        // for a custom field is the only name they have ever been shown.
+        label: refLabel(ref, variable.nodeName, labels),
+        leaf: refLeafLabel(ref, labels),
         helper: describeVariable(type, variable.guaranteed, labelFor)
       });
     };
 
-    const expand = (type: ValueType, path: string[]) => {
+    const expand = (type: ValueType, path: string[], labels: string[]) => {
       if (path.length >= MAX_PATH || type.kind !== "entity") return;
       const entity = catalog.getEntity(type.of);
       if (!entity) return;
@@ -123,13 +153,17 @@ export function variableMenuItems(
         entity.properties
       )) {
         const nextPath = [...path, property];
-        add(nextPath, propertyType);
-        expand(propertyType, nextPath);
+        const nextLabels = [
+          ...labels,
+          propertyLabel(catalog, labelFor, type.of, property)
+        ];
+        add(nextPath, nextLabels, propertyType);
+        expand(propertyType, nextPath, nextLabels);
       }
     };
 
-    add([], variable.type);
-    expand(variable.type, []);
+    add([], [], variable.type);
+    expand(variable.type, [], []);
   }
 
   if (inLoop) {
@@ -137,6 +171,7 @@ export function variableMenuItems(
     items.push({
       id: encodeTokenId(ref),
       label: refLabel(ref),
+      leaf: refLeafLabel(ref),
       helper: "the item in the current loop"
     });
   }
@@ -168,6 +203,7 @@ export function variableTree(
     variable: AvailableVariable,
     type: ValueType,
     path: string[],
+    pathLabels: string[],
     label: string,
     description?: string
   ): VariableTreeNode | null {
@@ -187,7 +223,10 @@ export function variableTree(
       item: compatible
         ? {
             id: encodeTokenId(ref),
-            label: refLabel(ref, variable.nodeName),
+            label: refLabel(ref, variable.nodeName, pathLabels),
+            // The row's own label IS the leaf, so a search scoped to this level names
+            // its hits exactly as the level it drilled out of did.
+            leaf: label,
             helper
           }
         : undefined
@@ -197,16 +236,23 @@ export function variableTree(
       const entity = catalog.getEntity(type.of);
       const children = entity
         ? Object.entries(entity.properties)
-            .map(([property, propertyType]) =>
+            .map(([property, propertyType]) => {
               // Property labels are catalog-driven; the raw column name is the fallback.
-              build(
+              const propertyName = propertyLabel(
+                catalog,
+                labelFor,
+                type.of,
+                property
+              );
+              return build(
                 variable,
                 propertyType,
                 [...path, property],
-                labelFor(propertyLabelKey(type.of, property), property),
+                [...pathLabels, propertyName],
+                propertyName,
                 entity.descriptions?.[property]
-              )
-            )
+              );
+            })
             .filter((child): child is VariableTreeNode => child !== null)
         : [];
       if (children.length) node.children = children;
@@ -235,6 +281,7 @@ export function variableTree(
       variable,
       variable.type,
       [],
+      [],
       outputLabel(variable.output)
     );
     if (output) step.children!.push(output);
@@ -255,6 +302,7 @@ export function variableTree(
       item: {
         id: encodeTokenId(ref),
         label: refLabel(ref),
+        leaf: refLeafLabel(ref),
         helper: "the item in the current loop"
       }
     });

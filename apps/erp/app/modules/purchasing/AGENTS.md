@@ -5,8 +5,9 @@ Purchase orders, supplier management, supplier quotes/interactions, RFQs, and pr
 ## Key Domain Concepts
 
 - **Purchase Order (PO)** — document sent to a supplier. Statuses: Draft → Needs Approval → To Review → To Receive → To Receive and Invoice → To Invoice → Completed. MUST use `closePurchaseOrder` to close manually.
+- **PO Revision** — `purchaseOrder.revisionId` counts amendments to a released order. Created ONLY when the header dropdown's "Create PO Revision" action posts `createRevision=true`; a plain Reopen never bumps. The write is `reopenPurchaseOrderAsRevision` (Kysely, `purchasing.service.ts`): a compare-and-swap that sets `revisionId = revisionId + 1` **in SQL** with the eligibility conditions (locked status + non-null `orderDate`) in the WHERE clause, so concurrent requests can't collide and an ineligible order matches 0 rows. `canCreatePurchaseOrderRevision` (`purchasing.models.ts`) is the matching pure predicate used to gate the menu item — keep the two in sync. Unlike quotes, a PO revision is in-place: no new row, receipts/invoices stay attached. Displayed as `PO000123-1` when > 0 via `getPurchaseOrderDisplayId` (`@carbon/documents/utils`) on the PDF, email, filenames, and UI; the two-tone in-app rendering uses `<RevisionSuffix>` (`~/components`).
 - **Supplier Interaction** — umbrella entity linking a supplier quote to RFQs, POs, and documents. A supplier quote always lives under an interaction.
-- **Supplier Quote** — vendor-side pricing with line-level price breaks (`supplierQuoteLinePrice`). Can be finalized (`finalizeSupplierQuote`) and converted to POs via the `convert` edge function.
+- **Supplier Quote** — vendor-side pricing with line-level price breaks (`supplierQuoteLinePrice`). Can be finalized (`finalizeSupplierQuote`) and converted to POs via the `convert` server function.
 - **RFQ (Request for Quotation)** — solicits pricing from multiple suppliers. Links to supplier quotes via `purchasingRfqToSupplierQuote`. Statuses managed by `updatePurchasingRFQStatus`.
 - **Conversion Factor** — when a supplier's UoM differs from stocking UoM, `conversionFactor` on `purchaseOrderLine` scales quantities at receipt: `inventoryQty = purchaseQty × conversionFactor`. See `.claude/rules/purchasing-conversion-factors.md`.
 - **Purchasing Planning** — MRP-driven planned orders surfaced via `getPurchasingPlanning` (calls `get_purchasing_planning` RPC).
@@ -15,7 +16,7 @@ Purchase orders, supplier management, supplier quotes/interactions, RFQs, and pr
 
 ### Always
 - MUST scope all queries by `companyId` — purchasing data is multi-tenant.
-- MUST use the `convert` edge function for supplier-quote → PO conversion — never hand-roll inserts.
+- MUST use the `convert` server function for supplier-quote → PO conversion — never hand-roll inserts.
 - MUST preserve `conversionFactor` on PO lines when editing — it drives receipt quantity math.
 - MUST use `finalizePurchaseOrder` / `finalizeSupplierQuote` for finalization — they enforce business rules.
 
@@ -31,8 +32,10 @@ Purchase orders, supplier management, supplier quotes/interactions, RFQs, and pr
 ## Validation Commands
 
 ```bash
-pnpm --filter @carbon/erp typecheck
-pnpm --filter @carbon/erp test
+# The app's package name is "erp" — there is no "@carbon/erp" workspace.
+pnpm exec turbo run typecheck --filter=erp
+# apps/erp has no `test` script; run vitest from the app directory.
+cd apps/erp && pnpm exec vitest run app/modules/purchasing
 ```
 
 ## Key Data Model
@@ -49,13 +52,15 @@ pnpm --filter @carbon/erp test
 | `supplierQuote` / `supplierQuoteLine` / `supplierQuoteLinePrice` | Vendor pricing at quantity breaks |
 | `purchasingRfq` / `purchasingRfqLine` / `purchasingRfqSupplier` | RFQ header, lines, and invited suppliers |
 | `terms` | Payment/delivery terms reference data |
+| `purchaseReturnOrder` / `purchaseReturnOrderLine` / `purchaseReturnOrders` (view) | Supplier returns: authorize → ship (via shipments, source "Purchase Return Order") → credit. Statuses Draft → Confirmed → Partially Shipped → Shipped → Completed/Cancelled; `supplierReference` carries the supplier's own RMA number; line quantities/prices are ALWAYS inventory-UOM (converted once at authoring) |
+| `purchaseReturnOrderLineTrackedEntity` / `purchaseReturnOrderCreditLine` | Entities to send back (picked from Available stock from that supplier) — the `create` server function (`shipmentFromPurchaseReturnOrder`) stamps these onto the shipment's tracked entities (`attributes ->> Shipment`/`Shipment Line`) so the batch/serial flows through; `post-shipment` **splits** a batch when the returned quantity is less than the entity's (mirrors the Sales Order path, `buildBatchSplitRecords`). Per-line credit breakdown behind the AP `memo` (`memo.purchaseReturnOrderId`, reason account = GRNI). The memo is a **Debit** memo (`DR-` sequence): direction alone picks the control side, so Credit would INCREASE AP and re-debit GRNI — a vendor return must DR AP / CR GRNI |
 
 ## Key Service Functions
 
 - `getPurchaseOrder` / `getPurchaseOrders` / `getPurchaseOrderLines` — read POs
 - `closePurchaseOrder` — marks a PO closed
 - `shortClosePurchaseOrderLine` — Kysely transaction; sets a line's `receivedComplete` ("Stop/Resume Receiving") and recomputes the header status. Open-PO supply queries (`get_inventory_quantities`, `openPurchaseOrderLines`, `get_job_quantity_on_hand`) exclude `receivedComplete` lines, so short-closed remainders stop counting as incoming stock
-- `convertSupplierQuoteToOrder` — calls `convert` edge function
+- `convertSupplierQuoteToOrder` — calls the `convert` server function
 - `duplicatePurchaseOrder` — copies a PO with new sequence
 - `finalizePurchaseOrder` / `finalizeSupplierQuote` — lock documents for processing
 - `sendSupplierQuote` — sends quote to supplier
@@ -64,6 +69,10 @@ pnpm --filter @carbon/erp test
 - `getPurchasingRFQ` / `getPurchasingRFQs` / `upsertPurchasingRFQ` — RFQ management
 - `getSupplierQuotesForComparison` — side-by-side quote comparison
 - `getDefaultAttachmentsForPO` — default document attachments for PO creation
+- `getPurchaseReturnOrders` / `insertPurchaseReturnOrder` / `upsertPurchaseReturnOrderLine` — supplier-return CRUD; `confirmPurchaseReturnOrder` (Kysely row-locked caps: receiptLine received → PO line received×factor → invoice line×factor), `cancelPurchaseReturnOrder` / `completePurchaseReturnOrder` / `shortClosePurchaseReturnOrderLine`
+- `getReturnableLinesForSupplier` (posted receipt lines minus already-authorized) — thin wrapper over the `get_returnable_receipt_lines` RPC, which does the `received − authorized > 0` filter, the search (receipt #, PO #, item readable id, item name), recency ordering, and limit/offset paging in SQL and returns `totalCount` on each row. Scales to thousands of receipt lines; the "Add lines from receipt" modal (`ReturnableReceiptLinesModal`) shows the 5 most recent and searches for the rest. / `getReturnableEntitiesForSupplier` (Available entities whose `attributes ->> Receipt` resolves to a posted receipt from the supplier) / `getReturnableEntitiesForReceiptLine` (Available entities from ONE receipt line, via `attributes ->> Receipt Line`) — the `$id.new` action uses it to auto-select the single entity when a tracked line is added from a specific receipt, persisting it at creation so it flows onto the shipment
+- `createPurchaseReturnOrderCredit` (Kysely, shipped-minus-credited cap) / `getCreditableQuantitiesForPurchaseReturn` / `createReplacementPurchaseOrder` (linked-PO-line / supplierPart pricing)
+- `createSupplierInteractionDocumentUploadUrl` / `createSupplierInteractionLineDocumentUploadUrl` — MCP file upload (step 1): presigned URLs for supplier-interaction (`supplier-interaction/{interactionId}`) and interaction-line documents; pair with `documents_insertUploadedDocument`. See `.claude/rules/mcp-tools-reference.md` → "File uploads"
 
 ## Key Exports
 

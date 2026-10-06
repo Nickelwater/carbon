@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { ValueType, WorkflowIssue } from "@carbon/ee/workflows";
 import {
   Button,
   Combobox,
@@ -12,12 +17,11 @@ import {
   ModalTitle,
   VStack
 } from "@carbon/react";
-import type { ValueType, WorkflowIssue } from "@carbon/workflows";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useFetcher } from "react-router";
 import { path } from "~/utils/path";
-import { catalog, useWorkflowLabel } from "../catalog";
+import { useWorkflowCatalog, useWorkflowEventLabel } from "../catalog";
 import { useBuilderStore, useBuilderStoreApi } from "../context";
 import { humanizeField } from "../nodes/meta";
 import type { TestRunResult } from "../store";
@@ -115,7 +119,8 @@ function Dialog({
   onRun: (formData: FormData) => void;
 }) {
   const { t } = useLingui();
-  const label = useWorkflowLabel();
+  const eventLabel = useWorkflowEventLabel();
+  const catalog = useWorkflowCatalog();
   const closeTestRun = useBuilderStore((s) => s.closeTestRun);
   const definition = useDefinition();
 
@@ -202,7 +207,7 @@ function Dialog({
                   value={eventId}
                   options={events.map((id) => ({
                     value: id,
-                    label: label(id)
+                    label: eventLabel(id)
                   }))}
                   onChange={(next) => {
                     setEventId(next);

@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { WorkflowIssue } from "@carbon/ee/workflows";
 import {
   Button,
   Modal,
@@ -12,7 +17,6 @@ import {
   TooltipTrigger,
   useDisclosure
 } from "@carbon/react";
-import type { WorkflowIssue } from "@carbon/workflows";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { LuLock, LuPencil } from "react-icons/lu";
@@ -24,6 +28,7 @@ import type {
   WorkflowDetail,
   WorkflowVersionSummary
 } from "../../workflows.service";
+import { ConfirmUnpublishWorkflow } from "../ConfirmUnpublishWorkflow";
 import { useBuilderStore, useBuilderStoreApi } from "./context";
 import { WorkflowVersionStatus } from "./WorkflowVersionStatus";
 
@@ -52,7 +57,7 @@ function SaveMarker() {
 }
 
 // Renaming is a property of the workflow, not of the version being viewed, so a
-// live (read-only) version is still renameable — only the permission gates it.
+// published (read-only) version is still renameable — only the permission gates it.
 function WorkflowTitle({ workflow }: { workflow: WorkflowDetail }) {
   const { t } = useLingui();
   const permissions = usePermissions();
@@ -136,7 +141,11 @@ export function BuilderHeader({
   const { t } = useLingui();
   const permissions = usePermissions();
   const store = useBuilderStoreApi();
-  const isReadOnly = useBuilderStore((state) => state.isReadOnly);
+  // The lock glyph means "this is the published version"; the tooltip below distinguishes
+  // that from simply lacking permission.
+  const isVersionLocked = useBuilderStore((state) => state.isVersionLocked);
+  const canEdit = useBuilderStore((state) => state.canEdit);
+  const isReadOnly = isVersionLocked || !canEdit;
 
   const publishFetcher = useFetcher<{
     ok?: boolean;
@@ -144,12 +153,13 @@ export function BuilderHeader({
   }>();
   const versionFetcher = useFetcher();
   const confirmPublish = useDisclosure();
+  const confirmUnpublish = useDisclosure();
 
   const current = versions.find((version) => version.id === versionId);
-  const live = versions.find(
-    (version) => version.id === workflow.activeVersionId
+  const published = versions.find(
+    (version) => version.id === workflow.publishedVersionId
   );
-  const isLiveVersion = versionId === workflow.activeVersionId;
+  const isPublishedVersion = versionId === workflow.publishedVersionId;
 
   // Publish issues drive the node outlines and the panel.
   useEffect(() => {
@@ -169,7 +179,7 @@ export function BuilderHeader({
   };
 
   return (
-    <header className="flex h-[49px] shrink-0 items-center gap-3 border-b px-4">
+    <header className="flex h-[var(--topbar-height)] shrink-0 items-center gap-3 border-b px-4">
       <WorkflowTitle workflow={workflow} />
 
       {isReadOnly && (
@@ -180,8 +190,10 @@ export function BuilderHeader({
             </span>
           </TooltipTrigger>
           <TooltipContent>
-            {isLiveVersion ? (
-              <Trans>This version is live. Create a new version to edit.</Trans>
+            {isPublishedVersion ? (
+              <Trans>
+                This version is published. Create a new version to edit.
+              </Trans>
             ) : (
               <Trans>You do not have permission to edit workflows</Trans>
             )}
@@ -199,7 +211,9 @@ export function BuilderHeader({
           label={current && <span>Version {current.versionNumber}</span>}
           renderLabel={(v) => <span>Version {v.versionNumber}</span>}
           renderStatus={(v) => (
-            <WorkflowVersionStatus isLive={v.id === workflow.activeVersionId} />
+            <WorkflowVersionStatus
+              isPublished={v.id === workflow.publishedVersionId}
+            />
           )}
           onNewVersion={
             permissions.can("create", "workflows")
@@ -214,24 +228,43 @@ export function BuilderHeader({
               : undefined
           }
         />
-        <Button
-          isDisabled={
-            !permissions.can("update", "workflows") ||
-            isLiveVersion ||
-            publishFetcher.state !== "idle"
-          }
-          isLoading={publishFetcher.state !== "idle"}
-          onClick={() => {
-            // Replacing a live version is worth asking about; a first publish is not.
-            if (live) confirmPublish.onOpen();
-            else publish();
-          }}
-        >
-          <Trans>Publish</Trans>
-        </Button>
+        {isPublishedVersion ? (
+          <Button
+            variant="secondary"
+            isDisabled={!permissions.can("update", "workflows")}
+            onClick={confirmUnpublish.onOpen}
+          >
+            <Trans>Unpublish</Trans>
+          </Button>
+        ) : (
+          <Button
+            isDisabled={
+              !permissions.can("update", "workflows") ||
+              publishFetcher.state !== "idle"
+            }
+            isLoading={publishFetcher.state !== "idle"}
+            onClick={() => {
+              // Replacing a published version is worth asking about; a first publish is not.
+              if (published) confirmPublish.onOpen();
+              else publish();
+            }}
+          >
+            <Trans>Publish</Trans>
+          </Button>
+        )}
       </div>
 
-      {confirmPublish.isOpen && current && live && (
+      {confirmUnpublish.isOpen && (
+        <ConfirmUnpublishWorkflow
+          workflowId={workflow.id}
+          name={workflow.name}
+          onClose={confirmUnpublish.onClose}
+        />
+      )}
+
+      {/* Hand-rolled rather than `Confirm`: publish posts `versionId` and reads the returned
+          issues back off its own fetcher to outline the failing nodes. */}
+      {confirmPublish.isOpen && current && published && (
         <Modal
           open
           onOpenChange={(open) => {
@@ -245,7 +278,7 @@ export function BuilderHeader({
             </ModalHeader>
             <ModalBody>
               <p className="text-sm text-muted-foreground">
-                {t`Version ${live.versionNumber} is live now and will be replaced.`}
+                {t`Version ${published.versionNumber} is published now and will be replaced.`}
               </p>
             </ModalBody>
             <ModalFooter>

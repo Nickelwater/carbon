@@ -1,5 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type {
+  Clause,
+  ConditionPath,
+  WorkflowIssue
+} from "@carbon/ee/workflows";
 import { Button, IconButton } from "@carbon/react";
-import type { Clause, ConditionPath, WorkflowIssue } from "@carbon/workflows";
 import {
   closestCenter,
   DndContext,
@@ -53,6 +61,7 @@ type SortableClauseItemProps = {
   onCombinatorChange: (v: "and" | "or") => void;
   fieldPath: string;
   issues?: WorkflowIssue[];
+  isReadOnly?: boolean;
 };
 
 function SortableClauseItem({
@@ -67,7 +76,8 @@ function SortableClauseItem({
   isLast,
   onCombinatorChange,
   fieldPath,
-  issues
+  issues,
+  isReadOnly
 }: SortableClauseItemProps) {
   const { t } = useLingui();
   const {
@@ -77,7 +87,7 @@ function SortableClauseItem({
     transform,
     transition,
     isDragging
-  } = useSortable({ id: sortId });
+  } = useSortable({ id: sortId, disabled: isReadOnly });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -89,6 +99,7 @@ function SortableClauseItem({
     <button
       type="button"
       aria-label={t`Drag to reorder`}
+      disabled={isReadOnly}
       className="nodrag nopan flex h-8 w-5 shrink-0 cursor-grab items-center justify-center text-muted-foreground active:cursor-grabbing"
       {...attributes}
       {...listeners}
@@ -109,17 +120,26 @@ function SortableClauseItem({
         grip={grip}
         fieldPath={fieldPath}
         issues={issues}
+        isReadOnly={isReadOnly}
       />
       {!isLast && (
         <div className="flex justify-center py-3">
-          <CombinatorToggle value={combinator} onChange={onCombinatorChange} />
+          <CombinatorToggle
+            value={combinator}
+            onChange={onCombinatorChange}
+            isReadOnly={isReadOnly}
+          />
         </div>
       )}
     </div>
   );
 }
 
-export function ConditionForm({ node, issues }: NodeFormProps<"condition">) {
+export function ConditionForm({
+  node,
+  issues,
+  isReadOnly
+}: NodeFormProps<"condition">) {
   const updateNodeData = useBuilderStore((s) => s.updateNodeData);
   const onEdgesChange = useBuilderStore((s) => s.onEdgesChange);
   const edges = useBuilderStore((s) => s.edges);
@@ -238,6 +258,7 @@ export function ConditionForm({ node, issues }: NodeFormProps<"condition">) {
                         clauses: [...path.clauses, newClause()]
                       })
                     }
+                    isDisabled={isReadOnly}
                   >
                     <Trans>Add clause</Trans>
                   </Button>
@@ -249,6 +270,7 @@ export function ConditionForm({ node, issues }: NodeFormProps<"condition">) {
                     variant="ghost"
                     size="sm"
                     onClick={() => removePath(path.id)}
+                    isDisabled={isReadOnly}
                   />
                 )}
               </div>
@@ -311,6 +333,7 @@ export function ConditionForm({ node, issues }: NodeFormProps<"condition">) {
                           }
                           fieldPath={`paths.${path.id}.clauses.${i}`}
                           issues={issues}
+                          isReadOnly={isReadOnly}
                         />
                       ))}
                     </SortableContext>
@@ -335,6 +358,7 @@ export function ConditionForm({ node, issues }: NodeFormProps<"condition">) {
         leftIcon={<LuPlus />}
         className="w-full"
         onClick={addElseIf}
+        isDisabled={isReadOnly}
       >
         <Trans>Add path</Trans>
       </Button>
@@ -347,6 +371,7 @@ export function ConditionForm({ node, issues }: NodeFormProps<"condition">) {
           leftIcon={<LuPlus />}
           className="w-full"
           onClick={addElse}
+          isDisabled={isReadOnly}
         >
           <Trans>Add otherwise</Trans>
         </Button>

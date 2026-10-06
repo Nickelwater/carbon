@@ -1,11 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { JSONContent } from "@carbon/react";
 import { Spinner, useMount, VStack } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { Suspense } from "react";
 import type { LoaderFunctionArgs } from "react-router";
-import { Await, redirect, useLoaderData, useParams } from "react-router";
+import { Await, useLoaderData, useParams } from "react-router";
 import { CadModel, DeferredFiles } from "~/components";
 import { usePanels } from "~/components/Layout";
 import { usePermissions, useRouteData } from "~/hooks";
@@ -26,6 +31,7 @@ import {
 } from "~/modules/production/ui/Jobs";
 import JobMakeMethodTools from "~/modules/production/ui/Jobs/JobMakeMethodTools";
 import { getModelByItemId, getTagsList } from "~/modules/shared";
+import { requireCompanyRecord } from "~/modules/shared/shared.server";
 import { path } from "~/utils/path";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -37,6 +43,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { jobId, methodId } = params;
   if (!jobId) throw new Error("Could not find jobId");
   if (!methodId) throw new Error("Could not find methodId");
+
+  // `client` is the service role (bypassRls) and every read keys on the URL
+  // ids: the make method must belong to this job and company.
+  await requireCompanyRecord(client, "jobMakeMethod", companyId, {
+    id: methodId,
+    jobId
+  });
 
   const [job, makeMethod, materials, operations, tags] = await Promise.all([
     getJob(client, jobId),
@@ -141,17 +154,9 @@ export default function JobMakeMethodRoute() {
 
   return (
     <div className="h-full w-full items-start overflow-y-auto scrollbar-hide">
-      <VStack spacing={2} className="p-2">
+      <VStack spacing={4} className="p-4">
         <JobMakeMethodTools makeMethod={makeMethod} />
 
-        <JobBillOfMaterial
-          key={`bom:${methodId}`}
-          jobMakeMethodId={methodId}
-          // @ts-expect-error TS2322 - TODO: fix type
-          materials={materials}
-          // @ts-expect-error
-          operations={operations}
-        />
         <JobBillOfProcess
           key={`bop:${methodId}`}
           jobMakeMethodId={methodId}
@@ -163,6 +168,14 @@ export default function JobMakeMethodRoute() {
           itemId={makeMethod.itemId}
           salesOrderLineId={job.salesOrderLineId ?? ""}
           customerId={job.customerId ?? ""}
+        />
+        <JobBillOfMaterial
+          key={`bom:${methodId}`}
+          jobMakeMethodId={methodId}
+          // @ts-expect-error TS2322 - TODO: fix type
+          materials={materials}
+          // @ts-expect-error
+          operations={operations}
         />
         <Suspense
           fallback={
@@ -204,7 +217,7 @@ export default function JobMakeMethodRoute() {
                 metadata={{
                   itemId: model?.itemId ?? undefined
                 }}
-                modelPath={model?.modelPath ?? null}
+                modelUpload={model ?? null}
                 title="CAD Model"
                 uploadClassName="aspect-square min-h-[420px] max-h-[70vh]"
                 viewerClassName="aspect-square min-h-[420px] max-h-[70vh]"

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Alert,
   AlertDescription,
@@ -11,13 +15,14 @@ import {
   DropdownMenuTrigger,
   HStack,
   IconButton,
-  Kbd,
+  MENU_ITEM_SHORTCUTS,
+  PrefetchLink,
+  ShortcutKey,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
   useDisclosure,
-  useKeyboardShortcuts,
-  usePrettifyShortcut,
+  useShortcutKeyMap,
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
@@ -48,6 +53,7 @@ import { getLinkToItemDetails } from "~/modules/items/ui/Item/ItemForm";
 import type { Supplier } from "~/modules/purchasing/types";
 import type { ItemType } from "~/modules/shared";
 import { itemType } from "~/modules/shared";
+import { EXPLORER_SHORTCUTS } from "~/shortcuts";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import type { PurchaseInvoice, PurchaseInvoiceLine } from "../../types";
@@ -56,7 +62,6 @@ import MapExtractedInvoiceLinesModal from "./MapExtractedInvoiceLinesModal";
 import PurchaseInvoiceLineForm from "./PurchaseInvoiceLineForm";
 
 export default function PurchaseInvoiceExplorer() {
-  const prettifyShortcut = usePrettifyShortcut();
   const { defaults } = useUser();
   const { invoiceId } = useParams();
   if (!invoiceId) throw new Error("Could not find invoiceId");
@@ -69,7 +74,9 @@ export default function PurchaseInvoiceExplorer() {
 
   const purchaseInvoiceLineInitialValues = {
     invoiceId: invoiceId,
-    invoiceLineType: "Item" as ItemType,
+    // "Item" is the picker's generic mode, not a member of the line-type
+    // enum; posting it failed validation with "Type is required".
+    invoiceLineType: "Part" as ItemType,
     purchaseQuantity: 1,
     locationId:
       purchaseInvoiceData?.purchaseInvoice?.locationId ??
@@ -101,12 +108,15 @@ export default function PurchaseInvoiceExplorer() {
   };
 
   const newButtonRef = useRef<HTMLButtonElement>(null);
-  useKeyboardShortcuts({
-    "Command+Shift+l": (event: KeyboardEvent) => {
-      event.stopPropagation();
-      newButtonRef.current?.click();
+  useShortcutKeyMap([
+    {
+      shortcut: EXPLORER_SHORTCUTS.addLine,
+      action: (event: KeyboardEvent) => {
+        event.stopPropagation();
+        newButtonRef.current?.click();
+      }
     }
-  });
+  ]);
 
   const lines = purchaseInvoiceData?.purchaseInvoiceLines ?? [];
   const unmappedLines = lines.filter(
@@ -122,7 +132,7 @@ export default function PurchaseInvoiceExplorer() {
 
   return (
     <>
-      <VStack className="w-full h-[calc(100dvh-99px)] justify-between">
+      <VStack className="w-full h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] justify-between">
         <VStack
           className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent"
           spacing={0}
@@ -223,7 +233,10 @@ export default function PurchaseInvoiceExplorer() {
                     <span>
                       <Trans>New Line Item</Trans>
                     </span>
-                    <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
+                    <ShortcutKey
+                      shortcut={EXPLORER_SHORTCUTS.addLine}
+                      variant="small"
+                    />
                   </HStack>
                 </TooltipContent>
               </Tooltip>
@@ -320,15 +333,13 @@ function PurchaseInvoiceLineItem({
 
   return (
     <VStack spacing={0} className="border-b">
-      <Link
+      <PrefetchLink
         to={path.to.purchaseInvoiceLine(invoiceId, line.id!)}
-        prefetch="intent"
         className="w-full"
       >
         <HStack
           className={cn(
             "group w-full p-2 items-center hover:bg-accent/30 cursor-pointer relative",
-            "border-b border-border",
             isSelected && "bg-accent/60 hover:bg-accent/50"
           )}
         >
@@ -364,6 +375,7 @@ function PurchaseInvoiceLineItem({
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   destructive
                   disabled={isDisabled || !permissions.can("update", "sales")}
                   onClick={(e) => {
@@ -377,6 +389,7 @@ function PurchaseInvoiceLineItem({
                 {/* @ts-expect-error */}
                 {itemType.includes(line.invoiceLineType ?? "") && (
                   <DropdownMenuItem
+                    shortcut={MENU_ITEM_SHORTCUTS.view}
                     asChild
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -397,7 +410,7 @@ function PurchaseInvoiceLineItem({
             </DropdownMenu>
           </div>
         </HStack>
-      </Link>
+      </PrefetchLink>
     </VStack>
   );
 }

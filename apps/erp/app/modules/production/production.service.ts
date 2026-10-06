@@ -1,13 +1,29 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database, Json } from "@carbon/database";
-import { fetchAllFromTable } from "@carbon/database";
+import { fetchAllFromTable, fetchAllRecords } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
+import { consumableInWholeAssemblies } from "@carbon/database/supersession-pick";
 import { ASSEMBLER_SERVICE_API_KEY, ASSEMBLER_SERVICE_URL } from "@carbon/env";
+import { storage } from "@carbon/files";
 import type { JobSource } from "@carbon/lib/telemetry";
 import { asJobSource, trackWorkEvent } from "@carbon/lib/telemetry";
 import { raiseMoment } from "@carbon/lib/workflows";
 import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
-import { nameSimilarity, scrapAllowance, tiptapToText } from "@carbon/utils";
+import { type ServerFnInput, serverFns } from "@carbon/server-functions";
+import {
+  async,
+  datetime,
+  getErrorMessage,
+  groupBy,
+  nameSimilarity,
+  scrapAllowance,
+  tiptapToText,
+  unchecked
+} from "@carbon/utils";
 import type {
   AssemblyGraph,
   AssemblyGraphIndex,
@@ -19,13 +35,16 @@ import {
   CURRENT_PLAN_VERSION,
   describeStep,
   groupComponentNodeIds,
-  indexAssemblyGraph
+  indexAssemblyGraph,
+  validateSubAssemblies
 } from "@carbon/viewer";
 import { parseDate } from "@internationalized/date";
-import type { FileObject, StorageError } from "@supabase/storage-js";
 import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
+import type { ExpressionBuilder } from "kysely";
+import { sql } from "kysely";
 import { nanoid } from "nanoid";
 import type { z } from "zod";
+import { createDocumentUploadUrl } from "~/modules/documents/documents.service";
 import type { StorageItem } from "~/types";
 import type { GenericQueryFilters } from "~/utils/query";
 import {
@@ -36,6 +55,7 @@ import {
 import { sanitize } from "~/utils/supabase";
 import { getDefaultStorageUnitForJob } from "../inventory";
 import { getEmployeeJob } from "../people";
+import { resolveJobConfiguration } from "../sales/sales.utils";
 import type {
   MethodType,
   operationParameterValidator,
@@ -44,18 +64,12 @@ import type {
   operationToolValidator
 } from "../shared";
 import { normalizeOperationSourceIds } from "../shared";
-import {
-  listBalloons,
-  listInspectionFeatures,
-  mapBalloonIdsToFeatureIdsForDocument
-} from "./inspectionDocumentDb";
+import { updateSortOrder } from "../shared/sort-order";
 import type {
   assemblyInstructionStatuses,
   assemblyStepStatuses,
   deadlineTypes,
   failureModeValidator,
-  inspectionDocumentSamplingValidator,
-  inspectionDocumentValidator,
   jobMaterialValidator,
   jobOperationStatus,
   jobOperationValidator,
@@ -80,12 +94,14 @@ import {
   cameraSchema,
   fastenerSchema,
   getAssemblyModelState,
+  isJobLocked,
   isJobOrderStatusHidden,
   JOB_LOCKED_STATUSES,
   JOB_SUPPLY_STATUS_PRIORITY,
   motionSchema,
   PO_STATUS_PRIORITY,
-  stepPlanWarningsSchema
+  stepPlanWarningsSchema,
+  WEEKDAYS_MONDAY_FIRST
 } from "./production.models";
 import type {
   AssemblyInstructionStepRow,
@@ -95,13 +111,18 @@ import type {
   JobMaterialPurchaseOrderLine,
   JobMaterialSupplyJobLine
 } from "./types";
-
-export { mapBalloonIdsToFeatureIdsForDocument };
+import {
+  makeMethodsMissingOperations,
+  outsideOperationsNeedingPurchaseOrders,
+  resolveOperationSupplier
+} from "./ui/Jobs/job-release-logic";
 
 const logger = getLogger("erp", "production");
 
+/** @mcp update */
 export async function convertSalesOrderLinesToJobs(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   {
     orderId,
     companyId,
@@ -165,6 +186,21 @@ export async function convertSalesOrderLinesToJobs(
   const quoteId = opportunity.data?.quotes[0]?.id;
   const salesOrderId = opportunity.data?.salesOrders[0]?.id;
 
+  // A converted quote line shares its id with the order line, so its
+  // configuration is the fallback for an order line configured nowhere else.
+  const quoteLineConfigurations = new Map<string, unknown>();
+  if (quoteId) {
+    const quoteLines = await client
+      .from("quoteLine")
+      .select("id, configuration")
+      .eq("quoteId", quoteId)
+      .eq("companyId", companyId)
+      .in("id", lines.map((line) => line.id).filter(Boolean) as string[]);
+    for (const quoteLine of quoteLines.data ?? []) {
+      quoteLineConfigurations.set(quoteLine.id, quoteLine.configuration);
+    }
+  }
+
   const errors: string[] = [];
   let jobsCreated = 0;
 
@@ -186,6 +222,11 @@ export async function convertSalesOrderLinesToJobs(
       const totalJobs = lotSize > 0 ? Math.ceil(totalQuantity / lotSize) : 1;
 
       const jobsToCreate = Math.max(1, totalJobs);
+
+      const { configuration, reconfigured } = resolveJobConfiguration(
+        line.configuration,
+        line.id ? quoteLineConfigurations.get(line.id) : null
+      );
 
       const defaultLocation = await client
         .from("location")
@@ -258,7 +299,8 @@ export async function convertSalesOrderLinesToJobs(
           salesOrderLineId: line.id,
           scrapQuantity,
           storageUnitId: storageUnitId ?? undefined,
-          unitOfMeasureCode: line.unitOfMeasureCode ?? "EA"
+          unitOfMeasureCode: line.unitOfMeasureCode ?? "EA",
+          configuration: configuration as Json
         };
 
         // Calculate priority based on due date and deadline type
@@ -307,52 +349,47 @@ export async function convertSalesOrderLinesToJobs(
           source: "salesOrder"
         });
 
-        if (quoteId) {
-          const upsertMethod = await client.functions.invoke("get-method", {
-            body: {
+        if (quoteId && !reconfigured) {
+          const upsertMethod = await serverFns
+            .as({ client, db, companyId, userId })
+            .invoke("get-method", {
               type: "quoteLineToJob",
               sourceId: `${quoteId}:${line.id}`,
-              targetId: createJob.data.id,
-              companyId,
-              userId
-            }
-          });
+              targetId: createJob.data.id
+            });
 
           if (upsertMethod.error) {
             errors.push(
-              `Failed to create method for job ${nextSequence.data} (Line item ${line.itemReadableId}): ${upsertMethod.error.message}`
+              `Failed to create method for job ${nextSequence.data} (Line item ${line.itemReadableId}): ${upsertMethod.error.message || "unknown error"}`
             );
             continue;
           }
         } else {
-          const upsertMethod = await client.functions.invoke("get-method", {
-            body: {
+          const upsertMethod = await serverFns
+            .as({ client, db, companyId, userId })
+            .invoke("get-method", {
               type: "itemToJob",
               sourceId: data.itemId,
               targetId: createJob.data.id,
-              companyId,
-              userId
-            }
-          });
+              ...(configuration ? { configuration } : {})
+            });
 
           if (upsertMethod.error) {
             errors.push(
-              `Failed to create method for job ${nextSequence.data} (Line item ${line.itemReadableId}): ${upsertMethod.error.message}`
+              `Failed to create method for job ${nextSequence.data} (Line item ${line.itemReadableId}): ${upsertMethod.error.message || "unknown error"}`
             );
             continue;
           }
         }
 
-        await client.functions.invoke("recalculate", {
-          body: {
+        await serverFns
+          .as({ client, db, companyId, userId })
+          .invoke("recalculate", {
             type: "jobRequirements",
-            id: createJob.data.id,
-            companyId,
-            userId
-          }
-        });
+            id: createJob.data.id
+          });
 
-        await assignJobSerialNumbers(client, {
+        await assignJobSerialNumbers(client, db, {
           jobId: createJob.data.id,
           itemId: data.itemId,
           companyId,
@@ -404,6 +441,7 @@ export async function convertSalesOrderLinesToJobs(
  * @param client - Supabase client
  * @param params - Job details
  * @returns The calculated priority number
+ * @mcp action
  */
 export async function calculateJobPriority(
   client: SupabaseClient<Database>,
@@ -489,56 +527,7 @@ export async function calculateJobPriority(
   return newPriority;
 }
 
-export async function deleteDemandForecasts(
-  client: SupabaseClient<Database>,
-  params: {
-    itemId: string;
-    locationId: string;
-    companyId: string;
-    futurePeriodIds: string[];
-  }
-) {
-  const { itemId, locationId, companyId, futurePeriodIds } = params;
-
-  const result = await client
-    .from("demandForecast")
-    .delete()
-    .eq("itemId", itemId)
-    .eq("locationId", locationId)
-    .eq("companyId", companyId)
-    .in("periodId", futurePeriodIds);
-
-  return {
-    data: result.data,
-    error: result.error
-  };
-}
-
-export async function deleteDemandProjections(
-  client: SupabaseClient<Database>,
-  params: {
-    itemId: string;
-    locationId: string;
-    companyId: string;
-    futurePeriodIds: string[];
-  }
-) {
-  const { itemId, locationId, companyId, futurePeriodIds } = params;
-
-  const result = await client
-    .from("demandProjection")
-    .delete()
-    .eq("itemId", itemId)
-    .eq("locationId", locationId)
-    .eq("companyId", companyId)
-    .in("periodId", futurePeriodIds);
-
-  return {
-    data: result.data,
-    error: result.error
-  };
-}
-
+/** @mcp delete */
 export async function deleteJob(
   client: SupabaseClient<Database>,
   jobId: string
@@ -546,6 +535,7 @@ export async function deleteJob(
   return client.from("job").delete().eq("id", jobId);
 }
 
+/** @mcp delete */
 export async function deleteJobMaterial(
   client: SupabaseClient<Database>,
   jobMaterialId: string
@@ -560,6 +550,7 @@ export async function deleteJobOperation(
   return client.from("jobOperation").delete().eq("id", jobOperationId);
 }
 
+/** @mcp delete */
 export async function deleteJobOperationStep(
   client: SupabaseClient<Database>,
   id: string
@@ -567,6 +558,7 @@ export async function deleteJobOperationStep(
   return client.from("jobOperationStep").delete().eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteJobOperationStepSlide(
   client: SupabaseClient<Database>,
   id: string
@@ -574,6 +566,7 @@ export async function deleteJobOperationStepSlide(
   return client.from("jobOperationStepSlide").delete().eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteJobOperationParameter(
   client: SupabaseClient<Database>,
   id: string
@@ -581,6 +574,7 @@ export async function deleteJobOperationParameter(
   return client.from("jobOperationParameter").delete().eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteJobOperationTool(
   client: SupabaseClient<Database>,
   id: string
@@ -588,6 +582,7 @@ export async function deleteJobOperationTool(
   return client.from("jobOperationTool").delete().eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteProcedure(
   client: SupabaseClient<Database>,
   procedureId: string
@@ -595,6 +590,7 @@ export async function deleteProcedure(
   return client.from("procedure").delete().eq("id", procedureId);
 }
 
+/** @mcp delete */
 export async function deleteProcedureStep(
   client: SupabaseClient<Database>,
   procedureStepId: string,
@@ -607,6 +603,7 @@ export async function deleteProcedureStep(
     .eq("companyId", companyId);
 }
 
+/** @mcp delete */
 export async function deleteProcedureParameter(
   client: SupabaseClient<Database>,
   procedureParameterId: string,
@@ -619,8 +616,10 @@ export async function deleteProcedureParameter(
     .eq("companyId", companyId);
 }
 
+/** @mcp delete */
 export async function deleteProductionEvent(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   productionEventId: string,
   companyId: string,
   userId: string
@@ -636,17 +635,19 @@ export async function deleteProductionEvent(
   // A posted event's journal entry must be reversed before the row goes
   // away, otherwise WIP keeps the orphaned absorption.
   if (event.data.postedToGL) {
-    const reversal = await client.functions.invoke<{
-      success: boolean;
-      reason?: string;
-    }>("post-production-event", {
-      body: { productionEventId, companyId, userId, reverse: true }
-    });
+    const reversal = await serverFns
+      .as({ client, db, companyId, userId })
+      .invoke("post-production-event", {
+        productionEventId,
+        reverse: true
+      });
     if (reversal.error) {
       return {
         data: null,
         error: {
-          message: `Failed to reverse the event's journal entry: ${reversal.error.message}`
+          message: `Failed to reverse the event's journal entry: ${
+            reversal.error.message || "unknown error"
+          }`
         }
       };
     }
@@ -672,6 +673,7 @@ export async function deleteProductionEvent(
     .eq("companyId", companyId);
 }
 
+/** @mcp delete */
 export async function deleteProductionQuantity(
   client: SupabaseClient<Database>,
   productionQuantityId: string
@@ -682,6 +684,7 @@ export async function deleteProductionQuantity(
     .eq("id", productionQuantityId);
 }
 
+/** @mcp read */
 export async function getActiveJobOperationByJobId(
   client: SupabaseClient<Database>,
   jobId: string,
@@ -720,6 +723,7 @@ export async function getActiveJobOperationByJobId(
   return jobOperations.data[0];
 }
 
+/** @mcp read */
 export async function getActiveJobOperationsByLocation(
   client: SupabaseClient<Database>,
   locationId: string,
@@ -731,6 +735,7 @@ export async function getActiveJobOperationsByLocation(
   });
 }
 
+/** @mcp read */
 export async function getJobsByDateRange(
   client: SupabaseClient<Database>,
   locationId: string,
@@ -744,6 +749,7 @@ export async function getJobsByDateRange(
   });
 }
 
+/** @mcp read */
 export async function getUnscheduledJobs(
   client: SupabaseClient<Database>,
   locationId: string
@@ -753,6 +759,7 @@ export async function getUnscheduledJobs(
   });
 }
 
+/** @mcp read */
 export async function getActiveProductionEvents(
   client: SupabaseClient<Database>,
   companyId: string
@@ -766,6 +773,7 @@ export async function getActiveProductionEvents(
     .is("endTime", null);
 }
 
+/** @mcp delete */
 export async function deleteScrapReason(
   client: SupabaseClient<Database>,
   scrapReasonId: string
@@ -773,6 +781,7 @@ export async function deleteScrapReason(
   return client.from("scrapReason").delete().eq("id", scrapReasonId);
 }
 
+/** @mcp delete */
 export async function deleteFailureMode(
   client: SupabaseClient<Database>,
   failureModeId: string
@@ -780,6 +789,7 @@ export async function deleteFailureMode(
   return client.from("maintenanceFailureMode").delete().eq("id", failureModeId);
 }
 
+/** @mcp delete */
 export async function deleteMaintenanceDispatch(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -794,6 +804,7 @@ export async function deleteMaintenanceDispatchComment(
   return client.from("maintenanceDispatchComment").delete().eq("id", commentId);
 }
 
+/** @mcp delete */
 export async function deleteMaintenanceDispatchEvent(
   client: SupabaseClient<Database>,
   eventId: string
@@ -801,6 +812,7 @@ export async function deleteMaintenanceDispatchEvent(
   return client.from("maintenanceDispatchEvent").delete().eq("id", eventId);
 }
 
+/** @mcp delete */
 export async function deleteMaintenanceDispatchItem(
   client: SupabaseClient<Database>,
   itemId: string
@@ -818,6 +830,7 @@ export async function deleteMaintenanceDispatchWorkCenter(
     .eq("id", workCenterId);
 }
 
+/** @mcp delete */
 export async function deleteMaintenanceSchedule(
   client: SupabaseClient<Database>,
   scheduleId: string
@@ -832,6 +845,7 @@ export async function deleteMaintenanceScheduleItem(
   return client.from("maintenanceScheduleItem").delete().eq("id", itemId);
 }
 
+/** @mcp read */
 export async function getDemandForecasts(
   client: SupabaseClient<Database>,
   params: {
@@ -850,6 +864,7 @@ export async function getDemandForecasts(
     .in("periodId", params.periodIds);
 }
 
+/** @mcp read */
 export async function getDemandProjections(
   client: SupabaseClient<Database>,
   params: {
@@ -868,6 +883,7 @@ export async function getDemandProjections(
     .in("periodId", params.periodIds);
 }
 
+/** @mcp read */
 export async function getJobDocuments(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -878,45 +894,39 @@ export async function getJobDocuments(
     itemId?: string | null;
   }
 ): Promise<StorageItem[]> {
-  const promises: Promise<
-    | {
-        data: FileObject[];
-        error: null;
-      }
-    | {
-        data: null;
-        error: StorageError;
-      }
-  >[] = [client.storage.from("private").list(`${companyId}/job/${job.id}`)];
-
-  // Add opportunity line files if available
-  if (job.salesOrderLineId || job.quoteLineId) {
-    const opportunityLine = job.salesOrderLineId || job.quoteLineId;
-    promises.push(
-      client.storage
-        .from("private")
-        .list(`${companyId}/opportunity-line/${opportunityLine}`)
-    );
-  }
-
-  // Add parts files if itemId is available
-  if (job.itemId) {
-    promises.push(
-      client.storage.from("private").list(`${companyId}/parts/${job.itemId}`)
-    );
-  }
-
-  const results = await Promise.all(promises);
-  const [jobFiles, opportunityLineFiles, partsFiles] = results;
+  // Fixed positions, not a conditionally-grown array: the destructuring below
+  // is positional, so a job with an itemId but no sales/quote line would
+  // otherwise land its PARTS listing in `opportunityLineFiles` and label those
+  // files `bucket: "opportunity-line"`, which resolves the wrong storage path.
+  const opportunityLine = job.salesOrderLineId || job.quoteLineId;
+  const [jobFiles, opportunityLineFiles, partsFiles] = await Promise.all([
+    storage(client).company(companyId).list(`${companyId}/job/${job.id}`),
+    opportunityLine
+      ? storage(client)
+          .company(companyId)
+          .list(`${companyId}/opportunity-line/${opportunityLine}`)
+      : null,
+    job.itemId
+      ? storage(client)
+          .company(companyId)
+          .list(`${companyId}/parts/${job.itemId}`)
+      : null
+  ]);
 
   // Combine and return all sets of files with their respective buckets
   return [
-    ...(jobFiles.data?.map((f) => ({ ...f, bucket: "job" })) || []),
-    ...(opportunityLineFiles?.data?.map((f) => ({
+    ...(jobFiles.data ?? []).map((f) => ({
+      ...f,
+      bucket: "job"
+    })),
+    ...(opportunityLineFiles?.data ?? []).map((f) => ({
       ...f,
       bucket: "opportunity-line"
-    })) || []),
-    ...(partsFiles?.data?.map((f) => ({ ...f, bucket: "parts" })) || [])
+    })),
+    ...(partsFiles?.data ?? []).map((f) => ({
+      ...f,
+      bucket: "parts"
+    }))
   ];
 }
 
@@ -926,13 +936,17 @@ export const getPartDocuments = async (
   ...items: Array<{ itemId: string }>
 ) => {
   const getFile = async (id: string) => {
-    const res = await client.storage
-      .from("private")
+    const res = await storage(client)
+      .company(companyId)
       .list(`${companyId}/parts/${id}`);
 
-    if (res.error || !res.data) return null;
+    if (res.error) return null;
 
-    return res.data.map((f) => ({ ...f, bucket: "parts", itemId: id }));
+    return res.data.map((f) => ({
+      ...f,
+      bucket: "parts",
+      itemId: id
+    }));
   };
 
   const elems = items.map((el) => getFile(el.itemId));
@@ -942,10 +956,11 @@ export const getPartDocuments = async (
   return results.filter((f) => f !== null).flat();
 };
 
+/** @mcp read */
 export async function getJobDocumentsWithItemId(
   client: SupabaseClient<Database>,
   companyId: string,
-  job: Job,
+  job: Pick<Job, "id" | "salesOrderLineId" | "quoteLineId">,
   itemId: string
 ): Promise<StorageItem[]> {
   const itemFiles = await getPartDocuments(client, companyId, { itemId });
@@ -954,37 +969,96 @@ export async function getJobDocumentsWithItemId(
     const opportunityLine = job.salesOrderLineId || job.quoteLineId;
 
     const [opportunityLineFiles, jobFiles] = await Promise.all([
-      client.storage
-        .from("private")
+      storage(client)
+        .company(companyId)
         .list(`${companyId}/opportunity-line/${opportunityLine}`),
-      client.storage.from("private").list(`${companyId}/job/${job.id}`)
+      storage(client).company(companyId).list(`${companyId}/job/${job.id}`)
     ]);
 
     // Combine and return both sets of files
     return [
-      ...(opportunityLineFiles.data?.map((f) => ({
+      ...(opportunityLineFiles.data ?? []).map((f) => ({
         ...f,
         bucket: "opportunity-line"
-      })) || []),
-      ...(jobFiles.data?.map((f) => ({ ...f, bucket: "job" })) || []),
+      })),
+      ...(jobFiles.data ?? []).map((f) => ({ ...f, bucket: "job" })),
       ...itemFiles
     ];
   } else {
-    const [jobFiles] = await Promise.all([
-      client.storage.from("private").list(`${companyId}/job/${job.id}`)
-    ]);
+    const jobFiles = await storage(client)
+      .company(companyId)
+      .list(`${companyId}/job/${job.id}`);
 
     return [
-      ...(jobFiles.data?.map((f) => ({ ...f, bucket: "job" })) || []),
+      ...(jobFiles.data ?? []).map((f) => ({ ...f, bucket: "job" })),
       ...itemFiles
     ];
   }
 }
 
+/** @mcp read */
 export async function getJob(client: SupabaseClient<Database>, id: string) {
   return client.from("jobs").select("*").eq("id", id).single();
 }
 
+// The IN-PROCESS scheduling/MRP engines need a Node Kysely handle. It is built
+// in `~/services/database.server` (getDatabaseClient) and passed in as `db` by
+// the route action — NEVER constructed here. This module is also bundled for the
+// browser (imported by client components via the module barrel), so it must not
+// pull in `pg`/`kysely`. Enforced by the no-db-client-in-service conformance check.
+
+// Read-only "best case" what-if: runs the job first in its location's schedule
+// IN-PROCESS (persists nothing) and returns the projected completion +
+// bottleneck cause. Returns null when the job isn't in the schedulable set
+// (e.g. not Ready/In Progress/Paused).
+/** @mcp read */
+export async function getJobExpediteForecast(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  jobId: string,
+  companyId: string,
+  userId: string
+) {
+  const { data: job, error: jobError } = await client
+    .from("job")
+    .select("locationId")
+    .eq("id", jobId)
+    .eq("companyId", companyId)
+    .single();
+
+  if (jobError || !job?.locationId) {
+    return { data: null, error: jobError };
+  }
+
+  // Simulate-only what-if, run IN-PROCESS (Node) — persists nothing.
+  try {
+    const { runExpediteWhatIf } = await import("@carbon/planning");
+    const expedite = await runExpediteWhatIf({
+      db,
+      client,
+      locationId: job.locationId,
+      companyId,
+      userId,
+      expediteJobId: jobId
+    });
+    return {
+      data: expedite
+        ? {
+            projectedCompletionAt: expedite.projectedCompletionAt,
+            cause: expedite.cause
+          }
+        : null,
+      error: null
+    };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error("Failed to expedite")
+    };
+  }
+}
+
+/** @mcp read */
 export async function getJobByOperationId(
   client: SupabaseClient<Database>,
   operationId: string
@@ -996,6 +1070,7 @@ export async function getJobByOperationId(
     .single();
 }
 
+/** @mcp read */
 export async function getJobPurchaseOrderLines(
   client: SupabaseClient<Database>,
   jobId: string
@@ -1008,6 +1083,156 @@ export async function getJobPurchaseOrderLines(
     .eq("jobId", jobId);
 }
 
+/** @mcp read */
+export async function getJobOperationsForTimeline(
+  client: SupabaseClient<Database>,
+  jobId: string
+) {
+  return client
+    .from("jobOperation")
+    .select(
+      `id, description, order, status, startDate, dueDate, projectedCompletionAt, hasConflict, conflictReason, assignee, workCenterId,
+       workCenter(name),
+       jobMakeMethod(id, parentMaterialId, item(readableId, name))`
+    )
+    .eq("jobId", jobId)
+    .order("order");
+}
+
+/** @mcp read */
+export async function getCapacityReservationsByJob(
+  client: SupabaseClient<Database>,
+  jobId: string
+) {
+  return client
+    .from("capacityReservation")
+    .select(
+      "id, operationId, resourceKind, resourceId, startAt, endAt, earliestStartAt, scheduleNote, workHours"
+    )
+    .eq("jobId", jobId)
+    .is("scenarioId", null);
+}
+
+/**
+ * The Outbound report: open jobs at a location that fill a sales order, with
+ * where each one ships (RPC `get_completion_jobs`), ordered by the plant-calendar
+ * day they complete — the report groups on that order.
+ * @mcp read
+ */
+export async function getCompletionJobs(
+  client: SupabaseClient<Database>,
+  args: {
+    companyId: string;
+    locationId: string;
+    timeZone: string;
+    /** Last completion day to include (YYYY-MM-DD); null reads every open job. */
+    throughDate: string | null;
+    search: string | null;
+  }
+) {
+  return fetchAllRecords(() =>
+    client
+      .rpc("get_completion_jobs", {
+        company_id: args.companyId,
+        location_id: args.locationId,
+        time_zone: args.timeZone,
+        through_date: args.throughDate ?? undefined,
+        search: args.search ?? undefined
+      })
+      // Day, then time within the day; `id` last keeps paging stable.
+      .order("completionDate", { ascending: true, nullsFirst: false })
+      .order("projectedCompletionAt", { ascending: true, nullsFirst: false })
+      .order("jobId", { ascending: true })
+      .order("id", { ascending: true })
+  );
+}
+
+/** @mcp read */
+export async function getCapacityReservationsForResources(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  locationId?: string,
+  /**
+   * Explicit [from, to) instant window (ISO strings) for the resource Gantt's
+   * day/week/shift views — returns reservations that OVERLAP it. Omit to keep
+   * the default forward horizon (everything ending within the last day onward).
+   */
+  window?: { from: string; to: string }
+) {
+  // Live/upcoming reservations across ALL jobs — feeds the resource-lane
+  // Gantt. Cancelled/completed/closed jobs keep their reservation rows until
+  // the next reschedule, so filter them out here — they are no longer real load.
+  let query = client
+    .from("capacityReservation")
+    .select(
+      `id, operationId, jobId, resourceKind, resourceId, startAt, endAt, scheduleNote, workHours, isPlaceholder, jobOperationBatchId,
+       job!inner(jobId, status, dueDate, locationId),
+       jobOperation(description, hasConflict, conflictReason, jobMakeMethod(item(readableIdWithRevision, name, thumbnailPath, type))),
+       jobOperationBatch(readableId)`
+    )
+    .eq("companyId", companyId)
+    .is("scenarioId", null)
+    .not("job.status", "in", '("Cancelled","Completed","Closed")');
+
+  if (window) {
+    // A reservation [startAt, endAt) overlaps [from, to) iff it starts before
+    // the window ends and ends after the window starts.
+    query = query.lt("startAt", window.to).gt("endAt", window.from);
+  } else {
+    // Rows that ended within the last day stay visible for context.
+    const cutoff = new Date(Date.now() - 24 * 3_600_000).toISOString();
+    query = query.gte("endAt", cutoff);
+  }
+
+  // Scope to a single plant so the resource Gantt matches its work-center list.
+  if (locationId) {
+    query = query.eq("job.locationId", locationId);
+  }
+
+  return query.order("startAt");
+}
+
+/** @mcp read */
+export async function getMaintenanceDowntimeForResources(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  locationId?: string
+) {
+  // Open maintenance dispatches that take a work center OFFLINE — the same rows
+  // the scheduler subtracts from a machine's availability. Surfaced on the
+  // resource Gantt so downtime is drawn, not just implied by the gap it leaves.
+  // Few per plant, so no window filter here; the timeline clips to the view.
+  let query = client
+    .from("maintenanceDispatch")
+    .select(
+      "id, maintenanceDispatchId, workCenterId, plannedStartTime, plannedEndTime, actualStartTime, actualEndTime"
+    )
+    .eq("companyId", companyId)
+    .eq("takesWorkCenterOffline", true)
+    .not("status", "in", '("Completed","Cancelled")')
+    .not("workCenterId", "is", null);
+
+  if (locationId) {
+    query = query.eq("locationId", locationId);
+  }
+
+  return query.order("plannedStartTime");
+}
+
+/** @mcp read */
+export async function getProductionEventsByJob(
+  client: SupabaseClient<Database>,
+  jobId: string
+) {
+  return client
+    .from("productionEvent")
+    .select(
+      "id, jobOperationId, type, startTime, endTime, employeeId, jobOperation!inner(jobId)"
+    )
+    .eq("jobOperation.jobId", jobId);
+}
+
+/** @mcp read */
 export async function getJobs(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1033,6 +1258,7 @@ export async function getJobs(
   return query;
 }
 
+/** @mcp read */
 export async function getJobsBySalesOrderLine(
   client: SupabaseClient<Database>,
   salesOrderLineId: string
@@ -1044,18 +1270,25 @@ export async function getJobsBySalesOrderLine(
     .order("createdAt", { ascending: true });
 }
 
+/** @mcp read */
 export async function getJobsList(
   client: SupabaseClient<Database>,
-  companyId: string
+  companyId: string,
+  statuses?: Database["public"]["Enums"]["jobStatus"][]
 ) {
   return fetchAllFromTable<{
     id: string;
     jobId: string;
-  }>(client, "job", "id, jobId", (query) =>
-    query.eq("companyId", companyId).order("jobId")
-  );
+  }>(client, "job", "id, jobId", (query) => {
+    let filtered = query.eq("companyId", companyId);
+    if (statuses && statuses.length > 0) {
+      filtered = filtered.in("status", statuses);
+    }
+    return filtered.order("jobId");
+  });
 }
 
+/** @mcp read */
 export async function getJobMakeMethodById(
   client: SupabaseClient<Database>,
   jobMakeMethodId: string,
@@ -1069,6 +1302,7 @@ export async function getJobMakeMethodById(
     .single();
 }
 
+/** @mcp read */
 export async function getRootMakeMethod(
   client: SupabaseClient<Database>,
   jobId: string,
@@ -1083,6 +1317,7 @@ export async function getRootMakeMethod(
     .single();
 }
 
+/** @mcp read */
 export async function getJobMaterialsWithQuantityOnHand(
   client: SupabaseClient<Database>,
   jobId: string,
@@ -1125,6 +1360,7 @@ export async function getJobMaterialsWithQuantityOnHand(
 }
 
 // Distinct item ids on a job — scopes the Materials-page Item filter.
+/** @mcp read */
 export async function getJobMaterialItemIds(
   client: SupabaseClient<Database>,
   jobId: string,
@@ -1160,12 +1396,14 @@ function methodAllocationRank(methodType: MethodType | null): number {
 //      "in stock" on one line and "needs order" on another.
 // Stock is shared with no per-job reservation, so order matters. Result is keyed
 // by jobMaterial id (the line), not item id.
+/** @mcp read */
 export async function getJobMaterialShortfallByItem(
   client: SupabaseClient<Database>,
   jobId: string,
   companyId: string,
   locationId: string,
-  materials: JobItemAvailability[]
+  materials: JobItemAvailability[],
+  asOfDate?: string
 ): Promise<Record<string, ItemShortfall>> {
   // Two pools per item, kept separate so allocation can hand out already-received
   // on-hand stock BEFORE incoming supply. quantityOnPurchaseOrder /
@@ -1191,13 +1429,62 @@ export async function getJobMaterialShortfallByItem(
   const itemIds = Array.from(onHandByItem.keys());
   if (itemIds.length === 0) return {};
 
+  const successorByItem = new Map<string, { itemId: string; factor: number }>();
+  const rules = await client
+    .from("itemSupersession")
+    .select(
+      "itemId, successorItemId, successorEffectivityDate, conversionFactor"
+    )
+    .in("itemId", itemIds)
+    .eq("companyId", companyId)
+    .eq("supersessionMode", "Consume First");
+  for (const rule of rules.data ?? []) {
+    if (!rule.successorItemId) continue;
+    if (
+      asOfDate &&
+      rule.successorEffectivityDate &&
+      rule.successorEffectivityDate > asOfDate
+    ) {
+      continue;
+    }
+    successorByItem.set(rule.itemId, {
+      itemId: rule.successorItemId,
+      factor: Number(rule.conversionFactor ?? 1) || 1
+    });
+  }
+  const successorIds = Array.from(
+    new Set(
+      Array.from(successorByItem.values())
+        .map((s) => s.itemId)
+        .filter((id) => !onHandByItem.has(id))
+    )
+  );
+  const successorQuantities = await async.map(
+    successorIds,
+    async (successorId) =>
+      await client.rpc("get_inventory_quantities", {
+        location_id: locationId,
+        company_id: companyId,
+        item_id: successorId
+      })
+  );
+  successorIds.forEach((successorId, index) => {
+    const row = successorQuantities[index]?.data?.[0];
+    onHandByItem.set(successorId, Number(row?.quantityOnHand ?? 0));
+    incomingByItem.set(
+      successorId,
+      Number(row?.quantityOnPurchaseOrder ?? 0) +
+        Number(row?.quantityOnProductionOrder ?? 0)
+    );
+  });
+
   // Remaining demand for those items across every active job at this location.
   const { data } = await client
     .from("jobMaterial")
     .select(
-      "id, itemId, jobId, methodType, quantityToIssue, job!inner(priority, status, locationId)"
+      "id, itemId, jobId, methodType, quantity, quantityToIssue, job!inner(priority, status, locationId)"
     )
-    .in("itemId", itemIds)
+    .in("itemId", [...itemIds, ...successorIds])
     .eq("companyId", companyId)
     .neq("methodType", "Make to Order")
     .in("job.status", ACTIVE_JOB_STATUSES)
@@ -1209,6 +1496,7 @@ export async function getJobMaterialShortfallByItem(
   type Line = {
     materialId: string;
     remaining: number;
+    perAssembly: number;
     methodType: MethodType | null;
   };
   const demandByItem = new Map<string, Map<string, Demand>>();
@@ -1235,7 +1523,12 @@ export async function getJobMaterialShortfallByItem(
 
     if (rowJobId === jobId && row.id) {
       const lines = thisJobLinesByItem.get(itemId) ?? [];
-      lines.push({ materialId: row.id, remaining, methodType: row.methodType });
+      lines.push({
+        materialId: row.id,
+        remaining,
+        perAssembly: Number(row.quantity ?? 0),
+        methodType: row.methodType
+      });
       thisJobLinesByItem.set(itemId, lines);
     }
   }
@@ -1272,8 +1565,12 @@ export async function getJobMaterialShortfallByItem(
                 ? 1
                 : 0)
         );
+      const consumeFirst = successorByItem.has(itemId);
       for (const line of lines) {
-        const fromOnHand = Math.min(line.remaining, Math.max(onHand, 0));
+        const usable = consumeFirst
+          ? consumableInWholeAssemblies(onHand, line.perAssembly)
+          : Math.max(onHand, 0);
+        const fromOnHand = Math.min(line.remaining, usable);
         onHand -= fromOnHand;
         let need = line.remaining - fromOnHand;
         const fromIncoming = Math.min(need, Math.max(incoming, 0));
@@ -1285,6 +1582,33 @@ export async function getJobMaterialShortfallByItem(
           coveredByOnHand: need <= 0 && fromIncoming === 0
         };
       }
+    }
+    onHandByItem.set(itemId, onHand);
+    incomingByItem.set(itemId, incoming);
+  }
+
+  for (const [itemId, lines] of thisJobLinesByItem) {
+    const successor = successorByItem.get(itemId);
+    if (!successor) continue;
+    for (const line of lines) {
+      const current = shortfallByMaterial[line.materialId];
+      if (!current || current.shortfall <= 0) continue;
+      let need = current.shortfall * successor.factor;
+      let onHand = onHandByItem.get(successor.itemId) ?? 0;
+      let incoming = incomingByItem.get(successor.itemId) ?? 0;
+      const fromOnHand = Math.min(need, Math.max(onHand, 0));
+      onHand -= fromOnHand;
+      need -= fromOnHand;
+      const fromIncoming = Math.min(need, Math.max(incoming, 0));
+      incoming -= fromIncoming;
+      need -= fromIncoming;
+      onHandByItem.set(successor.itemId, onHand);
+      incomingByItem.set(successor.itemId, incoming);
+      shortfallByMaterial[line.materialId] = {
+        shortfall: need > 0 ? need : 0,
+        coveredByOnHand: need <= 0 && fromIncoming === 0,
+        substituteItemId: successor.itemId
+      };
     }
   }
   return shortfallByMaterial;
@@ -1309,7 +1633,8 @@ function getJobMaterialOrderStatus(
   poLines: JobMaterialPurchaseOrderLine[],
   supplyJobLines: JobMaterialSupplyJobLine[],
   shortfall: number,
-  coveredByOnHand: boolean
+  coveredByOnHand: boolean,
+  substituteItemId: string | null = null
 ): ItemOrderStatus {
   // Fully pulled into the job (its whole requirement has been issued/consumed).
   const estimated = material.estimatedQuantity ?? 0;
@@ -1351,6 +1676,7 @@ function getJobMaterialOrderStatus(
     needsOrder,
     needsJob,
     shortfall,
+    substituteItemId,
     status,
     supplyJobStatus,
     coveredByOnHand,
@@ -1387,19 +1713,22 @@ function getJobOrderStatusByMaterial(
   const byMaterialId: Record<string, ItemOrderStatus> = {};
   for (const material of materials) {
     if (!material.id) continue;
-    const poLines = material.jobMaterialItemId
-      ? (linesByItemId.get(material.jobMaterialItemId) ?? [])
-      : [];
-    const jobLines = material.jobMaterialItemId
-      ? (jobLinesByItemId.get(material.jobMaterialItemId) ?? [])
-      : [];
     const lineShortfall = shortfallByMaterialId[material.id];
+    const supplyItemIds = [
+      material.jobMaterialItemId,
+      lineShortfall?.substituteItemId
+    ].filter((id): id is string => Boolean(id));
+    const poLines = supplyItemIds.flatMap((id) => linesByItemId.get(id) ?? []);
+    const jobLines = supplyItemIds.flatMap(
+      (id) => jobLinesByItemId.get(id) ?? []
+    );
     byMaterialId[material.id] = getJobMaterialOrderStatus(
       material,
       poLines,
       jobLines,
       lineShortfall?.shortfall ?? 0,
-      lineShortfall?.coveredByOnHand ?? false
+      lineShortfall?.coveredByOnHand ?? false,
+      lineShortfall?.substituteItemId ?? null
     );
   }
   return byMaterialId;
@@ -1407,6 +1736,7 @@ function getJobOrderStatusByMaterial(
 
 // One status per material id for a job — the single source the table and tree
 // both consume. Empty for jobs that show no indicators.
+/** @mcp read */
 export async function getJobOrderStatusMap(
   client: SupabaseClient<Database>,
   jobId: string,
@@ -1415,7 +1745,8 @@ export async function getJobOrderStatusMap(
   jobStatus: string | null | undefined,
   materials: NonNullable<
     Awaited<ReturnType<typeof getJobMaterialsWithQuantityOnHand>>["data"]
-  >
+  >,
+  asOfDate?: string
 ): Promise<Record<string, ItemOrderStatus>> {
   // Completed/Draft/Cancelled/Closed jobs show no procurement indicators.
   if (isJobOrderStatusHidden(jobStatus)) return {};
@@ -1431,18 +1762,46 @@ export async function getJobOrderStatusMap(
         jobId,
         companyId,
         locationId,
-        materials
+        materials,
+        asOfDate
       )
     ]);
 
+  const materialItemIds = new Set(
+    materials.map((material) => material.jobMaterialItemId)
+  );
+  const substitutes = Array.from(
+    new Set(
+      Object.values(shortfallByMaterialId)
+        .map((shortfall) => shortfall.substituteItemId)
+        .filter(
+          (id): id is string =>
+            typeof id === "string" && !materialItemIds.has(id)
+        )
+    )
+  ).map((jobMaterialItemId) => ({ jobMaterialItemId }));
+  const [substitutePurchaseOrderLines, substituteSupplyJobLines] =
+    substitutes.length > 0
+      ? await Promise.all([
+          getJobMaterialPurchaseOrderLines(client, substitutes, locationId),
+          getJobMaterialSupplyJobLines(
+            client,
+            substitutes,
+            companyId,
+            locationId
+          )
+        ])
+      : [[], []];
+
   return getJobOrderStatusByMaterial(
     materials,
-    purchaseOrderLines,
-    supplyJobLines,
+    purchaseOrderLines.concat(substitutePurchaseOrderLines),
+    supplyJobLines.concat(substituteSupplyJobLines),
     shortfallByMaterialId
   );
 }
 
+/** @mcp read */
 export async function getJobMethodTree(
   client: SupabaseClient<Database>,
   jobId: string
@@ -1458,6 +1817,7 @@ export async function getJobMethodTree(
   };
 }
 
+/** @mcp read */
 export async function getJobMethodTreeArray(
   client: SupabaseClient<Database>,
   jobId: string
@@ -1517,6 +1877,7 @@ export type JobMethodTreeItem = {
   children: JobMethodTreeItem[];
 };
 
+/** @mcp read */
 export async function getJobMaterial(
   client: SupabaseClient<Database>,
   materialId: string
@@ -1528,17 +1889,43 @@ export async function getJobMaterial(
     .single();
 }
 
+// The step-link `quantity` column ships with this branch's migration, which only
+// runs on main — previews (and the prod window between app deploy and migration)
+// run this code against the pre-migration schema. PostgREST fails the WHOLE
+// select on an unknown embedded column, so fall back to the quantity-less query
+// instead of rendering an empty BOM. 42703 = Postgres undefined_column; PGRST204
+// = PostgREST's schema-cache miss for a written column.
+function isMissingQuantityColumn(
+  error: { code?: string; message?: string } | null
+) {
+  return error?.code === "42703" || error?.code === "PGRST204";
+}
+
+/** @mcp read */
 export async function getJobMaterialsByMethodId(
   client: SupabaseClient<Database>,
   jobMakeMethodId: string
 ) {
-  return client
+  const result = await client
     .from("jobMaterial")
-    .select("*, item(replenishmentSystem), jobMaterialStep(jobOperationStepId)")
+    .select(
+      "*, item(replenishmentSystem), jobMaterialStep(jobOperationStepId, quantity)"
+    )
     .eq("jobMakeMethodId", jobMakeMethodId)
     .order("order", { ascending: true });
+  if (isMissingQuantityColumn(result.error)) {
+    return (await client
+      .from("jobMaterial")
+      .select(
+        "*, item(replenishmentSystem), jobMaterialStep(jobOperationStepId)"
+      )
+      .eq("jobMakeMethodId", jobMakeMethodId)
+      .order("order", { ascending: true })) as unknown as typeof result;
+  }
+  return result;
 }
 
+/** @mcp read */
 export async function getJobOperation(
   client: SupabaseClient<Database>,
   jobOperationId: string
@@ -1550,6 +1937,7 @@ export async function getJobOperation(
     .single();
 }
 
+/** @mcp read */
 export async function getJobOperations(
   client: SupabaseClient<Database>,
   jobId: string,
@@ -1560,7 +1948,7 @@ export async function getJobOperations(
     .select(
       "*, jobMakeMethod(parentMaterialId, item(readableIdWithRevision))",
       {
-        count: "exact"
+        count: LIST_COUNT
       }
     )
     .eq("jobId", jobId);
@@ -1580,6 +1968,7 @@ export async function getJobOperations(
   return query;
 }
 
+/** @mcp read */
 export async function getJobOperationDependencies(
   client: SupabaseClient<Database>,
   jobId: string
@@ -1590,6 +1979,7 @@ export async function getJobOperationDependencies(
     .eq("jobId", jobId);
 }
 
+/** @mcp read */
 export async function getJobOperationsAssignedToEmployee(
   client: SupabaseClient<Database>,
   employeeId: string,
@@ -1604,6 +1994,7 @@ export async function getJobOperationsAssignedToEmployee(
     .eq("companyId", companyId);
 }
 
+/** @mcp read */
 export async function getJobOperationAttachments(
   client: SupabaseClient<Database>,
   jobOperationIds: string[]
@@ -1637,6 +2028,7 @@ export async function getJobOperationAttachments(
   return attachmentsByOperation;
 }
 
+/** @mcp read */
 export async function getJobOperationsList(
   client: SupabaseClient<Database>,
   jobId: string
@@ -1648,6 +2040,7 @@ export async function getJobOperationsList(
     .order("order", { ascending: true });
 }
 
+/** @mcp read */
 export async function getJobOperationsByMethodId(
   client: SupabaseClient<Database>,
   jobMakeMethodId: string
@@ -1655,21 +2048,24 @@ export async function getJobOperationsByMethodId(
   return client
     .from("jobOperation")
     .select(
-      "*, jobOperationTool(*, jobOperationToolStep(jobOperationStepId)), jobOperationParameter(*), jobOperationStep(*, jobOperationStepRecord(*), jobOperationStepSlide(*))"
+      "*, jobOperationBatch(id, readableId, status), jobOperationTool(*, jobOperationToolStep(jobOperationStepId)), jobOperationParameter(*), jobOperationStep(*, jobOperationStepRecord(*), jobOperationStepSlide(*))"
     )
     .eq("jobMakeMethodId", jobMakeMethodId)
     .order("order", { ascending: true });
 }
 
+/** @mcp read */
 export async function getJobOperationStepRecords(
   client: SupabaseClient<Database>,
   jobId: string,
+  companyId: string,
   args: GenericQueryFilters & {
     search: string | null;
   }
 ) {
   let query = client.rpc("get_job_operation_step_records", {
-    p_job_id: jobId
+    p_job_id: jobId,
+    p_company_id: companyId
   });
 
   if (args.search) {
@@ -1685,6 +2081,7 @@ export async function getJobOperationStepRecords(
   return query;
 }
 
+/** @mcp read */
 export async function getOutsideOperationsByJobId(
   client: SupabaseClient<Database>,
   jobId: string,
@@ -1698,6 +2095,7 @@ export async function getOutsideOperationsByJobId(
     .eq("operationType", "Outside Processing");
 }
 
+/** @mcp read */
 export async function getProcedure(
   client: SupabaseClient<Database>,
   id: string
@@ -1709,6 +2107,7 @@ export async function getProcedure(
     .single();
 }
 
+/** @mcp read */
 export async function getProcedureSteps(
   client: SupabaseClient<Database>,
   procedureId: string
@@ -1719,6 +2118,7 @@ export async function getProcedureSteps(
     .eq("procedureId", procedureId);
 }
 
+/** @mcp read */
 export async function getProcedureParameters(
   client: SupabaseClient<Database>,
   procedureId: string
@@ -1729,6 +2129,7 @@ export async function getProcedureParameters(
     .eq("procedureId", procedureId);
 }
 
+/** @mcp read */
 export async function getProcedureVersions(
   client: SupabaseClient<Database>,
   procedure: { name: string; version: number },
@@ -1743,6 +2144,7 @@ export async function getProcedureVersions(
     .order("version", { ascending: false });
 }
 
+/** @mcp read */
 export async function getProcedures(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1751,7 +2153,7 @@ export async function getProcedures(
   let query = client
     .from("procedures")
     .select("*", {
-      count: "exact"
+      count: LIST_COUNT
     })
     .eq("companyId", companyId);
 
@@ -1768,6 +2170,7 @@ export async function getProcedures(
   return query;
 }
 
+/** @mcp read */
 export async function getProceduresList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1786,6 +2189,7 @@ export async function getProceduresList(
   );
 }
 
+/** @mcp read */
 export async function getProductionEvent(
   client: SupabaseClient<Database>,
   id: string
@@ -1797,6 +2201,7 @@ export async function getProductionEvent(
     .single();
 }
 
+/** @mcp read */
 export async function getProductionEvents(
   client: SupabaseClient<Database>,
   jobOperationIds: string[],
@@ -1807,7 +2212,7 @@ export async function getProductionEvents(
     .select(
       "*, jobOperation(description, jobMakeMethod(parentMaterialId, item(readableIdWithRevision)))",
       {
-        count: "exact"
+        count: LIST_COUNT
       }
     )
     .in("jobOperationId", jobOperationIds)
@@ -1826,6 +2231,7 @@ export async function getProductionEvents(
   return query;
 }
 
+/** @mcp read */
 export async function getProductionEventsPage(
   client: SupabaseClient<Database>,
   jobOperationId: string,
@@ -1859,6 +2265,7 @@ export async function getProductionEventsPage(
   };
 }
 
+/** @mcp read */
 export async function getProductionEventsByOperations(
   client: SupabaseClient<Database>,
   jobOperationIds: string[]
@@ -1872,6 +2279,7 @@ export async function getProductionEventsByOperations(
     .order("startTime", { ascending: true });
 }
 
+/** @mcp read */
 export async function getProductionPlanning(
   client: SupabaseClient<Database>,
   locationId: string,
@@ -1889,7 +2297,7 @@ export async function getProductionPlanning(
       periods
     },
     {
-      count: "exact"
+      count: LIST_COUNT
     }
   );
 
@@ -1906,6 +2314,7 @@ export async function getProductionPlanning(
   return query;
 }
 
+/** @mcp read */
 export async function getProductionProjections(
   client: SupabaseClient<Database>,
   locationId: string,
@@ -1923,7 +2332,7 @@ export async function getProductionProjections(
       periods
     },
     {
-      count: "exact"
+      count: LIST_COUNT
     }
   );
 
@@ -1940,6 +2349,7 @@ export async function getProductionProjections(
   return query;
 }
 
+/** @mcp read */
 export async function getProductionQuantity(
   client: SupabaseClient<Database>,
   id: string
@@ -1951,6 +2361,7 @@ export async function getProductionQuantity(
     .single();
 }
 
+/** @mcp read */
 export async function getProductionQuantities(
   client: SupabaseClient<Database>,
   jobOperationIds: string[],
@@ -1961,7 +2372,7 @@ export async function getProductionQuantities(
     .select(
       "*, jobOperation(description, jobMakeMethod(parentMaterialId, item(readableIdWithRevision)))",
       {
-        count: "exact"
+        count: LIST_COUNT
       }
     )
     .in("jobOperationId", jobOperationIds);
@@ -1979,6 +2390,7 @@ export async function getProductionQuantities(
   return query;
 }
 
+/** @mcp read */
 export async function getProductionDataByOperations(
   client: SupabaseClient<Database>,
   jobOperationIds: string[]
@@ -2009,6 +2421,7 @@ export async function getProductionDataByOperations(
   };
 }
 
+/** @mcp read */
 export async function getScrapReasonsList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -2020,6 +2433,7 @@ export async function getScrapReasonsList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getScrapReason(
   client: SupabaseClient<Database>,
   scrapReasonId: string
@@ -2031,6 +2445,7 @@ export async function getScrapReason(
     .single();
 }
 
+/** @mcp read */
 export async function getScrapReasons(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -2038,7 +2453,7 @@ export async function getScrapReasons(
 ) {
   let query = client
     .from("scrapReason")
-    .select("id, name, customFields", { count: "exact" })
+    .select("id, name, customFields", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -2054,6 +2469,7 @@ export async function getScrapReasons(
   return query;
 }
 
+/** @mcp read */
 export async function getFailureMode(
   client: SupabaseClient<Database>,
   failureModeId: string
@@ -2065,6 +2481,7 @@ export async function getFailureMode(
     .single();
 }
 
+/** @mcp read */
 export async function getFailureModes(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -2072,7 +2489,7 @@ export async function getFailureModes(
 ) {
   let query = client
     .from("maintenanceFailureMode")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -2088,6 +2505,7 @@ export async function getFailureModes(
   return query;
 }
 
+/** @mcp read */
 export async function getFailureModesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -2099,6 +2517,7 @@ export async function getFailureModesList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatch(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -2116,6 +2535,7 @@ export async function getMaintenanceDispatch(
     .single();
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatches(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -2123,7 +2543,7 @@ export async function getMaintenanceDispatches(
 ) {
   let query = client
     .from("maintenanceDispatch")
-    .select(`*`, { count: "exact" })
+    .select(`*`, { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -2139,6 +2559,7 @@ export async function getMaintenanceDispatches(
   return query;
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchComments(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -2153,6 +2574,7 @@ export async function getMaintenanceDispatchComments(
     .order("createdAt", { ascending: false });
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchEvents(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -2168,6 +2590,7 @@ export async function getMaintenanceDispatchEvents(
     .order("startTime", { ascending: false });
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchItems(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -2181,6 +2604,7 @@ export async function getMaintenanceDispatchItems(
     .eq("maintenanceDispatchId", dispatchId);
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchWorkCenters(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -2194,6 +2618,7 @@ export async function getMaintenanceDispatchWorkCenters(
     .eq("maintenanceDispatchId", dispatchId);
 }
 
+/** @mcp read */
 export async function getMaintenanceSchedule(
   client: SupabaseClient<Database>,
   scheduleId: string
@@ -2208,6 +2633,7 @@ export async function getMaintenanceSchedule(
     .single();
 }
 
+/** @mcp read */
 export async function getMaintenanceSchedules(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -2215,7 +2641,7 @@ export async function getMaintenanceSchedules(
 ) {
   let query = client
     .from("maintenanceSchedules")
-    .select(`*`, { count: "exact" })
+    .select(`*`, { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -2235,6 +2661,7 @@ export async function getMaintenanceSchedules(
   return query;
 }
 
+/** @mcp read */
 export async function getMaintenanceScheduleItems(
   client: SupabaseClient<Database>,
   scheduleId: string
@@ -2248,6 +2675,7 @@ export async function getMaintenanceScheduleItems(
     .eq("maintenanceScheduleId", scheduleId);
 }
 
+/** @mcp read */
 export async function getTrackedEntityByJobId(
   client: SupabaseClient<Database>,
   jobId: string
@@ -2283,6 +2711,7 @@ export async function getTrackedEntityByJobId(
   };
 }
 
+/** @mcp read */
 export async function getTrackedEntitiesByJobId(
   client: SupabaseClient<Database>,
   jobId: string
@@ -2310,61 +2739,125 @@ export async function getTrackedEntitiesByJobId(
 }
 
 /**
+ * What a job has already received to inventory: its received quantity and the
+ * tracked entities its receipts posted. One statement, so both come from the
+ * same snapshot and a receipt committing mid-read cannot pair a new quantity
+ * with old units. Kysely because itemLedger is readable only with inventory or
+ * accounting view, and production users need the answer; the route authorizes.
+ * @mcp read
+ */
+export async function getJobReceiptSnapshot(
+  db: Kysely<KyselyDatabase>,
+  jobId: string,
+  companyId: string
+) {
+  return db
+    .selectFrom("job")
+    .leftJoin("itemLedger", (join) =>
+      join
+        .onRef("itemLedger.documentId", "=", "job.id")
+        .onRef("itemLedger.companyId", "=", "job.companyId")
+        .on("itemLedger.documentType", "=", "Job Receipt")
+    )
+    .select([
+      "job.quantityReceivedToInventory",
+      sql<
+        string[]
+      >`COALESCE(array_agg("itemLedger"."trackedEntityId") FILTER (WHERE "itemLedger"."trackedEntityId" IS NOT NULL), '{}')`.as(
+        "trackedEntityIds"
+      )
+    ])
+    .where("job.id", "=", jobId)
+    .where("job.companyId", "=", companyId)
+    .groupBy(["job.id", "job.companyId"])
+    .executeTakeFirst();
+}
+
+/**
  * Reschedule a job using the unified scheduling engine.
  * This recalculates dates, work centers, and priorities for all operations.
+ * @mcp update
  */
 export async function recalculateJobOperationDependencies(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   params: {
     jobId: string;
     companyId: string;
     userId: string;
   }
 ) {
-  return client.functions.invoke("schedule", {
-    body: {
-      jobId: params.jobId,
+  // Forecast-first scheduling regenerates the WHOLE LOCATION; resolve the job's
+  // location and regenerate it (the job is part of that pass).
+  const { data: job, error } = await client
+    .from("job")
+    .select("locationId")
+    .eq("id", params.jobId)
+    .eq("companyId", params.companyId)
+    .single();
+  if (error || !job?.locationId) {
+    return { data: null, error: error ?? new Error("Job has no location") };
+  }
+  // Regenerate the whole location IN-PROCESS (Node). The caller's
+  // client reads the (same-company) master data; writes go through the Node
+  // Kysely pool.
+  try {
+    const { runLocationSchedule } = await import("@carbon/planning");
+    const data = await runLocationSchedule({
+      db,
+      client,
+      locationId: job.locationId,
       companyId: params.companyId,
-      userId: params.userId,
-      mode: "reschedule",
-      direction: "backward"
-    }
-  });
+      userId: params.userId
+    });
+    return { data, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error("Failed to reschedule")
+    };
+  }
 }
+/** @mcp update */
 export async function recalculateJobRequirements(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   params: {
     id: string; // job id
     companyId: string;
     userId: string;
   }
 ) {
-  return client.functions.invoke("recalculate", {
-    body: {
+  return serverFns
+    .as({ client, db, companyId: params.companyId, userId: params.userId })
+    .invoke("recalculate", {
       type: "jobRequirements",
       ...params
-    }
-  });
+    });
 }
 
+/** @mcp update */
 export async function recalculateJobMakeMethodRequirements(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   params: {
     id: string; // job make method id
     companyId: string;
     userId: string;
   }
 ) {
-  return client.functions.invoke("recalculate", {
-    body: {
+  return serverFns
+    .as({ client, db, companyId: params.companyId, userId: params.userId })
+    .invoke("recalculate", {
       type: "jobMakeMethodRequirements",
       ...params
-    }
-  });
+    });
 }
 
+/** @mcp update */
 export async function runMRP(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   params: {
     type:
       | "company"
@@ -2378,15 +2871,25 @@ export async function runMRP(
     userId: string;
   }
 ) {
-  return client.functions.invoke("mrp", {
-    body: {
-      ...params
-    }
-  });
+  // Run MRP IN-PROCESS (Node). The caller's service-role client does
+  // the PostgREST reads; the atomic Phase-7 write goes through the Node Kysely
+  // pool. Preserves the `{ data, error }` shape the caller (api+/mrp.ts) returns.
+  try {
+    const { runMrp } = await import("@carbon/planning");
+    const data = await runMrp(client, db, params);
+    return { data, error: null };
+  } catch (err) {
+    return {
+      data: null,
+      error: err instanceof Error ? err : new Error("Failed to run MRP")
+    };
+  }
 }
 
+/** @mcp update */
 export async function updateJobBatchNumber(
   client: SupabaseClient<Database>,
+  companyId: string,
   trackedEntityId: string,
   value: string | null
 ) {
@@ -2396,9 +2899,224 @@ export async function updateJobBatchNumber(
       readableId: value
     })
     .eq("id", trackedEntityId)
+    .eq("companyId", companyId)
     .select("id, readableId");
 }
 
+export type JobReleaseReadiness = {
+  jobs: {
+    id: string;
+    jobId: string;
+    status: (typeof jobStatus)[number] | null;
+    manufacturingBlocked: boolean;
+    missingAssemblies: { makeMethodId: string; description: string }[];
+    // Outside operations release cannot put on a PO: the process has no
+    // supplier, or several and none chosen on the operation.
+    outsideOperationsWithoutSupplier: {
+      id: string;
+      description: string;
+      missing: "none" | "choose";
+    }[];
+  }[];
+  // Suppliers whose outside operations release will put on a purchase order,
+  // with the Draft POs the planner may add them to instead of a new one.
+  suppliers: {
+    supplierId: string;
+    draftPurchaseOrders: { id: string; purchaseOrderId: string }[];
+  }[];
+};
+
+// What stands between these jobs and release, read in one query per table for
+// any number of jobs. The job Release dialog and batch release both read it, so
+// a job released through a batch is held to the job page's rules.
+/** @mcp read */
+export async function getJobReleaseReadiness(
+  client: SupabaseClient<Database>,
+  jobIds: string[],
+  companyId: string
+): Promise<{ data: JobReleaseReadiness | null; error: PostgrestError | null }> {
+  if (jobIds.length === 0)
+    return { data: { jobs: [], suppliers: [] }, error: null };
+
+  const [jobs, roots, materials, operations] = await Promise.all([
+    client
+      .from("job")
+      .select(
+        "id, jobId, status, item(itemReplenishment(manufacturingBlocked))"
+      )
+      .in("id", jobIds)
+      .eq("companyId", companyId),
+    client
+      .from("jobMakeMethod")
+      .select("id, jobId")
+      .in("jobId", jobIds)
+      .eq("companyId", companyId)
+      .is("parentMaterialId", null),
+    client
+      .from("jobMaterialWithMakeMethodId")
+      .select(
+        "jobId, jobMaterialMakeMethodId, methodType, kit, description, itemReadableId"
+      )
+      .in("jobId", jobIds)
+      .eq("companyId", companyId),
+    client
+      .from("jobOperation")
+      .select(
+        "id, jobId, jobMakeMethodId, operationType, operationSupplierProcessId, processId, description"
+      )
+      .in("jobId", jobIds)
+      .eq("companyId", companyId)
+  ]);
+  const failed =
+    jobs.error ?? roots.error ?? materials.error ?? operations.error;
+  if (failed) return { data: null, error: failed };
+
+  const outsideOperationIds = (operations.data ?? [])
+    .filter((op) => op.operationType === "Outside Processing")
+    .map((op) => op.id);
+  const purchaseOrderLines = outsideOperationIds.length
+    ? await client
+        .from("purchaseOrderLine")
+        .select("jobOperationId")
+        .in("jobOperationId", outsideOperationIds)
+        .eq("companyId", companyId)
+    : { data: [], error: null };
+  if (purchaseOrderLines.error)
+    return { data: null, error: purchaseOrderLines.error };
+
+  const needingPurchaseOrders = outsideOperationsNeedingPurchaseOrders(
+    operations.data ?? [],
+    new Set(
+      (purchaseOrderLines.data ?? [])
+        .map((line) => line.jobOperationId)
+        .filter((id): id is string => !!id)
+    )
+  );
+  const ownSupplierProcessIds = [
+    ...new Set(
+      needingPurchaseOrders
+        .map((op) => op.operationSupplierProcessId)
+        .filter((id): id is string => !!id)
+    )
+  ];
+  const processIds = [
+    ...new Set(
+      needingPurchaseOrders
+        .map((op) => op.processId)
+        .filter((id): id is string => !!id)
+    )
+  ];
+  const [ownSupplierProcesses, processSupplierProcesses] = await Promise.all([
+    ownSupplierProcessIds.length
+      ? client
+          .from("supplierProcess")
+          .select("id, supplierId, processId")
+          .in("id", ownSupplierProcessIds)
+          .eq("companyId", companyId)
+      : { data: [], error: null },
+    processIds.length
+      ? client
+          .from("supplierProcess")
+          .select("id, supplierId, processId")
+          .in("processId", processIds)
+          .eq("companyId", companyId)
+      : { data: [], error: null }
+  ]);
+  const supplierProcessError =
+    ownSupplierProcesses.error ?? processSupplierProcesses.error;
+  if (supplierProcessError) return { data: null, error: supplierProcessError };
+
+  const supplierProcessById = new Map(
+    [
+      ...(ownSupplierProcesses.data ?? []),
+      ...(processSupplierProcesses.data ?? [])
+    ].map((sp) => [sp.id, sp])
+  );
+  const supplierProcessesByProcessId = new Map(
+    Object.entries(
+      groupBy(processSupplierProcesses.data ?? [], (sp) => sp.processId)
+    )
+  );
+  const resolved = needingPurchaseOrders.map((op) => ({
+    op,
+    supplier: resolveOperationSupplier(
+      op,
+      supplierProcessById,
+      supplierProcessesByProcessId
+    )
+  }));
+  const supplierIds = [
+    ...new Set(
+      resolved.flatMap(({ supplier }) =>
+        "supplierProcess" in supplier
+          ? [supplier.supplierProcess.supplierId]
+          : []
+      )
+    )
+  ];
+  const withoutSupplierByJob = groupBy(
+    resolved.filter(({ supplier }) => "missing" in supplier),
+    ({ op }) => op.jobId
+  );
+  const drafts = supplierIds.length
+    ? await client
+        .from("purchaseOrder")
+        .select("id, purchaseOrderId, supplierId")
+        .eq("status", "Draft")
+        .in("supplierId", supplierIds)
+        .eq("companyId", companyId)
+    : { data: [], error: null };
+  if (drafts.error) return { data: null, error: drafts.error };
+
+  const materialsByJob = groupBy(materials.data ?? [], (m) => m.jobId ?? "");
+  const operationsByJob = groupBy(operations.data ?? [], (op) => op.jobId);
+  const rootByJob = new Map((roots.data ?? []).map((r) => [r.jobId, r.id]));
+  const descriptionByMakeMethod = new Map(
+    (materials.data ?? []).map((m) => [
+      m.jobMaterialMakeMethodId,
+      m.description || m.itemReadableId || ""
+    ])
+  );
+
+  return {
+    data: {
+      jobs: (jobs.data ?? []).map((job) => ({
+        id: job.id,
+        jobId: job.jobId,
+        status: job.status,
+        manufacturingBlocked:
+          job.item?.itemReplenishment?.manufacturingBlocked === true,
+        missingAssemblies: makeMethodsMissingOperations(
+          rootByJob.get(job.id) ?? null,
+          materialsByJob[job.id] ?? [],
+          operationsByJob[job.id] ?? []
+        ).map((makeMethodId) => ({
+          makeMethodId,
+          description:
+            makeMethodId === rootByJob.get(job.id)
+              ? job.jobId
+              : (descriptionByMakeMethod.get(makeMethodId) ?? makeMethodId)
+        })),
+        outsideOperationsWithoutSupplier: (
+          withoutSupplierByJob[job.id] ?? []
+        ).map(({ op, supplier }) => ({
+          id: op.id,
+          description: op.description ?? op.id,
+          missing: "missing" in supplier ? supplier.missing : "none"
+        }))
+      })),
+      suppliers: supplierIds.map((supplierId) => ({
+        supplierId,
+        draftPurchaseOrders: (drafts.data ?? [])
+          .filter((po) => po.supplierId === supplierId)
+          .map((po) => ({ id: po.id, purchaseOrderId: po.purchaseOrderId }))
+      }))
+    },
+    error: null
+  };
+}
+
+/** @mcp update */
 export async function updateJobStatus(
   client: SupabaseClient<Database>,
   params: {
@@ -2464,6 +3182,7 @@ export async function updateJobStatus(
   return result;
 }
 
+/** @mcp update */
 export async function updateJobMaterialOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -2478,6 +3197,7 @@ export async function updateJobMaterialOrder(
   return Promise.all(updatePromises);
 }
 
+/** @mcp update */
 export async function updateJobOperationOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -2492,6 +3212,7 @@ export async function updateJobOperationOrder(
   return Promise.all(updatePromises);
 }
 
+/** @mcp update */
 export async function updateJobOperationStepOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -2509,6 +3230,7 @@ export async function updateJobOperationStepOrder(
   return Promise.all(updatePromises);
 }
 
+/** @mcp update */
 export async function updateKanbanJob(
   client: SupabaseClient<Database>,
   params: {
@@ -2526,6 +3248,7 @@ export async function updateKanbanJob(
     .eq("companyId", companyId);
 }
 
+/** @mcp update */
 export async function updateQuoteOperationStepOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -2543,6 +3266,7 @@ export async function updateQuoteOperationStepOrder(
   return Promise.all(updatePromises);
 }
 
+/** @mcp update */
 export async function updateMethodOperationStepOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -2560,6 +3284,7 @@ export async function updateMethodOperationStepOrder(
   return Promise.all(updatePromises);
 }
 
+/** @mcp update */
 export async function updateJobOperationStatus(
   client: SupabaseClient<Database>,
   id: string,
@@ -2579,71 +3304,42 @@ export async function updateJobOperationStatus(
 }
 
 /**
- * Flush un-consumed picked material staged at lineside back to the warehouse
- * after an operation went 'Done'. If the operation was the last one, the SQL
- * interceptor has already completed the job — sweep the whole job (both
- * returnPickedMaterialTiming policies); otherwise sweep this operation's lines
- * (the post-picking edge function no-ops unless the policy is 'operation').
- * Pass a service-role client so the picking lines are readable regardless of
- * the caller's inventory permissions. Idempotent.
+ * Returns picked-but-unconsumed material an operation left at lineside once it
+ * is Done; when that completed the job, the whole job's remainder. Pass a
+ * service-role client so the picking lines are readable regardless of the
+ * caller's inventory permissions. Idempotent.
  */
 export async function returnPickedRemaindersForOperation(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   args: { jobOperationId: string; userId: string; companyId: string }
 ) {
-  const op = await client
-    .from("jobOperation")
-    .select("jobId")
-    .eq("id", args.jobOperationId)
-    .eq("companyId", args.companyId)
-    .maybeSingle();
-  const jobId = op.data?.jobId;
-  if (!jobId) return { data: null, error: op.error };
-
-  const job = await client
-    .from("job")
-    .select("status")
-    .eq("id", jobId)
-    .eq("companyId", args.companyId)
-    .maybeSingle();
-  if (!job.data) return { data: null, error: job.error };
-
-  const body =
-    job.data.status === "Completed"
-      ? {
-          type: "returnJobRemainders" as const,
-          jobId,
-          userId: args.userId,
-          companyId: args.companyId
-        }
-      : {
-          type: "returnOperationRemainders" as const,
-          jobOperationId: args.jobOperationId,
-          userId: args.userId,
-          companyId: args.companyId
-        };
-
-  return client.functions.invoke("post-picking", { body });
+  return serverFns
+    .as({ client, db, companyId: args.companyId, userId: args.userId })
+    .invoke("post-picking", {
+      type: "returnOperationRemainders",
+      ...args
+    });
 }
 
 /**
  * Job-scope sweep after an explicit job completion (the ERP Complete button).
- * The edge function guards on job.status = 'Completed' and is idempotent.
+ * post-picking guards on job.status = 'Completed' and is idempotent.
  */
 export async function returnPickedRemaindersForJob(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   args: { jobId: string; userId: string; companyId: string }
 ) {
-  return client.functions.invoke("post-picking", {
-    body: {
+  return serverFns
+    .as({ client, db, companyId: args.companyId, userId: args.userId })
+    .invoke("post-picking", {
       type: "returnJobRemainders",
-      jobId: args.jobId,
-      userId: args.userId,
-      companyId: args.companyId
-    }
-  });
+      jobId: args.jobId
+    });
 }
 
+/** @mcp update */
 export async function updateJobOperationDueDate(
   client: SupabaseClient<Database>,
   id: string,
@@ -2663,6 +3359,7 @@ export async function updateJobOperationDueDate(
     .single();
 }
 
+/** @mcp update */
 export async function updateProcedureStepOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -2677,6 +3374,7 @@ export async function updateProcedureStepOrder(
   return Promise.all(updatePromises);
 }
 
+/** @mcp upsert */
 export async function upsertProductionEvent(
   client: SupabaseClient<Database>,
   productionEvent:
@@ -2736,6 +3434,7 @@ export async function updateProductionQuantity(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertProductionQuantity(
   client: SupabaseClient<Database>,
   productionQuantity:
@@ -2787,9 +3486,11 @@ export async function upsertProductionQuantity(
  * Kept out of the options type literal on purpose: the MCP metadata generator
  * parses that object textually and turns a JSDoc block above a property into a
  * property name of its own, which then ships in the public tool schema.
+ * @mcp create
  */
 export async function insertJob(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   input: {
     itemId: string;
     quantity: number;
@@ -2809,7 +3510,6 @@ export async function insertJob(
     salesOrderLineId?: string;
     quoteId?: string;
     quoteLineId?: string;
-    parentJobId?: string;
     modelUploadId?: string;
     notes?: string;
     customFields?: Json;
@@ -2931,10 +3631,10 @@ export async function insertJob(
       salesOrderLineId: input.salesOrderLineId,
       quoteId: input.quoteId,
       quoteLineId: input.quoteLineId,
-      parentJobId: input.parentJobId,
       modelUploadId: input.modelUploadId,
       notes: input.notes,
       customFields: input.customFields,
+      configuration: (input.configuration as Json | undefined) ?? null,
       companyId: input.companyId,
       createdBy: input.createdBy,
       updatedBy: input.createdBy
@@ -2969,28 +3669,26 @@ export async function insertJob(
       (input.quoteId && input.quoteLineId ? "quoteLine" : "item");
 
     if (methodSource === "quoteLine" && input.quoteId && input.quoteLineId) {
-      const body: Record<string, unknown> = {
-        type: "quoteLineToJob",
-        sourceId: `${input.quoteId}:${input.quoteLineId}`,
-        targetId: createdJobId,
-        companyId: input.companyId,
-        userId: input.createdBy
-      };
-      if (input.configuration) body.configuration = input.configuration;
-      const { error } = await client.functions.invoke("get-method", { body });
+      const { error } = await serverFns
+        .as({ client, db, companyId: input.companyId, userId: input.createdBy })
+        .invoke("get-method", {
+          type: "quoteLineToJob",
+          sourceId: `${input.quoteId}:${input.quoteLineId}`,
+          targetId: createdJobId,
+          configuration: input.configuration || undefined
+        });
       if (error) {
         logger.error("Failed to copy method from quote line", { error });
       }
     } else {
-      const body: Record<string, unknown> = {
-        type: "itemToJob",
-        sourceId: input.itemId,
-        targetId: createdJobId,
-        companyId: input.companyId,
-        userId: input.createdBy
-      };
-      if (input.configuration) body.configuration = input.configuration;
-      const { error } = await client.functions.invoke("get-method", { body });
+      const { error } = await serverFns
+        .as({ client, db, companyId: input.companyId, userId: input.createdBy })
+        .invoke("get-method", {
+          type: "itemToJob",
+          sourceId: input.itemId,
+          targetId: createdJobId,
+          configuration: input.configuration || undefined
+        });
       if (error) {
         logger.error("Failed to copy method from item", { error });
       }
@@ -2998,7 +3696,7 @@ export async function insertJob(
   }
 
   // Assign configured serial numbers to the job's tracked entities (best-effort).
-  await assignJobSerialNumbers(client, {
+  await assignJobSerialNumbers(client, db, {
     jobId: createdJobId,
     itemId: input.itemId,
     companyId: input.companyId,
@@ -3006,14 +3704,12 @@ export async function insertJob(
   });
 
   if (!options?.skipRecalculate) {
-    await client.functions.invoke("recalculate", {
-      body: {
+    await serverFns
+      .as({ client, db, companyId: input.companyId, userId: input.createdBy })
+      .invoke("recalculate", {
         type: "jobRequirements",
-        id: createdJobId,
-        companyId: input.companyId,
-        userId: input.createdBy
-      }
-    });
+        id: createdJobId
+      });
   }
 
   return { data: { id: createdJobId, jobId }, error: null };
@@ -3021,12 +3717,13 @@ export async function insertJob(
 
 /**
  * Assign configured serial numbers to a freshly-created job's tracked entities.
- * Best-effort and cheap: it skips the edge function entirely unless the item has
+ * Best-effort and cheap: it skips the operation entirely unless the item has
  * an `itemSerialSequence` configured. Shared by every job-creation path so serial
  * numbering is applied consistently (insertJob, sales-order conversion, ...).
  */
 async function assignJobSerialNumbers(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   args: { jobId: string; itemId: string; companyId: string; userId: string }
 ) {
   const serialSequence = await client
@@ -3046,19 +3743,17 @@ async function assignJobSerialNumbers(
     return;
   }
   if (!serialSequence.data) return;
-
-  const { error } = await client.functions.invoke("assign-serial-numbers", {
-    body: {
-      jobId: args.jobId,
-      companyId: args.companyId,
-      userId: args.userId
-    }
-  });
+  const { error } = await serverFns
+    .as({ client, db, companyId: args.companyId, userId: args.userId })
+    .invoke("assign-serial-numbers", {
+      jobId: args.jobId
+    });
   if (error) {
     logger.error("Failed to assign serial numbers", { error });
   }
 }
 
+/** @mcp update */
 export async function updateJob(
   client: SupabaseClient<Database>,
   input: {
@@ -3078,7 +3773,6 @@ export async function updateJob(
     salesOrderLineId?: string | null;
     quoteId?: string | null;
     quoteLineId?: string | null;
-    parentJobId?: string | null;
     modelUploadId?: string | null;
     notes?: string | null;
     customFields?: Json;
@@ -3112,18 +3806,23 @@ export async function updateJob(
 
   return client
     .from("job")
-    .update({
-      ...sanitize(updates),
-      ...(priority !== undefined && { priority }),
-      updatedBy,
-      updatedAt: new Date().toISOString()
-    })
+    .update(
+      unchecked({
+        ...sanitize(updates),
+        ...(priority !== undefined && { priority }),
+        updatedBy,
+        updatedAt: new Date().toISOString()
+      })
+    )
     .eq("id", id)
     .select("id")
     .single();
 }
 
-/** @deprecated Use insertJob for new jobs, updateJob for existing jobs */
+/**
+ * @deprecated Use insertJob for new jobs, updateJob for existing jobs
+ * @mcp upsert
+ */
 export async function upsertJob(
   client: SupabaseClient<Database>,
   job:
@@ -3180,15 +3879,27 @@ export async function upsertJobMaterial(
     | (z.infer<typeof jobMaterialValidator> & {
         jobId: string;
         jobOperationId?: string;
+        companyId: string;
         updatedBy: string;
         customFields?: Json;
       })
 ) {
   if ("updatedBy" in jobMaterial) {
+    // A material never moves between jobs, make methods or tenants — strip the
+    // parent columns so an update cannot re-parent the row, and scope it to
+    // the caller's company (callers may pass a service-role client).
+    const {
+      id,
+      companyId,
+      jobId: _jobId,
+      jobMakeMethodId: _jobMakeMethodId,
+      ...update
+    } = jobMaterial;
     return client
       .from("jobMaterial")
-      .update(sanitize(jobMaterial))
-      .eq("id", jobMaterial.id)
+      .update(sanitize(update))
+      .eq("id", id)
+      .eq("companyId", companyId)
       .select("id, methodType")
       .single();
   }
@@ -3199,8 +3910,13 @@ export async function upsertJobMaterial(
     .single();
 }
 
+/**
+ * @mcp upsert
+ * @mcp key jobOperation id
+ */
 export async function upsertJobOperation(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   jobOperation:
     | (z.infer<typeof jobOperationValidator> & {
         jobId: string;
@@ -3217,10 +3933,20 @@ export async function upsertJobOperation(
 ) {
   const normalized = normalizeOperationSourceIds(jobOperation);
   if ("updatedBy" in normalized) {
+    // An operation never moves between jobs, make methods or tenants — strip
+    // the parent columns so an update cannot re-parent the row.
+    const {
+      id,
+      companyId,
+      jobId: _jobId,
+      jobMakeMethodId: _jobMakeMethodId,
+      ...update
+    } = normalized;
     return client
       .from("jobOperation")
-      .update(sanitize(normalized))
-      .eq("id", normalized.id)
+      .update(sanitize(update))
+      .eq("id", id)
+      .eq("companyId", companyId)
       .select("id")
       .single();
   }
@@ -3237,15 +3963,18 @@ export async function upsertJobOperation(
   if (!operationId) return operationInsert;
 
   if (normalized.procedureId && "createdBy" in normalized) {
-    const { error } = await client.functions.invoke("get-method", {
-      body: {
-        type: "procedureToOperation",
-        sourceId: normalized.procedureId,
-        targetId: operationId,
+    const { error } = await serverFns
+      .as({
+        client,
+        db,
         companyId: normalized.companyId,
         userId: normalized.createdBy
-      }
-    });
+      })
+      .invoke("get-method", {
+        type: "procedureToOperation",
+        sourceId: normalized.procedureId,
+        targetId: operationId
+      });
     if (error) {
       return {
         data: null,
@@ -3256,6 +3985,7 @@ export async function upsertJobOperation(
   return operationInsert;
 }
 
+/** @mcp upsert */
 export async function upsertJobOperationStep(
   client: SupabaseClient<Database>,
   jobOperationStep:
@@ -3296,6 +4026,7 @@ export async function upsertJobOperationStep(
 // are captured operator results, not part of the template, and must start empty on a copy.
 // NCR linkage (nonConformance*Id) is intentionally dropped so a clone isn't a second step
 // claiming the same containment action.
+/** @mcp create */
 export async function duplicateJobOperationStep(
   client: SupabaseClient<Database>,
   args: { id: string; companyId: string; createdBy: string }
@@ -3392,10 +4123,17 @@ export async function duplicateJobOperationStep(
   }
 
   // Copy step-scoped part/material links (same operation-level-vs-scoped semantics as tools).
-  const materialLinks = await client
+  // Pre-migration schema: no quantity column — copy the bare links instead.
+  let materialLinks = await client
     .from("jobMaterialStep")
-    .select("jobMaterialId")
+    .select("jobMaterialId, quantity")
     .eq("jobOperationStepId", args.id);
+  if (isMissingQuantityColumn(materialLinks.error)) {
+    materialLinks = (await client
+      .from("jobMaterialStep")
+      .select("jobMaterialId")
+      .eq("jobOperationStepId", args.id)) as unknown as typeof materialLinks;
+  }
   if (materialLinks.error) {
     return { data: null, error: materialLinks.error };
   }
@@ -3403,7 +4141,8 @@ export async function duplicateJobOperationStep(
     const materialLinkInsert = await client.from("jobMaterialStep").insert(
       materialLinks.data.map((l) => ({
         jobMaterialId: l.jobMaterialId,
-        jobOperationStepId: newStepId
+        jobOperationStepId: newStepId,
+        ...(l.quantity != null ? { quantity: l.quantity } : {})
       }))
     );
     if (materialLinkInsert.error) {
@@ -3417,14 +4156,27 @@ export async function duplicateJobOperationStep(
 // Job-tier twin of upsertMethodOperationStepSlide (items.service.ts). Same generic
 // validator; `stepId` here is a jobOperationStep id. On update we sanitize() so an
 // omitted optional field (caption-only save) never wipes size/annotations.
+/** @mcp upsert */
 export async function upsertJobOperationStepSlide(
   client: SupabaseClient<Database>,
   slide:
-    | (Omit<z.infer<typeof operationStepSlideValidator>, "id"> & {
+    | (Omit<
+        z.infer<typeof operationStepSlideValidator>,
+        "id" | "annotations"
+      > & {
+        annotations?: z.infer<
+          typeof operationStepSlideValidator
+        >["annotations"];
         companyId: string;
         createdBy: string;
       })
-    | (Omit<z.infer<typeof operationStepSlideValidator>, "id"> & {
+    | (Omit<
+        z.infer<typeof operationStepSlideValidator>,
+        "id" | "annotations"
+      > & {
+        annotations?: z.infer<
+          typeof operationStepSlideValidator
+        >["annotations"];
         id: string;
         updatedBy: string;
         updatedAt: string;
@@ -3446,6 +4198,7 @@ export async function upsertJobOperationStepSlide(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertJobOperationParameter(
   client: SupabaseClient<Database>,
   jobOperationParameter:
@@ -3475,6 +4228,55 @@ export async function upsertJobOperationParameter(
     .single();
 }
 
+/**
+ * Promise date = the job's forward-ASAP forecast finish (`projectedCompletionAt`,
+ * stamped by every regen). No operation-date fallback: `jobOperation.dueDate` is
+ * now the backward need-by target, so max(op.dueDate) ≈ the job due date —
+ * answering "when will it be done?" with the ask, not a forecast. Before the
+ * first regen the promise date is simply null.
+ * Implements the §7 `{ date, confidence? }` contract — confidence is a string
+ * enum, "low" when the schedule may not hold (a conflicted op or a pending
+ * replan) and "scheduled" otherwise.
+ * @mcp read
+ */
+export async function getJobPromiseDate(
+  client: SupabaseClient<Database>,
+  jobId: string,
+  companyId: string
+) {
+  const job = await client
+    .from("job")
+    .select("projectedCompletionAt, scheduleOutdatedReason")
+    .eq("id", jobId)
+    .eq("companyId", companyId)
+    .single();
+  if (job.error) return job;
+
+  const operations = await client
+    .from("jobOperation")
+    .select("id, hasConflict")
+    .eq("jobId", jobId)
+    .eq("companyId", companyId)
+    .in("status", ["Todo", "Waiting", "Ready", "In Progress", "Paused"]);
+  if (operations.error) return operations;
+
+  const hasConflict = (operations.data ?? []).some((o) => o.hasConflict);
+  const confidence =
+    hasConflict || job.data.scheduleOutdatedReason
+      ? ("low" as const)
+      : ("scheduled" as const);
+
+  return {
+    data: {
+      promiseDate: job.data.projectedCompletionAt ?? null,
+      basis: "schedule" as const,
+      confidence
+    },
+    error: null
+  };
+}
+
+/** @mcp upsert */
 export async function upsertJobOperationTool(
   client: SupabaseClient<Database>,
   jobOperationTool:
@@ -3500,7 +4302,7 @@ export async function upsertJobOperationTool(
     operation.data?.jobMakeMethod as { itemId: string } | null
   )?.itemId;
 
-  if (makeMethodItemId) {
+  if (makeMethodItemId && "companyId" in jobOperationTool) {
     const { validatePermanentToolForMethod } = await import(
       "~/modules/items/tool-life.service"
     );
@@ -3539,36 +4341,67 @@ export async function replaceJobMaterialSteps(
   jobMaterialId: string,
   jobOperationStepIds: string[]
 ) {
+  // Per-step quantities are edited from the step side; a BOM-side rewrite of the
+  // step set must not wipe them, so carry each retained step's quantity across
+  // the delete-then-insert. Pre-migration schema: quantities don't exist, so
+  // fall back to the bare link set.
+  let quantityByStepId = new Map<string, number | null>();
+  const existing = await client
+    .from("jobMaterialStep")
+    .select("jobOperationStepId, quantity")
+    .eq("jobMaterialId", jobMaterialId);
+  if (existing.error && !isMissingQuantityColumn(existing.error)) {
+    return existing;
+  }
+  if (!existing.error) {
+    quantityByStepId = new Map(
+      (existing.data ?? []).map((l) => [l.jobOperationStepId, l.quantity])
+    );
+  }
   const del = await client
     .from("jobMaterialStep")
     .delete()
     .eq("jobMaterialId", jobMaterialId);
   if (del.error || jobOperationStepIds.length === 0) return del;
   return client.from("jobMaterialStep").insert(
-    jobOperationStepIds.map((jobOperationStepId) => ({
-      jobMaterialId,
-      jobOperationStepId
-    }))
+    jobOperationStepIds.map((jobOperationStepId) => {
+      const quantity = quantityByStepId.get(jobOperationStepId);
+      return {
+        jobMaterialId,
+        jobOperationStepId,
+        ...(quantity != null ? { quantity } : {})
+      };
+    })
   );
 }
 
 // Toggle a single part↔step link from the STEP side (the step editor's Parts picker).
 // `linked` true = link the material to the step, false = unlink. Idempotent on link.
+// `quantity` is the per-step share of the BOM line (NULL = the full line quantity);
+// re-linking an existing link updates the quantity, so the same call edits a split.
+/** @mcp update destructive */
 export async function setJobMaterialStepLink(
   client: SupabaseClient<Database>,
-  args: { jobMaterialId: string; jobOperationStepId: string; linked: boolean }
+  args: {
+    jobMaterialId: string;
+    jobOperationStepId: string;
+    linked: boolean;
+    quantity?: number | null;
+  }
 ) {
   if (args.linked) {
     return client.from("jobMaterialStep").upsert(
       [
         {
           jobMaterialId: args.jobMaterialId,
-          jobOperationStepId: args.jobOperationStepId
+          jobOperationStepId: args.jobOperationStepId,
+          // Omit the column when unset so the default link path still works
+          // against a pre-migration schema (see isMissingQuantityColumn).
+          ...(args.quantity != null ? { quantity: args.quantity } : {})
         }
       ],
       {
-        onConflict: "jobMaterialId,jobOperationStepId",
-        ignoreDuplicates: true
+        onConflict: "jobMaterialId,jobOperationStepId"
       }
     );
   }
@@ -3580,21 +4413,54 @@ export async function setJobMaterialStepLink(
 }
 
 // Toggle a single tool↔step link from the STEP side (the step editor's Tools picker).
-// `linked` true = link the tool to the step, false = unlink. Idempotent on link. Twin of
-// setJobMaterialStepLink.
+// Takes the tool ITEM id: the picker offers the whole tool library, and choosing a
+// tool implicitly ensures the operation-level tool row exists (quantity 1 — the same
+// row the operation's Tools tab would create) before linking it to the step. Unlink
+// removes only the step link; the operation tool row stays (the Tools tab owns it).
+// Twin of setJobMaterialStepLink.
+/** @mcp update destructive */
 export async function setJobOperationToolStepLink(
   client: SupabaseClient<Database>,
   args: {
-    jobOperationToolId: string;
+    operationId: string;
+    toolId: string;
     jobOperationStepId: string;
     linked: boolean;
+    companyId: string;
+    createdBy: string;
   }
 ) {
+  const existingTool = await client
+    .from("jobOperationTool")
+    .select("id")
+    .eq("operationId", args.operationId)
+    .eq("toolId", args.toolId)
+    .order("createdAt", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (existingTool.error) return existingTool;
+  let jobOperationToolId = existingTool.data?.id;
+
   if (args.linked) {
+    if (!jobOperationToolId) {
+      const created = await client
+        .from("jobOperationTool")
+        .insert({
+          operationId: args.operationId,
+          toolId: args.toolId,
+          quantity: 1,
+          companyId: args.companyId,
+          createdBy: args.createdBy
+        })
+        .select("id")
+        .single();
+      if (created.error) return created;
+      jobOperationToolId = created.data.id;
+    }
     return client.from("jobOperationToolStep").upsert(
       [
         {
-          jobOperationToolId: args.jobOperationToolId,
+          jobOperationToolId,
           jobOperationStepId: args.jobOperationStepId
         }
       ],
@@ -3604,22 +4470,26 @@ export async function setJobOperationToolStepLink(
       }
     );
   }
+  if (!jobOperationToolId) return { data: null, error: null };
   return client
     .from("jobOperationToolStep")
     .delete()
-    .eq("jobOperationToolId", args.jobOperationToolId)
+    .eq("jobOperationToolId", jobOperationToolId)
     .eq("jobOperationStepId", args.jobOperationStepId);
 }
 
+/** @mcp upsert */
 export async function upsertJobMethod(
   client: SupabaseClient<Database>,
-  type: "itemToJob" | "quoteLineToJob",
+  db: Kysely<KyselyDatabase>,
+  type: "itemToJob" | "quoteLineToJob" | "jobToJob",
   jobMethod: {
     sourceId: string;
     targetId: string;
     companyId: string;
     userId: string;
     configuration?: Record<string, unknown>;
+    versionId?: string;
     parts?: {
       billOfMaterial: boolean;
       billOfProcess: boolean;
@@ -3631,12 +4501,13 @@ export async function upsertJobMethod(
   }
 ) {
   const body: {
-    type: "itemToJob" | "quoteLineToJob";
+    type: "itemToJob" | "quoteLineToJob" | "jobToJob";
     sourceId: string;
     targetId: string;
     companyId: string;
     userId: string;
     configuration?: Record<string, unknown>;
+    versionId?: string;
     parts?: {
       billOfMaterial: boolean;
       billOfProcess: boolean;
@@ -3658,32 +4529,48 @@ export async function upsertJobMethod(
     body.configuration = jobMethod.configuration;
   }
 
+  // A specific source method version (itemToJob only); absent = active method
+  if (jobMethod.versionId) {
+    body.versionId = jobMethod.versionId;
+  }
+
   // Only add parts if it exists
   if (jobMethod.parts !== undefined) {
     body.parts = jobMethod.parts;
   }
 
-  const getMethodResult = await client.functions.invoke("get-method", {
-    body
-  });
+  const getMethodResult = await serverFns
+    .as({ client, db, companyId: body.companyId, userId: body.userId })
+    .invoke("get-method", body);
   if (getMethodResult.error) {
-    return getMethodResult;
+    return {
+      data: null,
+      error: {
+        message: getErrorMessage(
+          getMethodResult.error,
+          "Failed to get job method"
+        )
+      } as PostgrestError
+    };
   }
-  return recalculateJobRequirements(client, {
+  return recalculateJobRequirements(client, db, {
     id: jobMethod.targetId,
     companyId: jobMethod.companyId,
     userId: jobMethod.userId
   });
 }
 
+/** @mcp upsert */
 export async function upsertJobMaterialMakeMethod(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   jobMaterial: {
     sourceId: string;
     targetId: string;
     companyId: string;
     userId: string;
     configuration?: Record<string, unknown>;
+    versionId?: string;
     parts?: {
       billOfMaterial: boolean;
       billOfProcess: boolean;
@@ -3701,6 +4588,7 @@ export async function upsertJobMaterialMakeMethod(
     companyId: string;
     userId: string;
     configuration?: Record<string, unknown>;
+    versionId?: string;
     parts?: {
       billOfMaterial: boolean;
       billOfProcess: boolean;
@@ -3722,19 +4610,26 @@ export async function upsertJobMaterialMakeMethod(
     body.configuration = jobMaterial.configuration;
   }
 
+  // A specific source method version; absent = active method
+  if (jobMaterial.versionId) {
+    body.versionId = jobMaterial.versionId;
+  }
+
   // Only add parts if it exists
   if (jobMaterial.parts !== undefined) {
     body.parts = jobMaterial.parts;
   }
 
-  const { error } = await client.functions.invoke("get-method", {
-    body
-  });
+  const { error } = await serverFns
+    .as({ client, db, companyId: body.companyId, userId: body.userId })
+    .invoke("get-method", body);
 
   if (error) {
     return {
       data: null,
-      error: { message: "Failed to pull method" } as PostgrestError
+      error: {
+        message: getErrorMessage(error, "Failed to pull method")
+      } as PostgrestError
     };
   }
 
@@ -3746,9 +4641,11 @@ export async function upsertJobMaterialMakeMethod(
  * method (BOM + operations) into it. Shared by the job-material create and edit
  * routes: both flip a material to "Make to Order" and must populate the newly
  * created child make method.
+ * @mcp action
  */
 export async function pullJobMaterialMakeMethod(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   args: {
     jobMaterialId: string;
     itemId: string;
@@ -3775,7 +4672,7 @@ export async function pullJobMaterialMakeMethod(
     };
   }
 
-  return upsertJobMaterialMakeMethod(client, {
+  return upsertJobMaterialMakeMethod(client, db, {
     sourceId: args.itemId,
     targetId: materialMakeMethod.data.jobMaterialMakeMethodId,
     companyId: args.companyId,
@@ -3783,8 +4680,10 @@ export async function pullJobMaterialMakeMethod(
   });
 }
 
+/** @mcp upsert */
 export async function upsertMakeMethodFromJob(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   jobMethod: {
     sourceId: string;
     targetId: string;
@@ -3800,20 +4699,25 @@ export async function upsertMakeMethodFromJob(
     };
   }
 ) {
-  return client.functions.invoke("get-method", {
-    body: {
+  return serverFns
+    .as({
+      client,
+      db,
+      companyId: jobMethod.companyId,
+      userId: jobMethod.userId
+    })
+    .invoke("get-method", {
       type: "jobToItem",
       sourceId: jobMethod.sourceId,
       targetId: jobMethod.targetId,
-      companyId: jobMethod.companyId,
-      userId: jobMethod.userId,
       parts: jobMethod.parts
-    }
-  });
+    });
 }
 
+/** @mcp upsert */
 export async function upsertMakeMethodFromJobMethod(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   jobMethod: {
     sourceId: string;
     targetId: string;
@@ -3829,16 +4733,19 @@ export async function upsertMakeMethodFromJobMethod(
     };
   }
 ) {
-  const { error } = await client.functions.invoke("get-method", {
-    body: {
+  const { error } = await serverFns
+    .as({
+      client,
+      db,
+      companyId: jobMethod.companyId,
+      userId: jobMethod.userId
+    })
+    .invoke("get-method", {
       type: "jobMakeMethodToItem",
       sourceId: jobMethod.sourceId,
       targetId: jobMethod.targetId,
-      companyId: jobMethod.companyId,
-      userId: jobMethod.userId,
       parts: jobMethod.parts
-    }
-  });
+    });
 
   if (error) {
     return {
@@ -3850,6 +4757,7 @@ export async function upsertMakeMethodFromJobMethod(
   return { data: null, error: null };
 }
 
+/** @mcp upsert */
 export async function upsertProcedure(
   client: SupabaseClient<Database>,
   procedure:
@@ -3944,6 +4852,7 @@ export async function upsertProcedure(
   return insert;
 }
 
+/** @mcp upsert */
 export async function upsertProcedureStep(
   client: SupabaseClient<Database>,
   procedureStep:
@@ -3971,6 +4880,7 @@ export async function upsertProcedureStep(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertProcedureParameter(
   client: SupabaseClient<Database>,
   procedureParameter:
@@ -3998,6 +4908,7 @@ export async function upsertProcedureParameter(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertScrapReason(
   client: SupabaseClient<Database>,
   scrapReason:
@@ -4022,6 +4933,7 @@ export async function upsertScrapReason(
   }
 }
 
+/** @mcp upsert */
 export async function upsertFailureMode(
   client: SupabaseClient<Database>,
   failureMode:
@@ -4036,17 +4948,15 @@ export async function upsertFailureMode(
         customFields?: Json;
       })
 ) {
-  if ("createdBy" in failureMode) {
-    return client
-      .from("maintenanceFailureMode")
-      .insert([failureMode])
-      .select("id");
-  } else {
-    return client
-      .from("maintenanceFailureMode")
-      .update(sanitize(failureMode))
-      .eq("id", failureMode.id);
+  // maintenanceFailureMode has no customFields column.
+  const { customFields: _customFields, ...mode } = failureMode;
+  if ("createdBy" in mode) {
+    return client.from("maintenanceFailureMode").insert([mode]).select("id");
   }
+  return client
+    .from("maintenanceFailureMode")
+    .update(sanitize(mode))
+    .eq("id", mode.id);
 }
 
 export async function upsertMaintenanceDispatch(
@@ -4080,6 +4990,7 @@ export async function upsertMaintenanceDispatch(
   }
 }
 
+/** @mcp upsert */
 export async function upsertMaintenanceDispatchComment(
   client: SupabaseClient<Database>,
   comment:
@@ -4106,6 +5017,7 @@ export async function upsertMaintenanceDispatchComment(
   }
 }
 
+/** @mcp upsert */
 export async function upsertMaintenanceDispatchEvent(
   client: SupabaseClient<Database>,
   event:
@@ -4132,6 +5044,7 @@ export async function upsertMaintenanceDispatchEvent(
   }
 }
 
+/** @mcp upsert */
 export async function upsertMaintenanceDispatchItem(
   client: SupabaseClient<Database>,
   item:
@@ -4184,6 +5097,7 @@ export async function upsertMaintenanceDispatchWorkCenter(
   }
 }
 
+/** @mcp upsert */
 export async function upsertMaintenanceSchedule(
   client: SupabaseClient<Database>,
   schedule:
@@ -4236,144 +5150,1669 @@ export async function upsertMaintenanceScheduleItem(
   }
 }
 
-export async function upsertDemandForecasts(
+/** @mcp read */
+export async function getPeopleAssignments(
   client: SupabaseClient<Database>,
-  forecasts: Array<{
-    itemId: string;
-    locationId: string;
-    periodId: string;
-    forecastQuantity: number;
-    companyId: string;
-    createdBy: string;
-    updatedBy?: string;
-  }>
+  companyId: string,
+  args: { locationId: string; date: string }
 ) {
-  // Delete existing forecasts with 0 quantity, upsert others
-  const toDelete = forecasts.filter((f) => f.forecastQuantity === 0);
-  const toUpsert = forecasts.filter((f) => f.forecastQuantity > 0);
-
-  const promises = [];
-
-  if (toDelete.length > 0) {
-    for (const forecast of toDelete) {
-      promises.push(
-        client
-          .from("demandForecast")
-          .delete()
-          .eq("itemId", forecast.itemId)
-          .eq("locationId", forecast.locationId)
-          .eq("periodId", forecast.periodId)
-          .eq("companyId", forecast.companyId)
-      );
-    }
-  }
-
-  if (toUpsert.length > 0) {
-    promises.push(
-      client.from("demandForecast").upsert(
-        toUpsert.map((f) => ({
-          ...f,
-          updatedBy: f.updatedBy ?? f.createdBy ?? "system",
-          updatedAt: new Date().toISOString()
-        })),
-        {
-          onConflict: "itemId,locationId,periodId,companyId"
-        }
-      )
-    );
-  }
-
-  const results = await Promise.all(promises);
-  const hasError = results.some((r) => r.error);
-
-  return {
-    data: hasError ? null : toUpsert,
-    error: hasError ? results.find((r) => r.error)?.error : null
-  };
+  return client
+    .from("peopleAssignment")
+    .select(
+      "id, workCenterId, employeeId, shiftId, note, date, overtimeHours, hours"
+    )
+    .eq("companyId", companyId)
+    .eq("locationId", args.locationId)
+    .eq("date", args.date);
 }
 
-export async function upsertDemandProjections(
+/** @mcp read */
+export async function getPeopleAbsences(
   client: SupabaseClient<Database>,
-  forecasts: Array<{
-    itemId: string;
-    locationId: string;
-    periodId: string;
-    forecastQuantity: number;
-    companyId: string;
-    createdBy: string;
-    updatedBy?: string;
-  }>
+  companyId: string,
+  date: string
 ) {
-  // Delete existing forecasts with 0 quantity, upsert others
-  const toDelete = forecasts.filter((f) => f.forecastQuantity === 0);
-  const toUpsert = forecasts.filter((f) => f.forecastQuantity > 0);
+  return client
+    .from("peopleAbsence")
+    .select("id, employeeId, shiftId, note, date")
+    .eq("companyId", companyId)
+    .eq("date", date);
+}
 
-  const promises = [];
+/** @mcp read */
+export async function getPeopleAssignmentsRange(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: { locationId: string; startDate: string; endDate: string }
+) {
+  return client
+    .from("peopleAssignment")
+    .select(
+      "id, workCenterId, employeeId, shiftId, date, note, overtimeHours, hours"
+    )
+    .eq("companyId", companyId)
+    .eq("locationId", args.locationId)
+    .gte("date", args.startDate)
+    .lte("date", args.endDate)
+    .order("date")
+    .order("shiftId", { nullsFirst: true });
+}
 
-  if (toDelete.length > 0) {
-    for (const forecast of toDelete) {
-      promises.push(
-        client
-          .from("demandProjection")
-          .delete()
-          .eq("itemId", forecast.itemId)
-          .eq("locationId", forecast.locationId)
-          .eq("periodId", forecast.periodId)
-          .eq("companyId", forecast.companyId)
+/** @mcp read */
+export async function getPeopleAbsencesRange(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: { startDate: string; endDate: string }
+) {
+  return client
+    .from("peopleAbsence")
+    .select("id, employeeId, shiftId, date")
+    .eq("companyId", companyId)
+    .gte("date", args.startDate)
+    .lte("date", args.endDate);
+}
+
+/**
+ * Open job-operation hours per work center for the capacity view. Draft and
+ * Planned jobs are excluded — only released (firm) work counts toward load,
+ * matching the industry release-gating convention. Paginated — the default
+ * PostgREST max_rows (1000) would silently truncate a busy location.
+ * @mcp read
+ */
+export async function getPeopleCapacityOperations(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: { locationId: string; startDate: string | null; endDate: string }
+) {
+  return fetchAllFromTable<{
+    id: string;
+    workCenterId: string | null;
+    dueDate: string | null;
+    status: string;
+    operationQuantity: number | null;
+    setupTime: number;
+    setupUnit: string;
+    laborTime: number;
+    laborUnit: string;
+    machineTime: number;
+    machineUnit: string;
+  }>(
+    client,
+    "jobOperation",
+    `id, workCenterId, dueDate, status, operationQuantity,
+     setupTime, setupUnit, laborTime, laborUnit, machineTime, machineUnit,
+     job!inner(status, locationId)`,
+    (query) => {
+      let scoped = query
+        .eq("companyId", companyId)
+        .eq("job.locationId", args.locationId)
+        .not("workCenterId", "is", null)
+        .lte("dueDate", args.endDate)
+        .not("status", "in", '("Done","Canceled")')
+        .not(
+          "job.status",
+          "in",
+          '("Draft","Planned","Completed","Cancelled","Closed")'
+        );
+      // Null start = no floor: overdue work back to the earliest open op counts
+      // toward Past due (the released-only status filters already bound the set).
+      if (args.startDate != null) {
+        scoped = scoped.gte("dueDate", args.startDate);
+      }
+      return scoped.order("id");
+    }
+  );
+}
+
+/**
+ * The `workCenterShift` links (rung 1 of the availability ladder) for a set of
+ * work centers, in ONE `.in()` query. Feeds the Capacity view's per-work-center
+ * calendar-hours DISPLAY mirror of the engine ladder.
+ * @mcp read
+ */
+export async function getWorkCenterShifts(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  workCenterIds: string[]
+) {
+  return client
+    .from("workCenterShift")
+    .select("workCenterId, shiftId")
+    .eq("companyId", companyId)
+    .in("workCenterId", workCenterIds);
+}
+
+/**
+ * WorkCenter-kind reservations overlapping a window — the Capacity view's
+ * Scheduled series. Bounded by the window (not "recent only") so earlier days
+ * of the current week keep their completed bookings, filtered to WorkCenter
+ * rows server-side, and paginated past the PostgREST max_rows cap.
+ * @mcp read
+ */
+export async function getWorkCenterReservationsRange(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: { startAt: string; endAt: string }
+) {
+  return fetchAllFromTable<{
+    id: string;
+    resourceId: string;
+    startAt: string;
+    endAt: string;
+    workHours: number | null;
+  }>(
+    client,
+    "capacityReservation",
+    `id, resourceId, startAt, endAt, workHours, job!inner(status)`,
+    (query) =>
+      query
+        .eq("companyId", companyId)
+        .eq("resourceKind", "WorkCenter")
+        .is("scenarioId", null)
+        // Placeholders mark unplaceable ops — not real bookings, so they must
+        // not inflate the Capacity view's Scheduled load.
+        .eq("isPlaceholder", false)
+        .lt("startAt", args.endAt)
+        .gt("endAt", args.startAt)
+        .not("job.status", "in", '("Cancelled","Completed","Closed")')
+        .order("id")
+  );
+}
+
+/** @mcp read */
+export async function getLocationEmployees(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  locationId: string
+) {
+  return client
+    .from("employees")
+    .select("id, name, avatarUrl")
+    .eq("companyId", companyId)
+    .eq("locationId", locationId);
+}
+
+/**
+ * Gated abilities per work center at a location, for the people board's
+ * advisory qualification badge. Chained lookups instead of a PostgREST embed —
+ * the composite tenant FKs break alias:fkColumn(...) embeds.
+ * @mcp read
+ */
+export async function getWorkCenterRequiredAbilities(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  locationId: string
+): Promise<{
+  data:
+    | { workCenterId: string; abilityId: string; abilityName: string }[]
+    | null;
+  error: PostgrestError | null;
+}> {
+  const workCenters = await client
+    .from("workCenter")
+    .select("id")
+    .eq("companyId", companyId)
+    .eq("locationId", locationId);
+  if (workCenters.error) return { data: null, error: workCenters.error };
+  const workCenterIds = (workCenters.data ?? []).map((w) => w.id);
+  if (workCenterIds.length === 0) return { data: [], error: null };
+
+  const workCenterProcesses = await client
+    .from("workCenterProcess")
+    .select("workCenterId, processId")
+    .eq("companyId", companyId)
+    .in("workCenterId", workCenterIds);
+  if (workCenterProcesses.error)
+    return { data: null, error: workCenterProcesses.error };
+  const processIds = [
+    ...new Set((workCenterProcesses.data ?? []).map((r) => r.processId))
+  ];
+  if (processIds.length === 0) return { data: [], error: null };
+
+  const processes = await client
+    .from("process")
+    .select("id, requiresAbility")
+    .eq("companyId", companyId)
+    .in("id", processIds);
+  if (processes.error) return { data: null, error: processes.error };
+  const gatedProcessIds = (processes.data ?? [])
+    .filter((p) => p.requiresAbility)
+    .map((p) => p.id);
+  if (gatedProcessIds.length === 0) return { data: [], error: null };
+
+  // The `abilities` view carries the name from the linked process.
+  const abilities = await client
+    .from("abilities")
+    .select("id, name, processId")
+    .eq("companyId", companyId)
+    .eq("active", true)
+    .in("processId", gatedProcessIds);
+  if (abilities.error) return { data: null, error: abilities.error };
+  const abilityByProcess = new Map(
+    (abilities.data ?? [])
+      .filter((a) => a.processId)
+      .map((a) => [a.processId as string, a])
+  );
+
+  const rows = (workCenterProcesses.data ?? []).flatMap(
+    ({ workCenterId, processId }) => {
+      const ability = abilityByProcess.get(processId);
+      return ability
+        ? [
+            {
+              workCenterId,
+              abilityId: ability.id ?? "",
+              abilityName: ability.name ?? ""
+            }
+          ]
+        : [];
+    }
+  );
+  return { data: rows, error: null };
+}
+
+/** @mcp read */
+export async function getActiveEmployeeAbilities(
+  client: SupabaseClient<Database>,
+  companyId: string
+) {
+  // Qualification is presence-based: any employeeAbility row counts (subject
+  // only to expiry, applied by the caller). The ability name rides along so the
+  // people board can badge each person with what they can do.
+  return client
+    .from("employeeAbility")
+    .select("employeeId, abilityId, expiresAt, ability(process(name))")
+    .eq("companyId", companyId);
+}
+
+/**
+ * Filter `peopleAssignment` rows to those whose EFFECTIVE shift is `shiftId`:
+ * the row's stamped shift, or — for shift-less rows — the person's own
+ * `employeeShift`. The same ladder the boards' shift filter displays through,
+ * so a row a filtered board shows is always a row its mutations can reach.
+ */
+function whereEffectiveShift(shiftId: string, companyId: string) {
+  return (eb: ExpressionBuilder<KyselyDatabase, "peopleAssignment">) =>
+    eb.or([
+      eb("shiftId", "=", shiftId),
+      eb.and([
+        eb("shiftId", "is", null),
+        eb(
+          "employeeId",
+          "in",
+          eb
+            .selectFrom("employeeShift")
+            .select("employeeId")
+            .where("shiftId", "=", shiftId)
+            .where("companyId", "=", companyId)
+        )
+      ])
+    ]);
+}
+
+/**
+ * The people-board mutations write caller-supplied ids through Kysely (no
+ * RLS), and the API dispatcher reaches them without the board route's own
+ * check, so every referenced row must belong to `companyId` — the employee
+ * as an employee of the company. One query per table; absent refs are skipped.
+ * Throws, like the Kysely callers it guards.
+ */
+async function requirePeopleBoardRefs(
+  db: Kysely<KyselyDatabase>,
+  companyId: string,
+  refs: {
+    employeeId?: string;
+    locationId?: string;
+    shiftId?: string | null;
+    workCenterIds?: string[];
+  }
+) {
+  const workCenterIds = [...new Set(refs.workCenterIds ?? [])];
+  const [employee, location, shift, workCenters] = await Promise.all([
+    refs.employeeId
+      ? db
+          .selectFrom("employee")
+          .select("id")
+          .where("id", "=", refs.employeeId)
+          .where("companyId", "=", companyId)
+          .executeTakeFirst()
+      : null,
+    refs.locationId
+      ? db
+          .selectFrom("location")
+          .select("id")
+          .where("id", "=", refs.locationId)
+          .where("companyId", "=", companyId)
+          .executeTakeFirst()
+      : null,
+    refs.shiftId
+      ? db
+          .selectFrom("shift")
+          .select("id")
+          .where("id", "=", refs.shiftId)
+          .where("companyId", "=", companyId)
+          .executeTakeFirst()
+      : null,
+    workCenterIds.length > 0
+      ? db
+          .selectFrom("workCenter")
+          .select("id")
+          .where("id", "in", workCenterIds)
+          .where("companyId", "=", companyId)
+          .execute()
+      : []
+  ]);
+  if (
+    (refs.employeeId && !employee) ||
+    (refs.locationId && !location) ||
+    (refs.shiftId && !shift) ||
+    workCenters.length !== workCenterIds.length
+  ) {
+    logger.error("People board reference is not in the caller's company", {
+      companyId,
+      refs
+    });
+    throw new Error("Not found");
+  }
+}
+
+/**
+ * Move-semantics upsert: one magnet per person per date/shift — any existing
+ * assignment for the person on that date/shift is replaced.
+ * @mcp upsert destructive
+ */
+export async function upsertPeopleAssignment(
+  db: Kysely<KyselyDatabase>,
+  assignment: {
+    companyId: string;
+    locationId: string;
+    workCenterId: string;
+    employeeId: string;
+    date: string;
+    shiftId: string | null;
+    note?: string;
+    /** partial-day remainder; undefined = whole shift (replaces other rows) */
+    hours?: number;
+    createdBy: string;
+  }
+) {
+  await requirePeopleBoardRefs(db, assignment.companyId, {
+    employeeId: assignment.employeeId,
+    locationId: assignment.locationId,
+    shiftId: assignment.shiftId,
+    workCenterIds: [assignment.workCenterId]
+  });
+  if (assignment.hours !== undefined) {
+    // remainder assignment: ADD hours at this station without touching the
+    // person's other stations; same-station rows merge their hours
+    return db.transaction().execute(async (trx) => {
+      let existing = trx
+        .selectFrom("peopleAssignment")
+        .select(["id", "hours"])
+        .where("companyId", "=", assignment.companyId)
+        .where("employeeId", "=", assignment.employeeId)
+        .where("date", "=", assignment.date)
+        .where("workCenterId", "=", assignment.workCenterId);
+      existing = assignment.shiftId
+        ? existing.where(
+            whereEffectiveShift(assignment.shiftId, assignment.companyId)
+          )
+        : existing.where("shiftId", "is", null);
+      const row = await existing.executeTakeFirst();
+      if (row) {
+        return trx
+          .updateTable("peopleAssignment")
+          .set({
+            hours:
+              row.hours === null
+                ? null
+                : Number(row.hours) + (assignment.hours ?? 0)
+          })
+          .where("id", "=", row.id)
+          .where("companyId", "=", assignment.companyId)
+          .returning(["id", "workCenterId"])
+          .executeTakeFirstOrThrow();
+      }
+      return trx
+        .insertInto("peopleAssignment")
+        .values({
+          companyId: assignment.companyId,
+          locationId: assignment.locationId,
+          workCenterId: assignment.workCenterId,
+          employeeId: assignment.employeeId,
+          date: assignment.date,
+          shiftId: assignment.shiftId,
+          note: assignment.note ?? null,
+          hours: assignment.hours,
+          createdBy: assignment.createdBy
+        })
+        .returning(["id", "workCenterId"])
+        .executeTakeFirstOrThrow();
+    });
+  }
+  return db.transaction().execute(async (trx) => {
+    // Every read AND write here is location-scoped: the board is per-location,
+    // so a person assigned at another site must never be read from or deleted by
+    // an action taken on this one.
+    let existing = trx
+      .selectFrom("peopleAssignment")
+      .select("overtimeHours")
+      .where("companyId", "=", assignment.companyId)
+      .where("locationId", "=", assignment.locationId)
+      .where("employeeId", "=", assignment.employeeId)
+      .where("date", "=", assignment.date);
+    existing = assignment.shiftId
+      ? existing.where(
+          whereEffectiveShift(assignment.shiftId, assignment.companyId)
+        )
+      : existing.where("shiftId", "is", null);
+    // moving stations keeps the person's authorized overtime for that day
+    const carriedOvertime = (await existing.executeTakeFirst())?.overtimeHours;
+
+    let del = trx
+      .deleteFrom("peopleAssignment")
+      .where("companyId", "=", assignment.companyId)
+      .where("locationId", "=", assignment.locationId)
+      .where("employeeId", "=", assignment.employeeId)
+      .where("date", "=", assignment.date);
+    del = assignment.shiftId
+      ? del.where(whereEffectiveShift(assignment.shiftId, assignment.companyId))
+      : del.where("shiftId", "is", null);
+    await del.execute();
+    return trx
+      .insertInto("peopleAssignment")
+      .values({
+        companyId: assignment.companyId,
+        locationId: assignment.locationId,
+        workCenterId: assignment.workCenterId,
+        employeeId: assignment.employeeId,
+        date: assignment.date,
+        shiftId: assignment.shiftId,
+        note: assignment.note ?? null,
+        overtimeHours: carriedOvertime ?? 0,
+        createdBy: assignment.createdBy
+      })
+      .returning(["id", "workCenterId"])
+      .executeTakeFirstOrThrow();
+  });
+}
+
+/** @mcp delete */
+export async function deletePeopleAssignment(
+  client: SupabaseClient<Database>,
+  id: string,
+  companyId: string
+) {
+  return client
+    .from("peopleAssignment")
+    .delete()
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .select("id, workCenterId, employeeId")
+    .single();
+}
+
+/** @mcp update */
+export async function setPeopleAbsence(
+  client: SupabaseClient<Database>,
+  absence: {
+    companyId: string;
+    employeeId: string;
+    date: string;
+    shiftId: string | null;
+    note?: string;
+    createdBy: string;
+  }
+) {
+  return client.from("peopleAbsence").insert([absence]).select("id").single();
+}
+
+/** @mcp action destructive */
+export async function clearPeopleAbsence(
+  client: SupabaseClient<Database>,
+  id: string,
+  companyId: string
+) {
+  return client
+    .from("peopleAbsence")
+    .delete()
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .select("id, employeeId")
+    .single();
+}
+
+/**
+ * Copy one day's people board to another date, skipping people already assigned
+ * on the target date or marked absent there.
+ */
+/**
+ * Move one assignment row to another station (drag = move). If the person
+ * already has a row at the target station for the same shift/date, the rows
+ * merge (hours add; a whole-shift row absorbs the other).
+ * @mcp update destructive
+ */
+export async function movePeopleAssignment(
+  db: Kysely<KyselyDatabase>,
+  args: { id: string; companyId: string; workCenterId: string }
+) {
+  await requirePeopleBoardRefs(db, args.companyId, {
+    workCenterIds: [args.workCenterId]
+  });
+  return db.transaction().execute(async (trx) => {
+    const source = await trx
+      .selectFrom("peopleAssignment")
+      .selectAll()
+      .where("id", "=", args.id)
+      .where("companyId", "=", args.companyId)
+      .executeTakeFirstOrThrow();
+
+    // merge with target rows sharing the source's EFFECTIVE shift — a
+    // shift-less row belongs to the person's own shift, like the boards show it
+    const effectiveShiftId =
+      source.shiftId ??
+      (
+        await trx
+          .selectFrom("employeeShift")
+          .select("shiftId")
+          .where("employeeId", "=", source.employeeId)
+          .where("companyId", "=", args.companyId)
+          .executeTakeFirst()
+      )?.shiftId ??
+      null;
+    let targetQuery = trx
+      .selectFrom("peopleAssignment")
+      .select(["id", "hours"])
+      .where("companyId", "=", args.companyId)
+      .where("employeeId", "=", source.employeeId)
+      .where("date", "=", source.date)
+      .where("workCenterId", "=", args.workCenterId);
+    targetQuery = effectiveShiftId
+      ? targetQuery.where(whereEffectiveShift(effectiveShiftId, args.companyId))
+      : targetQuery.where("shiftId", "is", null);
+    const target = await targetQuery.executeTakeFirst();
+
+    if (target) {
+      const mergedHours =
+        source.hours === null || target.hours === null
+          ? null
+          : Number(source.hours) + Number(target.hours);
+      await trx
+        .updateTable("peopleAssignment")
+        .set({ hours: mergedHours })
+        .where("id", "=", target.id)
+        .where("companyId", "=", args.companyId)
+        .execute();
+      await trx
+        .deleteFrom("peopleAssignment")
+        .where("id", "=", source.id)
+        .where("companyId", "=", args.companyId)
+        .execute();
+      return {
+        id: target.id,
+        workCenterId: args.workCenterId,
+        previousWorkCenterId: source.workCenterId
+      };
+    }
+
+    const moved = await trx
+      .updateTable("peopleAssignment")
+      .set({ workCenterId: args.workCenterId })
+      .where("id", "=", source.id)
+      .where("companyId", "=", args.companyId)
+      .returning(["id", "workCenterId"])
+      .executeTakeFirstOrThrow();
+    return { ...moved, previousWorkCenterId: source.workCenterId };
+  });
+}
+
+/**
+ * Atomically make the given rows a person's day: existing rows at kept
+ * stations are updated (hours/overtime), new stations inserted, stations
+ * not in `rows` deleted. Scoped to the shift when one is given. One
+ * transaction — the Working-hours popover's Save.
+ * @mcp update destructive
+ */
+export async function setPeopleDay(
+  db: Kysely<KyselyDatabase>,
+  /** the authenticated user — filled by the caller, never the payload */
+  userId: string,
+  args: {
+    companyId: string;
+    locationId: string;
+    employeeId: string;
+    date: string;
+    shiftId: string | null;
+    /** day-scoped note, written to every surviving row of the day */
+    note: string | null;
+    /**
+     * Day-scoped overtime, written to every surviving row of the day. The
+     * scheduler reads the MAX across a day's rows (never the sum), so 2h of
+     * overtime stays 2h however many stations the person splits across.
+     */
+    overtimeHours: number;
+    rows: {
+      workCenterId: string;
+      hours: number | null;
+    }[];
+  }
+) {
+  await requirePeopleBoardRefs(db, args.companyId, {
+    employeeId: args.employeeId,
+    locationId: args.locationId,
+    shiftId: args.shiftId,
+    workCenterIds: args.rows.map((row) => row.workCenterId)
+  });
+  return db.transaction().execute(async (trx) => {
+    // location-scoped: the rows this reconciliation may DELETE must be limited
+    // to the board the edit was made on
+    let existingQuery = trx
+      .selectFrom("peopleAssignment")
+      .select(["id", "workCenterId"])
+      .where("companyId", "=", args.companyId)
+      .where("locationId", "=", args.locationId)
+      .where("employeeId", "=", args.employeeId)
+      .where("date", "=", args.date);
+    if (args.shiftId) {
+      existingQuery = existingQuery.where(
+        whereEffectiveShift(args.shiftId, args.companyId)
       );
     }
-  }
+    const existing = await existingQuery.execute();
+    const existingByStation = new Map(
+      existing.map((row) => [row.workCenterId, row.id])
+    );
+    const keptStations = new Set(args.rows.map((row) => row.workCenterId));
 
-  if (toUpsert.length > 0) {
-    promises.push(
-      client.from("demandProjection").upsert(
-        toUpsert.map((f) => ({
-          ...f,
-          updatedBy: f.updatedBy ?? f.createdBy ?? "system",
-          updatedAt: new Date().toISOString()
-        })),
-        {
-          onConflict: "itemId,locationId,periodId,companyId"
-        }
-      )
+    for (const row of args.rows) {
+      const id = existingByStation.get(row.workCenterId);
+      if (id) {
+        await trx
+          .updateTable("peopleAssignment")
+          .set({
+            hours: row.hours,
+            overtimeHours: args.overtimeHours,
+            note: args.note,
+            updatedBy: userId,
+            updatedAt: new Date().toISOString()
+          })
+          .where("id", "=", id)
+          .where("companyId", "=", args.companyId)
+          .execute();
+      } else {
+        await trx
+          .insertInto("peopleAssignment")
+          .values({
+            companyId: args.companyId,
+            locationId: args.locationId,
+            workCenterId: row.workCenterId,
+            employeeId: args.employeeId,
+            date: args.date,
+            shiftId: args.shiftId,
+            hours: row.hours,
+            overtimeHours: args.overtimeHours,
+            note: args.note,
+            createdBy: userId
+          })
+          .execute();
+      }
+    }
+
+    const removed = existing.filter(
+      (row) => !keptStations.has(row.workCenterId)
+    );
+    for (const row of removed) {
+      await trx
+        .deleteFrom("peopleAssignment")
+        .where("id", "=", row.id)
+        .where("companyId", "=", args.companyId)
+        .execute();
+    }
+    return {
+      updated: args.rows.length,
+      removed: removed.length
+    };
+  });
+}
+
+/**
+ * Set the hours an assignment occupies at its station (null = the whole
+ * shift). Lowering hours releases the remainder back to the board's
+ * free-hours pool; splitting across stations = lower here, then drag the
+ * remainder card to the next station.
+ * @mcp update
+ */
+export async function setPeopleAssignmentHours(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: { id: string; hours: number | null; updatedBy: string }
+) {
+  return client
+    .from("peopleAssignment")
+    .update({
+      hours: args.hours,
+      updatedBy: args.updatedBy,
+      updatedAt: new Date().toISOString()
+    })
+    .eq("id", args.id)
+    .eq("companyId", companyId)
+    .select("id, workCenterId, date")
+    .single();
+}
+
+/**
+ * Authorize overtime for every assignment on a date, optionally scoped to a
+ * department (via the location's work centers) and/or a shift. One UPDATE so
+ * partial application can't happen; department resolves server-side (never a
+ * client-supplied work-center list).
+ * @mcp update
+ */
+export async function setPeopleOvertimeBulk(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    companyId: string;
+    locationId: string;
+    date: string;
+    /** inclusive end of the range; omitted = the single `date` only */
+    toDate?: string | null;
+    hours: number;
+    shiftId?: string | null;
+    departmentId?: string | null;
+    updatedBy: string;
+  }
+) {
+  return db.transaction().execute(async (trx) => {
+    let query = trx
+      .updateTable("peopleAssignment")
+      .set({
+        overtimeHours: args.hours,
+        updatedBy: args.updatedBy,
+        updatedAt: new Date().toISOString()
+      })
+      .where("companyId", "=", args.companyId)
+      .where("locationId", "=", args.locationId);
+    query = args.toDate
+      ? query.where("date", ">=", args.date).where("date", "<=", args.toDate)
+      : query.where("date", "=", args.date);
+    if (args.shiftId) {
+      query = query.where(whereEffectiveShift(args.shiftId, args.companyId));
+    }
+    if (args.departmentId) {
+      const departmentId = args.departmentId;
+      query = query.where("workCenterId", "in", (eb) =>
+        eb
+          .selectFrom("workCenter")
+          .select("id")
+          .where("companyId", "=", args.companyId)
+          .where("departmentId", "=", departmentId)
+      );
+    }
+    return query.returning(["id", "workCenterId"]).execute();
+  });
+}
+
+/** @mcp create */
+export async function copyPeopleBoard(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    companyId: string;
+    locationId: string;
+    fromDate: string;
+    toDate: string;
+    shiftId: string | null;
+    createdBy: string;
+  }
+) {
+  return db.transaction().execute(async (trx) => {
+    const result = await copyPeopleDayInTransaction(trx, args);
+    return result;
+  });
+}
+
+/** One day's copy inside an open transaction — shared by day and week copy.
+ * Splits (`hours`) copy with the assignment; overtime deliberately does not
+ * (it's a per-day authorization). */
+async function copyPeopleDayInTransaction(
+  trx: Kysely<KyselyDatabase>,
+  args: {
+    companyId: string;
+    locationId: string;
+    fromDate: string;
+    toDate: string;
+    shiftId: string | null;
+    createdBy: string;
+  }
+) {
+  let sourceQuery = trx
+    .selectFrom("peopleAssignment")
+    .select(["workCenterId", "employeeId", "shiftId", "note", "hours"])
+    .where("companyId", "=", args.companyId)
+    .where("locationId", "=", args.locationId)
+    .where("date", "=", args.fromDate);
+  if (args.shiftId) {
+    sourceQuery = sourceQuery.where(
+      whereEffectiveShift(args.shiftId, args.companyId)
     );
   }
+  const source = await sourceQuery.execute();
 
-  const results = await Promise.all(promises);
-  const hasError = results.some((r) => r.error);
+  const [existing, absences] = await Promise.all([
+    // location-scoped: a person assigned at ANOTHER site on the target date must
+    // not silently suppress the copy on this board
+    trx
+      .selectFrom("peopleAssignment")
+      .select(["employeeId"])
+      .where("companyId", "=", args.companyId)
+      .where("locationId", "=", args.locationId)
+      .where("date", "=", args.toDate)
+      .execute(),
+    // peopleAbsence has no locationId — a person is absent company-wide
+    trx
+      .selectFrom("peopleAbsence")
+      .select(["employeeId"])
+      .where("companyId", "=", args.companyId)
+      .where("date", "=", args.toDate)
+      .execute()
+  ]);
+  const skip = new Set([
+    ...existing.map((r) => r.employeeId),
+    ...absences.map((r) => r.employeeId)
+  ]);
 
-  return {
-    data: hasError ? null : toUpsert,
-    error: hasError ? results.find((r) => r.error)?.error : null
-  };
+  const rows = source
+    .filter((r) => !skip.has(r.employeeId))
+    .map((r) => ({
+      companyId: args.companyId,
+      locationId: args.locationId,
+      workCenterId: r.workCenterId,
+      employeeId: r.employeeId,
+      date: args.toDate,
+      shiftId: r.shiftId,
+      note: r.note,
+      hours: r.hours,
+      createdBy: args.createdBy
+    }));
+  if (rows.length > 0) {
+    await trx.insertInto("peopleAssignment").values(rows).execute();
+  }
+  return { copied: rows.length, skipped: source.length - rows.length };
+}
+
+const addIsoDays = (date: string, days: number) =>
+  parseDate(date).add({ days }).toString();
+
+// pg returns DATE columns as JS Date objects at server-local midnight —
+// normalize with local getters, never toISOString (UTC shift can move the day)
+const toIsoDate = (value: unknown) => {
+  if (typeof value === "string") return value.slice(0, 10);
+  const date = new Date(value as Date);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+    2,
+    "0"
+  )}-${String(date.getDate()).padStart(2, "0")}`;
+};
+
+/**
+ * Assign a person to a station for a whole Monday-start week: one row per
+ * working day (the shift's weekdays when a shift is given, Mon–Fri
+ * otherwise), skipping days where they're absent or already assigned.
+ * @mcp action
+ */
+export async function assignPeopleWeek(
+  db: Kysely<KyselyDatabase>,
+  /** the authenticated user — filled by the caller, never the payload */
+  userId: string,
+  args: {
+    companyId: string;
+    locationId: string;
+    employeeId: string;
+    workCenterId: string;
+    weekStart: string;
+    shiftId: string | null;
+  }
+) {
+  await requirePeopleBoardRefs(db, args.companyId, {
+    employeeId: args.employeeId,
+    locationId: args.locationId,
+    shiftId: args.shiftId,
+    workCenterIds: [args.workCenterId]
+  });
+  return db.transaction().execute(async (trx) => {
+    // working days: the chosen shift's weekdays → the person's own shift's
+    // weekdays → Mon–Fri
+    let activeWeekdays: readonly string[] = WEEKDAYS_MONDAY_FIRST.slice(0, 5);
+    let shift: Record<string, boolean | null> | undefined;
+    if (args.shiftId) {
+      shift = await trx
+        .selectFrom("shift")
+        .select([
+          "monday",
+          "tuesday",
+          "wednesday",
+          "thursday",
+          "friday",
+          "saturday",
+          "sunday"
+        ])
+        .where("id", "=", args.shiftId)
+        .where("companyId", "=", args.companyId)
+        .executeTakeFirst();
+    } else {
+      shift = await trx
+        .selectFrom("employeeShift")
+        .innerJoin("shift", "shift.id", "employeeShift.shiftId")
+        .select([
+          "shift.monday",
+          "shift.tuesday",
+          "shift.wednesday",
+          "shift.thursday",
+          "shift.friday",
+          "shift.saturday",
+          "shift.sunday"
+        ])
+        .where("employeeShift.employeeId", "=", args.employeeId)
+        .where("employeeShift.companyId", "=", args.companyId)
+        .where("shift.companyId", "=", args.companyId)
+        .executeTakeFirst();
+    }
+    if (shift) {
+      activeWeekdays = WEEKDAYS_MONDAY_FIRST.filter((day) => shift?.[day]);
+    }
+    const weekEnd = addIsoDays(args.weekStart, 6);
+    const [existing, absences] = await Promise.all([
+      // Company-wide (NOT location-scoped): the unique index is
+      // peopleAssignment_person_day_key (companyId, employeeId, date,
+      // COALESCE(shiftId,'')) — a person already booked for this day+shift at
+      // ANY location/station collides, so a location-scoped skip let the bulk
+      // insert violate the constraint and fail the whole week assignment.
+      trx
+        .selectFrom("peopleAssignment")
+        .select(["date", "shiftId"])
+        .where("companyId", "=", args.companyId)
+        .where("employeeId", "=", args.employeeId)
+        .where("date", ">=", args.weekStart)
+        .where("date", "<=", weekEnd)
+        .execute(),
+      trx
+        .selectFrom("peopleAbsence")
+        .select(["date"])
+        .where("companyId", "=", args.companyId)
+        .where("employeeId", "=", args.employeeId)
+        .where("date", ">=", args.weekStart)
+        .where("date", "<=", weekEnd)
+        .execute()
+    ]);
+    // Key on date + shift to mirror the unique index exactly.
+    const slotKey = (date: string, shiftId: string | null) =>
+      `${date}:${shiftId ?? ""}`;
+    const takenSlots = new Set(
+      existing.map((row) => slotKey(toIsoDate(row.date), row.shiftId))
+    );
+    const absentDays = new Set(absences.map((row) => toIsoDate(row.date)));
+
+    const rows = [];
+    for (let offset = 0; offset < 7; offset++) {
+      const date = addIsoDays(args.weekStart, offset);
+      // weekStart is a Monday, so offset maps 1:1 onto WEEKDAYS_MONDAY_FIRST
+      if (!activeWeekdays.includes(WEEKDAYS_MONDAY_FIRST[offset])) continue;
+      if (absentDays.has(date)) continue;
+      if (takenSlots.has(slotKey(date, args.shiftId))) continue;
+      rows.push({
+        companyId: args.companyId,
+        locationId: args.locationId,
+        workCenterId: args.workCenterId,
+        employeeId: args.employeeId,
+        date,
+        shiftId: args.shiftId,
+        createdBy: userId
+      });
+    }
+    if (rows.length > 0) {
+      await trx.insertInto("peopleAssignment").values(rows).execute();
+    }
+    return {
+      assigned: rows.length,
+      skipped: takenSlots.size + absentDays.size
+    };
+  });
+}
+
+/**
+ * Remove a person from a station for the whole week (their other stations
+ * and other weeks are untouched).
+ * @mcp action destructive
+ */
+export async function unassignPeopleWeek(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    companyId: string;
+    employeeId: string;
+    workCenterId: string;
+    weekStart: string;
+    shiftId: string | null;
+  }
+) {
+  let query = db
+    .deleteFrom("peopleAssignment")
+    .where("companyId", "=", args.companyId)
+    .where("employeeId", "=", args.employeeId)
+    .where("workCenterId", "=", args.workCenterId)
+    .where("date", ">=", args.weekStart)
+    .where("date", "<=", addIsoDays(args.weekStart, 6));
+  if (args.shiftId) {
+    query = query.where(whereEffectiveShift(args.shiftId, args.companyId));
+  }
+  return query.execute();
+}
+
+/**
+ * Move a person's whole week from one station to another. Days where they
+ * already have a row at the target station keep the target row (the source
+ * row is dropped); other days simply change station.
+ * @mcp update destructive
+ */
+export async function movePeopleWeek(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    companyId: string;
+    employeeId: string;
+    fromWorkCenterId: string;
+    workCenterId: string;
+    weekStart: string;
+    shiftId: string | null;
+  }
+) {
+  await requirePeopleBoardRefs(db, args.companyId, {
+    workCenterIds: [args.workCenterId]
+  });
+  const weekEnd = addIsoDays(args.weekStart, 6);
+  return db.transaction().execute(async (trx) => {
+    let sourceQuery = trx
+      .selectFrom("peopleAssignment")
+      .select(["id", "date", "shiftId"])
+      .where("companyId", "=", args.companyId)
+      .where("employeeId", "=", args.employeeId)
+      .where("workCenterId", "=", args.fromWorkCenterId)
+      .where("date", ">=", args.weekStart)
+      .where("date", "<=", weekEnd);
+    if (args.shiftId) {
+      sourceQuery = sourceQuery.where(
+        whereEffectiveShift(args.shiftId, args.companyId)
+      );
+    }
+    const source = await sourceQuery.execute();
+
+    const target = await trx
+      .selectFrom("peopleAssignment")
+      .select(["date", "shiftId"])
+      .where("companyId", "=", args.companyId)
+      .where("employeeId", "=", args.employeeId)
+      .where("workCenterId", "=", args.workCenterId)
+      .where("date", ">=", args.weekStart)
+      .where("date", "<=", weekEnd)
+      .execute();
+    const occupied = new Set(
+      target.map((row) => `${toIsoDate(row.date)}:${row.shiftId ?? ""}`)
+    );
+
+    let moved = 0;
+    for (const row of source) {
+      if (occupied.has(`${toIsoDate(row.date)}:${row.shiftId ?? ""}`)) {
+        await trx
+          .deleteFrom("peopleAssignment")
+          .where("id", "=", row.id)
+          .where("companyId", "=", args.companyId)
+          .execute();
+      } else {
+        await trx
+          .updateTable("peopleAssignment")
+          .set({ workCenterId: args.workCenterId })
+          .where("id", "=", row.id)
+          .where("companyId", "=", args.companyId)
+          .execute();
+        moved += 1;
+      }
+    }
+    return { moved, merged: source.length - moved };
+  });
+}
+
+/**
+ * Copy a whole Monday-start week of people assignments onto another week,
+ * day by day, with the same skip rules as the day copy (people already
+ * assigned or absent on the target date are left alone). One transaction.
+ * @mcp create
+ */
+export async function copyPeopleWeek(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    companyId: string;
+    locationId: string;
+    fromWeekStart: string;
+    toWeekStart: string;
+    shiftId: string | null;
+    createdBy: string;
+  }
+) {
+  const addDays = (date: string, days: number) =>
+    parseDate(date).add({ days }).toString();
+  return db.transaction().execute(async (trx) => {
+    let copied = 0;
+    let skipped = 0;
+    for (let offset = 0; offset < 7; offset++) {
+      const result = await copyPeopleDayInTransaction(trx, {
+        companyId: args.companyId,
+        locationId: args.locationId,
+        fromDate: addDays(args.fromWeekStart, offset),
+        toDate: addDays(args.toWeekStart, offset),
+        shiftId: args.shiftId,
+        createdBy: args.createdBy
+      });
+      copied += result.copied;
+      skipped += result.skipped;
+    }
+    return { copied, skipped };
+  });
+}
+
+/**
+ * Mark a person absent for every date in [fromDate, toDate] (vacation as one
+ * action). Dates that already carry an absence for the person are skipped.
+ * @mcp update
+ */
+export async function setPeopleAbsenceRange(
+  db: Kysely<KyselyDatabase>,
+  /** the authenticated user — filled by the caller, never the payload */
+  userId: string,
+  args: {
+    companyId: string;
+    employeeId: string;
+    fromDate: string;
+    toDate: string;
+    shiftId: string | null;
+    note?: string;
+  }
+) {
+  await requirePeopleBoardRefs(db, args.companyId, {
+    employeeId: args.employeeId,
+    shiftId: args.shiftId
+  });
+  return db.transaction().execute(async (trx) => {
+    const existing = await trx
+      .selectFrom("peopleAbsence")
+      .select(["date"])
+      .where("companyId", "=", args.companyId)
+      .where("employeeId", "=", args.employeeId)
+      .where("date", ">=", args.fromDate)
+      .where("date", "<=", args.toDate)
+      .execute();
+    const have = new Set(existing.map((row) => toIsoDate(row.date)));
+
+    const rows: {
+      companyId: string;
+      employeeId: string;
+      date: string;
+      shiftId: string | null;
+      note: string | null;
+      createdBy: string;
+    }[] = [];
+    for (
+      let day = parseDate(args.fromDate);
+      day.compare(parseDate(args.toDate)) <= 0;
+      day = day.add({ days: 1 })
+    ) {
+      const date = day.toString();
+      if (have.has(date)) continue;
+      rows.push({
+        companyId: args.companyId,
+        employeeId: args.employeeId,
+        date,
+        shiftId: args.shiftId,
+        note: args.note ?? null,
+        createdBy: userId
+      });
+    }
+    if (rows.length > 0) {
+      await trx.insertInto("peopleAbsence").values(rows).execute();
+    }
+    return { created: rows.length, skipped: have.size };
+  });
 }
 
 /**
  * Trigger a job scheduling task via Inngest.
  * Supports both initial scheduling and rescheduling.
  */
-export async function triggerJobSchedule(
-  jobId: string,
+/**
+ * Reactive replanning: notify that a scheduling INPUT changed (shift,
+ * qualification, work center, location). Marks the company's active jobs
+ * schedule-outdated immediately and schedules a debounced replan wave.
+ * @mcp action
+ */
+export async function notifyScheduleInputsChanged(
   companyId: string,
-  userId: string,
-  mode: "initial" | "reschedule" = "reschedule",
-  direction: "backward" | "forward" = "backward"
+  kind:
+    | "ability"
+    | "shift"
+    | "employee-shift"
+    | "work-center"
+    | "location"
+    | "reorder"
+    | "people",
+  reason: string,
+  entityId?: string
 ) {
   const { trigger } = await import("@carbon/jobs");
-
-  await trigger("schedule-job", {
-    jobId,
+  await trigger("schedule-inputs-changed", {
     companyId,
-    userId,
-    mode,
-    direction
+    kind,
+    reason,
+    entityId
   });
+}
 
-  return { success: true };
+// --- Job operation batching (spec: .ai/specs/2026-08-21-job-operation-batching.md) ---
+// Execution lives in MES (the operation view's batch mode); ERP composes
+// batches on the schedule board, mutates them via the batch-operations server fn,
+// and lists past/active batches at /x/production/batches.
+
+// Count of operations that COULD be batched but aren't yet — unbatched ops on a
+// batchable process, still open (Todo/Ready/Waiting), on a live (non-terminal)
+// job. Mirrors the unbatched-candidate branch of get_batchable_operations (the
+// batch builder's candidate query) so the dashboard number matches what the
+// builder surfaces. Head count only — no rows. !inner turns the nested filters
+// on process/job into real join predicates that constrain the count.
+/** @mcp read */
+export async function getUnbatchedBatchableOperationCount(
+  client: SupabaseClient<Database>,
+  companyId: string
+) {
+  return client
+    .from("jobOperation")
+    .select("id, process!inner(batchable), job!inner(status)", {
+      count: "exact",
+      head: true
+    })
+    .eq("companyId", companyId)
+    .is("jobOperationBatchId", null)
+    .eq("process.batchable", true)
+    .in("status", ["Todo", "Ready", "Waiting"])
+    .not("job.status", "in", "(Completed,Closed,Cancelled)");
+}
+
+/** @mcp read */
+export async function getJobOperationBatches(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args?: GenericQueryFilters & { search: string | null }
+) {
+  let query = client
+    .from("jobOperationBatch")
+    .select("*, process(name), workCenter(name)", { count: LIST_COUNT })
+    .eq("companyId", companyId);
+
+  if (args?.search) {
+    query = query.ilike("readableId", `%${args.search}%`);
+  }
+
+  if (args) {
+    query = setGenericQueryFilters(query, args, [
+      { column: "createdAt", ascending: false }
+    ]);
+  }
+
+  return query;
+}
+
+// The members' shared work-center name: null when they disagree (or none are
+// set), the single distinct name when they all agree. The list stats and the
+// detail drawer both fall back to this when the batch has no header work center
+// (a board-created batch has no header WC until its card is dragged), so they
+// must agree on what "shared" means — drop nullish first, then require exactly
+// one distinct name.
+function deriveSharedWorkCenterName(
+  names: (string | null | undefined)[]
+): string | null {
+  const distinct = new Set(names.filter((n): n is string => Boolean(n)));
+  return distinct.size === 1 ? ([...distinct][0] as string) : null;
+}
+
+// Member count + summed quantity per batch, for the batches list. One query for
+// the page's batch ids, tallied in TS (the storage-rules count pattern — no
+// PostgREST aggregate embeds in this repo). Also derives the members' shared
+// work-center name: a batch created from the board carries no header work
+// center until it is dragged, but when every member sits on one work center
+// that IS the batch's work center — the board itself falls back the same way.
+/** @mcp read */
+export async function getJobOperationBatchMemberStats(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  batchIds: string[]
+): Promise<{
+  data: Record<
+    string,
+    {
+      memberCount: number;
+      totalQuantity: number;
+      workCenterName: string | null;
+    }
+  >;
+  error: unknown;
+}> {
+  if (batchIds.length === 0) return { data: {}, error: null };
+  const result = await client
+    .from("jobOperation")
+    .select("jobOperationBatchId, operationQuantity, workCenter(name)")
+    .in("jobOperationBatchId", batchIds)
+    .eq("companyId", companyId);
+  if (result.error) return { data: {}, error: result.error };
+  const stats: Record<
+    string,
+    {
+      memberCount: number;
+      totalQuantity: number;
+      workCenterName: string | null;
+    }
+  > = {};
+  // Collect each batch's member work-center names, then derive the shared one
+  // once (same rule the detail drawer uses via deriveSharedWorkCenterName).
+  const memberWorkCenterNames: Record<string, (string | null)[]> = {};
+  for (const op of result.data ?? []) {
+    if (!op.jobOperationBatchId) continue;
+    const entry = (stats[op.jobOperationBatchId] ??= {
+      memberCount: 0,
+      totalQuantity: 0,
+      workCenterName: null
+    });
+    entry.memberCount += 1;
+    entry.totalQuantity += op.operationQuantity ?? 0;
+    (memberWorkCenterNames[op.jobOperationBatchId] ??= []).push(
+      op.workCenter?.name ?? null
+    );
+  }
+  for (const [batchId, entry] of Object.entries(stats)) {
+    entry.workCenterName = deriveSharedWorkCenterName(
+      memberWorkCenterNames[batchId] ?? []
+    );
+  }
+  return { data: stats, error: null };
+}
+
+// One flattened member row per batch member, for the batches list's expandable
+// sub-rows (mirrors the ECO change-notices table). Fields match what the sub-row
+// and the detail drawer's member table show: job link, item, and quantity.
+export type JobOperationBatchListMember = {
+  id: string;
+  jobId: string | null;
+  jobReadableId: string | null;
+  itemReadableId: string | null;
+  itemName: string | null;
+  thumbnailPath: string | null;
+  operationQuantity: number;
+  quantityComplete: number;
+  quantityScrapped: number;
+};
+
+// Members for every batch on the page in ONE query, grouped by batch id in TS
+// (same no-N+1 pattern as getJobOperationBatchMemberStats — collect ids, one
+// .in(), tally). getJobOperationBatchWithMembers is single-batch and would be
+// N+1 across the list, so the list uses this leaner grouped read instead.
+/** @mcp read */
+export async function getJobOperationBatchMembers(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  batchIds: string[]
+): Promise<{
+  data: Record<string, JobOperationBatchListMember[]>;
+  error: unknown;
+}> {
+  if (batchIds.length === 0) return { data: {}, error: null };
+  const result = await client
+    .from("jobOperation")
+    .select(
+      "id, jobOperationBatchId, operationQuantity, quantityComplete, quantityScrapped, job(id, jobId), jobMakeMethod(item(readableIdWithRevision, name, thumbnailPath))"
+    )
+    .in("jobOperationBatchId", batchIds)
+    .eq("companyId", companyId);
+  if (result.error) return { data: {}, error: result.error };
+  const members: Record<string, JobOperationBatchListMember[]> = {};
+  for (const op of result.data ?? []) {
+    if (!op.jobOperationBatchId) continue;
+    (members[op.jobOperationBatchId] ??= []).push({
+      id: op.id,
+      jobId: op.job?.id ?? null,
+      jobReadableId: op.job?.jobId ?? null,
+      itemReadableId: op.jobMakeMethod?.item?.readableIdWithRevision ?? null,
+      itemName: op.jobMakeMethod?.item?.name ?? null,
+      thumbnailPath: op.jobMakeMethod?.item?.thumbnailPath ?? null,
+      operationQuantity: op.operationQuantity ?? 0,
+      quantityComplete: op.quantityComplete ?? 0,
+      quantityScrapped: op.quantityScrapped ?? 0
+    });
+  }
+  // Sort each batch's members by job, then by item readable id, matching the
+  // detail drawer and the printable batch list.
+  for (const group of Object.values(members)) {
+    group.sort((a, b) => {
+      const byJob = (a.jobReadableId ?? "").localeCompare(
+        b.jobReadableId ?? ""
+      );
+      if (byJob !== 0) return byJob;
+      return (a.itemReadableId ?? "").localeCompare(b.itemReadableId ?? "");
+    });
+  }
+  return { data: members, error: null };
+}
+
+// The MERGEABLE output lots a completed batch's members produced: each member's
+// WIP tracked entity (tagged with its jobMakeMethod), narrowed to lots still
+// Available with stock. Drives the drawer's "Merge output lots" action — >=2 of
+// one item are mergeable, and a merged batch returns none (parents Consumed).
+/** @mcp read */
+export async function getBatchOutputLots(
+  client: SupabaseClient<Database>,
+  batchId: string,
+  companyId: string
+) {
+  const members = await client
+    .from("jobOperation")
+    .select("id, jobMakeMethodId")
+    .eq("jobOperationBatchId", batchId)
+    .eq("companyId", companyId);
+  const makeMethodIds = [
+    ...new Set(
+      (members.data ?? [])
+        .map((m) => m.jobMakeMethodId)
+        .filter(Boolean) as string[]
+    )
+  ];
+  if (makeMethodIds.length === 0) {
+    return { data: [], error: members.error };
+  }
+  return client
+    .from("trackedEntity")
+    .select("id, readableId, itemId")
+    .in("attributes->>Job Make Method", makeMethodIds)
+    .eq("companyId", companyId)
+    .eq("status", "Available")
+    .gt("quantity", 0);
+}
+
+/** @mcp read */
+export async function getJobOperationBatchWithMembers(
+  client: SupabaseClient<Database>,
+  batchId: string,
+  companyId: string
+) {
+  const batch = await client
+    .from("jobOperationBatch")
+    .select("*, process(name, batchType), workCenter(name), location(name)")
+    .eq("id", batchId)
+    .eq("companyId", companyId)
+    .single();
+  if (batch.error) return batch;
+  const members = await client
+    .from("jobOperation")
+    .select(
+      "id, description, operationQuantity, quantityComplete, quantityScrapped, status, setupTime, setupUnit, laborTime, laborUnit, machineTime, machineUnit, workCenter(name), job(id, jobId, customerId, salesOrderId, status), jobMakeMethod(item(readableIdWithRevision, name, thumbnailPath))"
+    )
+    .eq("jobOperationBatchId", batchId)
+    .eq("companyId", companyId);
+  // Header work center when assigned; else the members' shared one (a
+  // board-created batch has no header WC until its card is dragged). Uses the
+  // same derivation as the list stats so the two never disagree.
+  const workCenterName =
+    batch.data.workCenter?.name ??
+    deriveSharedWorkCenterName(
+      (members.data ?? []).map((m) => m.workCenter?.name)
+    );
+  // Sort by job, then by the member item's readable id, so the drawer's member
+  // table matches the printable batch list's ordering.
+  const sortedMembers = [...(members.data ?? [])].sort((a, b) => {
+    const byJob = (a.job?.jobId ?? "").localeCompare(b.job?.jobId ?? "");
+    if (byJob !== 0) return byJob;
+    return (a.jobMakeMethod?.item?.readableIdWithRevision ?? "").localeCompare(
+      b.jobMakeMethod?.item?.readableIdWithRevision ?? ""
+    );
+  });
+  return {
+    data: { ...batch.data, workCenterName, members: sortedMembers },
+    error: members.error
+  };
+}
+
+// The batch's production events: the live aggregate run while Active, and the
+// per-member slices after completion (slices keep the jobOperationBatchId tag).
+/** @mcp read */
+export async function getJobOperationBatchEvents(
+  client: SupabaseClient<Database>,
+  batchId: string,
+  companyId: string
+) {
+  return client
+    .from("productionEvent")
+    .select(
+      "id, type, startTime, endTime, duration, employeeId, jobOperationId"
+    )
+    .eq("jobOperationBatchId", batchId)
+    .eq("companyId", companyId)
+    .order("startTime", { ascending: true });
+}
+
+/** @mcp read */
+export async function getBatchableOperations(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: { locationId: string; processId: string }
+) {
+  const result = await client.rpc("get_batchable_operations", {
+    location_id: args.locationId,
+    process_id: args.processId
+  });
+  // The RPC is SECURITY INVOKER so RLS already scopes the read; filtering on
+  // the returned companyId column is defense in depth against a caller passing
+  // another tenant's location/process ids.
+  if (result.data) {
+    result.data = result.data.filter((row) => row.companyId === companyId);
+  }
+  return result;
+}
+
+/** @mcp read */
+export async function getBatchableProcesses(
+  client: SupabaseClient<Database>,
+  companyId: string
+) {
+  return client
+    .from("process")
+    .select("id, name, batchable, batchType, batchRules")
+    .eq("companyId", companyId)
+    .eq("batchable", true)
+    .eq("active", true)
+    .order("name");
+}
+
+/** @mcp create */
+export async function createJobOperationBatch(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  args: {
+    jobOperationIds: string[];
+    locationId: string;
+    workCenterId?: string | null;
+    notes?: string | null;
+    // Create & Release: insert the batch already 'Active' (on the floor);
+    // omitted/false creates it 'Planned'.
+    release?: boolean;
+    mergeOutput?: boolean;
+    outputLotNumber?: string | null;
+    lotNumbers?: { jobOperationId: string; lotNumber: string }[];
+    companyId: string;
+    userId: string;
+  }
+) {
+  const { companyId, userId, ...input } = args;
+  return serverFns
+    .as({ client, db, companyId, userId })
+    .invoke("batch-operations", {
+      type: "create",
+      ...input
+    });
+}
+
+/** @mcp update */
+export async function updateJobOperationBatch(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  args: {
+    type: "add" | "remove" | "update" | "dissolve" | "release" | "unrelease";
+    batchId: string;
+    jobOperationIds?: string[];
+    workCenterId?: string | null;
+    companyId: string;
+    userId: string;
+  }
+) {
+  const { companyId, userId, ...input } = args;
+  // add/remove need jobOperationIds; the operation re-validates the shape.
+  return serverFns
+    .as({ client, db, companyId, userId })
+    .invoke("batch-operations", input as ServerFnInput<"batch-operations">);
+}
+
+/** @mcp update */
+export async function releaseJobOperationBatch(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  args: { batchId: string; companyId: string; userId: string }
+) {
+  const { companyId, userId, batchId } = args;
+  return serverFns
+    .as({ client, db, companyId, userId })
+    .invoke("batch-operations", {
+      type: "release",
+      batchId
+    });
+}
+
+/** @mcp action */
+export async function unreleaseJobOperationBatch(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  args: { batchId: string; companyId: string; userId: string }
+) {
+  const { companyId, userId, batchId } = args;
+  return serverFns
+    .as({ client, db, companyId, userId })
+    .invoke("batch-operations", {
+      type: "unrelease",
+      batchId
+    });
 }
 
 // --- Assembly Instructions ---------------------------------------------
 
+/** @mcp read */
 export async function getAssemblyInstruction(
   client: SupabaseClient<Database>,
   id: string
@@ -4387,6 +6826,7 @@ export async function getAssemblyInstruction(
     .single();
 }
 
+/** @mcp read */
 export async function getAssemblyInstructions(
   client: SupabaseClient<Database>,
   args: {
@@ -4428,6 +6868,7 @@ export async function getAssemblyInstructions(
   return query.order("updatedAt", { ascending: false, nullsFirst: false });
 }
 
+/** @mcp read */
 export async function getAssemblyInstructionsForItem(
   client: SupabaseClient<Database>,
   itemId: string,
@@ -4446,6 +6887,7 @@ export async function getAssemblyInstructionsForItem(
  * their model via item.modelUploadId. Conversion to viewer artifacts (GLB +
  * graph) is lazy — `modelState` tells the caller whether the model is ready,
  * convertible on demand, or unusable.
+ * @mcp read
  */
 export async function getModelForItem(
   client: SupabaseClient<Database>,
@@ -4481,6 +6923,7 @@ export async function getModelForItem(
   };
 }
 
+/** @mcp read */
 export async function getAssemblyInstructionSteps(
   client: SupabaseClient<Database>,
   assemblyInstructionId: string
@@ -4492,6 +6935,7 @@ export async function getAssemblyInstructionSteps(
     .order("sortOrder", { ascending: true });
 }
 
+/** @mcp upsert */
 export async function upsertAssemblyInstruction(
   client: SupabaseClient<Database>,
   data: {
@@ -4531,6 +6975,7 @@ export async function upsertAssemblyInstruction(
     .single();
 }
 
+/** @mcp update */
 export async function updateAssemblyInstructionStatus(
   client: SupabaseClient<Database>,
   id: string,
@@ -4562,6 +7007,7 @@ export async function updateAssemblyInstructionStatus(
  * versions of one instruction share a group root: NULL rootInstructionId means
  * "I am the root", so the group root is `rootInstructionId ?? id` and siblings
  * are the rows whose id = root OR whose rootInstructionId = root.
+ * @mcp read
  */
 export async function getAssemblyInstructionVersions(
   client: SupabaseClient<Database>,
@@ -4587,6 +7033,7 @@ export async function getAssemblyInstructionVersions(
  * the self-referential tree) and each step's live child rows (materials,
  * slides, tools). Non-atomic multi-insert — a partial copy leaves a deletable
  * Draft, matching the procedure/make-method copy precedents.
+ * @mcp create
  */
 export async function copyAssemblyInstructionAsVersion(
   client: SupabaseClient<Database>,
@@ -4660,6 +7107,13 @@ export async function copyAssemblyInstructionAsVersion(
         parentStepId: step.parentStepId
           ? (stepIdMap.get(step.parentStepId) ?? null)
           : null,
+        usedInStepId: step.usedInStepId
+          ? (stepIdMap.get(step.usedInStepId) ?? null)
+          : null,
+        // Lineage across versions: a step copied from v1 roots at v1's step, and
+        // a v3 copied from v2 still roots at v1 — the chain stays flat so
+        // COALESCE("rootStepId", "id") identifies the group at any depth.
+        rootStepId: step.rootStepId ?? step.id,
         companyId,
         createdBy: userId
       };
@@ -4717,12 +7171,21 @@ export async function copyAssemblyInstructionAsVersion(
  * but only active job operations (status not Done/Canceled) on active jobs
  * (status not Completed/Closed/Cancelled). Method operations are intentionally
  * left untouched.
+ * @mcp action
  */
 export async function activateAssemblyInstructionVersion(
   client: SupabaseClient<Database>,
-  args: { id: string; companyId: string; userId: string }
+  args: {
+    id: string;
+    companyId: string;
+    userId: string;
+    // Node Kysely handle for the per-operation re-sync. Built by the route
+    // action (getDatabaseClient) and passed in — never constructed here; this
+    // module is bundled for the browser (see the note above getJob).
+    db: Kysely<KyselyDatabase>;
+  }
 ) {
-  const { id, companyId, userId } = args;
+  const { id, companyId, userId, db } = args;
 
   const target = await client
     .from("assemblyInstruction")
@@ -4799,12 +7262,86 @@ export async function activateAssemblyInstructionVersion(
         .update({ assemblyInstructionId: id })
         .in("id", staleOpIds);
       if (repoint.error) return repoint;
+
+      // Migrate step markers v(old) -> v(new) by lineage group before syncing.
+      // Without this the job's steps still point at the old version's step ids,
+      // MES cannot match them (AssemblyView findIndex -> -1), and playback
+      // silently degrades to a static model on every step.
+      const [oldStepRows, newStepRows] = await Promise.all([
+        client
+          .from("assemblyInstructionStep")
+          .select("id, rootStepId")
+          .in("assemblyInstructionId", otherVersionIds)
+          .eq("companyId", companyId),
+        client
+          .from("assemblyInstructionStep")
+          .select("id, rootStepId")
+          .eq("assemblyInstructionId", id)
+          .eq("companyId", companyId)
+      ]);
+      if (oldStepRows.error) return oldStepRows;
+      if (newStepRows.error) return newStepRows;
+
+      const remap = planAssemblyStepMarkerRemap(
+        oldStepRows.data ?? [],
+        newStepRows.data ?? []
+      );
+
+      // One statement, one transaction: the repoint above has already committed,
+      // so until every marker moves, these operations point at the new version
+      // while their steps still name the old one — precisely the state MES reads
+      // as "no playback". Migrating them row by row would expose that window on
+      // every activation, and an error midway would leave the operation split
+      // across two versions with no rollback and no way to re-run (the new
+      // version is Published by then, so it is no longer a "stale" source).
+      if (remap.size > 0) {
+        const pairs = sql.join(
+          [...remap].map(
+            ([oldStepId, newStepId]) => sql`(${oldStepId}, ${newStepId})`
+          )
+        );
+        await db.transaction().execute(async (trx) => {
+          await sql`
+            UPDATE "jobOperationStep" AS s
+            SET "assemblyInstructionStepId" = r."newStepId"
+            FROM (VALUES ${pairs}) AS r("oldStepId", "newStepId")
+            WHERE s."assemblyInstructionStepId" = r."oldStepId"
+              AND s."companyId" = ${companyId}
+              AND s."operationId" = ANY(${staleOpIds})
+          `.execute(trx);
+        });
+      }
+
+      // Reconcile added/deleted steps. Marker-matched steps UPDATE in place, so
+      // jobOperationStepRecord survives. Isolated per operation so one failure
+      // cannot abort the activation.
+      for (const operationId of staleOpIds) {
+        try {
+          await syncAssemblyInstructionToOperation(db, {
+            assemblyInstructionId: id,
+            operationId,
+            companyId,
+            userId
+          });
+        } catch (error) {
+          // The remap already restored playback for surviving steps, so this
+          // only leaves added/deleted steps unreconciled on one operation —
+          // recoverable from the job. Logged so a systematic failure is visible.
+          logger.error("Failed to re-sync assembly steps after activation", {
+            assemblyInstructionId: id,
+            operationId,
+            companyId,
+            error
+          });
+        }
+      }
     }
   }
 
   return publish;
 }
 
+/** @mcp delete */
 export async function deleteAssemblyInstruction(
   client: SupabaseClient<Database>,
   id: string
@@ -4899,7 +7436,9 @@ async function invalidateAssemblyPlanCache(
     // Best-effort artifact cleanup (removing a nonexistent path is a no-op);
     // deleting the rows below is what actually invalidates the cache
     // (getLatestAssemblyPlan then finds nothing).
-    await client.storage.from("private").remove(planPaths);
+    // Private object paths are prefixed with the owning company's id.
+    const companyId = planPaths[0].split("/")[0];
+    await storage(client).company(companyId).remove(planPaths);
   }
 
   await client
@@ -4932,6 +7471,7 @@ async function invalidateAssemblyPlanCache(
  * convert can run. This is the user-facing escape hatch for stale caches
  * (e.g. after a geometry-service upgrade that changes nodeIds); routine
  * instruction deletion uses the narrower invalidateAssemblyPlanCache instead.
+ * @mcp action destructive
  */
 export async function invalidateAssemblyModelCache(
   client: SupabaseClient<Database>,
@@ -4959,7 +7499,10 @@ export async function invalidateAssemblyModelCache(
 
   if (paths.size > 0) {
     // Best-effort file cleanup; the row updates below are what invalidate.
-    await client.storage.from("private").remove([...paths]);
+    // Private object paths are prefixed with the owning company's id.
+    const objectPaths = [...paths];
+    const companyId = objectPaths[0].split("/")[0];
+    await storage(client).company(companyId).remove(objectPaths);
   }
 
   await client
@@ -4989,24 +7532,52 @@ export async function invalidateAssemblyModelCache(
     .eq("id", modelUploadId);
 }
 
+type AssemblyStepFields = {
+  title?: string | null;
+  type?: Database["public"]["Enums"]["procedureStepType"];
+  description?: Json;
+  required?: boolean;
+  unitOfMeasureCode?: string | null;
+  minValue?: number | null;
+  maxValue?: number | null;
+  listValues?: string[] | null;
+  componentNodeIds?: string[];
+  motion?: z.infer<typeof motionSchema>;
+  camera?: z.infer<typeof cameraSchema> | null;
+  fastener?: z.infer<typeof fastenerSchema> | null;
+  durationSeconds?: number | null;
+};
+
+/** A new step's columns, shared by both insert paths. */
+function newAssemblyStepColumns(data: AssemblyStepFields) {
+  return {
+    title: data.title ?? null,
+    type: data.type ?? "Task",
+    description: data.description ?? {},
+    instructionText:
+      data.description !== undefined
+        ? tiptapToText(data.description as JSONContent) || null
+        : null,
+    required: data.required ?? false,
+    unitOfMeasureCode:
+      data.type === "Measurement" ? (data.unitOfMeasureCode ?? null) : null,
+    minValue: data.type === "Measurement" ? (data.minValue ?? null) : null,
+    maxValue: data.type === "Measurement" ? (data.maxValue ?? null) : null,
+    listValues: data.type === "List" ? (data.listValues ?? null) : null,
+    componentNodeIds: data.componentNodeIds ?? [],
+    motion: (data.motion ?? { type: "none" }) as Json,
+    camera: (data.camera ?? null) as Json | null,
+    fastener: (data.fastener ?? null) as Json | null,
+    durationSeconds: data.durationSeconds ?? null
+  };
+}
+
+/** @mcp upsert */
 export async function upsertAssemblyInstructionStep(
   client: SupabaseClient<Database>,
-  data: {
+  data: AssemblyStepFields & {
     id?: string;
     assemblyInstructionId: string;
-    title?: string | null;
-    type?: Database["public"]["Enums"]["procedureStepType"];
-    description?: Json;
-    required?: boolean;
-    unitOfMeasureCode?: string | null;
-    minValue?: number | null;
-    maxValue?: number | null;
-    listValues?: string[] | null;
-    componentNodeIds?: string[];
-    motion?: z.infer<typeof motionSchema>;
-    camera?: z.infer<typeof cameraSchema> | null;
-    fastener?: z.infer<typeof fastenerSchema> | null;
-    durationSeconds?: number | null;
     sortOrder?: number;
     companyId: string;
     createdBy: string;
@@ -5072,24 +7643,7 @@ export async function upsertAssemblyInstructionStep(
     .from("assemblyInstructionStep")
     .insert({
       assemblyInstructionId: data.assemblyInstructionId,
-      title: data.title ?? null,
-      type: data.type ?? "Task",
-      description: data.description ?? {},
-      instructionText:
-        data.description !== undefined
-          ? tiptapToText(data.description as JSONContent) || null
-          : null,
-      required: data.required ?? false,
-      unitOfMeasureCode:
-        data.type === "Measurement" ? (data.unitOfMeasureCode ?? null) : null,
-      minValue: data.type === "Measurement" ? (data.minValue ?? null) : null,
-      maxValue: data.type === "Measurement" ? (data.maxValue ?? null) : null,
-      listValues: data.type === "List" ? (data.listValues ?? null) : null,
-      componentNodeIds: data.componentNodeIds ?? [],
-      motion: (data.motion ?? { type: "none" }) as Json,
-      camera: (data.camera ?? null) as Json | null,
-      fastener: (data.fastener ?? null) as Json | null,
-      durationSeconds: data.durationSeconds ?? null,
+      ...newAssemblyStepColumns(data),
       sortOrder: data.sortOrder ?? (await getNextStepSortOrder(client, data)),
       companyId: data.companyId,
       createdBy: data.createdBy
@@ -5104,6 +7658,7 @@ export async function upsertAssemblyInstructionStep(
  * `title` and the typed-step fields) so the 3D editor can autosave a drag or a
  * "Set view" click without touching the rest of the step. `camera: null` clears
  * the pose (return to auto-framing); omitting a field leaves it untouched.
+ * @mcp update
  */
 export async function updateAssemblyStepMotion(
   client: SupabaseClient<Database>,
@@ -5132,6 +7687,7 @@ export async function updateAssemblyStepMotion(
 // Autosave target for the Details panel's Add/remove component controls: patches
 // only the step's assigned components, leaving the title/typed fields and motion
 // untouched.
+/** @mcp update */
 export async function updateAssemblyStepComponents(
   client: SupabaseClient<Database>,
   data: {
@@ -5152,12 +7708,428 @@ export async function updateAssemblyStepComponents(
     .single();
 }
 
+// Replaces a step's hidden list. The step's own components are stripped (and the
+// list deduped) by the assembly_step_strip_own_hidden_components trigger.
+/** @mcp update */
+export async function updateAssemblyStepHiddenComponents(
+  client: SupabaseClient<Database>,
+  data: {
+    id: string;
+    assemblyInstructionId: string;
+    hiddenComponentNodeIds: string[];
+    updatedBy: string;
+  }
+) {
+  return client
+    .from("assemblyInstructionStep")
+    .update({
+      hiddenComponentNodeIds: data.hiddenComponentNodeIds,
+      updatedBy: data.updatedBy,
+      updatedAt: new Date().toISOString()
+    })
+    .eq("id", data.id)
+    .eq("assemblyInstructionId", data.assemblyInstructionId)
+    .select("id")
+    .single();
+}
+
+// Sub-assemblies: a header row (`isSubAssembly`) plus the steps whose
+// `parentStepId` is the header, stored directly before it (play order). A
+// header's `usedInStepId` is the later step that fits the finished unit.
+// Every structural write loads the instruction's steps, applies the change in
+// memory, checks `validateSubAssemblies` (the same rules the editor offers
+// actions by) and writes the new order in one transaction.
+
+type StepStructureRow = {
+  id: string;
+  sortOrder: number;
+  componentNodeIds: string[];
+  parentStepId: string | null;
+  usedInStepId: string | null;
+  isSubAssembly: boolean;
+};
+
+async function loadStepStructure(
+  db: Kysely<KyselyDatabase>,
+  companyId: string,
+  assemblyInstructionId: string
+): Promise<StepStructureRow[]> {
+  // Locking the instruction row serializes every structural write on it, so
+  // each one validates against the order the previous one committed.
+  const instruction = await db
+    .selectFrom("assemblyInstruction")
+    .select("status")
+    .where("id", "=", assemblyInstructionId)
+    .where("companyId", "=", companyId)
+    .forUpdate()
+    .executeTakeFirst();
+  if (!instruction) throw new Error("Assembly instruction not found");
+  if (instruction.status !== "Draft") {
+    throw new Error("Only draft instructions can be edited");
+  }
+
+  return db
+    .selectFrom("assemblyInstructionStep")
+    .select([
+      "id",
+      "sortOrder",
+      "componentNodeIds",
+      "parentStepId",
+      "usedInStepId",
+      "isSubAssembly"
+    ])
+    .where("assemblyInstructionId", "=", assemblyInstructionId)
+    .where("companyId", "=", companyId)
+    .orderBy("sortOrder", "asc")
+    .execute();
+}
+
+function assertValidStepStructure(steps: StepStructureRow[]) {
+  const [violation] = validateSubAssemblies(steps);
+  if (violation) throw new Error(violation.message);
+}
+
+/**
+ * Write `next` (the instruction's steps in their new play order) as sortOrder
+ * 1..n plus each row's sub-assembly links. Only rows that changed are touched.
+ */
+async function saveStepStructure(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    companyId: string;
+    userId: string;
+    assemblyInstructionId: string;
+    before: StepStructureRow[];
+    next: StepStructureRow[];
+  }
+) {
+  const beforeById = new Map(args.before.map((step) => [step.id, step]));
+  const changed = args.next
+    .map((step, index) => ({ ...step, sortOrder: index + 1 }))
+    .filter((step) => {
+      const was = beforeById.get(step.id);
+      return (
+        !was ||
+        was.sortOrder !== step.sortOrder ||
+        was.parentStepId !== step.parentStepId ||
+        was.usedInStepId !== step.usedInStepId
+      );
+    });
+  if (changed.length === 0) return;
+
+  const values = sql.join(
+    changed.map(
+      (step) =>
+        sql`(${step.id}::text, ${step.sortOrder}::double precision, ${step.parentStepId}::text, ${step.usedInStepId}::text)`
+    )
+  );
+  const { rows } = await sql<{ id: string }>`
+    UPDATE "assemblyInstructionStep" AS t
+    SET "sortOrder" = v."sortOrder",
+        "parentStepId" = v."parentStepId",
+        "usedInStepId" = v."usedInStepId",
+        "updatedBy" = ${args.userId},
+        "updatedAt" = ${datetime.timestamp()}
+    FROM (VALUES ${values}) AS v("id", "sortOrder", "parentStepId", "usedInStepId")
+    WHERE t."id" = v."id"
+      AND t."companyId" = ${args.companyId}
+      AND t."assemblyInstructionId" = ${args.assemblyInstructionId}
+    RETURNING t."id"
+  `.execute(db);
+  if (rows.length !== changed.length) {
+    throw new Error("Some steps are not on this instruction");
+  }
+}
+
+/**
+ * Wrap a top-level step into a new sub-assembly; the step becomes its first step.
+ * @mcp action
+ */
+export async function makeAssemblySubAssembly(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    assemblyInstructionId: string;
+    stepId: string;
+    companyId: string;
+    userId: string;
+  }
+) {
+  const { assemblyInstructionId, stepId, companyId, userId } = args;
+  return db.transaction().execute(async (trx) => {
+    const before = await loadStepStructure(
+      trx,
+      companyId,
+      assemblyInstructionId
+    );
+    const step = before.find((s) => s.id === stepId);
+    if (!step) throw new Error("Step not found");
+    if (step.isSubAssembly) {
+      throw new Error("This step is already a sub-assembly");
+    }
+    if (step.parentStepId) {
+      throw new Error("This step is already in a sub-assembly");
+    }
+
+    const header = await trx
+      .insertInto("assemblyInstructionStep")
+      .values({
+        assemblyInstructionId,
+        companyId,
+        sortOrder: step.sortOrder,
+        isSubAssembly: true,
+        createdBy: userId
+      })
+      .returning(["id", "sortOrder"])
+      .executeTakeFirstOrThrow();
+
+    const headerRow: StepStructureRow = {
+      id: header.id,
+      sortOrder: header.sortOrder,
+      componentNodeIds: [],
+      parentStepId: null,
+      usedInStepId: null,
+      isSubAssembly: true
+    };
+    const next = before.flatMap((s) =>
+      s.id === stepId ? [{ ...s, parentStepId: header.id }, headerRow] : [s]
+    );
+    assertValidStepStructure(next);
+    await saveStepStructure(trx, {
+      companyId,
+      userId,
+      assemblyInstructionId,
+      before: [...before, headerRow],
+      next
+    });
+    return header.id;
+  });
+}
+
+/**
+ * Add a step at the end of the instruction, or at the end of the sub-assembly
+ * `parentStepId` names (directly before its header).
+ * @mcp create
+ */
+export async function insertAssemblyInstructionStep(
+  db: Kysely<KyselyDatabase>,
+  args: AssemblyStepFields & {
+    assemblyInstructionId: string;
+    parentStepId?: string;
+    companyId: string;
+    userId: string;
+  }
+) {
+  const { assemblyInstructionId, parentStepId, companyId, userId } = args;
+  return db.transaction().execute(async (trx) => {
+    const before = await loadStepStructure(
+      trx,
+      companyId,
+      assemblyInstructionId
+    );
+    if (
+      parentStepId &&
+      !before.find((s) => s.id === parentStepId)?.isSubAssembly
+    ) {
+      throw new Error("Sub-assembly not found");
+    }
+
+    const step = await trx
+      .insertInto("assemblyInstructionStep")
+      .values({
+        assemblyInstructionId,
+        companyId,
+        ...newAssemblyStepColumns(args),
+        sortOrder: before.length + 1,
+        parentStepId: parentStepId ?? null,
+        createdBy: userId
+      })
+      .returning(["id", "sortOrder", "componentNodeIds"])
+      .executeTakeFirstOrThrow();
+
+    const stepRow: StepStructureRow = {
+      ...step,
+      parentStepId: parentStepId ?? null,
+      usedInStepId: null,
+      isSubAssembly: false
+    };
+    const next = parentStepId
+      ? before.flatMap((s) => (s.id === parentStepId ? [stepRow, s] : [s]))
+      : [...before, stepRow];
+    assertValidStepStructure(next);
+    await saveStepStructure(trx, {
+      companyId,
+      userId,
+      assemblyInstructionId,
+      before: [...before, stepRow],
+      next
+    });
+    return step.id;
+  });
+}
+
+/**
+ * Rename a sub-assembly and/or set the step that uses it (`null` = it joins the
+ * main build). `undefined` leaves a field unchanged.
+ * @mcp update
+ */
+export async function updateAssemblySubAssembly(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    assemblyInstructionId: string;
+    headerId: string;
+    title?: string;
+    usedInStepId?: string | null;
+    companyId: string;
+    userId: string;
+  }
+) {
+  const { assemblyInstructionId, headerId, companyId, userId } = args;
+  return db.transaction().execute(async (trx) => {
+    const before = await loadStepStructure(
+      trx,
+      companyId,
+      assemblyInstructionId
+    );
+    const header = before.find((s) => s.id === headerId);
+    if (!header?.isSubAssembly) throw new Error("Sub-assembly not found");
+
+    if (args.usedInStepId !== undefined) {
+      assertValidStepStructure(
+        before.map((s) =>
+          s.id === headerId ? { ...s, usedInStepId: args.usedInStepId! } : s
+        )
+      );
+    }
+
+    await trx
+      .updateTable("assemblyInstructionStep")
+      .set({
+        ...(args.title !== undefined ? { title: args.title } : {}),
+        ...(args.usedInStepId !== undefined
+          ? { usedInStepId: args.usedInStepId }
+          : {}),
+        updatedBy: userId,
+        updatedAt: new Date().toISOString()
+      })
+      .where("id", "=", headerId)
+      .where("companyId", "=", companyId)
+      .where("assemblyInstructionId", "=", assemblyInstructionId)
+      .execute();
+  });
+}
+
+/**
+ * Remove the sub-assembly but keep its steps: they return to the top level in place.
+ * @mcp action destructive
+ */
+export async function ungroupAssemblySubAssembly(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    assemblyInstructionId: string;
+    headerId: string;
+    companyId: string;
+    userId: string;
+  }
+) {
+  const { assemblyInstructionId, headerId, companyId, userId } = args;
+  return db.transaction().execute(async (trx) => {
+    const before = await loadStepStructure(
+      trx,
+      companyId,
+      assemblyInstructionId
+    );
+    const header = before.find((s) => s.id === headerId);
+    if (!header?.isSubAssembly) throw new Error("Sub-assembly not found");
+
+    const next = before
+      .filter((s) => s.id !== headerId)
+      .map((s) =>
+        s.parentStepId === headerId ? { ...s, parentStepId: null } : s
+      );
+    assertValidStepStructure(next);
+
+    await trx
+      .deleteFrom("assemblyInstructionStep")
+      .where("id", "=", headerId)
+      .where("companyId", "=", companyId)
+      .where("assemblyInstructionId", "=", assemblyInstructionId)
+      .execute();
+    await saveStepStructure(trx, {
+      companyId,
+      userId,
+      assemblyInstructionId,
+      before,
+      next
+    });
+  });
+}
+
+/**
+ * Delete a sub-assembly together with its steps.
+ * @mcp delete
+ */
+export async function deleteAssemblySubAssembly(
+  db: Kysely<KyselyDatabase>,
+  args: {
+    assemblyInstructionId: string;
+    headerId: string;
+    companyId: string;
+    userId: string;
+  }
+) {
+  const { assemblyInstructionId, headerId, companyId, userId } = args;
+  return db.transaction().execute(async (trx) => {
+    const before = await loadStepStructure(
+      trx,
+      companyId,
+      assemblyInstructionId
+    );
+    const header = before.find((s) => s.id === headerId);
+    if (!header?.isSubAssembly) throw new Error("Sub-assembly not found");
+
+    const removed = new Set(
+      before
+        .filter((s) => s.id === headerId || s.parentStepId === headerId)
+        .map((s) => s.id)
+    );
+    // Deleting a step that used another sub-assembly makes that one join the
+    // main build (FK ON DELETE SET NULL); mirror it before validating.
+    const next = before
+      .filter((s) => !removed.has(s.id))
+      .map((s) =>
+        s.usedInStepId && removed.has(s.usedInStepId)
+          ? { ...s, usedInStepId: null }
+          : s
+      );
+    assertValidStepStructure(next);
+
+    await trx
+      .deleteFrom("assemblyInstructionStep")
+      .where("id", "in", [...removed])
+      .where("companyId", "=", companyId)
+      .where("assemblyInstructionId", "=", assemblyInstructionId)
+      .execute();
+    await saveStepStructure(trx, {
+      companyId,
+      userId,
+      assemblyInstructionId,
+      before: before.map((s) =>
+        s.usedInStepId && removed.has(s.usedInStepId)
+          ? { ...s, usedInStepId: null }
+          : s
+      ),
+      next
+    });
+  });
+}
+
 // Assign a set of component instances to a target step. `duplicate` unions them
 // onto the target only (a component may live on several steps). `move` unions
 // them onto the target AND strips them from every other step, so the component
 // ends up on exactly the target. `remove` (no target) strips them from EVERY
 // step, unassigning them entirely. One transaction: a half-applied move (added
 // to target but not removed from the source, or vice versa) would be a real bug.
+/** @mcp action destructive */
 export async function reassignAssemblyStepComponents(
   db: Kysely<KyselyDatabase>,
   data: {
@@ -5314,6 +8286,7 @@ async function getNextStepSortOrder(
   return (lastStep.data?.sortOrder ?? 0) + 1;
 }
 
+/** @mcp update */
 export async function updateAssemblyInstructionStepStatus(
   client: SupabaseClient<Database>,
   id: string,
@@ -5334,21 +8307,59 @@ export async function updateAssemblyInstructionStepStatus(
     .single();
 }
 
+/**
+ * Drag-sort of the step list: each step's new position and sub-assembly
+ * (`parentStepId`, `null` = top level; omitted = unchanged). The result must
+ * satisfy the sub-assembly rules or nothing is written.
+ * @mcp update
+ */
 export async function updateAssemblyInstructionStepOrder(
   db: Kysely<KyselyDatabase>,
-  updates: { id: string; sortOrder: number; updatedBy: string }[]
+  companyId: string,
+  userId: string,
+  assemblyInstructionId: string,
+  updates: { id: string; sortOrder: number; parentStepId?: string | null }[]
 ) {
   return db.transaction().execute(async (trx) => {
-    for (const { id, sortOrder, updatedBy } of updates) {
-      await trx
-        .updateTable("assemblyInstructionStep")
-        .set({ sortOrder, updatedBy, updatedAt: new Date().toISOString() })
-        .where("id", "=", id)
-        .execute();
+    const before = await loadStepStructure(
+      trx,
+      companyId,
+      assemblyInstructionId
+    );
+    const updateById = new Map(updates.map((update) => [update.id, update]));
+    if (updateById.size !== updates.length) {
+      throw new Error("A step appears twice in the new order");
     }
+    if (updates.some((update) => !before.some((s) => s.id === update.id))) {
+      throw new Error("Some steps are not on this instruction");
+    }
+
+    const next = before
+      .map((step) => {
+        const update = updateById.get(step.id);
+        if (!update) return step;
+        return {
+          ...step,
+          sortOrder: update.sortOrder,
+          parentStepId:
+            update.parentStepId === undefined
+              ? step.parentStepId
+              : update.parentStepId
+        };
+      })
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+    assertValidStepStructure(next);
+    await saveStepStructure(trx, {
+      companyId,
+      userId,
+      assemblyInstructionId,
+      before,
+      next
+    });
   });
 }
 
+/** @mcp delete */
 export async function deleteAssemblyInstructionStep(
   client: SupabaseClient<Database>,
   id: string
@@ -5356,6 +8367,7 @@ export async function deleteAssemblyInstructionStep(
   return client.from("assemblyInstructionStep").delete().eq("id", id);
 }
 
+/** @mcp read */
 export async function getAssemblyInstructionStepSlides(
   client: SupabaseClient<Database>,
   stepIds: string[]
@@ -5370,14 +8382,27 @@ export async function getAssemblyInstructionStepSlides(
     .order("sortOrder", { ascending: true });
 }
 
+/** @mcp upsert */
 export async function upsertAssemblyInstructionStepSlide(
   client: SupabaseClient<Database>,
   slide:
-    | (Omit<z.infer<typeof operationStepSlideValidator>, "id"> & {
+    | (Omit<
+        z.infer<typeof operationStepSlideValidator>,
+        "id" | "annotations"
+      > & {
+        annotations?: z.infer<
+          typeof operationStepSlideValidator
+        >["annotations"];
         companyId: string;
         createdBy: string;
       })
-    | (Omit<z.infer<typeof operationStepSlideValidator>, "id"> & {
+    | (Omit<
+        z.infer<typeof operationStepSlideValidator>,
+        "id" | "annotations"
+      > & {
+        annotations?: z.infer<
+          typeof operationStepSlideValidator
+        >["annotations"];
         id: string;
         updatedBy: string;
         updatedAt: string;
@@ -5399,6 +8424,7 @@ export async function upsertAssemblyInstructionStepSlide(
     .single();
 }
 
+/** @mcp delete */
 export async function deleteAssemblyInstructionStepSlide(
   client: SupabaseClient<Database>,
   id: string
@@ -5406,6 +8432,7 @@ export async function deleteAssemblyInstructionStepSlide(
   return client.from("assemblyInstructionStepSlide").delete().eq("id", id);
 }
 
+/** @mcp read */
 export async function getAssemblyInstructionStepTools(
   client: SupabaseClient<Database>,
   stepIds: string[]
@@ -5420,6 +8447,7 @@ export async function getAssemblyInstructionStepTools(
     .order("sortOrder", { ascending: true });
 }
 
+/** @mcp upsert */
 export async function upsertAssemblyInstructionStepTool(
   client: SupabaseClient<Database>,
   data: {
@@ -5478,6 +8506,7 @@ async function getNextStepToolSortOrder(
   return (last.data?.sortOrder ?? 0) + 1;
 }
 
+/** @mcp delete */
 export async function deleteAssemblyInstructionStepTool(
   client: SupabaseClient<Database>,
   id: string
@@ -5485,6 +8514,7 @@ export async function deleteAssemblyInstructionStepTool(
   return client.from("assemblyInstructionStepTool").delete().eq("id", id);
 }
 
+/** @mcp read */
 export async function getAssemblyInstructionStepMaterials(
   client: SupabaseClient<Database>,
   stepIds: string[]
@@ -5499,6 +8529,7 @@ export async function getAssemblyInstructionStepMaterials(
     .order("sortOrder", { ascending: true });
 }
 
+/** @mcp upsert */
 export async function upsertAssemblyInstructionStepMaterial(
   client: SupabaseClient<Database>,
   data: {
@@ -5557,21 +8588,34 @@ async function getNextStepMaterialSortOrder(
   return (last.data?.sortOrder ?? 0) + 1;
 }
 
+/** @mcp update */
 export async function updateAssemblyInstructionStepMaterialOrder(
   db: Kysely<KyselyDatabase>,
-  updates: { id: string; sortOrder: number; updatedBy: string }[]
+  companyId: string,
+  userId: string,
+  assemblyInstructionId: string,
+  updates: { id: string; sortOrder: number }[]
 ) {
-  return db.transaction().execute(async (trx) => {
-    for (const { id, sortOrder, updatedBy } of updates) {
-      await trx
-        .updateTable("assemblyInstructionStepMaterial")
-        .set({ sortOrder, updatedBy, updatedAt: new Date().toISOString() })
-        .where("id", "=", id)
-        .execute();
-    }
+  return updateSortOrder(db, {
+    table: "assemblyInstructionStepMaterial",
+    column: "sortOrder",
+    companyId,
+    userId,
+    // A material hangs off a step, so it is scoped to the instruction
+    // through that step.
+    parent: {
+      column: "stepId",
+      via: {
+        table: "assemblyInstructionStep",
+        column: "assemblyInstructionId",
+        id: assemblyInstructionId
+      }
+    },
+    updates
   });
 }
 
+/** @mcp delete */
 export async function deleteAssemblyInstructionStepMaterial(
   client: SupabaseClient<Database>,
   id: string
@@ -5650,6 +8694,7 @@ function insertAssemblyStepMaterialSeeds(
  * assemblyComponentMapping) as step materials. Additive and best-effort:
  * existing rows are never updated or removed — manual quantities and
  * deliberate deletions survive — and failures never block the caller.
+ * @mcp update
  */
 export async function syncAssemblyStepMaterialsFromMappings(
   client: SupabaseClient<Database>,
@@ -5695,8 +8740,10 @@ export async function syncAssemblyStepMaterialsFromMappings(
   const steps = await stepsQuery;
   if (!steps.data?.length) return { created: 0 };
 
-  const graphFile = await client.storage.from("private").download(graphPath);
-  if (graphFile.error || !graphFile.data) return { created: 0 };
+  const graphFile = await storage(client)
+    .company(args.companyId)
+    .download(graphPath);
+  if (!graphFile.data) return { created: 0 };
   let graphIndex: AssemblyGraphIndex;
   try {
     graphIndex = indexAssemblyGraph(
@@ -5741,6 +8788,7 @@ export async function syncAssemblyStepMaterialsFromMappings(
   return { created: insert.error ? 0 : seeds.length };
 }
 
+/** @mcp read */
 export async function getAssemblyUnits(
   client: SupabaseClient<Database>,
   modelUploadId: string
@@ -5752,6 +8800,7 @@ export async function getAssemblyUnits(
     .order("name");
 }
 
+/** @mcp upsert */
 export async function upsertAssemblyUnit(
   client: SupabaseClient<Database>,
   data: {
@@ -5794,6 +8843,7 @@ export async function upsertAssemblyUnit(
     .single();
 }
 
+/** @mcp delete */
 export async function deleteAssemblyUnit(
   client: SupabaseClient<Database>,
   id: string
@@ -5804,6 +8854,7 @@ export async function deleteAssemblyUnit(
 /**
  * Latest successful motion plan for a model. The editor uses plan.json to
  * auto-fill step motions and to generate draft step sequences.
+ * @mcp read
  */
 export async function getLatestAssemblyPlan(
   client: SupabaseClient<Database>,
@@ -5824,6 +8875,7 @@ export async function getLatestAssemblyPlan(
 /**
  * Latest plan job in any state — used to tell "planning is running" apart
  * from "planning failed" and to avoid enqueueing duplicate plan runs.
+ * @mcp read
  */
 export async function getLatestAssemblyPlanJob(
   client: SupabaseClient<Database>,
@@ -5846,6 +8898,7 @@ export async function getLatestAssemblyPlanJob(
  * it to Processing; without this the row only exists after event pickup, and
  * the post-action revalidation lands in that gap — nothing polls, and the run
  * (and its finished motions) never surface without a manual reload.
+ * @mcp create
  */
 export async function createAssemblyPlanJob(
   client: SupabaseClient<Database>,
@@ -5874,6 +8927,7 @@ export async function createAssemblyPlanJob(
  * case and same-version format drift.) Absence flows into the existing
  * no-plan path, which triggers a fresh planner run and auto-generates steps
  * when it lands.
+ * @mcp read
  */
 export async function getAssemblyPlanJson(
   client: SupabaseClient<Database>,
@@ -5882,8 +8936,12 @@ export async function getAssemblyPlanJson(
   const job = await getLatestAssemblyPlan(client, modelUploadId);
   if (!job.data?.planPath) return null;
 
-  const file = await client.storage.from("private").download(job.data.planPath);
-  if (file.error || !file.data) return null;
+  // Private object paths are prefixed with the owning company's id.
+  const planCompanyId = job.data.planPath.split("/")[0];
+  const file = await storage(client)
+    .company(planCompanyId)
+    .download(job.data.planPath);
+  if (!file.data) return null;
 
   try {
     const plan = JSON.parse(await file.data.text()) as AssemblyPlan;
@@ -5896,7 +8954,10 @@ export async function getAssemblyPlanJson(
 
 // --- Model component ↔ engineering BOM mappings --------------------------
 
-/** Mappings from distinct model components (geometry hashes) to BOM items. */
+/**
+ * Mappings from distinct model components (geometry hashes) to BOM items.
+ * @mcp read
+ */
 export async function getAssemblyComponentMappings(
   client: SupabaseClient<Database>,
   modelUploadId: string
@@ -5907,6 +8968,7 @@ export async function getAssemblyComponentMappings(
     .eq("modelUploadId", modelUploadId);
 }
 
+/** @mcp upsert */
 export async function upsertAssemblyComponentMapping(
   client: SupabaseClient<Database>,
   data: {
@@ -5937,6 +8999,7 @@ export async function upsertAssemblyComponentMapping(
     .single();
 }
 
+/** @mcp delete */
 export async function deleteAssemblyComponentMapping(
   client: SupabaseClient<Database>,
   id: string
@@ -5959,6 +9022,7 @@ export type FlattenedBomMaterial = {
  * Make subassemblies (makeMethod → methodMaterial → materialMakeMethodId),
  * with quantities multiplied per level. Uses the Active make method, or
  * the first one when none is active.
+ * @mcp read
  */
 export async function getFlattenedBomMaterials(
   client: SupabaseClient<Database>,
@@ -6028,6 +9092,7 @@ export type AutoMatchResult = {
  * strong name matches first (greedy, best score wins), then unique
  * quantity matches (a component appearing N times matched to the only BOM line
  * with quantity N) as low-confidence fallbacks. Existing mappings are kept.
+ * @mcp action
  */
 export async function autoMatchAssemblyComponents(
   client: SupabaseClient<Database>,
@@ -6049,8 +9114,10 @@ export async function autoMatchAssemblyComponents(
     return { error: "The model has not been processed" };
   }
 
-  const graphFile = await client.storage.from("private").download(graphPath);
-  if (graphFile.error || !graphFile.data) {
+  const graphFile = await storage(client)
+    .company(args.companyId)
+    .download(graphPath);
+  if (!graphFile.data) {
     return { error: "Failed to load the model graph" };
   }
   let graph: AssemblyGraph;
@@ -6231,14 +9298,118 @@ function plainTextToTiptap(text: string) {
  * permissions) belong to the route — Kysely bypasses RLS.
  */
 /**
+ * Maps a job step's marker from an OLD instruction version's step id to the
+ * equivalent step id in the NEWLY-ACTIVATED version, by lineage group
+ * (COALESCE(rootStepId, id) — the same idiom as rootInstructionId).
+ *
+ * A step that survives across versions keeps its identity even when reordered
+ * or retitled, so the caller can UPDATE it in place and preserve the operator's
+ * completion records. Steps with no counterpart in the new version are left
+ * unmapped — the caller's re-sync then treats them as stale. Pure so the
+ * remapping is unit-testable.
+ *
+ * `oldSteps` spans EVERY older sibling version, so several of them can share a
+ * lineage root and collapse onto the same new step id. That is safe only
+ * because a job operation's markers all come from a single version (both
+ * writers — the step insert and planOrphanStepAdoption — only ever write ids
+ * from the instruction being synced), so at most one of those entries can match
+ * any given row. There is no unique constraint enforcing it.
+ */
+export function planAssemblyStepMarkerRemap(
+  oldSteps: { id: string; rootStepId: string | null }[],
+  newSteps: { id: string; rootStepId: string | null }[]
+): Map<string, string> {
+  const newIdByRoot = new Map<string, string>();
+  for (const step of newSteps) {
+    const root = step.rootStepId ?? step.id;
+    // First writer wins: a well-formed version has one step per lineage group.
+    if (!newIdByRoot.has(root)) newIdByRoot.set(root, step.id);
+  }
+
+  const remap = new Map<string, string>();
+  for (const step of oldSteps) {
+    const root = step.rootStepId ?? step.id;
+    const newId = newIdByRoot.get(root);
+    if (newId && newId !== step.id) remap.set(step.id, newId);
+  }
+  return remap;
+}
+
+/**
+ * The name a synced job step is written with. `title` is nullable on the
+ * instruction step but `name` is NOT NULL on the job step, so a null title
+ * becomes a positional placeholder. Adoption below must compare against this
+ * same value, not the raw title — otherwise a null-titled step's job step is
+ * named "Step 3" and can never be matched back to its source.
+ */
+function assemblyStepName(title: string | null, index: number) {
+  return title || `Step ${index + 1}`;
+}
+
+/**
+ * Re-adopts job steps orphaned by the assemblyInstructionStepId ON DELETE SET
+ * NULL cascade (deleting an instruction step nulls the marker on every live
+ * job synced from it). Without this a re-sync treats them as hand-authored and
+ * inserts duplicates beside them.
+ *
+ * Deliberately conservative: an orphan is claimed only when it matches a source
+ * step on BOTH position and name AND no already-marked step claims that source
+ * step. Genuinely hand-authored steps match no source step and are untouched;
+ * ambiguous cases are left alone rather than guessed at.
+ *
+ * Position is where the sync wrote the step: after the operation's own steps
+ * (the unmarked steps that share no name with a source step), in source order.
+ * Steps synced before that numbering sit at the source step's own sortOrder.
+ */
+export function planOrphanStepAdoption(
+  sourceSteps: { id: string; title: string | null; sortOrder: number | null }[],
+  orphanSteps: { id: string; name: string | null; sortOrder: number | null }[],
+  claimedSourceIds: Set<string>
+): Map<string, string> {
+  const adoption = new Map<string, string>();
+  const takenOrphans = new Set<string>();
+
+  const sourceNames = new Set(
+    sourceSteps.map((source, index) => assemblyStepName(source.title, index))
+  );
+  const lastOwnSortOrder = Math.max(
+    0,
+    ...orphanSteps
+      .filter((orphan) => orphan.name === null || !sourceNames.has(orphan.name))
+      .map((orphan) => orphan.sortOrder ?? 0)
+  );
+
+  sourceSteps.forEach((source, index) => {
+    if (claimedSourceIds.has(source.id)) return;
+    const sourceName = assemblyStepName(source.title, index);
+    const match = orphanSteps.find(
+      (orphan) =>
+        !takenOrphans.has(orphan.id) &&
+        orphan.name === sourceName &&
+        (orphan.sortOrder === lastOwnSortOrder + 1 + index ||
+          orphan.sortOrder === source.sortOrder)
+    );
+    if (match) {
+      adoption.set(match.id, source.id);
+      takenOrphans.add(match.id);
+    }
+  });
+  return adoption;
+}
+
+/**
  * Marker-based step reconciliation for the assembly→BoP sync. Given the current
  * source step ids and the operation's existing synced steps (each carrying the
  * `assemblyInstructionStepId` provenance marker), decide which source maps onto
  * an existing target (update) vs. is new (insert), and which existing synced
  * steps are stale — their source step was removed, so they must be deleted
- * (cascading their slides/links). Hand-authored steps (null marker) are excluded
- * by the caller's `assemblyInstructionStepId is not null` filter; a null marker
- * here is treated as stale. Pure so the reconciliation is unit-testable.
+ * (cascading their slides/links).
+ *
+ * The caller passes only marked steps: hand-authored steps (NULL marker) are
+ * filtered out, and orphans re-adopted by planOrphanStepAdoption arrive here
+ * already carrying the marker they were adopted onto. A null marker reaching
+ * this function is therefore treated as stale. Pure so the reconciliation is
+ * unit-testable.
  */
 export function planAssemblyStepMarkerSync(
   sourceStepIds: string[],
@@ -6264,6 +9435,7 @@ export function planAssemblyStepMarkerSync(
 /**
  * The re-sync ratchets a tool's operation-level quantity up to the max quantity
  * any source step asks for (operation-level rows are never lowered or deleted).
+ * @mcp read
  */
 export function maxToolQuantityByItem(
   sourceTools: { itemId: string; quantity: number | null }[]
@@ -6306,6 +9478,7 @@ export function buildAssemblyToolStepLinks(
   return rows;
 }
 
+/** @mcp update destructive */
 export async function syncAssemblyInstructionToOperation(
   db: Kysely<KyselyDatabase>,
   args: {
@@ -6320,6 +9493,25 @@ export async function syncAssemblyInstructionToOperation(
   const slideTable = "jobOperationStepSlide" as const;
 
   return db.transaction().execute(async (trx) => {
+    // The operation id comes from the caller and every write below is keyed on
+    // it, so it must belong to this company — and, since the API reaches this
+    // without the route's check, its job must not be locked.
+    const operation = await trx
+      .selectFrom("jobOperation")
+      .innerJoin("job", (join) =>
+        join
+          .onRef("job.id", "=", "jobOperation.jobId")
+          .onRef("job.companyId", "=", "jobOperation.companyId")
+      )
+      .select(["jobOperation.id", "job.status"])
+      .where("jobOperation.id", "=", operationId)
+      .where("jobOperation.companyId", "=", companyId)
+      .executeTakeFirst();
+    if (!operation) throw new Error("Operation not found");
+    if (isJobLocked(operation.status)) {
+      throw new Error("This job is locked — steps can't be synced to it");
+    }
+
     const instruction = await trx
       .selectFrom("assemblyInstruction")
       .select(["id", "itemId", "modelUploadId"])
@@ -6346,6 +9538,10 @@ export async function syncAssemblyInstructionToOperation(
       ])
       .where("assemblyInstructionId", "=", instruction.id)
       .where("companyId", "=", companyId)
+      // A sub-assembly (header) row is not a build action to record: it is
+      // never a job step, and a job step synced from a row that has since
+      // become a header is removed as stale below.
+      .where("isSubAssembly", "=", false)
       .orderBy("sortOrder", "asc")
       .execute();
     if (sourceSteps.length === 0) {
@@ -6354,7 +9550,7 @@ export async function syncAssemblyInstructionToOperation(
 
     const sourceMaterials = await trx
       .selectFrom("assemblyInstructionStepMaterial")
-      .select(["stepId", "itemId"])
+      .select(["stepId", "itemId", "quantity"])
       .where("companyId", "=", companyId)
       .where(
         "stepId",
@@ -6362,10 +9558,13 @@ export async function syncAssemblyInstructionToOperation(
         sourceSteps.map((step) => step.id)
       )
       .execute();
-    const materialsByStep = new Map<string, string[]>();
+    const materialsByStep = new Map<
+      string,
+      { itemId: string; quantity: number | null }[]
+    >();
     for (const material of sourceMaterials) {
       const list = materialsByStep.get(material.stepId) ?? [];
-      list.push(material.itemId);
+      list.push({ itemId: material.itemId, quantity: material.quantity });
       materialsByStep.set(material.stepId, list);
     }
 
@@ -6431,17 +9630,70 @@ export async function syncAssemblyInstructionToOperation(
       }
     }
 
-    const existingSynced = await trx
+    const existingSteps = await trx
       .selectFrom(stepTable)
-      .select(["id", "assemblyInstructionStepId"])
+      .select(["id", "assemblyInstructionStepId", "name", "sortOrder"])
       .where("operationId", "=", operationId)
       .where("companyId", "=", companyId)
-      .where("assemblyInstructionStepId", "is not", null)
       .execute();
+
+    const existingSynced = existingSteps.filter(
+      (step) => step.assemblyInstructionStepId !== null
+    );
+
+    // Re-adopt steps orphaned by the ON DELETE SET NULL cascade so a re-sync
+    // heals them instead of inserting duplicates beside them.
+    const adoption = planOrphanStepAdoption(
+      sourceSteps.map((step) => ({
+        id: step.id,
+        title: step.title,
+        sortOrder: step.sortOrder
+      })),
+      existingSteps
+        .filter((step) => step.assemblyInstructionStepId === null)
+        .map((step) => ({
+          id: step.id,
+          name: step.name,
+          sortOrder: step.sortOrder
+        })),
+      new Set(
+        existingSynced
+          .map((step) => step.assemblyInstructionStepId)
+          .filter((id): id is string => id !== null)
+      )
+    );
+
+    for (const [orphanId, sourceStepId] of adoption) {
+      await trx
+        .updateTable(stepTable)
+        .set({ assemblyInstructionStepId: sourceStepId })
+        .where("id", "=", orphanId)
+        .where("companyId", "=", companyId)
+        .execute();
+      const orphan = existingSteps.find((step) => step.id === orphanId);
+      if (orphan) {
+        existingSynced.push({
+          ...orphan,
+          assemblyInstructionStepId: sourceStepId
+        });
+      }
+    }
+
     const { targetIdBySourceId, staleTargetIds } = planAssemblyStepMarkerSync(
       sourceSteps.map((step) => step.id),
       existingSynced
     );
+
+    // The operation's own steps number from 1 as well: the instruction's
+    // steps follow them, or the two interleave.
+    const syncedIds = new Set(existingSynced.map((step) => step.id));
+    const firstSortOrder =
+      Math.max(
+        0,
+        ...existingSteps
+          .filter((step) => !syncedIds.has(step.id))
+          .map((step) => step.sortOrder ?? 0)
+      ) + 1;
 
     const now = new Date().toISOString();
     let created = 0;
@@ -6449,12 +9701,16 @@ export async function syncAssemblyInstructionToOperation(
     const syncedTargetIds: string[] = [];
     // source assembly step id → synced job step id, for slide/tool copying
     const targetIdBySource = new Map<string, string>();
-    const linkPairs: { materialId: string; stepId: string }[] = [];
+    const linkPairs: {
+      materialId: string;
+      stepId: string;
+      quantity: number | null;
+    }[] = [];
     let partsUnmatched = 0;
 
     for (const [index, source] of sourceSteps.entries()) {
       const payload = {
-        name: source.title || `Step ${index + 1}`,
+        name: assemblyStepName(source.title, index),
         type: source.type ?? "Task",
         description:
           source.description ??
@@ -6467,7 +9723,7 @@ export async function syncAssemblyInstructionToOperation(
         maxValue: source.maxValue,
         listValues: source.listValues,
         fileTypes: source.fileTypes,
-        sortOrder: source.sortOrder ?? index + 1
+        sortOrder: firstSortOrder + index
       };
 
       const existingId = targetIdBySourceId.get(source.id);
@@ -6499,10 +9755,10 @@ export async function syncAssemblyInstructionToOperation(
       syncedTargetIds.push(targetStepId);
       targetIdBySource.set(source.id, targetStepId);
 
-      for (const itemId of materialsByStep.get(source.id) ?? []) {
+      for (const { itemId, quantity } of materialsByStep.get(source.id) ?? []) {
         const materialId = materialIdByItemId.get(itemId);
         if (materialId) {
-          linkPairs.push({ materialId, stepId: targetStepId });
+          linkPairs.push({ materialId, stepId: targetStepId, quantity });
         } else {
           partsUnmatched++;
         }
@@ -6522,7 +9778,14 @@ export async function syncAssemblyInstructionToOperation(
     // Refresh part links on the synced steps only (hand-authored steps keep theirs).
     await trx
       .deleteFrom("jobMaterialStep")
-      .where("jobOperationStepId", "in", syncedTargetIds)
+      // No companyId column — scope through the step it links to.
+      .where("jobOperationStepId", "in", (eb) =>
+        eb
+          .selectFrom("jobOperationStep")
+          .select("id")
+          .where("id", "in", syncedTargetIds)
+          .where("companyId", "=", companyId)
+      )
       .execute();
     if (linkPairs.length > 0) {
       await trx
@@ -6530,7 +9793,8 @@ export async function syncAssemblyInstructionToOperation(
         .values(
           linkPairs.map((pair) => ({
             jobMaterialId: pair.materialId,
-            jobOperationStepId: pair.stepId
+            jobOperationStepId: pair.stepId,
+            quantity: pair.quantity
           }))
         )
         .execute();
@@ -6543,6 +9807,7 @@ export async function syncAssemblyInstructionToOperation(
     await trx
       .deleteFrom(slideTable)
       .where("stepId", "in", syncedTargetIds)
+      .where("companyId", "=", companyId)
       .execute();
     const slideRows: {
       stepId: string;
@@ -6631,13 +9896,21 @@ export async function syncAssemblyInstructionToOperation(
             .updateTable("jobOperationTool")
             .set({ quantity, updatedBy: userId, updatedAt: now })
             .where("id", "=", existingId)
+            .where("companyId", "=", companyId)
             .execute();
         }
       }
     }
     await trx
       .deleteFrom("jobOperationToolStep")
-      .where("jobOperationStepId", "in", syncedTargetIds)
+      // No companyId column — scope through the step it links to.
+      .where("jobOperationStepId", "in", (eb) =>
+        eb
+          .selectFrom("jobOperationStep")
+          .select("id")
+          .where("id", "in", syncedTargetIds)
+          .where("companyId", "=", companyId)
+      )
       .execute();
     const toolLinkRows = buildAssemblyToolStepLinks(
       sourceSteps,
@@ -6685,6 +9958,7 @@ export async function syncAssemblyInstructionToOperation(
  * with motion "none" plus a `warnings` payload — the viewer fades them in
  * rather than animating a fabricated colliding path. The author
  * validates/edits the drafts instead of authoring motions by hand.
+ * @mcp create destructive
  */
 export async function generateAssemblyStepsFromPlan(
   client: SupabaseClient<Database>,
@@ -6700,10 +9974,13 @@ export async function generateAssemblyStepsFromPlan(
     mode?: "generate" | "regenerate";
   }
 ): Promise<GenerateStepsResult> {
+  // The route calls this with the service role (bypassRls) and a URL id, so
+  // every read and write is scoped to the caller's company.
   const instruction = await client
     .from("assemblyInstruction")
     .select("id, modelUploadId, modelUpload(graphPath)")
     .eq("id", args.assemblyInstructionId)
+    .eq("companyId", args.companyId)
     .single();
   if (instruction.error || !instruction.data.modelUploadId) {
     return { ok: false, reason: "no-model" };
@@ -6713,7 +9990,8 @@ export async function generateAssemblyStepsFromPlan(
   const existing = await client
     .from("assemblyInstructionStep")
     .select("id, planConfidence, status")
-    .eq("assemblyInstructionId", args.assemblyInstructionId);
+    .eq("assemblyInstructionId", args.assemblyInstructionId)
+    .eq("companyId", args.companyId);
   if ((existing.data ?? []).length > 0) {
     if (args.mode !== "regenerate") {
       return { ok: false, reason: "steps-exist", modelUploadId };
@@ -6734,7 +10012,8 @@ export async function generateAssemblyStepsFromPlan(
     const removed = await client
       .from("assemblyInstructionStep")
       .delete()
-      .eq("assemblyInstructionId", args.assemblyInstructionId);
+      .eq("assemblyInstructionId", args.assemblyInstructionId)
+      .eq("companyId", args.companyId);
     if (removed.error) {
       return { ok: false, reason: "error", message: removed.error.message };
     }
@@ -6750,7 +10029,9 @@ export async function generateAssemblyStepsFromPlan(
   let graphIndex: AssemblyGraphIndex | null = null;
   const graphPath = instruction.data.modelUpload?.graphPath;
   if (graphPath) {
-    const graphFile = await client.storage.from("private").download(graphPath);
+    const graphFile = await storage(client)
+      .company(args.companyId)
+      .download(graphPath);
     if (graphFile.data) {
       try {
         const graph = JSON.parse(await graphFile.data.text()) as AssemblyGraph;
@@ -6945,6 +10226,7 @@ export async function generateAssemblyStepsFromPlan(
  * Maps a DB step row to the viewer's step shape. JSONB columns are validated
  * defensively — `path` motions with invalid keyframes throw inside the viewer,
  * so anything that fails the schema falls back to a safe default.
+ * @mcp action
  */
 export function toViewerStep(step: AssemblyInstructionStepRow): AssemblyStep {
   const motion = motionSchema.safeParse(step.motion);
@@ -6957,6 +10239,10 @@ export function toViewerStep(step: AssemblyInstructionStepRow): AssemblyStep {
     title: step.title,
     instructionText: step.instructionText,
     componentNodeIds: step.componentNodeIds ?? [],
+    hiddenComponentNodeIds: step.hiddenComponentNodeIds ?? [],
+    isSubAssembly: step.isSubAssembly,
+    parentStepId: step.parentStepId ?? null,
+    usedInStepId: step.usedInStepId ?? null,
     motion: motion.success ? motion.data : { type: "none" },
     camera: camera.success ? camera.data : null,
     fastener: fastener.success ? fastener.data : null,
@@ -6971,6 +10257,7 @@ export function toViewerStep(step: AssemblyInstructionStepRow): AssemblyStep {
 // Purchase order lines for a job's materials, scoped by item + location (not
 // jobId, since planning-generated POs aren't linked to the job). Flattened to
 // the procurement-status shape used by the BoM tree and the Materials table.
+/** @mcp read */
 export async function getJobMaterialPurchaseOrderLines(
   client: SupabaseClient<Database>,
   materials: Array<{ jobMaterialItemId: string | null }>,
@@ -7007,6 +10294,7 @@ export async function getJobMaterialPurchaseOrderLines(
 // Active jobs that produce these material items — the supply-side counterpart to
 // getJobMaterialPurchaseOrderLines. A manufactured material is "covered" when an
 // active job (its own itemId) is planned/in-flight at the same location.
+/** @mcp read */
 export async function getJobMaterialSupplyJobLines(
   client: SupabaseClient<Database>,
   materials: Array<{ jobMaterialItemId: string | null }>,
@@ -7036,610 +10324,201 @@ export async function getJobMaterialSupplyJobLines(
   }));
 }
 
-// ─── Inspection Documents ─────────────────────────────────────────────────────
+// ---------------------------------------------------------------------------
+// MES-core write entry points exposed to MCP (gatekeeper-carbon asks #1–#4).
+//
+// Each wraps the SAME server function / RPC the MES/ERP UI uses, so an MCP caller drives
+// production as the connected user — companyId/userId come from the OAuth token (injected by the
+// MCP executor), not from caller-supplied (falsifiable) fields. Exposed automatically by
+// scripts/generate-mcp.ts as production_issueMaterial / _completeJob / _scheduleJob.
 
-function toStoragePath(pdfUrl?: string | null) {
-  if (!pdfUrl) return null;
-  const previewPrefix = "/file/preview/private/";
-  if (pdfUrl.startsWith(previewPrefix)) {
-    return pdfUrl.slice(previewPrefix.length);
-  }
-  return pdfUrl;
-}
+// `issueMaterial`, `completeJob`, and `scheduleJob` moved to `production.mcp.server.ts`: they
+// depend on server-only modules (`@carbon/ee/rules.server`, `@carbon/auth/users.server`)
+// that cannot be referenced from this file, which is client-reachable via the module barrel.
 
-function toPreviewUrl(storagePath?: string | null) {
-  if (!storagePath) return null;
-  return storagePath.startsWith("/file/preview/private/")
-    ? storagePath
-    : `/file/preview/private/${storagePath}`;
-}
-
-function fileNameFromPath(storagePath?: string | null) {
-  if (!storagePath) return "drawing.pdf";
-  return storagePath.split("/").at(-1) ?? "drawing.pdf";
-}
-
-function mapInspectionDocument(row: Record<string, unknown>) {
-  const drawingNumber = (row.drawingNumber as string | null) ?? null;
-  return {
-    id: String(row.id),
-    name: String(drawingNumber ?? row.fileName ?? "Untitled Diagram"),
-    companyId: String(row.companyId),
-    partId: (row.partId as string | null) ?? null,
-    createdBy: String(row.createdBy),
-    updatedBy: (row.updatedBy as string | null) ?? null,
-    createdAt: String(row.createdAt),
-    updatedAt: (row.updatedAt as string | null) ?? null,
-    content: {
-      drawingNumber,
-      pdfUrl: toPreviewUrl((row.storagePath as string | null) ?? null),
-      annotations: [],
-      features: []
-    },
-    // The document's default sampling rule (feature rule -> document default
-    // -> All). NUMERIC columns arrive as strings from PostgREST — coerce.
-    sampling: {
-      samplingPlanType: (row.samplingPlanType as string | null) ?? null,
-      samplingSampleSize: (row.samplingSampleSize as number | null) ?? null,
-      samplingPercentage:
-        row.samplingPercentage == null ? null : Number(row.samplingPercentage),
-      samplingAql: row.samplingAql == null ? null : Number(row.samplingAql),
-      samplingInspectionLevel:
-        (row.samplingInspectionLevel as string | null) ?? null,
-      samplingSeverity: (row.samplingSeverity as string | null) ?? null
-    }
-  };
-}
-
-export async function getInspectionDocuments(
+/**
+ * Complete a job operation by reporting produced quantity (non-tracked items). Re-orchestrates the
+ * MES material-complete flow's non-tracked path against the same entry points, so an MCP caller
+ * drives it as the connected user:
+ *   1. record the produced quantity (productionQuantity insert),
+ *   2. backflush consumed material (`issue` server fn, type "jobOperation"),
+ *   3. when good + reworked quantity reaches the operation's target, mark it Done — the
+ *      sync_finish_job_operation DB trigger then completes the job to inventory if this was the
+ *      last operation — post any ended-but-unposted production events for GL, and return picked
+ *      remainders.
+ *
+ * Serial/batch-tracked operations are refused: they require per-entity completion with a
+ * trackedEntityId (use the MES station). Authenticated-only, matching the MES complete route.
+ *
+ * NOTE: mirrors apps/mes complete.tsx (non-tracked branch) + finishJobOperation; these should share
+ * a service function eventually rather than duplicate the orchestration.
+ * @mcp action
+ */
+export async function completeOperation(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   companyId: string,
-  args?: { search: string | null } & GenericQueryFilters
+  userId: string,
+  args: {
+    operationId: string;
+    quantity: number;
+  }
 ) {
-  const documentClient = client as unknown as {
-    from: (table: string) => {
-      select: (
-        columns: string,
-        options?: { count?: "exact" | "planned" | "estimated"; head?: boolean }
-      ) => any;
-    };
-  };
-
-  let query = documentClient
-    .from("inspectionDocuments")
-    .select("*", { count: "exact" })
-    .eq("companyId", companyId);
-
-  if (args?.search) {
-    query = query.or(
-      `drawingNumber.ilike.%${args.search}%,fileName.ilike.%${args.search}%,partReadableId.ilike.%${args.search}%`
-    );
+  const operation = await client
+    .from("jobOperation")
+    .select(
+      "jobId, jobMakeMethodId, quantityComplete, quantityReworked, targetQuantity, operationQuantity"
+    )
+    .eq("id", args.operationId)
+    .eq("companyId", companyId)
+    .maybeSingle();
+  if (operation.error || !operation.data) {
+    throw new Error(`Job operation ${args.operationId} was not found.`);
   }
 
-  if (args) {
-    query = setGenericQueryFilters(query, args, [
-      { column: "drawingNumber", ascending: true }
-    ]);
+  // Serial/batch-tracked operations need per-entity completion (a trackedEntityId) — refuse here.
+  if (operation.data.jobMakeMethodId) {
+    const method = await client
+      .from("jobMakeMethod")
+      .select("requiresSerialTracking, requiresBatchTracking")
+      .eq("id", operation.data.jobMakeMethodId)
+      .maybeSingle();
+    if (
+      method.data?.requiresSerialTracking ||
+      method.data?.requiresBatchTracking
+    ) {
+      throw new Error(
+        "This operation's item is serial/batch tracked and must be completed per tracked entity at the MES station."
+      );
+    }
   }
 
-  const result = await query;
-
-  return {
-    data: (result.data ?? []).map((row: Record<string, unknown>) =>
-      mapInspectionDocument(row)
-    ),
-    count: result.count ?? 0,
-    error: result.error
-  };
-}
-
-export async function getInspectionDocumentsForItem(
-  client: SupabaseClient<Database>,
-  itemId: string,
-  companyId: string
-) {
-  return client
-    .from("inspectionDocument")
-    .select("id, fileName, drawingNumber, version")
-    .eq("companyId", companyId)
-    .eq("partId", itemId)
-    .order("updatedAt", { ascending: false, nullsFirst: false });
-}
-
-export async function getInspectionDocument(
-  client: SupabaseClient<Database>,
-  id: string,
-  companyId: string
-) {
-  const result = await client
-    .from("inspectionDocument")
-    .select("*")
-    .eq("id", id)
-    .eq("companyId", companyId)
+  // 1. Record produced quantity.
+  const insertProduction = await client
+    .from("productionQuantity")
+    .insert(
+      sanitize({
+        jobOperationId: args.operationId,
+        quantity: args.quantity,
+        type: "Production" as const,
+        companyId,
+        createdBy: userId
+      })
+    )
+    .select("id")
     .single();
+  if (insertProduction.error) return insertProduction;
+  if (insertProduction.data?.id) {
+    trackWorkEvent("production_quantity_reported", {
+      companyId,
+      userId,
+      productionQuantityId: insertProduction.data.id,
+      jobOperationId: args.operationId,
+      quantity: args.quantity,
+      source: "api"
+    });
+  }
 
-  return {
-    data: result.data ? mapInspectionDocument(result.data) : null,
-    error: result.error
-  };
+  // 2. Backflush consumed material.
+  const backflush = await serverFns
+    .as({ client, db, companyId, userId })
+    .invoke("issue", {
+      id: args.operationId,
+      type: "jobOperation",
+      quantity: args.quantity
+    });
+  if (backflush.error) return { data: null, error: backflush.error };
+
+  // 3. Finish when good + reworked quantity reaches target (scrap excluded, mirroring the
+  //    sync_update_job_operation_quantities DB predicate).
+  const totalAccounted =
+    (operation.data.quantityComplete ?? 0) +
+    (operation.data.quantityReworked ?? 0) +
+    args.quantity;
+  const target =
+    operation.data.targetQuantity ?? operation.data.operationQuantity ?? 0;
+  if (totalAccounted >= target) {
+    const finished = await client
+      .from("jobOperation")
+      .update({ status: "Done", updatedBy: userId })
+      .eq("id", args.operationId)
+      .eq("companyId", companyId);
+    if (finished.error) return { data: null, error: finished.error };
+
+    // Post ended-but-unposted production events for GL absorption.
+    const unposted = await client
+      .from("productionEvent")
+      .select("id")
+      .eq("jobOperationId", args.operationId)
+      .eq("companyId", companyId)
+      .not("endTime", "is", null)
+      .eq("postedToGL", false);
+    if (unposted.data?.length) {
+      await async.map(
+        unposted.data,
+        (event) =>
+          serverFns
+            .as({ client, db, companyId, userId })
+            .invoke("post-production-event", {
+              productionEventId: event.id
+            }),
+        { concurrency: 4 }
+      );
+    }
+
+    const jobId = operation.data.jobId;
+    if (jobId) {
+      const { error: returnError } = await returnPickedRemaindersForOperation(
+        client,
+        db,
+        { jobOperationId: args.operationId, userId, companyId }
+      );
+      if (returnError) {
+        logger.error("picked-material return sweep failed", {
+          error: returnError,
+          jobId,
+          companyId
+        });
+      }
+
+      await raiseMoment("production.jobOperationCompleted", {
+        outputs: {
+          job: { id: jobId },
+          jobOperation: { id: args.operationId },
+          completedBy: { id: userId }
+        },
+        companyId,
+        actorId: userId
+      });
+      trackWorkEvent("job_operation_finished", {
+        companyId,
+        userId,
+        jobOperationId: args.operationId,
+        jobId
+      });
+    }
+  }
+
+  return backflush;
 }
 
 /**
- * When an inspection plan is created without a drawing number, fall back to the
- * part's readableIdWithRevision. If a plan with that drawing number already
- * exists for the company, append " (1)", " (2)", etc. until it is unique.
+ * Create a presigned upload URL for a job document. First step of the two-step
+ * upload flow: PUT the file bytes to the returned `signedUrl`, then call
+ * `documents_insertUploadedDocument` with the returned `path`,
+ * `sourceDocument: "Job"`, and `sourceDocumentId: jobId`.
+ * @mcp create — part of the documented MCP signed-URL upload flow
+ *       (packages/files/AGENTS.md): a non-browser caller mints a staged
+ *       upload URL, then insertUploadedDocument converts and lands it.
  */
-async function resolveInspectionDocumentDrawingNumber(
+export async function createJobDocumentUploadUrl(
   client: SupabaseClient<Database>,
-  companyId: string,
-  partId: string
-): Promise<string | null> {
-  const partResult = await client
-    .from("item")
-    .select("readableIdWithRevision")
-    .eq("id", partId)
-    .eq("companyId", companyId)
-    .single();
-
-  const base = partResult.data?.readableIdWithRevision?.trim();
-  if (!base) return null;
-
-  const existingResult = await client
-    .from("inspectionDocument")
-    .select("drawingNumber")
-    .eq("companyId", companyId)
-    .not("drawingNumber", "is", null);
-
-  const taken = new Set(
-    (existingResult.data ?? [])
-      .map((row) => row.drawingNumber)
-      .filter((value): value is string => Boolean(value))
-  );
-
-  if (!taken.has(base)) return base;
-
-  let suffix = 1;
-  while (taken.has(`${base} (${suffix})`)) {
-    suffix += 1;
-  }
-  return `${base} (${suffix})`;
-}
-
-export async function upsertInspectionDocument(
-  client: SupabaseClient<Database>,
-  diagram:
-    | (Omit<z.infer<typeof inspectionDocumentValidator>, "id"> & {
-        id?: undefined;
-        companyId: string;
-        createdBy: string;
-        updatedBy?: string;
-        pageCount?: number;
-        defaultPageWidth?: number;
-        defaultPageHeight?: number;
-      })
-    | (Omit<z.infer<typeof inspectionDocumentValidator>, "id"> & {
-        id: string;
-        companyId: string;
-        createdBy: string;
-        updatedBy?: string;
-        pageCount?: number;
-        defaultPageWidth?: number;
-        defaultPageHeight?: number;
-      })
+  args: { companyId: string; jobId: string; name: string }
 ) {
-  const {
-    id,
-    partId,
-    drawingNumber,
-    pdfUrl,
-    pageCount,
-    defaultPageWidth,
-    defaultPageHeight,
-    companyId,
-    createdBy,
-    updatedBy
-  } = diagram;
-
-  const documentClient = client as unknown as {
-    from: (table: string) => {
-      select: (columns: string) => {
-        eq: (
-          column: string,
-          value: unknown
-        ) => {
-          single: () => Promise<{
-            data: Record<string, unknown> | null;
-            error: unknown;
-          }>;
-        };
-      };
-      update: (payload: Record<string, unknown>) => {
-        eq: (
-          column: string,
-          value: unknown
-        ) => {
-          eq: (
-            column: string,
-            value: unknown
-          ) => {
-            select: (columns: string) => {
-              single: () => Promise<{
-                data: { id: string } | null;
-                error: unknown;
-              }>;
-            };
-          };
-        };
-      };
-      insert: (payload: Record<string, unknown>) => {
-        select: (columns: string) => {
-          single: () => Promise<{
-            data: { id: string } | null;
-            error: unknown;
-          }>;
-        };
-      };
-    };
-  };
-
-  const storagePath = toStoragePath(pdfUrl);
-
-  if (id) {
-    if (!companyId) {
-      return {
-        data: null,
-        error: {
-          message: "companyId is required to update inspection plan"
-        }
-      };
-    }
-
-    const existingResult = await documentClient
-      .from("inspectionDocument")
-      .select("*")
-      .eq("id", id)
-      .single();
-
-    const existing = existingResult.data;
-    if (!existing) {
-      return {
-        data: null,
-        error: {
-          message: "Inspection plan not found"
-        }
-      };
-    }
-    if (String(existing.companyId ?? "") !== companyId) {
-      return {
-        data: null,
-        error: {
-          message: "Inspection plan does not belong to this company"
-        }
-      };
-    }
-
-    const updatePayload: Record<string, unknown> = {
-      updatedBy: updatedBy ?? createdBy,
-      updatedAt: new Date().toISOString()
-    };
-    if (drawingNumber !== undefined) {
-      updatePayload.drawingNumber = drawingNumber ?? null;
-    }
-    if (partId !== undefined) {
-      updatePayload.partId = partId;
-    }
-
-    if (storagePath) {
-      updatePayload.storagePath = storagePath;
-      updatePayload.fileName = fileNameFromPath(storagePath);
-    }
-    if (pageCount && pageCount > 0) {
-      updatePayload.pageCount = pageCount;
-    }
-    if (defaultPageWidth && defaultPageWidth > 0) {
-      updatePayload.defaultPageWidth = defaultPageWidth;
-    }
-    if (defaultPageHeight && defaultPageHeight > 0) {
-      updatePayload.defaultPageHeight = defaultPageHeight;
-    }
-
-    return documentClient
-      .from("inspectionDocument")
-      .update(updatePayload)
-      .eq("id", id)
-      .eq("companyId", companyId)
-      .select("id")
-      .single();
-  }
-
-  if (!companyId) {
-    return {
-      data: null,
-      error: { message: "companyId is required to create inspection plan" }
-    };
-  }
-
-  const resolvedDrawingNumber = drawingNumber?.trim()
-    ? drawingNumber.trim()
-    : await resolveInspectionDocumentDrawingNumber(client, companyId, partId);
-
-  return documentClient
-    .from("inspectionDocument")
-    .insert({
-      companyId,
-      partId,
-      drawingNumber: resolvedDrawingNumber ?? null,
-      version: 0,
-      ...(storagePath
-        ? {
-            storagePath,
-            fileName: fileNameFromPath(storagePath),
-            uploadedBy: createdBy
-          }
-        : {}),
-      ...(pageCount && pageCount > 0 ? { pageCount } : {}),
-      ...(defaultPageWidth && defaultPageWidth > 0 ? { defaultPageWidth } : {}),
-      ...(defaultPageHeight && defaultPageHeight > 0
-        ? { defaultPageHeight }
-        : {}),
-      createdBy
-    })
-    .select("id")
-    .single();
-}
-
-export async function deleteInspectionDocument(
-  client: SupabaseClient<Database>,
-  id: string,
-  companyId: string
-) {
-  const existingResult = await client
-    .from("inspectionDocument")
-    .select("*")
-    .eq("id", id)
-    .eq("companyId", companyId)
-    .single();
-
-  if (!existingResult.data) {
-    return {
-      data: null,
-      error: { message: "Inspection plan not found" }
-    };
-  }
-
-  const storagePath =
-    (existingResult.data.storagePath as string | null) ?? null;
-
-  const deleteResult = await client
-    .from("inspectionDocument")
-    .delete()
-    .eq("id", id)
-    .eq("companyId", companyId);
-
-  if (deleteResult.error) {
-    return { data: null, error: deleteResult.error };
-  }
-
-  return {
-    data: { storagePath },
-    error: null
-  };
-}
-
-function mapInspectionFeature(row: Record<string, unknown>) {
-  const balloonIdRaw = row.balloonId ?? row.balloon_id;
-  return {
-    id: String(row.id),
-    inspectionDocumentId: String(row.inspectionDocumentId),
-    companyId: String(row.companyId),
-    pageNumber: Number(row.pageNumber),
-    label: String(row.label),
-    description: (row.description as string | null) ?? null,
-    nominalValue: (row.nominalValue as string | null) ?? null,
-    tolerancePlus: (row.tolerancePlus as string | null) ?? null,
-    toleranceMinus: (row.toleranceMinus as string | null) ?? null,
-    unit: (row.unit as string | null) ?? null,
-    type: (row.type as string) ?? "Measurement",
-    // Per-feature sampling rule (NULL = inherit the document default). NUMERIC
-    // columns arrive as strings from PostgREST — coerce, mirroring the document
-    // default rule in mapInspectionDocument.
-    samplingPlanType: (row.samplingPlanType as string | null) ?? null,
-    samplingSampleSize: (row.samplingSampleSize as number | null) ?? null,
-    samplingPercentage:
-      row.samplingPercentage == null ? null : Number(row.samplingPercentage),
-    samplingAql: row.samplingAql == null ? null : Number(row.samplingAql),
-    samplingInspectionLevel:
-      (row.samplingInspectionLevel as string | null) ?? null,
-    samplingSeverity: (row.samplingSeverity as string | null) ?? null,
-    balloonId:
-      typeof balloonIdRaw === "string"
-        ? balloonIdRaw
-        : balloonIdRaw != null
-          ? String(balloonIdRaw)
-          : null,
-    createdBy: String(row.createdBy),
-    updatedBy: (row.updatedBy as string | null) ?? null,
-    createdAt: String(row.createdAt),
-    updatedAt: (row.updatedAt as string | null) ?? null
-  };
-}
-
-function mapBalloon(row: Record<string, unknown>) {
-  return {
-    id: String(row.id),
-    inspectionDocumentId: String(row.inspectionDocumentId),
-    companyId: String(row.companyId),
-    inspectionFeatureId: String(row.inspectionFeatureId),
-    pageNumber: Number(row.pageNumber),
-    regionX: Number(row.regionX),
-    regionY: Number(row.regionY),
-    regionWidth: Number(row.regionWidth),
-    regionHeight: Number(row.regionHeight),
-    xCoordinate: Number(row.xCoordinate),
-    yCoordinate: Number(row.yCoordinate),
-    createdBy: String(row.createdBy),
-    updatedBy: (row.updatedBy as string | null) ?? null,
-    createdAt: String(row.createdAt),
-    updatedAt: (row.updatedAt as string | null) ?? null,
-    balloonAnchorId: String(row.id)
-  };
-}
-
-export async function getInspectionFeatures(
-  client: SupabaseClient<Database>,
-  inspectionDocumentId: string
-) {
-  const [featuresResult, balloonsResult] = await Promise.all([
-    getInspectionFeaturesRaw(client, inspectionDocumentId),
-    getBalloons(client, inspectionDocumentId)
-  ]);
-
-  if (featuresResult.error) {
-    return { data: null, error: featuresResult.error };
-  }
-  if (balloonsResult.error) {
-    return { data: null, error: balloonsResult.error };
-  }
-
-  const balloonByFeatureId = new Map(
-    (balloonsResult.data ?? []).map((b) => [b.inspectionFeatureId, b.id])
-  );
-
-  return {
-    data: (featuresResult.data ?? []).map((row) =>
-      mapInspectionFeature({
-        ...row,
-        balloonId: balloonByFeatureId.get(String(row.id)) ?? null
-      })
-    ),
-    error: null
-  };
-}
-
-async function getInspectionFeaturesRaw(
-  client: SupabaseClient<Database>,
-  inspectionDocumentId: string
-) {
-  return listInspectionFeatures(client, inspectionDocumentId);
-}
-
-export async function getBalloons(
-  client: SupabaseClient<Database>,
-  inspectionDocumentId: string
-) {
-  const result = await listBalloons(client, inspectionDocumentId);
-
-  return {
-    data: (result.data ?? []).map((row) =>
-      mapBalloon(row as unknown as Record<string, unknown>)
-    ),
-    error: result.error
-  };
-}
-
-export async function getInspectionPlan(
-  client: SupabaseClient<Database>,
-  inspectionDocumentId: string
-) {
-  const [featuresResult, balloonsResult] = await Promise.all([
-    getInspectionFeaturesRaw(client, inspectionDocumentId),
-    getBalloons(client, inspectionDocumentId)
-  ]);
-
-  if (featuresResult.error) {
-    return { data: null, error: featuresResult.error };
-  }
-  if (balloonsResult.error) {
-    return { data: null, error: balloonsResult.error };
-  }
-
-  const balloonByFeatureId = new Map(
-    (balloonsResult.data ?? []).map((b) => [b.inspectionFeatureId, b])
-  );
-
-  return {
-    data: (featuresResult.data ?? []).map((row) => {
-      const b = balloonByFeatureId.get(row.id);
-      const featureId = row.id;
-      return {
-        /** Feature id (primary key for plan rows). */
-        id: featureId,
-        featureId,
-        /** Balloon id when placed; null for table-only features. */
-        balloonId: b?.id ?? null,
-        inspectionDocumentId: row.inspectionDocumentId,
-        pageNumber: b?.pageNumber ?? row.pageNumber,
-        label: row.label,
-        description: row.description,
-        nominalValue: row.nominalValue,
-        tolerancePlus: row.tolerancePlus,
-        toleranceMinus: row.toleranceMinus,
-        unit: row.unit,
-        regionX: b ? b.regionX : null,
-        regionY: b ? b.regionY : null,
-        regionWidth: b ? b.regionWidth : null,
-        regionHeight: b ? b.regionHeight : null,
-        xCoordinate: b ? b.xCoordinate : null,
-        yCoordinate: b ? b.yCoordinate : null
-      };
-    }),
-    error: null
-  };
-}
-
-export async function updateInspectionDocumentSampling(
-  client: SupabaseClient<Database>,
-  args: z.infer<typeof inspectionDocumentSamplingValidator> & {
-    inspectionDocumentId: string;
-    companyId: string;
-    userId: string;
-  }
-) {
-  const { inspectionDocumentId, companyId, userId, ...sampling } = args;
-  return client
-    .from("inspectionDocument")
-    .update({
-      ...sampling,
-      updatedBy: userId,
-      updatedAt: new Date().toISOString()
-    })
-    .eq("id", inspectionDocumentId)
-    .eq("companyId", companyId);
-}
-
-export async function saveInspectionDocumentAtomic(
-  client: SupabaseClient<Database>,
-  args: {
-    inspectionDocumentId: string;
-    companyId: string;
-    userId: string;
-    pdfUrl?: string | null;
-    pageCount?: number;
-    defaultPageWidth?: number;
-    defaultPageHeight?: number;
-    features: unknown;
-    balloons: unknown;
-  }
-) {
-  return (
-    client as unknown as {
-      rpc: (
-        fn: string,
-        args: Record<string, unknown>
-      ) => Promise<{
-        data: unknown;
-        error: unknown;
-      }>;
-    }
-  ).rpc("save_inspection_document_atomic", {
-    p_inspection_document_id: args.inspectionDocumentId,
-    p_company_id: args.companyId,
-    p_user_id: args.userId,
-    p_pdf_url: args.pdfUrl ?? null,
-    p_page_count: args.pageCount ?? null,
-    p_default_page_width: args.defaultPageWidth ?? null,
-    p_default_page_height: args.defaultPageHeight ?? null,
-    p_features: args.features,
-    p_balloons: args.balloons
+  return createDocumentUploadUrl(client, {
+    companyId: args.companyId,
+    folder: "job",
+    entityId: args.jobId,
+    name: args.name
   });
 }

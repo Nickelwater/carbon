@@ -1,11 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
+import { unchecked } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
-import { getCurrencyByCode } from "~/modules/accounting";
+import { getExchangeRate } from "~/modules/accounting";
 import { isPurchaseOrderLocked } from "~/modules/purchasing";
 import { requireUnlockedBulk } from "~/utils/lockedGuard.server";
 
 export async function action({ request }: ActionFunctionArgs) {
-  const { client, companyGroupId, userId } = await requirePermissions(request, {
+  const { client, companyId, userId } = await requirePermissions(request, {
     update: "purchasing"
   });
 
@@ -57,17 +62,16 @@ export async function action({ request }: ActionFunctionArgs) {
 
         if (supplier.data?.currencyCode) {
           currencyCode = supplier.data.currencyCode;
-          const currency = await getCurrencyByCode(
-            client,
-            companyGroupId,
-            currencyCode
-          );
+          const rate = await getExchangeRate(client, companyId, currencyCode);
+          if (rate.error) {
+            return { error: rate.error, data: null };
+          }
           return await client
             .from("purchaseOrder")
             .update({
               supplierId: value ?? undefined,
               currencyCode: currencyCode ?? undefined,
-              exchangeRate: currency.data?.exchangeRate ?? 1,
+              exchangeRate: rate.data,
               updatedBy: userId,
               updatedAt: new Date().toISOString()
             })
@@ -88,11 +92,13 @@ export async function action({ request }: ActionFunctionArgs) {
     case "deliveryDate":
       return await client
         .from("purchaseOrderDelivery")
-        .update({
-          [field]: value ?? undefined,
-          updatedBy: userId,
-          updatedAt: new Date().toISOString()
-        })
+        .update(
+          unchecked({
+            [field]: value ?? undefined,
+            updatedBy: userId,
+            updatedAt: new Date().toISOString()
+          })
+        )
         .in("id", ids as string[]);
     case "receiptPromisedDate":
       const lineUpdates = await client
@@ -119,22 +125,19 @@ export async function action({ request }: ActionFunctionArgs) {
         .in("id", ids as string[]);
     case "currencyCode":
       if (value) {
-        const currency = await getCurrencyByCode(
-          client,
-          companyGroupId,
-          value as string
-        );
-        if (currency.data) {
-          return await client
-            .from("purchaseOrder")
-            .update({
-              currencyCode: value as string,
-              exchangeRate: currency.data.exchangeRate,
-              updatedBy: userId,
-              updatedAt: new Date().toISOString()
-            })
-            .in("id", ids as string[]);
+        const rate = await getExchangeRate(client, companyId, value as string);
+        if (rate.error) {
+          return { error: rate.error, data: null };
         }
+        return await client
+          .from("purchaseOrder")
+          .update({
+            currencyCode: value as string,
+            exchangeRate: rate.data,
+            updatedBy: userId,
+            updatedAt: new Date().toISOString()
+          })
+          .in("id", ids as string[]);
       }
     // don't break -- just let it catch the next case
     case "supplierContactId":
@@ -144,11 +147,13 @@ export async function action({ request }: ActionFunctionArgs) {
     case "orderDate":
       return await client
         .from("purchaseOrder")
-        .update({
-          [field]: value ? value : null,
-          updatedBy: userId,
-          updatedAt: new Date().toISOString()
-        })
+        .update(
+          unchecked({
+            [field]: value ? value : null,
+            updatedBy: userId,
+            updatedAt: new Date().toISOString()
+          })
+        )
         .in("id", ids as string[]);
     default:
       return { error: { message: "Invalid field" }, data: null };

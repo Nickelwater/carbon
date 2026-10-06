@@ -1,4 +1,8 @@
-import type { TermId } from "@carbon/glossary";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { TermId } from "@carbon/content/glossary";
 import {
   buttonVariants,
   Select as CarbonSelect,
@@ -64,9 +68,7 @@ const Select = ({
   const resolvedIsOptional =
     isOptional ?? (isRequired ? false : (fieldIsOptional ?? false));
 
-  const { defaultValue: _defaultValue, ...inputProps } = getInputProps({
-    id: name
-  });
+  const { defaultValue: _defaultValue, ...inputProps } = getInputProps();
 
   const onChange = (value: string) => {
     if (value) {
@@ -141,6 +143,8 @@ export type SelectBaseProps = Omit<
   options: {
     label: string | JSX.Element;
     value: string;
+    helper?: string;
+    helperRight?: string;
   }[];
   isClearable?: boolean;
   isDisabled?: boolean;
@@ -235,7 +239,12 @@ export const SelectBase = forwardRef<HTMLButtonElement, SelectBaseProps>(
                   </div>
                 ))
               : options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
+                  <SelectItem
+                    key={option.value}
+                    value={option.value}
+                    helper={option.helper}
+                    helperRight={option.helperRight}
+                  >
                     {option.label}
                   </SelectItem>
                 ))}

@@ -70,19 +70,50 @@ newest migrations, e.g. `20260609143732_document-template.sql`):
   — the `*By` columns reference `"user"("id")` **inline** (no named constraints).
   `updatedAt` is set by the app, not a trigger.
 - **Indexes** on `companyId` and **every** FK (e.g. `createdBy`).
-- **RLS** — enable, then create exactly four policies named `SELECT` / `INSERT` /
-  `UPDATE` / `DELETE`, schema-qualified (`"public"."t"`) with the helper result
-  cast `::text[]`:
-  - `SELECT` → `get_companies_with_employee_role()` (any employee reads). Some
-    tables tighten read to a view permission — a valid variant.
-  - `INSERT`/`UPDATE`/`DELETE` →
-    `get_companies_with_employee_permission('<module>_<action>')`
-    (`<action>` ∈ `create` / `update` / `delete`).
-  - The old `has_role` / `has_company_permission` helpers are **deprecated** —
-    never use them. For tables without a `companyId`, reach the company through
+- **RLS** — not in the migration. Add the table's rule to
+  `packages/database/src/authz/manifest.ts` (usually `entityName: company("<module>")`),
+  then ship it with `pnpm --filter @carbon/database authz migration <name>`; CI's
+  `migration.test.ts` fails until you do. See `authz-manifest.md`.
+  - The old `has_role` / `has_company_permission` helpers no longer exist
+    (dropped in `20260927224314_retire-legacy-rls-helpers.sql` (they admitted customer and supplier portal accounts); `authz-fixes.test.sql` asserts they stay gone). For tables without a `companyId`, reach the company through
     the parent via `EXISTS` (see `database-migration-patterns.md`).
 - **Never**: an `itemReadableId` column, or a precision spec on `NUMERIC`.
 - **Views** use `WITH(SECURITY_INVOKER=true)`.
+
+### 3b. Renaming or dropping a table? Record it for backups
+
+If the migration **renames or drops any table that appears in a company backup**, add an
+entry to `TABLE_RENAMES` in
+`packages/jobs/src/backups/renames.ts` in the SAME commit:
+the new name for a rename, `null` for a table dropped along with its feature.
+
+That is more tables than it sounds: the catalog scopes a table either DIRECTLY (its own
+`companyId` / `companyGroupId` column) or `via` a foreign key to a scoped parent, so a
+child table with neither column is still exported and still needs an entry. When in doubt,
+run `pnpm db:check:backups` — it fails on exactly the tables that need one.
+
+Only you know which of the two it was. A customer's existing backup still names the old
+table, and to a restore "this table is gone" is ambiguous — guessing "dropped" when it was
+really a rename silently discards their rows and still reports success. So an unmapped
+missing table refuses the restore outright, and `pnpm db:check:backups` fails your commit
+until the entry exists.
+
+### 3c. A column that holds a row id with no FK? Record it for backups
+
+If the migration adds a TEXT / TEXT[] column that stores another tenant row's id
+**without a foreign key** — usually a generic ref that can point at one of several
+tables (`inspection."sourceDocumentLineId"` is a receipt line OR a job operation), or an
+`...Ids` array — add it to `ID_REF_COLUMNS` in `packages/jobs/src/backups/id-refs.ts`
+in the SAME commit.
+
+A restore into a different company gives every row a new id and rewrites FK columns
+to match. It cannot see a column with no FK, so that column keeps the SOURCE
+company's ids — dangling at best, and a unique-index collision with the source
+company's live rows when the column is indexed (`inspection_sourceDocumentLineId_key`
+fails a cross-company restore this way). Listing it makes the restore rewrite it through
+the old→new id map. Readable numbers (`quote."quoteId"`), external ids and user refs are
+not row ids — leave them out. The map is typed against the generated row types, so a
+column you rename or drop fails `typecheck` until you update its entry.
 
 ### 4. Update the Zod validators
 
@@ -101,6 +132,20 @@ Applies pending migrations against the worktree's local DB and (only if new
 migrations were applied) regenerates DB types + swagger. To regenerate types
 alone, `pnpm db:types`. **Do NOT run `npm run db:build` — it does not exist.**
 
+### 6. Update the demo data
+
+The four demo datasets (`packages/database/src/datasets/`) must keep showing every
+screen. When a migration adds, renames or drops a table or column, or changes a status
+enum or CHECK constraint:
+
+- **New table or feature a user can see:** add realistic rows to all four datasets
+  (`data/<key>/`, plus the tier that inserts them), and a floor in `datasets/coverage.ts`.
+- **Renamed/dropped column or table:** update the tier and data that write it.
+- **New enum value a user can reach:** make it appear in the demo data.
+
+Then run `pnpm db:check:datasets` — it applies every dataset and rolls back, and the
+pre-commit hook runs it anyway. Details: `onboarding-company-templates.md`.
+
 ## Checklist
 
 - [ ] File created with `pnpm db:migrate:new <name>` (HHMMSS not `000000`)
@@ -108,8 +153,12 @@ alone, `pnpm db:types`. **Do NOT run `npm run db:build` — it does not exist.**
 - [ ] `companyId` + composite PK `("id", "companyId")` + FK `ON DELETE CASCADE`
 - [ ] Audit columns; `*By` reference `"user"("id")` inline
 - [ ] Indexes on `companyId` and every FK
-- [ ] RLS enabled with the four standardized policy names (SELECT via
-      `get_companies_with_employee_role()`, writes via
-      `get_companies_with_employee_permission('<module>_<action>')`)
+- [ ] Rule added to `packages/database/src/authz/manifest.ts` and shipped with
+      `pnpm --filter @carbon/database authz migration <name>` (no `CREATE POLICY` in migrations)
+- [ ] Renamed/dropped a tenant-scoped table? `TABLE_RENAMES` entry added
+      (`packages/jobs/src/backups/renames.ts`) — new name, or `null` if dropped with its feature
+- [ ] New TEXT/TEXT[] column holding a tenant row id with no FK? Listed in `ID_REF_COLUMNS`
+      (`packages/jobs/src/backups/id-refs.ts`)
 - [ ] Zod validators updated in `{module}.models.ts`
 - [ ] Applied locally with `pnpm db:migrate` (regenerates types) — never `db:build`
+- [ ] Demo data updated for the new/changed tables, and `pnpm db:check:datasets` ✓×4

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
@@ -24,12 +28,12 @@ import {
   VStack
 } from "@carbon/react";
 import { getBillingPortalRedirectUrl } from "@carbon/stripe/stripe.server";
-import { Edition } from "@carbon/utils";
+import { Edition, redirectExternal } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { data, Form, redirect, useLoaderData } from "react-router";
+import { data, Form, useLoaderData, useNavigation } from "react-router";
 import { z } from "zod";
 import { usePermissions, useUser } from "~/hooks";
 import type { Handle } from "~/utils/handle";
@@ -53,10 +57,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
   });
 
   // Get company plan and usage data for payment section
-  const companyPlan = await client
-    .from("companyPlan")
-    .select(
-      `
+  const [companyPlan, companyUsage, userToCompany] = await Promise.all([
+    client
+      .from("companyPlan")
+      .select(
+        `
       *,
       plan:planId (
         name,
@@ -65,21 +70,16 @@ export async function loader({ request }: LoaderFunctionArgs) {
         aiTokensLimit
       )
     `
-    )
-    .eq("id", companyId)
-    .single();
-
-  const companyUsage = await client
-    .from("companyUsage")
-    .select("*")
-    .eq("companyId", companyId)
-    .single();
-
-  const userToCompany = await client
-    .from("userToCompany")
-    .select("userId")
-    .eq("companyId", companyId)
-    .eq("role", "employee");
+      )
+      .eq("id", companyId)
+      .single(),
+    client.from("companyUsage").select("*").eq("companyId", companyId).single(),
+    client
+      .from("userToCompany")
+      .select("userId")
+      .eq("companyId", companyId)
+      .eq("role", "employee")
+  ]);
 
   const userIds = userToCompany.data?.map((utc) => utc.userId) || [];
 
@@ -131,7 +131,7 @@ export async function action({ request }: ActionFunctionArgs) {
         companyId,
         priceIds
       });
-      return redirect(billingPortalUrl, 301);
+      return redirectExternal(billingPortalUrl, 301);
     } catch (err) {
       logger.error("Failed to get billing portal URL", { error: err });
       return data(
@@ -183,6 +183,7 @@ export async function action({ request }: ActionFunctionArgs) {
 // This route now only handles actions - UI is in the company route
 export default function PaymentSettings() {
   const { plan, usage, employees } = useLoaderData<typeof loader>();
+  const navigation = useNavigation();
   const { isOwner } = usePermissions();
   const { id: userId } = useUser();
   const edition = useEdition();
@@ -190,7 +191,7 @@ export default function PaymentSettings() {
   const { t } = useLingui();
 
   return (
-    <ScrollArea className="w-full h-[calc(100dvh-49px)]">
+    <ScrollArea className="w-full h-[calc(100dvh-var(--topbar-height)-var(--content-inset))]">
       <VStack
         spacing={4}
         className="py-12 px-4 max-w-[60rem] h-full mx-auto gap-4"
@@ -268,7 +269,10 @@ export default function PaymentSettings() {
               <CardFooter>
                 <Form method="post" action={path.to.billing}>
                   <input type="hidden" name="intent" value="billing-portal" />
-                  <Button type="submit">
+                  <Button
+                    type="submit"
+                    isLoading={navigation.formAction === path.to.billing}
+                  >
                     <Trans>Manage Subscription</Trans>
                   </Button>
                 </Form>

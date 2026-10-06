@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import {
   Button,
@@ -11,6 +15,7 @@ import {
   Heading,
   HStack,
   IconButton,
+  MENU_ITEM_SHORTCUTS,
   Status,
   useDisclosure
 } from "@carbon/react";
@@ -86,7 +91,14 @@ const PurchaseInvoiceHeader = () => {
     purchaseInvoice: PurchaseInvoice;
     purchaseInvoiceLines: PurchaseInvoiceLine[];
     orgHasCredits: boolean;
+    rampMapping: {
+      id: string;
+      externalId: string | null;
+      metadata: { deepLink?: string } | null;
+    } | null;
   }>(path.to.purchaseInvoice(invoiceId));
+  const rampMapping = routeData?.rampMapping ?? null;
+  const rampDeepLink = rampMapping?.metadata?.deepLink ?? null;
 
   const isSupplierApproved = useMemo(
     () =>
@@ -175,7 +187,7 @@ const PurchaseInvoiceHeader = () => {
       .select("itemId, description, quantity, conversionFactor")
       .eq("invoiceId", invoiceId)
       // Services are never received, so they never generate a receipt — mirror
-      // the post-purchase-invoice edge function and exclude them here.
+      // the post-purchase-invoice server function and exclude them here.
       .in("invoiceLineType", [
         "Part",
         "Material",
@@ -217,7 +229,7 @@ const PurchaseInvoiceHeader = () => {
   });
   return (
     <>
-      <div className="flex flex-shrink-0 items-center justify-between p-2 bg-background border-b h-[50px] overflow-x-auto scrollbar-hide">
+      <div className="flex flex-shrink-0 items-center justify-between gap-x-4 p-2 bg-card border-b h-[var(--header-height)] overflow-x-auto scrollbar-hide">
         <HStack className="w-full justify-between">
           <HStack>
             <IconButton
@@ -300,6 +312,7 @@ const PurchaseInvoiceHeader = () => {
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   disabled={
                     isPurchaseInvoiceLocked(
                       routeData?.purchaseInvoice?.status
@@ -324,6 +337,18 @@ const PurchaseInvoiceHeader = () => {
                 <Trans>Unapproved Supplier</Trans>
               </Status>
             )}
+            {rampMapping &&
+              (rampDeepLink ? (
+                <a href={rampDeepLink} target="_blank" rel="noreferrer">
+                  <Status color="blue">
+                    <Trans>Ramp</Trans>
+                  </Status>
+                </a>
+              ) : (
+                <Status color="blue">
+                  <Trans>Ramp</Trans>
+                </Status>
+              ))}
           </HStack>
           <HStack>
             {relatedDocs.purchaseOrders.length === 1 && (

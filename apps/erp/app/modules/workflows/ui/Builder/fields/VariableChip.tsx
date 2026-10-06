@@ -1,9 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { ItemRef, VariableRef } from "@carbon/ee/workflows";
 import { cn, Tooltip, TooltipContent, TooltipTrigger } from "@carbon/react";
 import { VARIABLE_TEXT_CHIP_CLASS } from "@carbon/react/VariableText";
-import type { ItemRef, VariableRef } from "@carbon/workflows";
 import { useLingui } from "@lingui/react/macro";
 import { LuX } from "react-icons/lu";
-import { refLabel, refLeafLabel } from "./tokenId";
+import { namedPath, refLabel, refLeafLabel } from "./tokenId";
 
 type Props = {
   variable: VariableRef | ItemRef;
@@ -14,6 +18,10 @@ type Props = {
   invalid?: string;
   onRemove: () => void;
   onReopen: () => void;
+  /** The version is published: show the value, refuse every edit. */
+  isReadOnly?: boolean;
+  /** Path segment -> what the customer calls it. A custom field's segment is an id. */
+  segmentLabels?: Record<string, string>;
 };
 
 const BROKEN_CHIP_CLASS =
@@ -27,7 +35,9 @@ export function VariableChip({
   typeName,
   invalid,
   onRemove,
-  onReopen
+  onReopen,
+  isReadOnly = false,
+  segmentLabels
 }: Props) {
   const { t } = useLingui();
   // The step is gone, so there is no name left to show — the chip has to say so itself.
@@ -35,9 +45,11 @@ export function VariableChip({
   const removed = refVal.kind === "ref" && nodeTitle === undefined;
   const broken = removed || invalid !== undefined;
 
+  const path = namedPath(refVal.path, segmentLabels);
+
   const label = removed
     ? t`Step removed — pick a new value`
-    : `{${refLeafLabel(refVal)}}`;
+    : `{${refLeafLabel(refVal, path)}}`;
 
   const chip = (
     <span
@@ -49,6 +61,7 @@ export function VariableChip({
       <button
         type="button"
         onClick={onReopen}
+        disabled={isReadOnly}
         className="min-w-0 overflow-hidden text-ellipsis whitespace-nowrap"
       >
         {label}
@@ -61,6 +74,7 @@ export function VariableChip({
           event.stopPropagation();
           onRemove();
         }}
+        disabled={isReadOnly}
         className="shrink-0 rounded-full opacity-60 transition-opacity hover:opacity-100"
       >
         <LuX className="size-3" />
@@ -72,14 +86,14 @@ export function VariableChip({
 
   // The chip shows the value's own name; the full `Step › output › property` path is the
   // tooltip, because a narrow clause cell cannot fit it.
-  const path = typeName
-    ? `${refLabel(refVal, nodeTitle)} › ${typeName}`
-    : refLabel(refVal, nodeTitle);
+  const fullPath = typeName
+    ? `${refLabel(refVal, nodeTitle, path)} › ${typeName}`
+    : refLabel(refVal, nodeTitle, path);
 
   return (
     <Tooltip>
       <TooltipTrigger asChild>{chip}</TooltipTrigger>
-      <TooltipContent>{invalid ?? path}</TooltipContent>
+      <TooltipContent>{invalid ?? fullPath}</TooltipContent>
     </Tooltip>
   );
 }

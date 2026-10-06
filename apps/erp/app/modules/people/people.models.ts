@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { DataType } from "~/modules/shared";
@@ -40,8 +44,9 @@ export const departmentValidator = z.object({
 export const employeeJobValidator = z.object({
   title: zfd.text(z.string().optional()),
   startDate: zfd.text(z.string().optional()),
-  locationId: zfd.text(z.string().optional()),
+  locationId: z.string().min(1, { message: "Location is required" }),
   shiftId: zfd.text(z.string().optional()),
+  departmentId: zfd.text(z.string().optional()),
   managerId: zfd.text(z.string().optional())
 });
 
@@ -75,6 +80,12 @@ export const clockOutValidator = z.object({
   intent: z.literal("clockOut"),
   employeeId: zfd.text(z.string().optional()),
   note: zfd.text(z.string().optional())
+});
+
+// The "Forgot to Clock Out?" prompt: the clock-out is the time being set.
+export const setClockOutValidator = z.object({
+  intent: z.literal("clockOut"),
+  clockOut: z.string().min(1, { message: "Clock out is required" })
 });
 
 export const timecardValidator = z.object({

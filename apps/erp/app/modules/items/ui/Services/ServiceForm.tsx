@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   cn,
@@ -28,7 +32,7 @@ import {
   UnitOfMeasure
 } from "~/components/Form";
 import { ReplenishmentSystemIcon } from "~/components/Icons";
-import { useNextItemId, usePermissions } from "~/hooks";
+import { useCompanySettings, useNextItemId, usePermissions } from "~/hooks";
 import { path } from "~/utils/path";
 import {
   serviceReplenishmentSystems,
@@ -66,6 +70,8 @@ const ServiceForm = ({
 
   const { id, onIdChange, loading } = useNextItemId("Service");
   const permissions = usePermissions();
+  const allowLowercaseItemIds =
+    useCompanySettings()?.allowLowercaseItemIds === true;
   const isEditing = !!initialValues.id;
 
   const [replenishmentSystem, setReplenishmentSystem] = useState<string>(
@@ -135,7 +141,7 @@ const ServiceForm = ({
                     value={id}
                     onChange={onIdChange}
                     isDisabled={loading}
-                    isUppercase
+                    isUppercase={!allowLowercaseItemIds}
                     autoFocus
                   />
                 )}

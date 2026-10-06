@@ -1,10 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { ApprovalDecision } from "@carbon/ee/approvals";
 import { Hidden, TextArea, ValidatedForm } from "@carbon/form";
 import {
   Button,
   Modal,
   ModalBody,
   ModalContent,
-  ModalDescription,
   ModalFooter,
   ModalHeader,
   ModalTitle
@@ -12,7 +16,6 @@ import {
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useParams } from "react-router";
 import { supplierApprovalDecisionValidator } from "~/modules/purchasing";
-import type { ApprovalDecision } from "~/modules/shared/types";
 import { path } from "~/utils/path";
 
 type SupplierApprovalModalProps = {
@@ -59,15 +62,15 @@ const SupplierApprovalModal = ({
             <ModalTitle>
               {isApproving ? "Approve" : "Reject"} {supplierName}
             </ModalTitle>
-            <ModalDescription>
-              {isApproving
-                ? "Are you sure you want to approve this supplier? This will make it active."
-                : "Are you sure you want to reject this supplier?"}
-            </ModalDescription>
           </ModalHeader>
           <ModalBody>
             <Hidden name="approvalRequestId" />
             <Hidden name="decision" />
+            <p className="text-sm text-muted-foreground mb-4">
+              {isApproving
+                ? "Are you sure you want to approve this supplier? This will make it active."
+                : "Are you sure you want to reject this supplier?"}
+            </p>
             <TextArea
               name="notes"
               label={t`Notes (optional)`}

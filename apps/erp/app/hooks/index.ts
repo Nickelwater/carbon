@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { usePrinting } from "@carbon/printing/ui";
 import {
-  useNanoStore,
+  useIdle,
   useOptimisticLocation,
   useRouteData,
   useUrlParams
@@ -18,9 +22,11 @@ import {
 } from "./useCurrencies";
 import { useCurrencyFormatter } from "./useCurrencyFormatter";
 import { useDateFormatter } from "./useDateFormatter";
+import { useFileUpload } from "./useFileUpload";
 import { useFlags } from "./useFlags";
 import { useGooglePlaces } from "./useGooglePlaces";
 import { useHighlightFlash } from "./useHighlightFlash";
+import { useImageUpload } from "./useImageUpload";
 import { useModelUpload } from "./useModelUpload";
 import { useAllModules, useModules, useSettingsModule } from "./useModules";
 import { useMovingCellRef } from "./useMovingCellRef";
@@ -32,6 +38,10 @@ import { usePermissions } from "./usePermissions";
 import { usePlanGate } from "./usePlanGate";
 import { useQuantityFormatter } from "./useQuantityFormatter";
 import { useRealtime } from "./useRealtime";
+import {
+  useRecentlyViewed,
+  useRecordRecentlyViewed
+} from "./useRecentlyViewed";
 import { useScrollPosition } from "./useScrollPosition";
 import { useScrollToHash } from "./useScrollToHash";
 import { useSettings } from "./useSettings";
@@ -48,13 +58,15 @@ export {
   useDateFormatter,
   useFlags,
   useGooglePlaces,
+  useIdle,
+  useFileUpload,
+  useImageUpload,
   useHighlightFlash,
   useAllModules,
   useModules,
   useSettingsModule,
   useModelUpload,
   useMovingCellRef,
-  useNanoStore,
   useNextItemId,
   useNotifications,
   useOnboarding,
@@ -69,6 +81,8 @@ export {
   usePrinting,
   useQuantityFormatter,
   useRealtime,
+  useRecentlyViewed,
+  useRecordRecentlyViewed,
   useRouteData,
   useScrollPosition,
   useScrollToHash,

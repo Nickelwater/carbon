@@ -1,17 +1,25 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
+import { canApproveRequest } from "@carbon/ee/approvals.server";
 import { getLogger } from "@carbon/logger";
+import { redirect } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
-import { redirect } from "react-router";
 import { runMRP } from "~/modules/production";
 import {
+  canCreatePurchaseOrderRevision,
   isPurchaseOrderLocked,
   purchaseOrderStatusType,
+  reopenPurchaseOrderAsRevision,
   updatePurchaseOrderStatus
 } from "~/modules/purchasing";
-import { canApproveRequest } from "~/modules/shared";
+import { requireCompanyRecord } from "~/modules/shared/shared.server";
+import { getDatabaseClient } from "~/services/database.server";
 import { path, requestReferrer } from "~/utils/path";
 
 const logger = getLogger("erp", "orderid-status");
@@ -29,7 +37,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   if (!status || !purchaseOrderStatusType.includes(status)) {
     throw redirect(
-      path.to.quote(id),
+      path.to.purchaseOrder(id),
       await flash(request, error(null, "Invalid status"))
     );
   }
@@ -41,12 +49,37 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const currentPo = await viewClient
     .from("purchaseOrder")
-    .select("status")
+    .select("status, orderDate")
     .eq("id", id)
     .single();
 
   const currentStatus = currentPo.data?.status;
   const isCurrentlyLocked = isPurchaseOrderLocked(currentStatus);
+
+  // Explicit request only — a plain Reopen never bumps.
+  const createRevisionRequested =
+    status === "Draft" && formData.get("createRevision") === "true";
+
+  // Reject an ineligible revision BEFORE the Draft branch below cancels pending
+  // approvals: those side effects must not be applied for a request that is
+  // about to fail. reopenPurchaseOrderAsRevision re-checks the same conditions
+  // in SQL, so this is a pre-flight, not the authority.
+  if (
+    createRevisionRequested &&
+    !canCreatePurchaseOrderRevision({
+      newStatus: status,
+      currentStatus,
+      orderDate: currentPo.data?.orderDate
+    })
+  ) {
+    throw redirect(
+      requestReferrer(request) ?? path.to.purchaseOrder(id),
+      await flash(
+        request,
+        error(null, "Only a released purchase order can be revised")
+      )
+    );
+  }
 
   // Determine required permission:
   // - Reopening (Draft) from a locked status requires delete permission
@@ -63,6 +96,10 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   const serviceRole = getCarbonServiceRole();
 
+  // The approval writes below go through the service role, keyed on the URL's
+  // id: the purchase order must belong to this company first.
+  await requireCompanyRecord(serviceRole, "purchaseOrder", companyId, { id });
+
   // Cancel pending approval requests when closing the PO
   // Closed POs are terminal - no approvals should remain pending
   // Note: Approved/Rejected requests are NOT cancelled - they serve as audit trail
@@ -78,6 +115,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       })
       .eq("documentType", "purchaseOrder")
       .eq("documentId", id)
+      .eq("companyId", companyId)
       .eq("status", "Pending")
       .select("id");
 
@@ -97,6 +135,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       .select("*")
       .eq("documentType", "purchaseOrder")
       .eq("documentId", id)
+      .eq("companyId", companyId)
       .eq("status", "Pending");
 
     if (pendingApprovals.data && pendingApprovals.data.length > 0) {
@@ -111,6 +150,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
           })
           .eq("documentType", "purchaseOrder")
           .eq("documentId", id)
+          .eq("companyId", companyId)
           .eq("status", "Pending");
       } else if (currentStatus === "Needs Approval") {
         // Security check: Only allow reopening if user is the requester OR an approver
@@ -129,7 +169,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
         if (!isRequester && !isApprover) {
           throw redirect(
-            requestReferrer(request) ?? path.to.quote(id),
+            requestReferrer(request) ?? path.to.purchaseOrder(id),
             await flash(
               request,
               error(
@@ -152,9 +192,42 @@ export async function action({ request, params }: ActionFunctionArgs) {
           })
           .eq("documentType", "purchaseOrder")
           .eq("documentId", id)
+          .eq("companyId", companyId)
           .eq("status", "Pending");
       }
     }
+  }
+
+  if (createRevisionRequested) {
+    let rowsUpdated = 0;
+    try {
+      rowsUpdated = await reopenPurchaseOrderAsRevision(getDatabaseClient(), {
+        id,
+        companyId,
+        updatedBy: userId
+      });
+    } catch (err) {
+      logger.error("Failed to create purchase order revision", { error: err });
+      throw redirect(
+        requestReferrer(request) ?? path.to.purchaseOrder(id),
+        await flash(request, error(err, "Failed to create revision"))
+      );
+    }
+
+    if (rowsUpdated === 0) {
+      throw redirect(
+        requestReferrer(request) ?? path.to.purchaseOrder(id),
+        await flash(
+          request,
+          error(null, "Only a released purchase order can be revised")
+        )
+      );
+    }
+
+    throw redirect(
+      requestReferrer(request) ?? path.to.purchaseOrder(id),
+      await flash(request, success("Created a new purchase order revision"))
+    );
   }
 
   const update = await updatePurchaseOrderStatus(client, {
@@ -165,7 +238,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   });
   if (update.error) {
     throw redirect(
-      requestReferrer(request) ?? path.to.quote(id),
+      requestReferrer(request) ?? path.to.purchaseOrder(id),
       await flash(
         request,
         error(update.error, "Failed to update purchasing order status")
@@ -174,7 +247,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   if (status === "Planned") {
-    await runMRP(serviceRole, {
+    await runMRP(serviceRole, getDatabaseClient(), {
       type: "purchaseOrder",
       id,
       companyId,
@@ -183,7 +256,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   throw redirect(
-    requestReferrer(request) ?? path.to.quote(id),
+    requestReferrer(request) ?? path.to.purchaseOrder(id),
     await flash(request, success("Updated purchasing order status"))
   );
 }

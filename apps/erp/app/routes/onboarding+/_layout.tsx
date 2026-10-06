@@ -1,13 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { CarbonEdition } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { TooltipProvider } from "@carbon/react";
 import { getStripeCustomerByCompanyId } from "@carbon/stripe/stripe.server";
-import { Edition, isInternalEmail } from "@carbon/utils";
+import { Edition, redirect } from "@carbon/utils";
 import type {
   LoaderFunctionArgs,
   ShouldRevalidateFunction
 } from "react-router";
-import { Outlet, redirect } from "react-router";
+import { Outlet } from "react-router";
 import { MeshGradientBackground } from "~/components/MeshGradientBackground";
 import { getLocationsList } from "~/modules/resources";
 import { getCompany } from "~/modules/settings";
@@ -16,11 +20,7 @@ import { onboardingSequence, path } from "~/utils/path";
 export const shouldRevalidate: ShouldRevalidateFunction = () => true;
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const { client, companyId, userId, email } = await requirePermissions(
-    request,
-    {}
-  );
-  const isInternal = isInternalEmail(email);
+  const { client, companyId, userId } = await requirePermissions(request, {});
 
   const [company, stripeCustomer, locations] = await Promise.all([
     getCompany(client, companyId),
@@ -43,12 +43,9 @@ export async function loader({ request }: LoaderFunctionArgs) {
     }
   }
 
-  // The data-choice step (demo template / backup import) is internal-only; the
-  // plan step is Cloud-only. Everyone else creates their company in the company
-  // step directly.
+  // The plan step is Cloud-only.
   const onboardingSteps = onboardingSequence.filter((p) => {
     if (p === path.to.onboarding.plan) return CarbonEdition === Edition.Cloud;
-    if (p === path.to.onboarding.industry) return isInternal;
     return true;
   });
 
@@ -75,8 +72,12 @@ export default function OnboardingLayout() {
     <TooltipProvider>
       <div className="relative h-screen w-screen">
         <MeshGradientBackground />
-        <div className="relative z-10 flex h-full w-full items-center justify-center p-4">
-          <Outlet />
+        {/* The scroll container is the wrapper, not the centering flex — a step
+            taller than the window would otherwise be clipped at both ends. */}
+        <div className="absolute inset-0 z-10 overflow-y-auto">
+          <div className="flex min-h-full w-full items-center justify-center p-4">
+            <Outlet />
+          </div>
         </div>
       </div>
     </TooltipProvider>

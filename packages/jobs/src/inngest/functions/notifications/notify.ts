@@ -1,19 +1,26 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
+import { resolveIntegrationSecrets } from "@carbon/ee";
+import { emailNotificationsEnabled } from "@carbon/ee/email-notifications.server";
 import {
   type CompanyIntegration,
   notifyTaskAssigned
 } from "@carbon/ee/notifications";
-import { companyHasPlan } from "@carbon/ee/plan.server";
 import { getSlackUserIdByCarbonId } from "@carbon/ee/slack.server";
 import { ERP_URL } from "@carbon/env";
 import type { Events } from "@carbon/lib/events";
 import {
+  escapeSlackText,
   getNotificationEmailCtaLabel,
   getNotificationEmailHeading,
   getNotificationTopic,
   isRecurringNotificationEvent,
   NotificationDestination,
-  NotificationEvent
+  NotificationEvent,
+  renderSlackMrkdwn
 } from "@carbon/notifications";
 import { datetime } from "@carbon/utils";
 import { render } from "@react-email/components";
@@ -24,16 +31,6 @@ import {
   getNotificationContent,
   getNotificationEmailComponent
 } from "./content";
-
-// Slack mrkdwn requires &, <, > escaped in text; inside a <url|label> a
-// literal "|" would also terminate the label, so it's swapped for a lookalike.
-function escapeSlackText(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/\|/g, "¦");
-}
 
 async function getCompanyIntegrations(
   client: ReturnType<typeof getCarbonServiceRole>,
@@ -83,6 +80,9 @@ const defaultDestinations: Partial<
     NotificationDestination.Email,
     NotificationDestination.Slack
   ],
+  // Deliberately email-only (no Slack): a compliance heads-up for the sales
+  // group, not an actionable assignment.
+  [NotificationEvent.SalesRuleViolation]: [NotificationDestination.Email],
   [NotificationEvent.JobAssignment]: [
     NotificationDestination.Email,
     NotificationDestination.Slack
@@ -234,11 +234,11 @@ export const notifyFunction = inngest.createFunction(
         payload.event,
         primaryDocumentId,
         payload.from,
-        payload.documentType,
         {
           body: payload.body,
           companyId: payload.companyId,
           documentIds: payload.documentIds,
+          documentType: payload.documentType,
           title: payload.title,
           userId:
             payload.recipient.type === "user"
@@ -538,9 +538,7 @@ export const notifyFunction = inngest.createFunction(
     const emailAllowed =
       wantsEmail &&
       (await step.run("check-email-plan", () =>
-        companyHasPlan(client, payload.companyId, {
-          feature: "EMAIL_NOTIFICATIONS"
-        })
+        emailNotificationsEnabled(client, payload.companyId)
       ));
 
     if (wantsEmail && !emailAllowed) {
@@ -656,7 +654,7 @@ export const notifyFunction = inngest.createFunction(
         async () => {
           const { data: integration, error } = await client
             .from("companyIntegration")
-            .select("active, metadata")
+            .select("active, metadata, secretRef")
             .eq("companyId", payload.companyId)
             .eq("id", "slack")
             .maybeSingle();
@@ -667,9 +665,15 @@ export const notifyFunction = inngest.createFunction(
           }
           if (!integration?.active) return [];
 
-          const metadata = integration.metadata as {
-            access_token?: string;
-          } | null;
+          // Secret material (access_token) lives in Supabase Vault; merge it
+          // back so we read the same shape as before. `client` is service-role.
+          const metadata = (await resolveIntegrationSecrets(
+            client,
+            payload.companyId,
+            "slack",
+            integration.metadata,
+            integration.secretRef
+          )) as { access_token?: string } | null;
           const accessToken = metadata?.access_token;
           if (!accessToken) return [];
 
@@ -679,6 +683,12 @@ export const notifyFunction = inngest.createFunction(
             payload.companyId,
             payload.documentType
           );
+          const slackDetailLines = details
+            .map(
+              (detail) =>
+                `${escapeSlackText(detail.label)}: ${renderSlackMrkdwn(detail.value, ERP_URL)}`
+            )
+            .join("\n");
           // Digest: one mrkdwn-linked line per document (items are the
           // actions, no footer link). Otherwise: detail rows + footer link.
           const text = digestItems
@@ -692,7 +702,7 @@ export const notifyFunction = inngest.createFunction(
                 })
               ].join("\n")
             : `${description}${
-                detailLines ? `\n${detailLines}` : ""
+                slackDetailLines ? `\n${slackDetailLines}` : ""
               }\n<${ctaUrl}|View in Carbon>`;
 
           const slackUserIds = await Promise.all(

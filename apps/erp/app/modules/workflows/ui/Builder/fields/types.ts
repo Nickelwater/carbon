@@ -1,5 +1,9 @@
-import type { TermId } from "@carbon/glossary";
-import type { ValueOrRef, ValueType } from "@carbon/workflows";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { TermId } from "@carbon/content/glossary";
+import type { ValueOrRef, ValueType } from "@carbon/ee/workflows";
 
 export type FieldContext = {
   nodeId: string;
@@ -32,4 +36,6 @@ export type ValueFieldProps = {
   /** Per-variable messages, keyed by the variable's position in the value. Only the
    * broken one goes red; a sentence's other variables are left alone. */
   partIssues?: Record<number, string>;
+  /** The version is published: show the value, refuse every edit. */
+  isReadOnly?: boolean;
 };

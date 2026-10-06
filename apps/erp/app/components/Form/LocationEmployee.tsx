@@ -1,0 +1,74 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { ComboboxProps } from "@carbon/form";
+import { Combobox } from "@carbon/form";
+import { useLoaderQuery } from "@carbon/query";
+import { useLingui } from "@lingui/react/macro";
+import { useMemo } from "react";
+import type { getLocationEmployees } from "~/modules/production";
+import { path } from "~/utils/path";
+import Avatar from "../Avatar";
+import { useEmptyState } from "./emptyStates";
+
+type LocationEmployeeSelectProps = Omit<ComboboxProps, "options"> & {
+  locationId?: string;
+};
+
+const LocationEmployee = ({
+  locationId,
+  ...props
+}: LocationEmployeeSelectProps) => {
+  const { t } = useLingui();
+  const { options, locationEmployeeFetcher } = useLocationEmployees(locationId);
+
+  const emptyMessage = useEmptyState("employee");
+
+  return (
+    <Combobox
+      options={options}
+      emptyMessage={emptyMessage}
+      isLoading={locationEmployeeFetcher.isFetching}
+      {...props}
+      label={props?.label ?? t`Employee`}
+      placeholder={props?.placeholder ?? t`Select Employee`}
+    />
+  );
+};
+
+LocationEmployee.displayName = "LocationEmployee";
+
+export default LocationEmployee;
+
+export const useLocationEmployees = (locationId?: string) => {
+  const locationEmployeeFetcher = useLoaderQuery<
+    Awaited<ReturnType<typeof getLocationEmployees>>
+  >(locationId ? path.to.api.locationEmployees(locationId) : null);
+
+  const options = useMemo(
+    () =>
+      (locationEmployeeFetcher.data?.data ?? []).flatMap((employee) =>
+        employee.id
+          ? [
+              {
+                value: employee.id,
+                label: (
+                  <div className="flex flex-row items-center gap-2 flex-grow">
+                    <Avatar
+                      name={employee.name ?? undefined}
+                      path={employee.avatarUrl}
+                      size="xs"
+                    />
+                    <span>{employee.name}</span>
+                  </div>
+                )
+              }
+            ]
+          : []
+      ),
+    [locationEmployeeFetcher.data]
+  );
+
+  return { options, locationEmployeeFetcher };
+};

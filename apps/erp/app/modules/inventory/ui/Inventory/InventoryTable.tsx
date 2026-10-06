@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Badge,
   Button,
@@ -645,6 +649,20 @@ const InventoryTable = memo(
         data={data}
         defaultColumnVisibility={defaultColumnVisibility}
         defaultColumnPinning={defaultColumnPinning}
+        importCSV={[
+          {
+            table: "inventoryQuantity" as const,
+            label: t`Inventory Quantities`
+          },
+          {
+            table: "batchQuantity" as const,
+            label: t`Batch Quantities`
+          },
+          {
+            table: "serialQuantity" as const,
+            label: t`Serial Quantities`
+          }
+        ]}
         primaryAction={
           <div className="flex items-center gap-2">
             <Combobox

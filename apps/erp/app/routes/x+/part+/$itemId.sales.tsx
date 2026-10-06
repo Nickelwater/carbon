@@ -1,10 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
+import {
+  getSalesRuleAssignmentsForItem,
+  getSalesRulesList
+} from "@carbon/ee/rules";
 import { validationError, validator } from "@carbon/form";
 import { VStack } from "@carbon/react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useLoaderData } from "react-router";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { useLoaderData } from "react-router";
 import {
   getItemCustomerParts,
   getItemUnitSalePrice,
@@ -13,8 +26,14 @@ import {
 } from "~/modules/items";
 import { ItemSalePriceForm } from "~/modules/items/ui/Item";
 import CustomerParts from "~/modules/items/ui/Item/CustomerParts";
+import { SalesRuleAssignmentsList } from "~/modules/sales/ui/SalesRules";
 import { getCustomFields, setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["itemId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -25,9 +44,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { itemId } = params;
   if (!itemId) throw new Error("Could not find itemId");
 
-  const [partUnitSalePrice, customerParts] = await Promise.all([
+  const [
+    partUnitSalePrice,
+    customerParts,
+    salesRuleAssignments,
+    salesRuleLibrary
+  ] = await Promise.all([
     getItemUnitSalePrice(client, itemId, companyId),
-    getItemCustomerParts(client, itemId, companyId)
+    getItemCustomerParts(client, itemId, companyId),
+    getSalesRuleAssignmentsForItem(client, { itemId, companyId }),
+    getSalesRulesList(client, companyId)
   ]);
 
   if (partUnitSalePrice.error) {
@@ -43,6 +69,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   return {
     partUnitSalePrice: partUnitSalePrice.data,
     customerParts: customerParts.data,
+    salesRuleAssignments: salesRuleAssignments.data ?? [],
+    salesRuleLibrary: salesRuleLibrary.data ?? [],
     itemId
   };
 }
@@ -88,8 +116,13 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function PartSalesRoute() {
-  const { customerParts, partUnitSalePrice, itemId } =
-    useLoaderData<typeof loader>();
+  const {
+    customerParts,
+    partUnitSalePrice,
+    salesRuleAssignments,
+    salesRuleLibrary,
+    itemId
+  } = useLoaderData<typeof loader>();
 
   const initialValues = {
     ...partUnitSalePrice,
@@ -99,7 +132,7 @@ export default function PartSalesRoute() {
   };
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       <ItemSalePriceForm
         key={initialValues.itemId}
         initialValues={initialValues}
@@ -107,6 +140,11 @@ export default function PartSalesRoute() {
       {customerParts ? (
         <CustomerParts customerParts={customerParts} itemId={itemId} />
       ) : null}
+      <SalesRuleAssignmentsList
+        itemId={itemId}
+        assignments={salesRuleAssignments as never}
+        library={salesRuleLibrary as never}
+      />
     </VStack>
   );
 }

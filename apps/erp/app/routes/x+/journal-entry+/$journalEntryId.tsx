@@ -1,8 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useParams } from "react-router";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
+import { msg } from "@lingui/core/macro";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useParams } from "react-router";
 import {
   getActiveDimensionsWithValues,
   getCompaniesInGroup,
@@ -14,9 +23,10 @@ import { path } from "~/utils/path";
 
 export const handle: Handle = {
   breadcrumb: detailBreadcrumb(
-    { breadcrumb: "Journal Entries", to: path.to.accountingJournals },
+    { breadcrumb: msg`Journal Entries`, to: path.to.accountingJournals },
     (data) => data?.journalEntry?.journalEntryId
-  )
+  ),
+  module: "accounting"
 };
 
 // Maps a journal's sourceType to the document it was posted from, so the
@@ -52,6 +62,11 @@ const journalSourceDocumentMap: Record<
     to: (id) => path.to.receiptDetails(id)
   }
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["journalEntryId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId, companyGroupId } = await requirePermissions(
@@ -127,7 +142,7 @@ export default function JournalEntryRoute() {
   if (!journalEntryId) throw new Error("Could not find journalEntryId");
 
   return (
-    <div className="flex h-[calc(100dvh-49px)] overflow-y-auto scrollbar-hide w-full">
+    <div className="flex h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] overflow-y-auto scrollbar-hide w-full">
       <div className="h-full p-4 w-full max-w-5xl mx-auto">
         <Outlet />
       </div>

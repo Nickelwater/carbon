@@ -1,20 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
-import type {
-  ActionFunctionArgs,
-  ClientActionFunctionArgs
-} from "react-router";
-import { redirect, useNavigate } from "react-router";
+import { redirect } from "@carbon/utils";
+import type { ActionFunctionArgs } from "react-router";
+import { useNavigate } from "react-router";
 import {
+  batchRuleInitialValues,
+  ensureProcessAbility,
   ProcessForm,
   processValidator,
   upsertProcess
 } from "~/modules/resources";
 import { setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
-import { getCompanyId, processesQuery } from "~/utils/react-query";
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
@@ -53,20 +56,39 @@ export async function action({ request }: ActionFunctionArgs) {
         );
   }
 
+  if (d.requiresAbility && createProcess.data?.id) {
+    const abilityResult = await ensureProcessAbility(client, {
+      processId: createProcess.data.id,
+      companyId,
+      userId
+    });
+    if (abilityResult.error) {
+      // Don't leave an unschedulable process behind: requiresAbility=true
+      // without its backing ability gates scheduling on a qualification
+      // nobody can hold
+      await client
+        .from("process")
+        .update({ requiresAbility: false })
+        .eq("id", createProcess.data.id)
+        .eq("companyId", companyId);
+      return modal
+        ? abilityResult
+        : redirect(
+            path.to.processes,
+            await flash(
+              request,
+              error(abilityResult.error, "Failed to create process ability.")
+            )
+          );
+    }
+  }
+
   return modal
     ? createProcess
     : redirect(
         path.to.processes,
         await flash(request, success("Process created"))
       );
-}
-
-export async function clientAction({ serverAction }: ClientActionFunctionArgs) {
-  window.clientCache?.setQueryData(
-    processesQuery(getCompanyId()).queryKey,
-    null
-  );
-  return await serverAction();
 }
 
 export default function NewProcessRoute() {
@@ -77,7 +99,11 @@ export default function NewProcessRoute() {
     name: "",
     processType: "Process" as const,
     defaultStandardFactor: "Minutes/Piece" as const,
-    completeAllOnScan: false
+    completeAllOnScan: false,
+    batchable: false,
+    batchType: "Sequential" as const,
+    requiresAbility: false,
+    ...batchRuleInitialValues(null)
   };
 
   return <ProcessForm initialValues={initialValues} onClose={onClose} />;

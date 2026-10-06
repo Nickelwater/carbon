@@ -1,5 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { TermId } from "@carbon/content/glossary";
 import { useFormContext } from "@carbon/form";
-import type { TermId } from "@carbon/glossary";
 import type { NumberFieldProps } from "@carbon/react";
 import {
   FormControl,
@@ -147,6 +151,7 @@ const Number = forwardRef<HTMLInputElement, FormNumberProps>(
           value={controlValue}
           onChange={handleChange}
           isDisabled={isDisabled}
+          isReadOnly={isReadOnly}
           onBlur={async (e) => {
             if (inline) {
               const result = await validate();

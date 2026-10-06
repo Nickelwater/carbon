@@ -1,13 +1,20 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useLingui } from "@lingui/react/macro";
-import { IoBalloonOutline } from "react-icons/io5";
 import {
+  LuChartBarBig,
   LuChartLine,
   LuCirclePlay,
+  LuLayers,
   LuListChecks,
+  LuListTodo,
   LuSquareChartGantt,
   LuSquareKanban,
   LuStepForward,
-  LuTrash
+  LuTrash,
+  LuTruck
 } from "react-icons/lu";
 import { usePermissions } from "~/hooks";
 import { useSavedViews } from "~/hooks/useSavedViews";
@@ -27,28 +34,54 @@ export default function useProductionSubmodules() {
           to: path.to.jobs,
           icon: <LuCirclePlay />,
           table: "job"
+        },
+        {
+          name: t`Batches`,
+          to: path.to.operationBatches,
+          icon: <LuLayers />,
+          table: "jobOperationBatch"
         }
       ]
     },
     {
-      name: t`Plan`,
+      name: t`Planning`,
       routes: [
         {
-          name: t`Planning`,
-          to: path.to.productionPlanning,
-          icon: <LuSquareChartGantt />,
-          table: "production-planning"
-        },
-        {
-          name: t`Projections`,
+          name: t`Demand Forecasts`,
           to: path.to.demandProjections,
           icon: <LuChartLine />,
           table: "demand-projection"
         },
         {
-          name: t`Schedule`,
-          to: path.to.scheduleDates,
+          name: t`Material Planning`,
+          to: path.to.productionPlanning,
+          icon: <LuListTodo />,
+          table: "production-planning"
+        },
+        {
+          name: t`Resource Planning`,
+          to: path.to.priorityPeople,
+          icon: <LuChartBarBig />
+        }
+      ]
+    },
+    {
+      name: t`Scheduling`,
+      routes: [
+        {
+          name: t`Forecast`,
+          to: path.to.scheduleForecast,
+          icon: <LuSquareChartGantt />
+        },
+        {
+          name: t`Priorities`,
+          to: path.to.priorityDates,
           icon: <LuSquareKanban />
+        },
+        {
+          name: t`Outbound`,
+          to: path.to.scheduleOutbound,
+          icon: <LuTruck />
         }
       ]
     },
@@ -60,12 +93,6 @@ export default function useProductionSubmodules() {
           to: path.to.assemblyInstructions,
           icon: <LuStepForward />,
           role: "employee"
-        },
-        {
-          name: t`Inspection Plans`,
-          to: path.to.inspectionDocuments,
-          icon: <IoBalloonOutline />,
-          permission: "quality"
         },
         {
           name: t`Procedures`,

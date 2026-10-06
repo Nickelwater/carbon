@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Badge,
   Copy,
@@ -9,6 +13,7 @@ import {
   Heading,
   HStack,
   IconButton,
+  MENU_ITEM_SHORTCUTS,
   useDisclosure,
   VStack
 } from "@carbon/react";
@@ -26,6 +31,7 @@ import { VersionMenu } from "~/components";
 import { usePanels } from "~/components/Layout";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
 import { usePermissions, useRouteData } from "~/hooks";
+import { useDocumentStore } from "~/stores";
 import { path } from "~/utils/path";
 import type { Procedure } from "../../types";
 import ProcedureForm from "./ProcedureForm";
@@ -43,6 +49,9 @@ const ProcedureHeader = () => {
 
   const permissions = usePermissions();
   const { toggleExplorer, toggleProperties } = usePanels();
+  // Live title from the editor's locked title block (updates before revalidate).
+  const liveTitle = useDocumentStore((s) => s.liveTitle);
+  const displayName = liveTitle ?? routeData?.procedure?.name ?? "";
   const newVersionDisclosure = useDisclosure();
   const deleteDisclosure = useDisclosure();
 
@@ -52,7 +61,7 @@ const ProcedureHeader = () => {
   }, [id]);
 
   return (
-    <div className="flex flex-shrink-0 items-center justify-between px-4 py-2 bg-card border-b border-border h-[50px] overflow-x-auto scrollbar-hide dark:border-none dark:shadow-[inset_0_0_1px_rgb(255_255_255_/_0.24),_0_0_0_0.5px_rgb(0,0,0,1),0px_0px_4px_rgba(0,_0,_0,_0.08)]">
+    <div className="flex flex-shrink-0 items-center justify-between gap-x-4 px-4 py-2 bg-card border-b border-border h-[var(--header-height)] overflow-x-auto scrollbar-hide">
       <VStack spacing={0} className="flex-grow">
         <HStack>
           <IconButton
@@ -62,7 +71,7 @@ const ProcedureHeader = () => {
             variant="ghost"
           />
           <Heading size="h4" className="flex items-center gap-2">
-            <span>{routeData?.procedure?.name}</span>
+            <span>{displayName}</span>
             <Badge variant="outline">V{routeData?.procedure?.version}</Badge>
             <ProcedureStatus status={routeData?.procedure?.status} />
           </Heading>
@@ -78,6 +87,7 @@ const ProcedureHeader = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem
+                shortcut={MENU_ITEM_SHORTCUTS.delete}
                 disabled={
                   !permissions.can("delete", "production") ||
                   !permissions.is("employee")

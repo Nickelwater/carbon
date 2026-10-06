@@ -1,13 +1,20 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
+import { getLocationTimeZone } from "@carbon/database";
 import { getLogger } from "@carbon/logger";
+import { useChangedRows } from "@carbon/query";
 import {
   Button,
+  CarbonPulse,
   ClientOnly,
   Heading,
   HStack,
-  LoadingBars,
+  IconButton,
   Popover,
   PopoverContent,
   PopoverTrigger,
@@ -18,9 +25,9 @@ import {
   useInterval,
   useLocalStorage,
   useMount,
-  useRealtimeChannel,
   VStack
 } from "@carbon/react";
+import { datetime, redirect } from "@carbon/utils";
 import {
   getLocalTimeZone,
   now,
@@ -29,9 +36,9 @@ import {
 } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { LuSettings2, LuTriangleAlert } from "react-icons/lu";
+import { LuFactory, LuSettings2, LuTriangleAlert, LuX } from "react-icons/lu";
 import type { LoaderFunctionArgs } from "react-router";
-import { data, redirect, useLoaderData } from "react-router";
+import { data, useFetcher, useLoaderData } from "react-router";
 
 import type { ColumnFilter } from "~/components/Filter";
 import { ActiveFilters, Filter, useFilters } from "~/components/Filter";
@@ -44,13 +51,91 @@ import { getFilters, setFilters } from "~/services/operation.server";
 import {
   getActiveJobOperationsByLocation,
   getCustomers,
+  getJobOperationBatchMembers,
+  getMyPeopleAssignment,
   getProcessesList,
   getWorkCentersByLocation
 } from "~/services/operations.service";
+import { getPeopleOverride } from "~/services/people.server";
 import { usePeople } from "~/stores";
 import { makeDurations } from "~/utils/durations";
+import type { Handle } from "~/utils/handle";
+import { path } from "~/utils/path";
+
+export const handle: Handle = {
+  realtime: ["job", "jobOperation"]
+};
 
 const log = getLogger("mes");
+
+type BatchTotals = {
+  size: number;
+  quantity: number;
+  targetQuantity: number;
+  jobReadableIds: string[];
+};
+
+function getBatchTotals(
+  members: NonNullable<
+    Awaited<ReturnType<typeof getJobOperationBatchMembers>>["data"]
+  >
+): Map<string, BatchTotals> {
+  const totals = new Map<string, BatchTotals>();
+  for (const member of members) {
+    if (!member.jobOperationBatchId) continue;
+    const total = totals.get(member.jobOperationBatchId) ?? {
+      size: 0,
+      quantity: 0,
+      targetQuantity: 0,
+      jobReadableIds: []
+    };
+    total.size += 1;
+    total.quantity += member.operationQuantity ?? 0;
+    total.targetQuantity +=
+      member.targetQuantity ?? member.operationQuantity ?? 0;
+    if (member.job?.jobId) total.jobReadableIds.push(member.job.jobId);
+    totals.set(member.jobOperationBatchId, total);
+  }
+  return totals;
+}
+
+// Collapse operations sharing a jobOperationBatchId into one card: keep the first
+// as the card, tag it with the member count and summed quantities.
+function collapseBatches(
+  items: Item[],
+  batchTotals: Map<string, BatchTotals>
+): Item[] {
+  const byBatch = new Map<string, Item[]>();
+  const result: Item[] = [];
+  for (const item of items) {
+    // Require a resolvable batch (readableId comes from the join to
+    // jobOperationBatch): a stale batchId whose header is gone must not suppress
+    // the op — render it as an individual card, mirroring the ERP board.
+    if (item.batchId && item.batchReadableId) {
+      const arr = byBatch.get(item.batchId);
+      if (arr) arr.push(item);
+      else byBatch.set(item.batchId, [item]);
+    } else {
+      result.push(item);
+    }
+  }
+  for (const [batchId, members] of byBatch) {
+    const total = batchTotals.get(batchId);
+    result.push({
+      ...members[0],
+      batchSize: total?.size ?? members.length,
+      batchJobReadableIds:
+        total?.jobReadableIds ?? members.map((m) => m.title).filter(Boolean),
+      quantity:
+        total?.quantity ??
+        members.reduce((sum, m) => sum + (m.quantity ?? 0), 0),
+      targetQuantity:
+        total?.targetQuantity ??
+        members.reduce((sum, m) => sum + (m.targetQuantity ?? 0), 0)
+    });
+  }
+  return result;
+}
 
 export async function loader({ context, request }: LoaderFunctionArgs) {
   const { companyId } = await requirePermissions(request, {});
@@ -139,6 +224,32 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
 
   const locationId = context.get(userContext)?.locationId;
 
+  // People-assignment station default: when the operator has a manning-board
+  // assignment for today and no explicit work-center filter (and hasn't
+  // dismissed the default this session), open on their station.
+  const effectiveUserId = context.get(userContext)?.effectiveUserId;
+  let peopleStation: { workCenterId: string; name: string } | null = null;
+  let peopleDate: string | null = null;
+  if (selectedWorkCenterIds.length === 0 && effectiveUserId && locationId) {
+    const today = datetime
+      .today(await getLocationTimeZone(serviceRole, locationId, companyId))
+      .toString();
+    peopleDate = today;
+    const dismissed = await getPeopleOverride(request);
+    if (dismissed !== today) {
+      const myAssignment = await getMyPeopleAssignment(serviceRole, {
+        companyId,
+        employeeId: effectiveUserId,
+        date: today
+      });
+      const assignment = myAssignment.data?.[0];
+      if (assignment) {
+        selectedWorkCenterIds = [assignment.workCenterId];
+        peopleStation = { workCenterId: assignment.workCenterId, name: "" };
+      }
+    }
+  }
+
   const [workCenters, processes, operations] = await Promise.all([
     getWorkCentersByLocation(serviceRole, locationId),
     getProcessesList(serviceRole, companyId),
@@ -191,14 +302,31 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   }
 
   if (search) {
+    const term = search.toLowerCase();
     filteredOperations = filteredOperations.filter(
       (op) =>
-        op.jobReadableId.toLowerCase().includes(search.toLowerCase()) ||
-        op.itemReadableId.toLowerCase().includes(search.toLowerCase()) ||
-        op.itemDescription?.toLowerCase().includes(search.toLowerCase()) ||
-        op.description?.toLowerCase().includes(search.toLowerCase())
+        op.jobReadableId?.toLowerCase().includes(term) ||
+        op.itemReadableId?.toLowerCase().includes(term) ||
+        op.itemDescription?.toLowerCase().includes(term) ||
+        op.description?.toLowerCase().includes(term) ||
+        op.batchReadableId?.toLowerCase().includes(term)
     );
   }
+
+  const batchIds = Array.from(
+    new Set(
+      filteredOperations
+        .map((op) => op.jobOperationBatchId)
+        .filter((id): id is string => Boolean(id))
+    )
+  );
+  const batchMembers = batchIds.length
+    ? await getJobOperationBatchMembers(serviceRole, batchIds, companyId)
+    : null;
+  if (batchMembers?.error) {
+    log.error("Failed to load batch members", { error: batchMembers.error });
+  }
+  const batchTotals = getBatchTotals(batchMembers?.data ?? []);
 
   const filteredWorkCenters =
     workCenters.data?.filter((wc: any) => {
@@ -225,8 +353,16 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     new Set(filteredOperations.flatMap((op) => op.tags || []))
   ).sort();
 
+  if (peopleStation) {
+    peopleStation.name =
+      workCenters.data?.find((wc: any) => wc.id === peopleStation?.workCenterId)
+        ?.name ?? "";
+  }
+
   return data(
     {
+      peopleStation,
+      peopleDate,
       columns: filteredWorkCenters
         .map((wc: any) => ({
           id: wc.id!,
@@ -238,46 +374,51 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
           blockingDispatchReadableId: wc.blockingDispatchReadableId ?? undefined
         }))
         .sort((a, b) => a.title.localeCompare(b.title)) satisfies Column[],
-      items: (filteredOperations.map((op) => {
-        const operation = makeDurations(op);
-        return {
-          id: op.id,
-          assignee: op.assignee,
-          tags: op.tags,
-          columnId: op.workCenterId,
-          columnType: op.processId,
-          priority: op.priority,
-          title: op.jobReadableId,
-          subtitle: op.itemReadableId,
-          description: op.description,
-          dueDate: op.operationDueDate,
-          duration:
-            operation.setupDuration +
-            Math.max(operation.laborDuration, operation.machineDuration),
-          deadlineType: op.jobDeadlineType,
-          customerId: op.jobCustomerId,
-          operationQuantity: op.operationQuantity,
-          targetQuantity: op.targetQuantity ?? op.operationQuantity,
-          partsPerCycle: op.partsPerCycle,
-          timeBasis: op.timeBasis,
-          jobReadableId: op.jobReadableId,
-          itemReadableId: op.itemReadableId,
-          itemDescription: op.itemDescription,
-          salesOrderReadableId: op.salesOrderReadableId,
-          salesOrderId: op.salesOrderId,
-          salesOrderLineId: op.salesOrderLineId,
-          status: op.operationStatus,
-          thumbnailPath: op.thumbnailPath,
-          quantity: op.operationQuantity,
-          quantityCompleted: op.quantityComplete,
-          quantityReworked: op.quantityReworked,
-          quantityScrapped: op.quantityScrapped,
-          reworkId: op.reworkId,
-          setupDuration: operation.setupDuration,
-          laborDuration: operation.laborDuration,
-          machineDuration: operation.machineDuration
-        };
-      }) ?? []) satisfies Item[],
+      items: collapseBatches(
+        (filteredOperations.map((op) => {
+          const operation = makeDurations(op);
+          return {
+            id: op.id,
+            assignee: op.assignee,
+            tags: op.tags,
+            columnId: op.workCenterId,
+            columnType: op.processId,
+            priority: op.priority,
+            title: op.jobReadableId,
+            subtitle: op.itemReadableId,
+            description: op.description,
+            dueDate: op.operationDueDate,
+            duration:
+              operation.setupDuration +
+              Math.max(operation.laborDuration, operation.machineDuration),
+            deadlineType: op.jobDeadlineType,
+            customerId: op.jobCustomerId,
+            operationQuantity: op.operationQuantity,
+            targetQuantity: op.targetQuantity ?? op.operationQuantity,
+            jobReadableId: op.jobReadableId,
+            itemReadableId: op.itemReadableId,
+            itemDescription: op.itemDescription,
+            salesOrderReadableId: op.salesOrderReadableId,
+            salesOrderId: op.salesOrderId,
+            salesOrderLineId: op.salesOrderLineId,
+            status: op.operationStatus,
+            thumbnailPath: op.thumbnailPath,
+            quantity: op.operationQuantity,
+            quantityCompleted: op.quantityComplete,
+            quantityReworked: op.quantityReworked,
+            quantityScrapped: op.quantityScrapped,
+            reworkId: op.reworkId,
+            setupDuration: operation.setupDuration,
+            laborDuration: operation.laborDuration,
+            machineDuration: operation.machineDuration,
+            batchId: op.jobOperationBatchId,
+            batchReadableId: op.batchReadableId,
+            hasConflict: op.hasConflict ?? undefined,
+            conflictReason: op.conflictReason ?? undefined
+          };
+        }) ?? []) satisfies Item[],
+        batchTotals
+      ),
       processes: processes.data ?? [],
       workCenters: workCenters.data ?? [],
       customers: customers.data ?? [],
@@ -291,8 +432,8 @@ export default function ScheduleRoute() {
   return (
     <ClientOnly
       fallback={
-        <div className="flex h-screen w-[calc(100dvw-var(--sidebar-width-icon))] items-center justify-center">
-          <LoadingBars />
+        <div className="flex h-dvh w-[calc(100dvw-var(--sidebar-width-icon))] items-center justify-center">
+          <CarbonPulse />
         </div>
       }
     >
@@ -323,8 +464,11 @@ function KanbanSchedule() {
     items: initialItems,
     processes,
     workCenters,
-    availableTags
+    availableTags,
+    peopleStation,
+    peopleDate
   } = useLoaderData<typeof loader>();
+  const peopleOverrideFetcher = useFetcher();
   const [items, setItems] = useState<Item[]>(initialItems);
 
   useEffect(() => {
@@ -423,8 +567,8 @@ function KanbanSchedule() {
   }, [processes, workCenters, availableTags, people, t]);
 
   return (
-    <div className="flex flex-col h-screen w-[calc(100dvw-var(--sidebar-width-icon))]">
-      <header className="sticky top-0 z-10 flex h-[var(--header-height)] shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b bg-background">
+    <div className="flex flex-col flex-1 min-h-0 w-full">
+      <header className="sticky top-0 z-10 flex h-[var(--header-height)] shrink-0 items-center gap-2 border-b bg-card">
         <div className="flex items-center gap-2 px-2">
           <SidebarTrigger />
           <Heading size="h4">
@@ -432,11 +576,37 @@ function KanbanSchedule() {
           </Heading>
         </div>
       </header>
-      <div className="flex flex-col h-full max-h-full overflow-auto relative">
+      <div className="flex flex-col flex-1 min-h-0 overflow-auto relative">
         <HStack className="px-4 py-2 justify-between bg-card border-b border-border">
           <HStack>
             <SearchFilter param="search" size="sm" placeholder={t`Search`} />
             <Filter filters={filters} />
+            {peopleStation &&
+              !currentFilters.some((filter) =>
+                filter.startsWith("workCenterId:")
+              ) && (
+                <HStack
+                  spacing={0}
+                  className="rounded-md border border-border bg-card"
+                >
+                  <span className="flex items-center gap-1.5 px-2 py-1 text-sm whitespace-nowrap">
+                    <LuFactory className="flex-shrink-0" />
+                    <Trans>Your station: {peopleStation.name}</Trans>
+                  </span>
+                  <IconButton
+                    aria-label={t`Clear station default`}
+                    icon={<LuX />}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() =>
+                      peopleOverrideFetcher.submit(
+                        { date: peopleDate ?? "" },
+                        { method: "post", action: path.to.peopleOverride }
+                      )
+                    }
+                  />
+                </HStack>
+              )}
           </HStack>
 
           <Popover>
@@ -685,84 +855,59 @@ function useProgressByOperation(
     }
   }, [productionEventsByOperation]);
 
-  useRealtimeChannel({
-    topic: `kanban-schedule:${companyId}`,
-    dependencies: [items.length],
-    setup(channel) {
-      return channel
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "jobOperation",
-            filter: `id=in.(${items.map((item) => item.id).join(",")})`
-          },
-          (payload) => {
-            switch (payload.eventType) {
-              case "UPDATE": {
-                const { new: updated } = payload;
-                setItems((prevItems: Item[]) =>
-                  sortItems(
-                    prevItems.map((item: Item) => {
-                      if (item.id === updated.id) {
-                        return {
-                          ...item,
-                          columnId: updated.workCenterId,
-                          priority: updated.priority
-                        };
-                      }
-                      return item;
-                    })
-                  )
-                );
-                break;
-              }
-              case "DELETE": {
-                const { old: deleted } = payload;
-                setItems((prevItems: Item[]) =>
-                  sortItems(
-                    prevItems.filter((item: Item) => item.id !== deleted.id)
-                  )
-                );
-                break;
-              }
-            }
-          }
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "productionEvent",
-            filter: `companyId=eq.${companyId}`
-          },
-          (payload) => {
-            if (payload.new) {
-              const event = payload.new as Event;
-              if (items.some((item) => item.id === event.jobOperationId)) {
-                setProductionEventsByOperation((prev) => ({
-                  ...prev,
-                  [event.jobOperationId]: [
-                    ...(prev[event.jobOperationId] ?? []),
-                    event
-                  ]
-                }));
-              }
-            } else if (payload.old) {
-              const event = payload.old as Event;
-              if (items.some((item) => item.id === event.jobOperationId)) {
-                setProductionEventsByOperation((prev) => ({
-                  ...prev,
-                  [event.jobOperationId]: (
-                    prev[event.jobOperationId] ?? []
-                  ).filter((e) => e.id !== event.id)
-                }));
-              }
-            }
-          }
+  useChangedRows<{ id: string; workCenterId: string; priority: number }>({
+    companyId,
+    table: "jobOperation",
+    columns: "id, workCenterId, priority",
+    onChange: ({ op, ids, rows }) => {
+      if (op === "DELETE") {
+        setItems((prevItems: Item[]) =>
+          sortItems(prevItems.filter((item: Item) => !ids.includes(item.id)))
         );
+        return;
+      }
+      const changed = new Map(rows.map((row) => [row.id, row]));
+      setItems((prevItems: Item[]) =>
+        sortItems(
+          prevItems.map((item: Item) => {
+            const updated = changed.get(item.id);
+            return updated
+              ? {
+                  ...item,
+                  columnId: updated.workCenterId,
+                  priority: updated.priority
+                }
+              : item;
+          })
+        )
+      );
+    }
+  });
+
+  useChangedRows<Event>({
+    companyId,
+    table: "productionEvent",
+    onChange: ({ op, ids, rows }) => {
+      setProductionEventsByOperation((prev) => {
+        if (op === "DELETE") {
+          return Object.fromEntries(
+            Object.entries(prev).map(([operationId, events]) => [
+              operationId,
+              events.filter((event) => !ids.includes(event.id))
+            ])
+          );
+        }
+        const next = { ...prev };
+        for (const row of rows) {
+          if (!row.jobOperationId) continue;
+          if (!items.some((item) => item.id === row.jobOperationId)) continue;
+          const events = next[row.jobOperationId] ?? [];
+          next[row.jobOperationId] = events.some((event) => event.id === row.id)
+            ? events.map((event) => (event.id === row.id ? row : event))
+            : [...events, row];
+        }
+        return next;
+      });
     }
   });
 

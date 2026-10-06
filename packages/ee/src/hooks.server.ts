@@ -1,16 +1,32 @@
+// SPDX-License-Identifier: LicenseRef-Carbon-Commercial
+// Carbon Enterprise file, licensed only under the Carbon Commercial License
+// (packages/ee/LICENSE). Not AGPL. Running, modifying, or copying it beyond those terms requires a commercial license.
+
 import { emailHealthcheck } from "./email/hooks.server";
 import { jiraHealthcheck } from "./jira/hooks.server";
 import { linearHealthcheck } from "./linear/hooks.server";
+import { mountHealthcheck } from "./mount/hooks.server";
 import { onshapeOnUninstall } from "./onshape/hooks.server";
 import {
   quickbooksOnInstall,
   quickbooksOnUninstall
 } from "./quickbooks/hooks.server";
 import {
+  rampHealthcheck,
+  rampOnInstall,
+  rampOnUninstall,
+  rampOnUpdate
+} from "./ramp/hooks.server";
+import {
   rilletHealthcheck,
   rilletOnInstall,
   rilletOnUninstall
 } from "./rillet/hooks.server";
+import {
+  stripeConnectHealthcheck,
+  stripeConnectOnInstall,
+  stripeConnectOnUninstall
+} from "./stripe-connect/hooks.server";
 import type { IntegrationServerHooks } from "./types";
 
 // Onshape keeps its release webhook subscription in lockstep with the asset-sync
@@ -45,7 +61,13 @@ const serverHooks: Record<string, IntegrationServerHooks> = {
   linear: {
     onHealthcheck: linearHealthcheck
   },
+  mount: {
+    onHealthcheck: mountHealthcheck
+  },
   onshape: {
+    onUninstall: onshapeOnUninstall
+  },
+  "onshape-government": {
     onUninstall: onshapeOnUninstall
   },
   // The accounting providers' onUpdate re-runs the same subscription
@@ -56,6 +78,12 @@ const serverHooks: Record<string, IntegrationServerHooks> = {
     onInstall: quickbooksOnInstall,
     onUpdate: quickbooksOnInstall,
     onUninstall: quickbooksOnUninstall
+  },
+  ramp: {
+    onInstall: rampOnInstall,
+    onUpdate: rampOnUpdate,
+    onUninstall: rampOnUninstall,
+    onHealthcheck: rampHealthcheck
   },
   rillet: {
     onHealthcheck: rilletHealthcheck,
@@ -68,6 +96,11 @@ const serverHooks: Record<string, IntegrationServerHooks> = {
     onInstall: xeroOnInstall,
     onUpdate: xeroOnInstall,
     onUninstall: xeroOnUninstall
+  },
+  "stripe-connect": {
+    onHealthcheck: stripeConnectHealthcheck,
+    onInstall: stripeConnectOnInstall,
+    onUninstall: stripeConnectOnUninstall
   }
 };
 

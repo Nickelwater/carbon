@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
@@ -6,9 +10,11 @@ import { validationError, validator } from "@carbon/form";
 import { trigger } from "@carbon/jobs";
 import { getLogger } from "@carbon/logger";
 import { getCachedPrinterConfig } from "@carbon/printing/printing.server";
-import { cyclesToParts, normalizePartsPerCycle } from "@carbon/utils";
+import { serverFns } from "@carbon/server-functions";
+import { cyclesToParts, normalizePartsPerCycle, redirect } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
-import { data, redirect } from "react-router";
+import { data } from "react-router";
+import { getDatabaseClient } from "~/services/database.server";
 import { nonScrapQuantityValidator } from "~/services/models";
 import {
   finishJobOperation,
@@ -42,7 +48,10 @@ async function autoPrintFirstOperationLabel({
       .from("trackedEntity")
       .select("attributes")
       .eq("id", trackedEntityId)
-      .single();
+      .eq("companyId", companyId)
+      .maybeSingle();
+    // Service-role read: an entity outside the caller's company prints nothing.
+    if (!entity) return;
 
     const attributes = (entity?.attributes ?? {}) as Record<string, unknown>;
     const operationCount = Object.keys(attributes).filter((k) =>
@@ -55,7 +64,8 @@ async function autoPrintFirstOperationLabel({
       .from("workCenter")
       .select("locationId")
       .eq("id", workCenterId)
-      .single();
+      .eq("companyId", companyId)
+      .maybeSingle();
     const locationId = workCenter?.locationId ?? undefined;
     if (!locationId) return;
 
@@ -101,9 +111,15 @@ export async function action({ request }: ActionFunctionArgs) {
     .from("jobOperation")
     .select("*")
     .eq("id", validation.data.jobOperationId)
+    .eq("companyId", companyId)
     .maybeSingle();
 
   if (jobOperation.error || !jobOperation.data) {
+    log.error("Job operation not found in company", {
+      companyId,
+      jobOperationId: validation.data.jobOperationId,
+      error: jobOperation.error
+    });
     return data(
       {},
       await flash(request, {
@@ -114,12 +130,47 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   const quantityUnit = formData.get("quantityUnit");
-  const partsPerCycle = normalizePartsPerCycle(jobOperation.data.partsPerCycle);
+  const partsPerCycle = normalizePartsPerCycle(
+    jobOperation.data.partsPerCycle
+  );
   const timeBasis = jobOperation.data.timeBasis ?? "Piece";
   const completionQuantity =
     quantityUnit === "cycles" || timeBasis === "Cycle"
       ? cyclesToParts(validation.data.quantity, partsPerCycle)
       : validation.data.quantity;
+
+  // The production event ids ride along into the productionQuantity row and
+  // the issue call; RLS does not check a foreign key's tenant, so verify them.
+  const productionEventIds = [
+    validation.data.setupProductionEventId,
+    validation.data.laborProductionEventId,
+    validation.data.machineProductionEventId
+  ].filter((id): id is string => Boolean(id));
+  if (productionEventIds.length > 0) {
+    const uniqueEventIds = [...new Set(productionEventIds)];
+    const ownedEvents = await serviceRole
+      .from("productionEvent")
+      .select("id")
+      .in("id", uniqueEventIds)
+      .eq("companyId", companyId);
+    if (
+      ownedEvents.error ||
+      (ownedEvents.data ?? []).length !== uniqueEventIds.length
+    ) {
+      log.error("Production event not found in company", {
+        companyId,
+        productionEventIds: uniqueEventIds,
+        error: ownedEvents.error
+      });
+      return data(
+        {},
+        await flash(request, {
+          ...error(ownedEvents.error, "Production event not found"),
+          flash: "error"
+        })
+      );
+    }
+  }
 
   // Mirror the DB auto-Done predicate (sync_update_job_operation_quantities,
   // 20260807090629): scrap does NOT count toward targetQuantity — the op is
@@ -136,17 +187,18 @@ export async function action({ request }: ActionFunctionArgs) {
       0);
 
   if (validation.data.trackingType === "Serial") {
-    const response = await serviceRole.functions.invoke("issue", {
-      body: {
+    const response = await serverFns
+      .system({ db: getDatabaseClient(), companyId, userId })
+      .invoke("issue", {
         type: "jobOperationSerialComplete",
         ...validation.data,
         quantity: completionQuantity,
-        companyId,
-        userId
-      }
-    });
+        trackedEntityId: validation.data.trackedEntityId!
+      });
 
-    const newTrackedEntityId = response.data?.newTrackedEntityId;
+    const newTrackedEntityId = response.data?.newTrackedEntityId as
+      | string
+      | undefined;
     // Print the entity that was just completed (from form), not the new reserved one
     const completedEntityId = validation.data.trackedEntityId;
 
@@ -181,11 +233,15 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (willBeFinished) {
-      const finishOperation = await finishJobOperation(serviceRole, {
-        jobOperationId: jobOperation.data.id,
-        userId,
-        companyId
-      });
+      const finishOperation = await finishJobOperation(
+        serviceRole,
+        getDatabaseClient(),
+        {
+          jobOperationId: jobOperation.data.id,
+          userId,
+          companyId
+        }
+      );
 
       if (finishOperation.error) {
         return data(
@@ -222,15 +278,14 @@ export async function action({ request }: ActionFunctionArgs) {
       })
     );
   } else if (validation.data.trackingType === "Batch") {
-    const response = await serviceRole.functions.invoke("issue", {
-      body: {
+    const response = await serverFns
+      .system({ db: getDatabaseClient(), companyId, userId })
+      .invoke("issue", {
         type: "jobOperationBatchComplete",
         ...validation.data,
         quantity: completionQuantity,
-        companyId,
-        userId
-      }
-    });
+        trackedEntityId: validation.data.trackedEntityId!
+      });
 
     if (response.error) {
       return data(
@@ -262,11 +317,15 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (willBeFinished) {
-      const finishOperation = await finishJobOperation(serviceRole, {
-        jobOperationId: jobOperation.data.id,
-        userId,
-        companyId
-      });
+      const finishOperation = await finishJobOperation(
+        serviceRole,
+        getDatabaseClient(),
+        {
+          jobOperationId: jobOperation.data.id,
+          userId,
+          companyId
+        }
+      );
 
       if (finishOperation.error) {
         return data(
@@ -293,7 +352,6 @@ export async function action({ request }: ActionFunctionArgs) {
     const { trackedEntityId, trackingType, ...d } = validation.data;
     const insertProduction = await insertProductionQuantity(client, {
       ...d,
-      quantity: completionQuantity,
       companyId,
       createdBy: userId
     });
@@ -311,21 +369,19 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    const issue = await serviceRole.functions.invoke("issue", {
-      body: {
+    const issued = await serverFns
+      .system({ db: getDatabaseClient(), companyId, userId })
+      .invoke("issue", {
         id: validation.data.jobOperationId,
         type: "jobOperation",
-        quantity: completionQuantity,
-        companyId,
-        userId
-      }
-    });
+        quantity: validation.data.quantity
+      });
 
-    if (issue.error) {
+    if (issued.error) {
       return data(
         {},
         await flash(request, {
-          ...error(issue.error, "Failed to issue materials"),
+          ...error(issued.error, "Failed to issue materials"),
           flash: "error"
         })
       );
@@ -340,11 +396,15 @@ export async function action({ request }: ActionFunctionArgs) {
     );
 
     if (willBeFinished) {
-      const finishOperation = await finishJobOperation(serviceRole, {
-        jobOperationId: jobOperation.data.id,
-        userId,
-        companyId
-      });
+      const finishOperation = await finishJobOperation(
+        serviceRole,
+        getDatabaseClient(),
+        {
+          jobOperationId: jobOperation.data.id,
+          userId,
+          companyId
+        }
+      );
 
       if (finishOperation.error) {
         return data(

@@ -3,10 +3,9 @@
   "dependencies": {
     "@carbon/database": "workspace:*",
     "@carbon/env": "workspace:*",
-    "@carbon/glossary": "workspace:*",
+    "@carbon/content": "workspace:*",
     "@carbon/logger": "workspace:*",
     "@carbon/tiptap": "workspace:*",
-    "@nanostores/react": "catalog:",
     "@carbon/utils": "workspace:*",
     "@base-ui/react": "1.6.0",
     "@radix-ui/react-accordion": "1.2.12",
@@ -28,10 +27,8 @@
     "@radix-ui/react-slot": "1.2.4",
     "@radix-ui/react-switch": "1.2.6",
     "@radix-ui/react-tabs": "1.1.13",
-    "@radix-ui/react-toast": "1.2.15",
     "@radix-ui/react-toggle": "1.1.10",
     "@radix-ui/react-toggle-group": "1.1.11",
-    "@radix-ui/react-tooltip": "1.2.8",
     "@react-aria/button": "3.14.5",
     "@react-aria/calendar": "3.9.5",
     "@react-aria/datepicker": "3.16.1",
@@ -66,6 +63,7 @@
     "@visx/scale": "3.12.0",
     "@visx/shape": "3.12.0",
     "@visx/text": "3.12.0",
+    "botid": "catalog:",
     "class-variance-authority": "catalog:",
     "clsx": "2.1.1",
     "cmdk": "0.2.0",
@@ -76,7 +74,6 @@
     "intl-parse-accept-language": "catalog:",
     "is-hotkey": "0.2.0",
     "nanoid": "catalog:",
-    "nanostores": "catalog:",
     "nprogress": "0.2.0",
     "react-aria-components": "1.0.1",
     "react-colorful": "5.6.1",
@@ -87,7 +84,8 @@
     "sonner": "2.0.7",
     "tailwind-merge": "catalog:",
     "tailwindcss-animate": "catalog:",
-    "zustand": "catalog:"
+    "zustand": "catalog:",
+    "match-sorter": "catalog:"
   },
   "devDependencies": {
     "@carbon/config": "workspace:*",
@@ -120,7 +118,8 @@
   "peerDependencies": {
     "@internationalized/date": "catalog:",
     "@lingui/react": "catalog:",
-    "framer-motion": "catalog:",
+    "@marsidev/react-turnstile": "catalog:",
+    "motion": "catalog:",
     "react": "catalog:",
     "react-dom": "catalog:",
     "react-icons": "catalog:",

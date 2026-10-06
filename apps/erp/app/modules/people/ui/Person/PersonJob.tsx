@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import { Card, CardContent, CardHeader, CardTitle } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -6,6 +10,7 @@ import type { z } from "zod";
 import {
   CustomFormFields,
   DatePicker,
+  Department,
   Employee,
   Hidden,
   Input,
@@ -50,6 +55,7 @@ const PersonJob = ({ initialValues }: PersonJobProps) => {
               name="shiftId"
               label={t`Shift`}
             />
+            <Department name="departmentId" label={t`Department`} />
             <Employee name="managerId" label={t`Manager`} />
             <Hidden name="intent" value="job" />
             <CustomFormFields table="employeeJob" />

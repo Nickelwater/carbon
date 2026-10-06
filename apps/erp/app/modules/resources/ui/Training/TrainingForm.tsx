@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   HStack,
@@ -14,7 +18,7 @@ import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useFetcher } from "react-router";
 import type { z } from "zod";
-import { Hidden, Input, Submit } from "~/components/Form";
+import { Ability, Hidden, Input, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { trainingValidator } from "~/modules/resources";
 import { path } from "~/utils/path";
@@ -73,6 +77,12 @@ const TrainingForm = ({
               <Hidden name="id" />
               <VStack spacing={4}>
                 <Input name="name" label={t`Name`} />
+                <Ability
+                  name="grantsAbilityId"
+                  label={t`Grants Ability`}
+                  isClearable
+                  helperText={t`Completing this training grants or renews the selected ability.`}
+                />
               </VStack>
             </ModalDrawerBody>
             <ModalDrawerFooter>

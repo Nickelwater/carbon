@@ -1,6 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { ComponentProps, ReactNode } from "react";
 import { useEffect } from "react";
-import { Form, useFetcher } from "react-router";
+import { Form, useFetcher, useNavigation } from "react-router";
 import { Button } from "./Button";
 import type useDisclosure from "./hooks/useDisclosure";
 import {
@@ -12,6 +16,7 @@ import {
   ModalTitle
 } from "./Modal";
 import { toast } from "./Toast";
+
 /** 
  * 
 export function AcademyBanner({
@@ -407,9 +412,15 @@ function FormButton({
   variant?: ComponentProps<typeof Button>["variant"];
   isDisabled?: boolean;
 }) {
+  const navigation = useNavigation();
   return (
     <Form method="post" action={action}>
-      <Button type="submit" variant={variant} isDisabled={isDisabled}>
+      <Button
+        type="submit"
+        variant={variant}
+        isDisabled={isDisabled}
+        isLoading={navigation.formAction === action}
+      >
         {children}
       </Button>
     </Form>

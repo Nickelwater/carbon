@@ -1,10 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Json } from "@carbon/database";
 import { InputControlled, Select, ValidatedForm } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
+  Copy,
   cn,
   HStack,
+  Subheading,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -13,7 +20,7 @@ import {
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
-import { Suspense, useCallback, useEffect } from "react";
+import { Suspense, useCallback } from "react";
 import {
   LuCopy,
   LuExternalLink,
@@ -21,7 +28,7 @@ import {
   LuLink,
   LuMove3D
 } from "react-icons/lu";
-import { Await, Link, useFetcher, useParams } from "react-router";
+import { Await, Link, useParams } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { MethodBadge, MethodIcon, TrackingTypeIcon } from "~/components";
@@ -34,7 +41,8 @@ import {
 import CustomFormInlineFields from "~/components/Form/CustomFormInlineFields";
 import { ReplenishmentSystemIcon } from "~/components/Icons";
 import { ItemThumbnailUpload } from "~/components/ItemThumnailUpload";
-import { useRouteData } from "~/hooks";
+import { useCompanySettings, useRouteData } from "~/hooks";
+import { useResolved } from "~/hooks/useResolved";
 import { methodType } from "~/modules/shared";
 import type { action } from "~/routes/x+/items+/update";
 import { useSuppliers } from "~/stores";
@@ -46,6 +54,7 @@ import {
   itemReplenishmentSystems,
   itemTrackingTypes
 } from "../../items.models";
+import type { UnreleasedChangeOrderItem } from "../../items.server";
 import type {
   ItemFile,
   MakeMethod,
@@ -53,6 +62,7 @@ import type {
   PickMethod,
   SupplierPart
 } from "../../types";
+import { ItemChangeNoticeLock } from "../ChangeNotice/ItemChangeNoticeLock";
 import { FileBadge, ItemDescription, SourcingTypeProperty } from "../Item";
 
 export type PartPropertiesData = {
@@ -64,6 +74,10 @@ export type PartPropertiesData = {
   pickMethods: PickMethod[];
   makeMethods: Promise<PostgrestResponse<MakeMethod>>;
   tags: { name: string }[];
+  // Set while the change notice that minted this item is still open. Optional
+  // because the change-order card builds this object itself and never renders
+  // the Active toggle.
+  unreleasedChangeOrder?: UnreleasedChangeOrderItem | null;
 };
 
 type PartPropertiesProps = {
@@ -104,6 +118,8 @@ const PartProperties = ({
   const lockPartNumber = changeType === "Revision";
   const { t } = useLingui();
   const params = useParams();
+  const companySettings = useCompanySettings();
+  const allowLowercaseItemIds = companySettings?.allowLowercaseItemIds === true;
   const itemId = data?.itemId ?? params.itemId;
   if (!itemId) throw new Error("itemId not found");
 
@@ -119,7 +135,7 @@ const PartProperties = ({
     pickMethods: PickMethod[];
     makeMethods: Promise<PostgrestResponse<MakeMethod>>;
     tags: { name: string }[];
-    supersession?: {
+    supersession?: Promise<{
       successorItemId: string | null;
       successorEffectivityDate: string | null;
       successor: {
@@ -127,15 +143,29 @@ const PartProperties = ({
         readableIdWithRevision: string;
         name: string;
       } | null;
-    } | null;
-    supersededBy?: Array<{
-      predecessor: {
-        id: string;
-        readableIdWithRevision: string;
-        name: string;
-      } | null;
-    }>;
+    } | null>;
+    supersededBy?: Promise<
+      Array<{
+        predecessor: {
+          id: string;
+          readableIdWithRevision: string;
+          name: string;
+        } | null;
+      }>
+    >;
+    // Set while the change notice that minted this item is still open.
+    unreleasedChangeOrder?: UnreleasedChangeOrderItem | null;
   }>(path.to.part(itemId));
+  const supersession = useResolved(
+    routeDataFromRoute?.supersession,
+    null,
+    itemId
+  );
+  const supersededBy = useResolved(
+    routeDataFromRoute?.supersededBy,
+    null,
+    itemId
+  );
   const routeData = data ?? routeDataFromRoute;
 
   const locations = data?.locations ?? sharedPartsData?.locations ?? [];
@@ -151,13 +181,13 @@ const PartProperties = ({
   //     ? optimisticAssignment
   //     : routeData?.partSummary?.assignee;
 
-  const fetcher = useFetcher<typeof action>();
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error(fetcher.data.error.message);
+  const fetcher = useAction<typeof action>({
+    onError: (data) => {
+      if (data?.error) {
+        toast.error(data.error.message);
+      }
     }
-  }, [fetcher.data]);
-
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   const onUpdate = useCallback(
     (
@@ -172,7 +202,8 @@ const PartProperties = ({
         | "description"
         | "mpn"
         | "replenishmentSystem"
-        | "unitOfMeasureCode",
+        | "unitOfMeasureCode"
+        | "requiresInspection",
       value: string | null
     ) => {
       const formData = new FormData();
@@ -227,6 +258,14 @@ const PartProperties = ({
 
     [routeData?.partSummary?.readableId]
   );
+
+  // The change notice that minted this part activates it at release. Until then
+  // the toggle is locked: an unreleased revision switched Active by hand reaches
+  // the item pickers, MRP and job creation carrying the notice's draft BOM.
+  // An already-active part is left alone so it can still be switched off.
+  const activationLockId = routeData?.partSummary?.active
+    ? undefined
+    : routeData?.unreleasedChangeOrder?.changeOrderReadableId;
 
   const [suppliers] = useSuppliers();
 
@@ -303,6 +342,7 @@ const PartProperties = ({
           label={formLayout ? t`Part Number` : ""}
           name="partId"
           inline={inlineLayout}
+          isUppercase={!allowLowercaseItemIds}
           value={routeData?.partSummary?.readableId ?? ""}
           onBlur={(e) => {
             onUpdate("partId", e.target.value ?? null);
@@ -320,7 +360,7 @@ const PartProperties = ({
       validator={z.object({
         name: z.string()
       })}
-      className={cn("w-full", !formLayout && "-mt-2")}
+      className="w-full"
       isReadOnly={isReadOnly}
     >
       <span className="text-xs text-muted-foreground">
@@ -348,7 +388,7 @@ const PartProperties = ({
           : "flex flex-col items-start space-y-4",
         embedded
           ? "px-1 py-2"
-          : "w-96 bg-card h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2"
+          : "w-96 bg-background/30 h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2"
       )}
     >
       {formLayout ? (
@@ -363,9 +403,9 @@ const PartProperties = ({
               copy affordances there. Part page (non-embedded) is unchanged. */}
           {!embedded && (
             <HStack className="w-full justify-between">
-              <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+              <Subheading as="h3" variant="light">
                 <Trans>Properties</Trans>
-              </h3>
+              </Subheading>
               <HStack spacing={1}>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -389,24 +429,13 @@ const PartProperties = ({
                     </span>
                   </TooltipContent>
                 </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      aria-label={t`Copy`}
-                      size="sm"
-                      className="p-1"
-                      onClick={() => copyToClipboard(itemId)}
-                    >
-                      <LuKeySquare className="w-3 h-3" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <span>
-                      <Trans>Copy part unique identifier</Trans>
-                    </span>
-                  </TooltipContent>
-                </Tooltip>
+                <Copy
+                  text={itemId}
+                  label={t`Copy part unique identifier`}
+                  icon={<LuKeySquare className="size-3" />}
+                  variant="ghost"
+                  className="w-auto"
+                />
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
@@ -726,25 +755,40 @@ const PartProperties = ({
       {/* Active is a lifecycle flag the change notice controls at release — not a
           user-editable attribute in the CO card. Keep it on the part page only. */}
       {!embedded && (
-        <ValidatedForm
-          defaultValues={{
-            active: routeData?.partSummary?.active ?? undefined
-          }}
-          validator={z.object({
-            active: zfd.checkbox()
-          })}
+        <ItemChangeNoticeLock
+          changeNotices={[]}
+          isLocked={!!activationLockId}
           className="w-full"
-          isReadOnly={isReadOnly}
+          reason={
+            activationLockId ? (
+              <Trans>
+                This part is activated when change notice {activationLockId} is
+                released.
+              </Trans>
+            ) : undefined
+          }
         >
-          <Boolean
-            label={t`Active`}
-            name="active"
-            variant="small"
-            onChange={(value) => {
-              onUpdate("active", value ? "on" : "off");
+          <ValidatedForm
+            defaultValues={{
+              active: routeData?.partSummary?.active ?? undefined
             }}
-          />
-        </ValidatedForm>
+            validator={z.object({
+              active: zfd.checkbox()
+            })}
+            className="w-full"
+            isReadOnly={isReadOnly}
+          >
+            <Boolean
+              label={t`Active`}
+              name="active"
+              variant="small"
+              isDisabled={!!activationLockId}
+              onChange={(value) => {
+                onUpdate("active", value ? "on" : "off");
+              }}
+            />
+          </ValidatedForm>
+        </ItemChangeNoticeLock>
       )}
       {/* Requires Inspection is a quality attribute the change notice doesn't
           manage — hidden on the CO affected-item card, same as Active. */}
@@ -797,32 +841,30 @@ const PartProperties = ({
             />
           </ValidatedForm>
         )}
-      {routeDataFromRoute?.supersession?.successor && (
+      {supersession?.successor && (
         <div className="w-full">
           <h3 className="text-xs text-muted-foreground mb-1">
             <Trans>Superseded By</Trans>
           </h3>
           <Link
-            to={path.to.part(routeDataFromRoute.supersession.successor.id)}
+            to={path.to.part(supersession.successor.id)}
             className="text-sm text-primary hover:underline"
           >
-            {routeDataFromRoute.supersession.successor.readableIdWithRevision}
+            {supersession.successor.readableIdWithRevision}
           </Link>
-          {routeDataFromRoute.supersession.successorEffectivityDate && (
+          {supersession.successorEffectivityDate && (
             <p className="text-xs text-muted-foreground">
-              <Trans>
-                From {routeDataFromRoute.supersession.successorEffectivityDate}
-              </Trans>
+              <Trans>From {supersession.successorEffectivityDate}</Trans>
             </p>
           )}
         </div>
       )}
-      {(routeDataFromRoute?.supersededBy?.length ?? 0) > 0 && (
+      {(supersededBy?.length ?? 0) > 0 && (
         <div className="w-full">
           <h3 className="text-xs text-muted-foreground mb-1">
             <Trans>Supersedes</Trans>
           </h3>
-          {routeDataFromRoute?.supersededBy?.map(
+          {supersededBy?.map(
             (ref) =>
               ref.predecessor && (
                 <Link

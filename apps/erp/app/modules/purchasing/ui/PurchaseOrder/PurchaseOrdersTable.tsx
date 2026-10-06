@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { useAction } from "@carbon/query";
 import {
   BarProgress,
   Checkbox,
@@ -7,6 +12,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   toast,
@@ -15,7 +21,7 @@ import {
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
-import { memo, useCallback, useEffect, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import {
   LuBookMarked,
   LuCalendar,
@@ -32,13 +38,13 @@ import {
   LuTruck,
   LuUser
 } from "react-icons/lu";
-import { useFetcher } from "react-router";
 import {
   DateTime,
   EmployeeAvatar,
   Hyperlink,
   ItemThumbnail,
   New,
+  RevisionSuffix,
   SupplierAvatar,
   Table
 } from "~/components";
@@ -94,11 +100,14 @@ const PurchaseOrdersTable = memo(
               <ItemThumbnail
                 size="sm"
                 thumbnailPath={row.original.thumbnailPath}
-                // @ts-ignore
+                // @ts-expect-error
                 type={row.original.itemType}
               />
               <Hyperlink to={path.to.purchaseOrderDetails(row.original.id!)}>
-                {row.original.purchaseOrderId}
+                <div className="flex justify-start items-center gap-0">
+                  <span>{row.original.purchaseOrderId}</span>
+                  <RevisionSuffix revisionId={row.original.revisionId} />
+                </div>
               </Hyperlink>
             </HStack>
           ),
@@ -120,7 +129,10 @@ const PurchaseOrdersTable = memo(
                 label: supplier.name
               }))
             },
-            icon: <LuContainer />
+            icon: <LuContainer />,
+            exportValue: (row: PurchaseOrderListItem) =>
+              suppliers?.find((supplier) => supplier.id === row.supplierId)
+                ?.name ?? row.supplierId
           }
         },
         {
@@ -272,7 +284,10 @@ const PurchaseOrdersTable = memo(
             />
           ),
           meta: {
-            icon: <LuTruck />
+            icon: <LuTruck />,
+            exportValue: (row) =>
+              shippingMethods.find((sm) => sm.value === row.shippingMethodId)
+                ?.label ?? null
           }
         },
         {
@@ -287,7 +302,10 @@ const PurchaseOrdersTable = memo(
             />
           ),
           meta: {
-            icon: <LuCreditCard />
+            icon: <LuCreditCard />,
+            exportValue: (row) =>
+              paymentTerms.find((pt) => pt.value === row.paymentTermId)
+                ?.label ?? null
           }
         },
         {
@@ -348,7 +366,10 @@ const PurchaseOrdersTable = memo(
                 label: employee.name
               }))
             },
-            icon: <LuUser />
+            icon: <LuUser />,
+            exportValue: (row: PurchaseOrderListItem) =>
+              people.find((employee) => employee.id === row.updatedBy)?.name ??
+              row.updatedBy
           }
         },
         {
@@ -374,13 +395,13 @@ const PurchaseOrdersTable = memo(
       t
     ]);
 
-    const fetcher = useFetcher<typeof action>();
-    useEffect(() => {
-      if (fetcher.data?.error) {
-        toast.error(fetcher.data.error.message);
+    const fetcher = useAction<typeof action>({
+      onError: (data) => {
+        if (data?.error) {
+          toast.error(data.error.message);
+        }
       }
-    }, [fetcher.data]);
-
+    });
     // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
     const onBulkUpdate = useCallback(
       (selectedRows: typeof data, field: "delete", value?: string) => {
@@ -430,6 +451,7 @@ const PurchaseOrdersTable = memo(
       (row: PurchaseOrderListItem) => (
         <>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.edit}
             disabled={!permissions.can("view", "purchasing")}
             onClick={() => edit(row)}
           >
@@ -438,6 +460,7 @@ const PurchaseOrdersTable = memo(
           </MenuItem>
 
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.duplicate}
             disabled={!permissions.can("create", "purchasing") || !row.id}
             onClick={() => {
               if (!row.id) return;
@@ -465,6 +488,7 @@ const PurchaseOrdersTable = memo(
             <Trans>Receive</Trans>
           </MenuItem>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.delete}
             disabled={
               !permissions.can("delete", "purchasing") ||
               !["Draft", "Planned"].includes(row.status ?? "")

@@ -1,18 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type {
   AvailableVariable,
   BatchPlan,
   ValueOrRef,
   ValueType,
+  WorkflowCatalog,
   WorkflowDefinition
-} from "@carbon/workflows";
+} from "@carbon/ee/workflows";
 import {
   availableVariables,
   batchPlan,
   createContext,
   variablesFromHandle
-} from "@carbon/workflows";
+} from "@carbon/ee/workflows";
 import { useCallback, useMemo } from "react";
-import { catalog } from "./catalog";
+import { useWorkflowCatalog } from "./catalog";
 import { useBuilderStoreApi, useBuilderStoreShallow } from "./context";
 import { fromReactFlow } from "./graph";
 
@@ -28,9 +33,10 @@ export function useDefinition(): WorkflowDefinition {
 /** Variables visible to one node. A picker is mounted per input, so this must stay memoised. */
 export function useAvailableVariables(nodeId: string) {
   const definition = useDefinition();
+  const catalog = useWorkflowCatalog();
   return useMemo(
     () => availableVariables(definition, nodeId, catalog),
-    [definition, nodeId]
+    [definition, nodeId, catalog]
   );
 }
 
@@ -41,20 +47,22 @@ export function useValueTypeResolver(
   nodeId: string
 ): (value: ValueOrRef) => ValueType | undefined {
   const definition = useDefinition();
+  const catalog = useWorkflowCatalog();
   return useMemo(() => {
     const { context } = createContext(definition, catalog);
     return (value: ValueOrRef) => context.typeOf(value, nodeId);
-  }, [definition, nodeId]);
+  }, [definition, nodeId, catalog]);
 }
 
 /** The same list, computed on demand. Subscribing re-renders every field on every
  * drag frame; a menu only needs the list at the moment it opens. */
 export function useVariablesGetter(nodeId: string): () => AvailableVariable[] {
   const store = useBuilderStoreApi();
+  const catalog = useWorkflowCatalog();
   return useCallback(() => {
     const { nodes, edges } = store.getState();
     return availableVariables(fromReactFlow(nodes, edges), nodeId, catalog);
-  }, [store, nodeId]);
+  }, [store, nodeId, catalog]);
 }
 
 /**
@@ -63,7 +71,8 @@ export function useVariablesGetter(nodeId: string): () => AvailableVariable[] {
  * definition would rebuild it on every drag frame, once per card.
  */
 export function batchPlansFor(
-  definition: WorkflowDefinition
+  definition: WorkflowDefinition,
+  catalog: WorkflowCatalog
 ): Record<string, BatchPlan> {
   const { context } = createContext(definition, catalog);
   const plans: Record<string, BatchPlan> = {};
@@ -90,6 +99,7 @@ export function useActionBatchPlan(
   inputs: Record<string, ValueOrRef>
 ): BatchPlan {
   const typeOf = useValueTypeResolver(nodeId);
+  const catalog = useWorkflowCatalog();
   return useMemo(() => {
     const action = actionId ? catalog.getAction(actionId) : undefined;
     if (action === undefined) return { kind: "none" };
@@ -97,7 +107,7 @@ export function useActionBatchPlan(
       const supplied = inputs[name];
       return supplied === undefined ? undefined : typeOf(supplied);
     });
-  }, [actionId, inputs, typeOf]);
+  }, [actionId, inputs, typeOf, catalog]);
 }
 
 /** The name of the compute operation input that is wired to a list, or undefined when
@@ -108,6 +118,7 @@ export function useComputeBatchInput(
   inputs: Record<string, ValueOrRef>
 ): string | undefined {
   const typeOf = useValueTypeResolver(nodeId);
+  const catalog = useWorkflowCatalog();
   return useMemo(() => {
     const operation = operationId
       ? catalog.getOperation(operationId)
@@ -121,7 +132,7 @@ export function useComputeBatchInput(
       if (type?.kind === "list") return name;
     }
     return undefined;
-  }, [operationId, inputs, typeOf]);
+  }, [operationId, inputs, typeOf, catalog]);
 }
 
 export type HandlePreview = {
@@ -136,6 +147,7 @@ export function useHandlePreviewGetter(
   handleId: string
 ): () => HandlePreview {
   const store = useBuilderStoreApi();
+  const catalog = useWorkflowCatalog();
   return useCallback(() => {
     const { nodes, edges } = store.getState();
     const definition = fromReactFlow(nodes, edges);
@@ -147,5 +159,5 @@ export function useHandlePreviewGetter(
       variables: variablesFromHandle(definition, nodeId, handleId, catalog),
       routesOnly: outputs !== undefined && Object.keys(outputs).length === 0
     };
-  }, [store, nodeId, handleId]);
+  }, [store, nodeId, handleId, catalog]);
 }

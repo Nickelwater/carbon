@@ -1,4 +1,8 @@
-import type { TermId } from "@carbon/glossary";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { TermId } from "@carbon/content/glossary";
 import {
   FormControl,
   FormErrorMessage,
@@ -47,9 +51,7 @@ const SelectControlled = ({
     name
   );
 
-  const { defaultValue: _defaultValue, ...inputProps } = getInputProps({
-    id: name
-  });
+  const { defaultValue: _defaultValue, ...inputProps } = getInputProps();
 
   useEffect(() => {
     if (props.value !== null && props.value !== undefined)

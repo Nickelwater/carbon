@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getAppUrl, getMESUrl, SUPABASE_URL } from "@carbon/auth";
+import { requestReferrer } from "@carbon/utils";
 import { generatePath } from "react-router";
 
 export const ERP_URL = getAppUrl();
@@ -33,6 +38,7 @@ export const path = {
       qualityIssueTypes: `${api}/quality-issue-types`,
       serialNumbers: (itemId: string) =>
         generatePath(`${api}/serial-numbers?itemId=${itemId}`),
+      ssoCheck: `${api}/sso/check`,
       suggestedAllocation: (
         itemId: string,
         locationId: string,
@@ -45,6 +51,11 @@ export const path = {
     assembly: (id: string) => generatePath(`${x}/assembly/${id}`),
     assigned: `${x}/assigned`,
     authenticatedRoot: x,
+    batch: (id: string) => generatePath(`${x}/batch/${id}`),
+    batchComplete: (id: string) => generatePath(`${x}/batch/${id}/complete`),
+    // Batch details live in ERP; MES links to it cross-origin.
+    batchDetail: (id: string) => `${getAppUrl()}${x}/production/batches/${id}`,
+    batchRecord: (id: string) => generatePath(`${x}/batch/${id}/record`),
     callback: "/callback",
     companySwitch: (companyId: string) =>
       generatePath(`${x}/company/switch/${companyId}`),
@@ -58,6 +69,9 @@ export const path = {
     endOperation: (id: string) => generatePath(`${x}/end/${id}`),
     endShift: `${x}/end-shift`,
     file: {
+      // The load-sheet route lives in ERP (like the traveler); MES links to it
+      // cross-origin.
+      batchList: (id: string) => `${getAppUrl()}${file}/batch/${id}.pdf`,
       jobTraveler: (id: string) => `${getAppUrl()}${file}/traveler/${id}.pdf`,
       operationLabelsPdf: (
         id: string,
@@ -135,6 +149,8 @@ export const path = {
       generatePath(`${x}/inspection-lot/${id}/complete-passed`),
     inspectionDisposition: (id: string) =>
       generatePath(`${x}/inspection-lot/${id}/disposition`),
+    inspectionGauge: (id: string) =>
+      generatePath(`${x}/inspection-lot/${id}/gauge`),
     inspectionMeasurement: (id: string) =>
       generatePath(`${x}/inspection-lot/${id}/measurement`),
     inspectionSample: (id: string) =>
@@ -168,6 +184,7 @@ export const path = {
     operation: (id: string) => generatePath(`${x}/operation/${id}`),
     operations: `${x}/operations?saved=1`,
     operationTools: (id: string) => generatePath(`${x}/operation/${id}/tools`),
+peopleOverride: `${x}/people-override`,
     picking: `${x}/picking`,
     pickingDetail: (id: string) => generatePath(`${x}/picking/${id}`),
     pickingLineQuantity: (id: string) =>
@@ -193,6 +210,7 @@ export const path = {
       return parentId ? `${basePath}?parentId=${parentId}` : basePath;
     },
     scrapReasons: `${api}/scrap-reasons`,
+    setupRequired: "/setup-required",
     startOperation: (id: string) => generatePath(`${x}/start/${id}`),
     suggestion: `${x}/suggestion`,
     switchCompany: (companyId: string) =>
@@ -217,26 +235,16 @@ export const removeSubdomain = (url?: string): string => {
   return domain;
 };
 
-export const getPrivateUrl = (path: string) => {
-  return `/file/preview/private/${path}`;
-};
-
-// Raw model source for the viewer's WASM fallback tier — the bucket varies
-// (temp-staging for current uploads, private for pre-assembler rows).
-export const getRawModelUrl = (bucket: string, path: string) => {
-  return `/file/preview/${bucket}/${path}`;
-};
+export { getPrivateUrl, getRawModelUrl } from "@carbon/files/media";
 
 export const getStoragePath = (bucket: string, path: string) => {
   return `${SUPABASE_URL}/storage/v1/object/public/${bucket}/${path}`;
 };
 
-export const requestReferrer = (request: Request) => {
-  return request.headers.get("referer");
-};
+export { requestReferrer };
 
 export const getParams = (request: Request) => {
-  const url = new URL(requestReferrer(request) ?? "");
+  const url = new URL(requestReferrer(request) ?? "/", "http://relative.local");
   const searchParams = new URLSearchParams(url.search);
   return searchParams.toString();
 };

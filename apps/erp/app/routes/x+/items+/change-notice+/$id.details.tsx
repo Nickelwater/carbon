@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { JSONContent } from "@carbon/react";
 import { VStack } from "@carbon/react";
 import { useParams } from "react-router";
@@ -52,7 +56,7 @@ export default function ChangeNoticeDetailsRoute() {
   }));
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       <ChangeNoticeStatusFlow status={changeNotice.status} />
       <ChangeNoticeChanges changes={changes} />
       <ChangeNoticeContent

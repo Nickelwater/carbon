@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import {
   Badge,
@@ -76,7 +80,7 @@ export default function LogosRoute() {
   if (!company) throw new Error("Company not found");
 
   return (
-    <ScrollArea className="w-full h-[calc(100dvh-49px)]">
+    <ScrollArea className="w-full h-[calc(100dvh-var(--topbar-height)-var(--content-inset))]">
       <VStack spacing={4} className="py-12 px-4 max-w-[60rem] h-full mx-auto">
         <div className="flex w-full justify-between items-center gap-1">
           <Heading size="h3">

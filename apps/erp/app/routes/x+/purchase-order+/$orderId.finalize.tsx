@@ -1,18 +1,31 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { PurchaseOrderEmail } from "@carbon/documents/email";
+import { getPurchaseOrderDisplayId } from "@carbon/documents/pdf";
+import {
+  createApprovalRequest,
+  getApprovalRuleByAmount,
+  getApproverUserIdsForRule,
+  hasPendingApproval,
+  isApprovalRequired
+} from "@carbon/ee/approvals.server";
+import { storage } from "@carbon/files";
 import { validationError, validator } from "@carbon/form";
 import { trigger } from "@carbon/jobs";
 import { trackWorkEvent } from "@carbon/lib/telemetry";
 import { getLogger } from "@carbon/logger";
 import { NotificationEvent } from "@carbon/notifications";
-import { PO_EMAIL_ATTACHMENT_LIMIT_MB } from "@carbon/utils";
+import { serverFns } from "@carbon/server-functions";
+import { PO_EMAIL_ATTACHMENT_LIMIT_MB, redirect } from "@carbon/utils";
 import { renderAsync } from "@react-email/components";
 import { parseAcceptLanguage } from "intl-parse-accept-language";
 import type { ActionFunctionArgs } from "react-router";
-import { redirect } from "react-router";
 import { getCurrencyByCode, getPaymentTermsList } from "~/modules/accounting";
 import { upsertDocument } from "~/modules/documents";
 import {
@@ -28,15 +41,10 @@ import {
   updatePurchaseOrderStatus
 } from "~/modules/purchasing";
 import { getCompany, getCompanySettings } from "~/modules/settings";
-import {
-  createApprovalRequest,
-  getApprovalRuleByAmount,
-  getApproverUserIdsForRule,
-  hasPendingApproval,
-  isApprovalRequired
-} from "~/modules/shared";
+import { checkPartyContactRequirement } from "~/modules/settings/party-contact.server";
 import { getUser } from "~/modules/users/users.server";
 import { loader as pdfLoader } from "~/routes/file+/purchase-order+/$orderId[.]pdf";
+import { getDatabaseClient } from "~/services/database.server";
 import { path, requestReferrer } from "~/utils/path";
 import { stripSpecialCharacters } from "~/utils/string";
 
@@ -79,6 +87,22 @@ export async function action(args: ActionFunctionArgs) {
         request,
         error("You are not authorized to finalize this purchase order")
       )
+    );
+  }
+
+  // A supplier with no reachable contact cannot be created as a vendor at a
+  // spend platform, so its documents are rejected there long after anyone is
+  // watching. Gate at issue time, where the supplier can still be fixed. No-op
+  // unless the company has turned the setting on.
+  const supplierContactError = await checkPartyContactRequirement(
+    client,
+    companyId,
+    { kind: "supplier", id: purchaseOrder.data.supplierId }
+  );
+  if (supplierContactError) {
+    throw redirect(
+      path.to.purchaseOrder(orderId),
+      await flash(request, error(null, supplierContactError))
     );
   }
 
@@ -203,19 +227,14 @@ export async function action(args: ActionFunctionArgs) {
     companySettings.data?.purchasePriceUpdateTiming ===
     "Purchase Order Finalize"
   ) {
-    const priceUpdate = await serviceRole.functions.invoke(
-      "update-purchased-prices",
-      {
-        body: {
-          purchaseOrderId: orderId,
-          companyId,
-          userId,
-          source: "purchaseOrder",
-          updatePrices: true,
-          updateLeadTimes: false
-        }
-      }
-    );
+    const priceUpdate = await serverFns
+      .system({ db: getDatabaseClient(), companyId, userId })
+      .invoke("update-purchased-prices", {
+        purchaseOrderId: orderId,
+        source: "purchaseOrder",
+        updatePrices: true,
+        updateLeadTimes: false
+      });
 
     if (priceUpdate.error) {
       logger.error("Failed to update purchased prices", {
@@ -237,15 +256,15 @@ export async function action(args: ActionFunctionArgs) {
 
     file = await pdf.arrayBuffer();
     fileName = stripSpecialCharacters(
-      `${purchaseOrder.data.purchaseOrderId} - ${new Date()
+      `${getPurchaseOrderDisplayId(purchaseOrder.data)} - ${new Date()
         .toISOString()
         .slice(0, -5)}.pdf`
     );
 
     documentFilePath = `${companyId}/supplier-interaction/${purchaseOrder.data.supplierInteractionId}/${fileName}`;
 
-    const documentFileUpload = await serviceRole.storage
-      .from("private")
+    const documentFileUpload = await storage(serviceRole)
+      .company(companyId)
       .upload(documentFilePath, file, {
         cacheControl: `${12 * 60 * 60}`,
         contentType: "application/pdf",
@@ -315,7 +334,7 @@ export async function action(args: ActionFunctionArgs) {
           buyer
         ] = await Promise.all([
           getCompany(serviceRole, companyId),
-          getSupplierContact(serviceRole, supplierContact),
+          getSupplierContact(serviceRole, supplierContact, companyId),
           getPurchaseOrder(serviceRole, orderId),
           getPurchaseOrderLines(serviceRole, orderId),
           getPurchaseOrderLocations(serviceRole, orderId),
@@ -378,13 +397,18 @@ export async function action(args: ActionFunctionArgs) {
           );
           for (const doc of docs) {
             const storagePath = `${companyId}/supplier-interaction/${interactionId}/${doc.name}`;
-            const { data: signedUrlData } = await serviceRole.storage
-              .from("private")
+            const { data, error } = await storage(serviceRole)
+              .company(companyId)
               .createSignedUrl(storagePath, 3600);
-            if (signedUrlData?.signedUrl) {
+            if (data) {
               attachments.push({
                 filename: doc.name,
-                path: signedUrlData.signedUrl
+                path: data.signedUrl
+              });
+            } else {
+              logger.error("Failed to create signed URL for attachment", {
+                storagePath,
+                error
               });
             }
           }
@@ -404,13 +428,18 @@ export async function action(args: ActionFunctionArgs) {
         });
 
         for (const r of defaults) {
-          const { data: signedUrlData } = await serviceRole.storage
-            .from("private")
+          const { data, error } = await storage(serviceRole)
+            .company(companyId)
             .createSignedUrl(r.path, 3600);
-          if (signedUrlData?.signedUrl) {
+          if (data) {
             attachments.push({
               filename: r.name,
-              path: signedUrlData.signedUrl
+              path: data.signedUrl
+            });
+          } else {
+            logger.error("Failed to create signed URL for attachment", {
+              storagePath: r.path,
+              error
             });
           }
         }
@@ -429,7 +458,7 @@ export async function action(args: ActionFunctionArgs) {
           to: [buyer.data.email, supplier.data.contact.email],
           cc: ccSelections?.length ? ccSelections : undefined,
           from: buyer.data.email,
-          subject: `Purchase Order ${purchaseOrder.data.purchaseOrderId} from ${company.data.name}`,
+          subject: `Purchase Order ${getPurchaseOrderDisplayId(purchaseOrder.data)} from ${company.data.name}`,
           html,
           text,
           attachments: attachments.length ? attachments : undefined,

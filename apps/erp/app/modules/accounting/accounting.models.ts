@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { months } from "~/modules/shared";
@@ -109,7 +113,7 @@ export const analyticsReportKeys = [
 export type AnalyticsReportKey = (typeof analyticsReportKeys)[number];
 
 // Account scope: exactly one selector. "scrapAccounts" resolves at runtime to
-// accountDefault.scrapAccount (getScrapAccountIds in accounting.ee.service.ts).
+// accountDefault.scrapAccount (getScrapAccountIds in accounting.service.ts).
 export type AnalyticsAccountScope =
   | { classes: (typeof accountClassTypes)[number][] }
   | { types: (typeof accountTypes)[number][] }
@@ -269,7 +273,7 @@ export const reportViewValidator = z.object({
     .min(1, { message: "Name is required" })
     .max(100, { message: "Name must be 100 characters or fewer" }),
   visibility: z.enum(reportViewVisibilities, {
-    errorMap: () => ({ message: "Visibility is required" })
+    error: "Visibility is required"
   }),
   config: z.string().min(2, { message: "Config is required" })
 });
@@ -281,20 +285,14 @@ export const groupAccountValidator = z
     parentId: zfd.text(z.string().optional()),
     accountType: z
       .enum(accountTypes, {
-        errorMap: () => ({
-          message: "Account type is required"
-        })
+        error: "Account type is required"
       })
       .optional(),
     incomeBalance: z.enum(incomeBalanceTypes, {
-      errorMap: () => ({
-        message: "Income balance is required"
-      })
+      error: "Income balance is required"
     }),
     class: z.enum(accountClassTypes, {
-      errorMap: () => ({
-        message: "Class is required"
-      })
+      error: "Class is required"
     })
   })
   .refine(
@@ -336,20 +334,14 @@ export const accountValidator = z
     isGroup: zfd.checkbox(),
     accountType: z
       .enum(accountTypes, {
-        errorMap: () => ({
-          message: "Account type is required"
-        })
+        error: "Account type is required"
       })
       .optional(),
     incomeBalance: z.enum(incomeBalanceTypes, {
-      errorMap: () => ({
-        message: "Income balance is required"
-      })
+      error: "Income balance is required"
     }),
     class: z.enum(accountClassTypes, {
-      errorMap: () => ({
-        message: "Class is required"
-      })
+      error: "Class is required"
     }),
     consolidatedRate: z.enum(consolidatedRateTypes)
   })
@@ -392,14 +384,10 @@ export const accountValidator = z
 
 export const fiscalYearSettingsValidator = z.object({
   startMonth: z.enum(months, {
-    errorMap: (issue, ctx) => ({
-      message: "Start month is required"
-    })
+    error: "Start month is required"
   }),
   taxStartMonth: z.enum(months, {
-    errorMap: (issue, ctx) => ({
-      message: "Tax start month is required"
-    })
+    error: "Tax start month is required"
   })
 });
 
@@ -417,10 +405,14 @@ export const currencyValidator = z.object({
   id: zfd.text(z.string().optional()),
   code: z.string().trim().min(1, { message: "Code is required" }),
   decimalPlaces: zfd.numeric(z.number().min(0).max(4)),
-  exchangeRate: zfd.numeric(z.number().min(0, { message: "Rate is required" })),
   historicalExchangeRate: zfd.numeric(
-    z.number().min(0, { message: "Rate must be positive" }).optional()
+    z.number().positive({ message: "Rate must be positive" }).optional()
   )
+});
+
+export const exchangeRateOverrideValidator = z.object({
+  currencyCode: z.string().trim().min(1, { message: "Currency is required" }),
+  rate: zfd.numeric(z.number().positive({ message: "Rate must be positive" }))
 });
 
 export const defaultBalanceSheetAccountValidator = z.object({
@@ -469,6 +461,10 @@ export const defaultBalanceSheetAccountValidator = z.object({
   payablesAccount: z.string().min(1, {
     message: "Payables account is required"
   }),
+  // Optional BY DESIGN: the column is nullable with a runtime fallback to
+  // `payablesAccount`, and a required field would break saves on every company
+  // whose chart has no Employee Reimbursements Payable account.
+  employeeReimbursementsPayableAccount: z.string().optional(),
   salesTaxPayableAccount: z.string().min(1, {
     message: "Sales tax payable account is required"
   }),
@@ -491,6 +487,12 @@ export const defaultBalanceSheetAccountValidator = z.object({
 
 export const defaultIncomeAcountValidator = z.object({
   salesAccount: z.string().min(1, { message: "Sales account is required" }),
+  salesShippingRevenueAccount: z
+    .string()
+    .min(1, {
+      message: "Shipping revenue account is required"
+    })
+    .optional(),
   salesDiscountAccount: z.string().min(1, {
     message: "Sales discount account is required"
   }),
@@ -603,9 +605,7 @@ export const paymentTermValidator = z.object({
       })
   ),
   calculationMethod: z.enum(["Net", "End of Month", "Day of Month"], {
-    errorMap: (issue, ctx) => ({
-      message: "Calculation method is required"
-    })
+    error: "Calculation method is required"
   })
 });
 
@@ -627,6 +627,12 @@ export const costCenterValidator = z.object({
   name: z.string().trim().min(1, { message: "Name is required" }),
   parentCostCenterId: zfd.text(z.string().optional()),
   ownerId: z.string().min(1, { message: "Owner is required" })
+});
+
+export const projectValidator = z.object({
+  id: zfd.text(z.string().optional()),
+  name: z.string().trim().min(1, { message: "Name is required" }),
+  description: zfd.text(z.string().trim().optional())
 });
 
 export const intercompanyTransactionStatuses = [
@@ -678,14 +684,72 @@ export const intercompanyTransactionValidator = z
     }
   );
 
+export const openingBalanceValidator = z.object({
+  postingDate: z.string().min(1, { message: "Posting date is required" }),
+  // JSON-encoded array of { accountId, amount } produced by the form's hidden
+  // input. `amount` is the signed base-currency figure the user typed against
+  // the account, positive = the account's natural balance side (debit for
+  // Asset/Expense, credit for Liability/Equity/Revenue). The service converts
+  // each amount → {debit, credit} per class and appends the Retained Earnings
+  // plug before posting. Zero-amount rows are dropped.
+  lines: z
+    .string()
+    .min(1, { message: "At least one balance is required" })
+    .transform((val, ctx) => {
+      let parsed: unknown;
+      try {
+        parsed = JSON.parse(val);
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid lines" });
+        return z.NEVER;
+      }
+      if (!Array.isArray(parsed)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid lines" });
+        return z.NEVER;
+      }
+
+      // Reject structurally-invalid rows rather than silently dropping them, so
+      // a malformed payload fails loudly instead of posting a partial entry. A
+      // zero amount is a legitimately-empty input and is the only thing skipped.
+      const result: Array<{ accountId: string; amount: number }> = [];
+      for (const row of parsed) {
+        const accountId = (row as { accountId?: unknown }).accountId;
+        const amount = (row as { amount?: unknown }).amount;
+        if (typeof accountId !== "string" || accountId.length === 0) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "An opening balance row is missing its account"
+          });
+          return z.NEVER;
+        }
+        if (typeof amount !== "number" || !Number.isFinite(amount)) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: "An opening balance row has an invalid amount"
+          });
+          return z.NEVER;
+        }
+        if (amount !== 0) result.push({ accountId, amount });
+      }
+      return result;
+    })
+    .refine((lines) => lines.length > 0, {
+      message: "At least one balance is required"
+    })
+});
+
 export const journalEntrySourceTypes = [
   "Manual",
+  "Opening Balance",
   "Purchase Receipt",
   "Purchase Invoice",
   "Purchase Return",
+  "Purchase Return Shipment",
   "Sales Invoice",
   "Sales Shipment",
   "Sales Return",
+  "Sales Return Receipt",
+  "Sales Return Shipment",
   "Transfer Receipt",
   "Inventory Adjustment",
   "Production Order",
@@ -693,13 +757,16 @@ export const journalEntrySourceTypes = [
   "Job Receipt",
   "Production Event",
   "Job Close",
+  "Maintenance Event",
   "Asset Depreciation",
   "Asset Disposal",
   "Payment",
   "Credit Memo",
   "Debit Memo",
   "Non-Conformance",
-  "Inbound Inspection"
+  "Inbound Inspection",
+  "Charge",
+  "Reimbursement"
 ] as const;
 
 export const journalEntryStatuses = ["Draft", "Posted", "Reversed"] as const;
@@ -745,7 +812,7 @@ export const addCloseTaskValidator = z.object({
   periodId: z.string().min(1, { message: "Period is required" }),
   name: z.string().trim().min(1, { message: "Name is required" }),
   taskType: z.enum(periodCloseTaskTypes, {
-    errorMap: () => ({ message: "Task type is required" })
+    error: "Task type is required"
   }),
   required: zfd.checkbox(),
   assigneeId: zfd.text(z.string().optional())
@@ -756,7 +823,7 @@ export const periodCloseTaskDefinitionValidator = z.object({
   id: zfd.text(z.string().optional()),
   name: z.string().trim().min(1, { message: "Name is required" }),
   taskType: z.enum(periodCloseTaskTypes, {
-    errorMap: () => ({ message: "Task type is required" })
+    error: "Task type is required"
   }),
   autoCheckKey: zfd.text(z.string().optional()),
   sortOrder: zfd.numeric(z.number().int().min(0)),
@@ -802,6 +869,7 @@ export const dimensionEntityTypes = [
   "ItemPostingGroup",
   "Location",
   "Process",
+  "Project",
   "ScrapReason",
   "Supplier",
   "SupplierType",
@@ -812,7 +880,7 @@ export const dimensionValidator = z.object({
   id: zfd.text(z.string().optional()),
   name: z.string().trim().min(1, { message: "Name is required" }),
   entityType: z.enum(dimensionEntityTypes, {
-    errorMap: () => ({ message: "Entity type is required" })
+    error: "Entity type is required"
   }),
   active: zfd.checkbox(),
   required: zfd.checkbox(),
@@ -847,7 +915,7 @@ export const fixedAssetClassValidator = z.object({
   name: z.string().trim().min(1, { message: "Name is required" }),
   description: z.string().optional(),
   depreciationMethod: z.enum(depreciationMethods, {
-    errorMap: () => ({ message: "Depreciation method is required" })
+    error: "Depreciation method is required"
   }),
   usefulLifeMonths: zfd.numeric(
     z.number().int().positive({ message: "Useful life must be positive" })
@@ -901,7 +969,7 @@ export const fixedAssetValidator = z.object({
   description: z.string().optional(),
   serialNumber: z.string().optional(),
   depreciationMethod: z.enum(depreciationMethods, {
-    errorMap: () => ({ message: "Depreciation method is required" })
+    error: "Depreciation method is required"
   }),
   usefulLifeMonths: zfd.numeric(
     z.number().int().positive({ message: "Useful life must be positive" })

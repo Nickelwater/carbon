@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type {
   DocumentSectionPlacement,
   FooterOptions,
@@ -34,6 +38,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
+  Subheading,
   Switch,
   VStack
 } from "@carbon/react";
@@ -177,9 +182,9 @@ export function SectionFormModal({
 
               {isHeader && (
                 <div className="flex w-full flex-col gap-3 rounded-md border bg-muted/30 p-3">
-                  <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  <Subheading variant="heavy" className="block">
                     Header layout
-                  </p>
+                  </Subheading>
                   <p className="text-xs text-muted-foreground">
                     Set the logo from the Logo item under Header.
                   </p>

@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
@@ -14,6 +19,7 @@ import {
   DropdownMenuTrigger,
   HStack,
   IconButton,
+  MENU_ITEM_SHORTCUTS,
   Modal,
   ModalBody,
   ModalContent,
@@ -26,9 +32,9 @@ import {
 } from "@carbon/react";
 import { getItemById, getItemReadableId } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import { LuArrowRight, LuCirclePlus, LuEllipsisVertical } from "react-icons/lu";
-import { Link, Outlet, useFetcher, useNavigate } from "react-router";
+import { Link, Outlet, useNavigate } from "react-router";
 import { DateTime, EmployeeAvatar, Empty, ItemThumbnail } from "~/components";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
@@ -190,6 +196,7 @@ function WarehouseTransferLineListItem({
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.edit}
                   disabled={isDisabled}
                   onClick={() =>
                     navigate(
@@ -203,6 +210,7 @@ function WarehouseTransferLineListItem({
                   <Trans>Edit</Trans>
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   disabled={isDisabled}
                   destructive
                   onClick={deleteModalDisclosure.onOpen}
@@ -245,15 +253,15 @@ function DeleteWarehouseTransferLine({
   onCancel: () => void;
   onSubmit: () => void;
 }) {
-  const fetcher = useFetcher<{ success: boolean }>();
-  const submitted = useRef(false);
-
-  useEffect(() => {
-    if (submitted.current && fetcher.state === "idle") {
-      onSubmit();
-      submitted.current = false;
+  const fetcher = useAction<{ success: boolean }>({
+    onSettled: () => {
+      if (submitted.current) {
+        onSubmit();
+        submitted.current = false;
+      }
     }
-  }, [fetcher.state, onSubmit]);
+  });
+  const submitted = useRef(false);
 
   return (
     <Modal

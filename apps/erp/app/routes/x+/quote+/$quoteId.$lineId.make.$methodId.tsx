@@ -1,12 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { JSONContent } from "@carbon/react";
 import { VStack } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
 import { Suspense } from "react";
 import type { LoaderFunctionArgs } from "react-router";
-import { Await, redirect, useLoaderData, useParams } from "react-router";
+import { Await, useLoaderData, useParams } from "react-router";
 import { CadModel } from "~/components";
 import { usePermissions } from "~/hooks";
 import {
@@ -111,13 +116,6 @@ export default function QuoteMakeMethodRoute() {
     <VStack spacing={2}>
       <QuoteMakeMethodTools />
 
-      <QuoteBillOfMaterial
-        key={`bom:${methodId}`}
-        quoteMakeMethodId={methodId}
-        // @ts-expect-error TS2322 - TODO: fix type
-        materials={materials}
-        operations={operations}
-      />
       <QuoteBillOfProcess
         key={`bop:${methodId}`}
         quoteMakeMethodId={methodId}
@@ -126,6 +124,13 @@ export default function QuoteMakeMethodRoute() {
         // @ts-expect-error
         operations={operations}
         tags={tags}
+      />
+      <QuoteBillOfMaterial
+        key={`bom:${methodId}`}
+        quoteMakeMethodId={methodId}
+        // @ts-expect-error TS2322 - TODO: fix type
+        materials={materials}
+        operations={operations}
       />
       <Suspense fallback={null}>
         <Await resolve={loaderData.model}>
@@ -136,7 +141,7 @@ export default function QuoteMakeMethodRoute() {
               metadata={{
                 itemId: model?.itemId ?? undefined
               }}
-              modelPath={model?.modelPath ?? null}
+              modelUpload={model ?? null}
               title={t`CAD Model`}
               uploadClassName="aspect-square min-h-[420px] max-h-[70vh]"
               viewerClassName="aspect-square min-h-[420px] max-h-[70vh]"

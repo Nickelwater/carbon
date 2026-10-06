@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useUrlParams } from "~/hooks";
 
 export function useFilters() {
@@ -136,6 +140,13 @@ export function useFilters() {
     }
   };
 
+  // Replace the key's filter with a single value in one update (radio
+  // semantics for exclusive filters)
+  const setFilter = (key: string, value: string) => {
+    const others = urlFiltersParams.filter((f) => f.split(":")[0] !== key);
+    setParams({ filter: others.concat(`${key}:eq:${value}`) });
+  };
+
   const clearFilters = () => {
     setParams({ filter: undefined });
   };
@@ -149,6 +160,7 @@ export function useFilters() {
     hasFilters,
     hasFilterKey,
     removeKey,
+    setFilter,
     toggleFilter,
     urlFiltersParams
   };

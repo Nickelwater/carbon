@@ -330,7 +330,9 @@ async function resolveItemBoxQuantities(
     return new Map<string, number>();
   }
 
-  const { data, error } = await client
+  // itemPackaging is a fork table — may be absent from regenerated upstream types
+  // until `pnpm run generate:types` runs against a migrated DB.
+  const { data, error } = await (client as any)
     .from("itemPackaging")
     .select("itemId, boxQuantity")
     .in("itemId", itemIds);
@@ -340,7 +342,10 @@ async function resolveItemBoxQuantities(
   }
 
   const byItemId = new Map<string, number>();
-  for (const row of data ?? []) {
+  for (const row of (data ?? []) as {
+    itemId: string;
+    boxQuantity: number | null;
+  }[]) {
     const boxQuantity = Number(row.boxQuantity ?? 0);
     if (boxQuantity > 0) {
       byItemId.set(row.itemId, boxQuantity);
@@ -392,7 +397,7 @@ function buildShippingLabelItem(
     description: context.description,
     salesOrderNumber: context.salesOrderNumber,
     shipToLines: context.shipToLines,
-    supplierName: context.supplierName,
+    supplierName: context.supplierName ?? "",
     supplierLines: context.supplierLines,
     shipDate: context.shipDate,
     packageIndex,

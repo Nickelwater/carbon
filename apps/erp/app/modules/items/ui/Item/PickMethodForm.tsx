@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { Boolean, useControlField, ValidatedForm } from "@carbon/form";
 import {
   Alert,
@@ -19,6 +23,7 @@ import {
   HStack,
   IconButton,
   Label,
+  MENU_ITEM_SHORTCUTS,
   Switch,
   usePickOrderOptions,
   VStack
@@ -167,14 +172,14 @@ const PickMethodForm = ({
                   <IconButton
                     aria-label={t`Inventory actions`}
                     icon={<LuEllipsisVertical />}
-                    size="sm"
+                    size="md"
                     variant="secondary"
                   />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   {shelfLifeHistoryTrigger}
                   {inventoryHistoryTrigger}
-                  <DropdownMenuItem asChild>
+                  <DropdownMenuItem shortcut={MENU_ITEM_SHORTCUTS.open} asChild>
                     <Link to={path.to.auditLog}>
                       <DropdownMenuIcon icon={<LuSettings />} />
                       <Trans>Open Audit Log</Trans>
@@ -264,14 +269,23 @@ function PartPackagingFields({
     return "Item";
   });
 
+  const [boxQuantity] = useControlField<number | undefined>("boxQuantity");
+  const [partWeight] = useControlField<number | undefined>("partWeight");
+
   return (
     <>
       <NumberControlled
         name="boxQuantity"
         label={t`Box Quantity`}
         minValue={0}
+        value={boxQuantity ?? 0}
       />
-      <NumberControlled name="partWeight" label={t`Part Weight`} minValue={0} />
+      <NumberControlled
+        name="partWeight"
+        label={t`Part Weight`}
+        minValue={0}
+        value={partWeight ?? 0}
+      />
       <Item
         name="standardPackagingItemId"
         label={t`Standard Packaging`}

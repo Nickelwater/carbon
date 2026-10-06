@@ -76,10 +76,11 @@ export async function action({ request, params }: ActionFunctionArgs) {
       : (rawBasis as "Cycles" | "RunTime");
 
   const result = await updateToolLifePolicy(client, itemId, companyId, userId, {
-    lifeBasis,
-    lifeLimit: validation.data.lifeLimit ?? null,
+    lifeBasis: lifeBasis ?? undefined,
+    lifeLimit: validation.data.lifeLimit ?? undefined,
     isPermanent: validation.data.isPermanent ?? false,
-    dedicatedPartReadableId: validation.data.dedicatedPartReadableId ?? null
+    dedicatedPartReadableId:
+      validation.data.dedicatedPartReadableId ?? undefined
   });
 
   if (result.error) {

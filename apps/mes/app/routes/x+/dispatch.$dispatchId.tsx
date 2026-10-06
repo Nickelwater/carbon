@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import type { Database } from "@carbon/database";
 import { Hidden, ValidatedForm } from "@carbon/form";
@@ -17,12 +21,16 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
+import { groupBy, isUnaffectedByNavigation } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMemo } from "react";
 import { BsExclamationSquareFill } from "react-icons/bs";
 import { FaCheck, FaPause, FaPlay } from "react-icons/fa6";
 import { LuArrowLeft, LuCheck, LuCirclePlus, LuX } from "react-icons/lu";
-import type { LoaderFunctionArgs } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
 import { Link, useFetcher, useLoaderData } from "react-router";
 import { z } from "zod";
 import { HighPriorityIcon } from "~/assets/icons/HighPriorityIcon";
@@ -46,10 +54,22 @@ import type {
   maintenanceSeverity
 } from "~/services/models";
 import { useItems } from "~/stores";
+import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
+export const handle: Handle = {
+  realtime: [
+    { table: "maintenanceDispatch", column: "id", param: "dispatchId" }
+  ]
+};
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["dispatchId"] })
+    ? false
+    : args.defaultShouldRevalidate;
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
-  const { client, userId } = await requirePermissions(request, {});
+  const { client, companyId, userId } = await requirePermissions(request, {});
   const { dispatchId } = params;
 
   if (!dispatchId) {
@@ -60,7 +80,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     getMaintenanceDispatch(client, dispatchId),
     getMaintenanceDispatchEvents(client, dispatchId),
     getMaintenanceDispatchItems(client, dispatchId),
-    getActiveMaintenanceEventByEmployee(client, userId)
+    getActiveMaintenanceEventByEmployee(client, {
+      dispatchId,
+      employeeId: userId,
+      companyId
+    })
   ]);
 
   // Fetch replacement parts for the work center if available
@@ -75,22 +99,23 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     replacementParts = parts.data ?? [];
   }
 
-  // Fetch tracked entities for each item
-  const itemTrackedEntities: Record<
-    string,
-    Awaited<
-      ReturnType<typeof getMaintenanceDispatchItemTrackedEntities>
-    >["data"]
-  > = {};
-  if (items.data) {
-    for (const item of items.data) {
-      const trackedEntities = await getMaintenanceDispatchItemTrackedEntities(
+  // Tracked entities for every item, in one read
+  const trackedEntities = items.data?.length
+    ? await getMaintenanceDispatchItemTrackedEntities(
         client,
-        item.id
-      );
-      itemTrackedEntities[item.id] = trackedEntities.data ?? [];
-    }
-  }
+        items.data.map((item) => item.id)
+      )
+    : null;
+  const trackedEntitiesByItem = groupBy(
+    trackedEntities?.data ?? [],
+    (row) => row.maintenanceDispatchItemId
+  );
+  const itemTrackedEntities = Object.fromEntries(
+    (items.data ?? []).map((item) => [
+      item.id,
+      trackedEntitiesByItem[item.id] ?? []
+    ])
+  );
 
   return {
     dispatch: dispatch.data,
@@ -230,7 +255,7 @@ export default function MaintenanceDetailRoute() {
 
   return (
     <div className="flex flex-col flex-1">
-      <header className="sticky top-0 z-10 flex h-[var(--header-height)] shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12 border-b bg-background">
+      <header className="sticky top-0 z-10 flex h-[var(--header-height)] shrink-0 items-center gap-2 border-b bg-card">
         <div className="flex items-center gap-2 px-2 w-full justify-between">
           <HStack>
             <SidebarTrigger />
@@ -250,7 +275,7 @@ export default function MaintenanceDetailRoute() {
         </div>
       </header>
 
-      <main className="h-[calc(100dvh-var(--header-height))] w-full overflow-y-auto scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent p-4">
+      <main className="flex-1 min-h-0 w-full overflow-y-auto scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent p-4">
         <VStack spacing={4} className="max-w-2xl mx-auto">
           {/* Work Center & OEE Impact */}
           <Card className="w-full">

@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Badge,
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem
 } from "@carbon/react";
@@ -103,6 +108,9 @@ const PricingRulesTable = memo(({ data, count }: PricingRulesTableProps) => {
         header: t`Type`,
         cell: ({ row }) => {
           const { amount, amountType, ruleType } = row.original;
+          if (ruleType === "Configuration") {
+            return <Badge variant="blue">{t`Configuration`}</Badge>;
+          }
           return (
             <Badge
               variant={ruleType === "Discount" ? "red" : "green"}
@@ -414,6 +422,7 @@ const PricingRulesTable = memo(({ data, count }: PricingRulesTableProps) => {
       return (
         <>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.edit}
             disabled={!canUpdate}
             onClick={() => {
               navigate(`${path.to.pricingRule(row.id)}?${params.toString()}`);
@@ -423,6 +432,7 @@ const PricingRulesTable = memo(({ data, count }: PricingRulesTableProps) => {
             {t`Edit Pricing Rule`}
           </MenuItem>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.duplicate}
             disabled={!canCreate}
             onClick={() => {
               fetcher.submit(
@@ -438,6 +448,7 @@ const PricingRulesTable = memo(({ data, count }: PricingRulesTableProps) => {
             {t`Duplicate Pricing Rule`}
           </MenuItem>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.delete}
             destructive
             disabled={!canDelete}
             onClick={() => {

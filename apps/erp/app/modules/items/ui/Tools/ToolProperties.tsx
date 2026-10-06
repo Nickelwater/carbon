@@ -1,9 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Json } from "@carbon/database";
 import { InputControlled, Select, ValidatedForm } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
+  Copy,
   HStack,
+  Subheading,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -12,9 +19,9 @@ import {
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
-import { Suspense, useCallback, useEffect } from "react";
+import { Suspense, useCallback } from "react";
 import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
-import { Await, Link, useFetcher, useParams } from "react-router";
+import { Await, Link, useParams } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import {
@@ -23,11 +30,17 @@ import {
   MethodIcon,
   TrackingTypeIcon
 } from "~/components";
-import { Boolean, ItemPostingGroup, Tags } from "~/components/Form";
+import {
+  Boolean,
+  ItemPostingGroup,
+  Tags,
+  UnitOfMeasure
+} from "~/components/Form";
 import CustomFormInlineFields from "~/components/Form/CustomFormInlineFields";
 import { ReplenishmentSystemIcon } from "~/components/Icons";
 import { ItemThumbnailUpload } from "~/components/ItemThumnailUpload";
-import { useRouteData } from "~/hooks";
+import { useCompanySettings, useRouteData } from "~/hooks";
+import { useResolved } from "~/hooks/useResolved";
 import { methodType } from "~/modules/shared";
 import type { action } from "~/routes/x+/items+/update";
 import { useSuppliers } from "~/stores";
@@ -38,6 +51,7 @@ import {
   itemReplenishmentSystems,
   itemTrackingTypes
 } from "../../items.models";
+import type { UnreleasedChangeOrderItem } from "../../items.server";
 import type {
   ItemFile,
   MakeMethod,
@@ -45,6 +59,7 @@ import type {
   SupplierPart,
   Tool
 } from "../../types";
+import { ItemChangeNoticeLock } from "../ChangeNotice/ItemChangeNoticeLock";
 import { FileBadge, ItemDescription, SourcingTypeProperty } from "../Item";
 
 type ToolPropertiesProps = {
@@ -57,12 +72,16 @@ type ToolPropertiesProps = {
     pickMethods: PickMethod[];
     makeMethods: Promise<PostgrestResponse<MakeMethod>>;
     tags: { name: string }[];
+    // Set while the change notice that minted this item is still open.
+    unreleasedChangeOrder?: UnreleasedChangeOrderItem | null;
   };
 };
 
 const ToolProperties = ({ data }: ToolPropertiesProps) => {
   const { t } = useLingui();
   const params = useParams();
+  const allowLowercaseItemIds =
+    useCompanySettings()?.allowLowercaseItemIds === true;
   const itemId = data?.itemId ?? params.itemId;
   if (!itemId) throw new Error("itemId not found");
 
@@ -78,7 +97,7 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
     pickMethods: PickMethod[];
     makeMethods: Promise<PostgrestResponse<MakeMethod>>;
     tags: { name: string }[];
-    supersession?: {
+    supersession?: Promise<{
       successorItemId: string | null;
       successorEffectivityDate: string | null;
       successor: {
@@ -86,15 +105,29 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
         readableIdWithRevision: string;
         name: string;
       } | null;
-    } | null;
-    supersededBy?: Array<{
-      predecessor: {
-        id: string;
-        readableIdWithRevision: string;
-        name: string;
-      } | null;
-    }>;
+    } | null>;
+    supersededBy?: Promise<
+      Array<{
+        predecessor: {
+          id: string;
+          readableIdWithRevision: string;
+          name: string;
+        } | null;
+      }>
+    >;
+    // Set while the change notice that minted this item is still open.
+    unreleasedChangeOrder?: UnreleasedChangeOrderItem | null;
   }>(path.to.tool(itemId));
+  const supersession = useResolved(
+    routeDataFromRoute?.supersession,
+    null,
+    itemId
+  );
+  const supersededBy = useResolved(
+    routeDataFromRoute?.supersededBy,
+    null,
+    itemId
+  );
   const routeData = data ?? routeDataFromRoute;
 
   const locations = data?.locations ?? sharedToolsData?.locations ?? [];
@@ -110,13 +143,13 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
   //     ? optimisticAssignment
   //     : routeData?.toolSummary?.assignee;
 
-  const fetcher = useFetcher<typeof action>();
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error(fetcher.data.error.message);
+  const fetcher = useAction<typeof action>({
+    onError: (data) => {
+      if (data?.error) {
+        toast.error(data.error.message);
+      }
     }
-  }, [fetcher.data]);
-
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   const onUpdate = useCallback(
     (
@@ -130,7 +163,9 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
         | "itemPostingGroupId"
         | "toolId"
         | "active"
-        | "mpn",
+        | "mpn"
+        | "unitOfMeasureCode"
+        | "requiresInspection",
       value: string | null
     ) => {
       const formData = new FormData();
@@ -185,18 +220,26 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
     [routeData?.toolSummary?.readableId]
   );
 
+  // The change notice that minted this tool activates it at release. Until then
+  // the toggle is locked: an unreleased revision switched Active by hand reaches
+  // the item pickers, MRP and job creation carrying the notice's draft BOM.
+  // An already-active tool is left alone so it can still be switched off.
+  const activationLockId = routeData?.toolSummary?.active
+    ? undefined
+    : routeData?.unreleasedChangeOrder?.changeOrderReadableId;
+
   const [suppliers] = useSuppliers();
 
   return (
     <VStack
       spacing={4}
-      className="w-96 bg-card h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
+      className="w-96 bg-background/30 h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
     >
       <VStack spacing={2}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+          <Subheading as="h3" variant="light">
             <Trans>Properties</Trans>
-          </h3>
+          </Subheading>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -220,26 +263,13 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
                 </span>
               </TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  aria-label={t`Copy`}
-                  size="sm"
-                  className="p-1"
-                  onClick={() =>
-                    copyToClipboard(routeData?.toolSummary?.id ?? "")
-                  }
-                >
-                  <LuKeySquare className="w-3 h-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span>
-                  <Trans>Copy tool unique identifier</Trans>
-                </span>
-              </TooltipContent>
-            </Tooltip>
+            <Copy
+              text={routeData?.toolSummary?.id ?? ""}
+              label={t`Copy tool unique identifier`}
+              icon={<LuKeySquare className="size-3" />}
+              variant="ghost"
+              className="w-auto"
+            />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -281,6 +311,7 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
                 name="toolId"
                 inline
                 size="sm"
+                isUppercase={!allowLowercaseItemIds}
                 value={routeData?.toolSummary?.readableId ?? ""}
                 onBlur={(e) => {
                   onUpdate("toolId", e.target.value ?? null);
@@ -296,7 +327,7 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
             validator={z.object({
               name: z.string()
             })}
-            className="w-full -mt-2"
+            className="w-full"
           >
             <span className="text-xs text-muted-foreground">
               <InputControlled
@@ -493,16 +524,27 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
         onChange={(value) => onUpdate("sourcingType", value)}
       />
 
-      <VStack spacing={2}>
-        <h3 className="text-xs text-muted-foreground">
-          <Trans>Unit of Measure</Trans>
-        </h3>
-        {routeData?.toolSummary?.unitOfMeasure && (
-          <Badge variant="secondary">
-            {routeData.toolSummary.unitOfMeasure}
-          </Badge>
-        )}
-      </VStack>
+      <ValidatedForm
+        defaultValues={{
+          unitOfMeasureCode:
+            routeData?.toolSummary?.unitOfMeasureCode ?? undefined
+        }}
+        validator={z.object({
+          unitOfMeasureCode: z
+            .string()
+            .min(1, { message: "Unit of Measure is required" })
+        })}
+        className="w-full"
+      >
+        <UnitOfMeasure
+          label={t`Unit of Measure`}
+          name="unitOfMeasureCode"
+          inline
+          onChange={(value) => {
+            onUpdate("unitOfMeasureCode", value?.value ?? null);
+          }}
+        />
+      </ValidatedForm>
 
       <ItemDescription
         value={routeData?.toolSummary?.description ?? ""}
@@ -555,24 +597,39 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
           />
         ))}
       </VStack>
-      <ValidatedForm
-        defaultValues={{
-          active: routeData?.toolSummary?.active ?? undefined
-        }}
-        validator={z.object({
-          active: zfd.checkbox()
-        })}
+      <ItemChangeNoticeLock
+        changeNotices={[]}
+        isLocked={!!activationLockId}
         className="w-full"
+        reason={
+          activationLockId ? (
+            <Trans>
+              This tool is activated when change notice {activationLockId} is
+              released.
+            </Trans>
+          ) : undefined
+        }
       >
-        <Boolean
-          label={t`Active`}
-          name="active"
-          variant="small"
-          onChange={(value) => {
-            onUpdate("active", value ? "on" : "off");
+        <ValidatedForm
+          defaultValues={{
+            active: routeData?.toolSummary?.active ?? undefined
           }}
-        />
-      </ValidatedForm>
+          validator={z.object({
+            active: zfd.checkbox()
+          })}
+          className="w-full"
+        >
+          <Boolean
+            label={t`Active`}
+            name="active"
+            variant="small"
+            isDisabled={!!activationLockId}
+            onChange={(value) => {
+              onUpdate("active", value ? "on" : "off");
+            }}
+          />
+        </ValidatedForm>
+      </ItemChangeNoticeLock>
       <ValidatedForm
         defaultValues={{
           requiresInspection:
@@ -614,25 +671,23 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
           />
         </ValidatedForm>
       )}
-      {routeDataFromRoute?.supersession?.successor && (
+      {supersession?.successor && (
         <div className="w-full">
           <h3 className="text-xs text-muted-foreground mb-1">
             <Trans>Superseded By</Trans>
           </h3>
           <Link
-            to={path.to.tool(routeDataFromRoute.supersession.successor.id)}
+            to={path.to.tool(supersession.successor.id)}
             className="text-sm text-primary hover:underline"
           >
-            {routeDataFromRoute.supersession.successor.readableIdWithRevision}
+            {supersession.successor.readableIdWithRevision}
           </Link>
-          {routeDataFromRoute.supersession.successorEffectivityDate && (
+          {supersession.successorEffectivityDate && (
             <p className="text-xs text-muted-foreground">
               <Trans>
                 From{" "}
                 <DateTime
-                  value={
-                    routeDataFromRoute.supersession.successorEffectivityDate
-                  }
+                  value={supersession.successorEffectivityDate}
                   variant="date"
                 />
               </Trans>
@@ -640,12 +695,12 @@ const ToolProperties = ({ data }: ToolPropertiesProps) => {
           )}
         </div>
       )}
-      {(routeDataFromRoute?.supersededBy?.length ?? 0) > 0 && (
+      {(supersededBy?.length ?? 0) > 0 && (
         <div className="w-full">
           <h3 className="text-xs text-muted-foreground mb-1">
             <Trans>Supersedes</Trans>
           </h3>
-          {routeDataFromRoute?.supersededBy?.map(
+          {supersededBy?.map(
             (ref) =>
               ref.predecessor && (
                 <Link

@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
+import { storage } from "@carbon/files";
 import { ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -54,8 +59,8 @@ const CustomerTaxForm = ({ initialValues }: CustomerTaxFormProps) => {
       const fileExtension = file.name.split(".").pop();
       const fileName = `${companyId}/tax-certificates/${nanoid()}.${fileExtension}`;
 
-      const result = await carbon.storage
-        .from("private")
+      const result = await storage(carbon)
+        .company(companyId)
         .upload(fileName, file);
 
       if (result.error) {
@@ -147,7 +152,7 @@ const CustomerTaxForm = ({ initialValues }: CustomerTaxFormProps) => {
                 onDrop={onDrop}
                 accept={{
                   "application/pdf": [".pdf"],
-                  "image/*": [".png", ".jpg", ".jpeg"]
+                  "image/*": [".png", ".jpg", ".jpeg", ".heic", ".heif"]
                 }}
                 multiple={false}
               />

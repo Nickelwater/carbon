@@ -1,10 +1,19 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { VStack } from "@carbon/react";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useParams } from "react-router";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useParams } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout";
 import { getCurrencyByCode } from "~/modules/accounting";
 import {
@@ -22,14 +31,32 @@ import {
   getSupplierInteractionDocuments
 } from "~/modules/purchasing/purchasing.service";
 import { detailBreadcrumb, type Handle } from "~/utils/handle";
-import { path } from "~/utils/path";
+import { path, requestReferrer } from "~/utils/path";
 
 export const handle: Handle = {
+  realtime: [
+    { table: "purchaseInvoice", column: "id", param: "invoiceId" },
+    { table: "purchaseInvoiceLine", column: "invoiceId", param: "invoiceId" },
+    // What is applied to this invoice, and the payments behind it: voiding a
+    // payment changes the payment row only.
+    {
+      table: "invoiceSettlement",
+      column: "targetPurchaseInvoiceId",
+      param: "invoiceId"
+    },
+    { table: "payment", column: "targetPurchaseInvoiceId", param: "invoiceId" }
+  ],
   breadcrumb: detailBreadcrumb(
     { breadcrumb: msg`Purchasing Invoices`, to: path.to.invoicingPurchasing },
     (data) => data?.purchaseInvoice?.invoiceId
-  )
+  ),
+  module: "invoicing"
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["invoiceId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId, companyGroupId } = await requirePermissions(
@@ -59,18 +86,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     );
   }
 
-  const [supplier, interaction, files, orgHasCredits, currency] =
+  const [supplier, interaction, orgHasCredits, currency, rampMapping] =
     await Promise.all([
       purchaseInvoice.data?.supplierId
         ? getSupplier(client, purchaseInvoice.data.supplierId)
         : null,
       getSupplierInteraction(
         client,
-        purchaseInvoice.data.supplierInteractionId!
-      ),
-      getSupplierInteractionDocuments(
-        client,
-        companyId,
         purchaseInvoice.data.supplierInteractionId!
       ),
       getCompanyHasOpenCredits(client, companyId, "purchase"),
@@ -80,7 +102,17 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
             companyGroupId,
             purchaseInvoice.data.currencyCode
           )
-        : null
+        : null,
+      // Ramp origin/sync badge. Read via the user-scoped client — if RLS denies
+      // (or there is no mapping), fall back to null silently.
+      client
+        .from("externalIntegrationMapping")
+        .select("id, externalId, metadata")
+        .eq("companyId", companyId)
+        .eq("integration", "ramp")
+        .eq("entityType", "bill")
+        .eq("entityId", invoiceId)
+        .maybeSingle()
     ]);
 
   return {
@@ -88,17 +120,20 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     currency: currency?.data ?? null,
     purchaseInvoiceLines: purchaseInvoiceLines.data ?? [],
     purchaseInvoiceDelivery: purchaseInvoiceDelivery.data,
-    files,
+    files: getSupplierInteractionDocuments(
+      client,
+      companyId,
+      purchaseInvoice.data.supplierInteractionId!
+    ),
     interaction: interaction.data,
     supplier: supplier?.data ?? null,
-    orgHasCredits
+    orgHasCredits,
+    rampMapping: rampMapping?.data ?? null
   };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  throw redirect(
-    request.headers.get("Referer") ?? new URL(request.url).pathname
-  );
+  throw redirect(requestReferrer(request) ?? new URL(request.url).pathname);
 }
 
 export default function PurchaseInvoiceRoute() {
@@ -108,15 +143,15 @@ export default function PurchaseInvoiceRoute() {
 
   return (
     <PanelProvider>
-      <div className="flex flex-col h-[calc(100dvh-49px)] overflow-hidden w-full">
+      <div className="flex flex-col h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] overflow-hidden w-full">
         <PurchaseInvoiceHeader />
-        <div className="flex h-[calc(100dvh-99px)] overflow-hidden w-full">
+        <div className="flex h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] overflow-hidden w-full">
           <div className="flex flex-grow overflow-hidden">
             <ResizablePanels
               explorer={<PurchaseInvoiceExplorer />}
               content={
-                <div className="h-[calc(100dvh-99px)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full">
-                  <VStack spacing={2} className="p-2">
+                <div className="bg-card h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full">
+                  <VStack spacing={4} className="p-4">
                     <Outlet />
                   </VStack>
                 </div>

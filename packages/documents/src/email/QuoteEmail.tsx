@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database } from "@carbon/database";
 import { getAppUrl } from "@carbon/env";
 import { formatDate } from "@carbon/utils";
@@ -12,6 +16,7 @@ import {
   Text
 } from "@react-email/components";
 import type { CompanySettings, Email } from "../types";
+import { getQuoteDisplayId } from "../utils/quote";
 import ExternalNotes from "./components/ExternalNotes";
 import {
   Button,
@@ -38,7 +43,9 @@ const QuoteEmail = ({
       ? `${getAppUrl()}/share/quote/${quote.externalLinkId}` // the VERCEL_URL variable was giving us a preview branch
       : undefined;
 
-  const preview = <Preview>{`${quote.quoteId} from ${company.name}`}</Preview>;
+  const preview = (
+    <Preview>{`${getQuoteDisplayId(quote)} from ${company.name}`}</Preview>
+  );
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
 
@@ -96,7 +103,6 @@ const QuoteEmail = ({
                 : "please see the attached quote and let me know if you have any questions."}
             </Text>
           </Section>
-          <ExternalNotes content={quote.externalNotes} />
           {digitalQuoteUrl ? (
             <Section>
               <Button href={digitalQuoteUrl} className="mb-4">
@@ -104,6 +110,7 @@ const QuoteEmail = ({
               </Button>
             </Section>
           ) : null}
+          <ExternalNotes content={quote.externalNotes} />
           <Section className="bg-gray-50 rounded-lg text-xs">
             <Row>
               <Column className="p-5" colSpan={2}>
@@ -128,7 +135,7 @@ const QuoteEmail = ({
                       >
                         Quote ID
                       </Text>
-                      <Text>{quote.quoteId}</Text>
+                      <Text>{getQuoteDisplayId(quote)}</Text>
                     </Column>
                     <Column>
                       <Text

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useRouteData } from "@carbon/react";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { path } from "~/utils/path";
@@ -11,6 +15,6 @@ import { path } from "~/utils/path";
  * midnight UTC and flags jobs due today as overdue for viewers behind UTC.
  */
 export function useScheduleToday(): string {
-  const data = useRouteData<{ timezone?: string }>(path.to.scheduleDates);
+  const data = useRouteData<{ timezone?: string }>(path.to.priorityDates);
   return today(data?.timezone ?? getLocalTimeZone()).toString();
 }

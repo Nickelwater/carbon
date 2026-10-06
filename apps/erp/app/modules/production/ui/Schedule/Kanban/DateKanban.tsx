@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getLogger } from "@carbon/logger";
 import { ClientOnly, cn, toast } from "@carbon/react";
 import type {
@@ -189,7 +193,7 @@ function usePendingItems(locationId: string) {
   return useFetchers()
     .filter((fetcher): fetcher is PendingItem => {
       return (
-        fetcher.formAction === path.to.scheduleDatesUpdate &&
+        fetcher.formAction === path.to.priorityDatesUpdate &&
         fetcher.formData?.get("locationId") === locationId
       );
     })
@@ -229,7 +233,7 @@ function useDateUpdateFailureToast() {
 
   useEffect(() => {
     for (const fetcher of fetchers) {
-      if (fetcher.formAction !== path.to.scheduleDatesUpdate) continue;
+      if (fetcher.formAction !== path.to.priorityDatesUpdate) continue;
       const key = fetcher.key;
 
       if (fetcher.state === "submitting") {
@@ -408,7 +412,7 @@ const DateKanban = ({
         },
         {
           method: "post",
-          action: path.to.scheduleDatesUpdate,
+          action: path.to.priorityDatesUpdate,
           navigate: false,
           flushSync: true,
           fetcherKey: `job:${origin.item.id}`

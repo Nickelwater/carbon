@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router";
@@ -60,6 +64,26 @@ export default function useReceiptForm({
               setSourceDocuments(
                 response.data.map((d) => ({
                   name: d.purchaseOrderId,
+                  id: d.id
+                }))
+              );
+            }
+          });
+        break;
+
+      case "Sales Return Order":
+        carbon
+          ?.from("salesReturnOrder")
+          .select("id, salesReturnOrderId")
+          .eq("companyId", user.company.id)
+          .eq("status", "To Receive")
+          .then((response) => {
+            if (response.error) {
+              setError(response.error.message);
+            } else {
+              setSourceDocuments(
+                response.data.map((d) => ({
+                  name: d.salesReturnOrderId,
                   id: d.id
                 }))
               );

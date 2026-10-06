@@ -1,5 +1,9 @@
-import type { WorkflowDefinition, WorkflowNode } from "@carbon/workflows";
-import { topologicalNodeOrder } from "@carbon/workflows";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { WorkflowDefinition, WorkflowNode } from "@carbon/ee/workflows";
+import { topologicalNodeOrder } from "@carbon/ee/workflows";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
 import { LuChevronDown, LuChevronRight } from "react-icons/lu";

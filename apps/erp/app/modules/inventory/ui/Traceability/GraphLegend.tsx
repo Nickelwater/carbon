@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   cn,
   HStack,
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Subheading,
   VStack
 } from "@carbon/react";
 import type { IconType } from "react-icons";
@@ -88,9 +93,9 @@ export function GraphLegend() {
             <Section title="Activities" entries={ACTIVITY_ENTRIES} />
           </HStack>
           <div className="border-t border-border p-4">
-            <span className="block text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-2">
+            <Subheading variant="heavy" className="block mb-2">
               Lines
-            </span>
+            </Subheading>
             <VStack spacing={2}>
               <LineRow
                 label="Normal flow"
@@ -128,9 +133,9 @@ export function GraphLegend() {
 function Section({ title, entries }: { title: string; entries: Entry[] }) {
   return (
     <VStack spacing={3} className="p-4 flex-1 min-w-0">
-      <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
+      <Subheading variant="heavy" className="mb-1">
         {title}
-      </span>
+      </Subheading>
       {entries.map((entry) => (
         <Row key={entry.label} entry={entry} />
       ))}

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 "use client";
 import { useCarbon } from "@carbon/auth";
 import type { Database } from "@carbon/database";
@@ -19,7 +23,6 @@ import {
   HStack,
   IconButton,
   Label,
-  ScrollArea,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -30,7 +33,7 @@ import {
 } from "@carbon/react";
 import { getItemById, getItemReadableId } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { nanoid } from "nanoid";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -39,12 +42,12 @@ import {
   LuArrowLeft,
   LuChevronDown,
   LuChevronRight,
-  LuCog,
   LuExternalLink,
   LuGitPullRequest,
   LuGitPullRequestCreate,
   LuGitPullRequestCreateArrow,
   LuLock,
+  LuRedoDot,
   LuSquareFunction,
   LuTruck
 } from "react-icons/lu";
@@ -545,16 +548,14 @@ const BillOfMaterial = ({
         {isProductionRevision && (
           <ReleaseLockAlert isLocked={isReleaseLocked} className="mb-4" />
         )}
-        <ScrollArea type="auto" className="max-h-[60dvh]">
-          <SortableList
-            isReadOnly={isReadOnly}
-            items={materials}
-            onReorder={onReorder}
-            onToggleItem={onToggleItem}
-            onRemoveItem={onRemoveItem}
-            renderItem={renderListItem}
-          />
-        </ScrollArea>
+        <SortableList
+          isReadOnly={isReadOnly}
+          items={materials}
+          onReorder={onReorder}
+          onToggleItem={onToggleItem}
+          onRemoveItem={onRemoveItem}
+          renderItem={renderListItem}
+        />
       </CardContent>
       {configuratorDisclosure.isOpen && configuration && (
         <ConfigurationEditor
@@ -1065,7 +1066,7 @@ function MaterialForm({
                 methodOperations.length > 0 ? "secondary" : "destructive"
               }
             >
-              <LuCog className="size-3 mr-1" />
+              <LuRedoDot className="size-3 mr-1" />
               {itemData.methodOperationId
                 ? methodOperations.find(
                     (o) => o.id === itemData.methodOperationId
@@ -1125,7 +1126,7 @@ function MaterialForm({
         transition={{
           type: "spring",
           bounce: 0,
-          duration: 0.55
+          duration: 0.25
         }}
       >
         <motion.div
@@ -1253,8 +1254,8 @@ function makeItem(
     id: material.id!,
     title: (
       <VStack spacing={0} className="py-1 cursor-pointer">
-        <div className="flex items-center gap-2 group">
-          <h3 className="font-semibold truncate">
+        <div className="flex w-full min-w-0 items-center gap-2 group">
+          <h3 className="font-semibold min-w-0 truncate">
             {getItemReadableId(items, material.itemId) ?? ""}
           </h3>
           <ItemLifecycleBadge

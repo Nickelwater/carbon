@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useLingui } from "@lingui/react/macro";
 import {
   LuBan,
@@ -5,8 +9,10 @@ import {
   LuList,
   LuPercent,
   LuShapes,
+  LuShieldCheck,
   LuSquareUser,
-  LuStar
+  LuStar,
+  LuUndo2
 } from "react-icons/lu";
 import {
   RiProgress2Line,
@@ -45,22 +51,28 @@ export default function useSalesSubmodules() {
           table: "quote"
         },
         {
-          name: t`Orders`,
+          name: t`Sales Orders`,
           to: path.to.salesOrders,
           icon: <RiProgress8Line />,
           table: "salesOrder"
         },
         {
-          name: t`Portals`,
-          to: path.to.customerPortals,
-          role: "employee",
-          icon: <LuGlobe />
+          name: t`Returns`,
+          to: path.to.salesReturnOrders,
+          icon: <LuUndo2 />,
+          table: "salesReturnOrder"
         }
       ]
     },
     {
       name: t`Configure`,
       routes: [
+        {
+          name: t`Portals`,
+          to: path.to.customerPortals,
+          role: "employee",
+          icon: <LuGlobe />
+        },
         {
           name: t`Price Lists`,
           to: path.to.salesPriceList,
@@ -74,10 +86,22 @@ export default function useSalesSubmodules() {
           icon: <LuPercent />
         },
         {
+          name: t`Sales Rules`,
+          to: path.to.salesRules,
+          role: "employee",
+          icon: <LuShieldCheck />
+        },
+        {
           name: t`No Quote Reasons`,
           to: path.to.noQuoteReasons,
           role: "employee",
           icon: <LuBan />
+        },
+        {
+          name: t`Return Reasons`,
+          to: path.to.returnReasons,
+          role: "employee",
+          icon: <LuUndo2 />
         },
 
         {

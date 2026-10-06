@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Array,
   ArrayNumeric,
@@ -55,6 +59,7 @@ import ItemPostingGroup from "./ItemPostingGroup";
 import Items from "./Items";
 import JobSalesOrderLine from "./JobSalesOrderLine";
 import Location from "./Location";
+import LocationEmployee from "./LocationEmployee";
 import MaterialType from "./MaterialType";
 import Part from "./Part";
 import PaymentTerm from "./PaymentTerm";
@@ -69,6 +74,7 @@ import {
   ShelfLifeStartTiming
 } from "./ShelfLifeStartEvent";
 import Shift from "./Shift";
+import Shifts from "./Shifts";
 import ShippingMethod from "./ShippingMethod";
 import StandardFactor from "./StandardFactor";
 import StorageTypes from "./StorageTypes";
@@ -109,6 +115,7 @@ export {
   ConversionFactor,
   CreatableCombobox,
   CreatableMultiSelect,
+  LocationEmployee,
   Currency,
   Customer,
   CustomerContact,
@@ -161,6 +168,7 @@ export {
   StorageUnit,
   StorageTypes,
   Shift,
+  Shifts,
   ShippingMethod,
   StandardFactor,
   Submit,

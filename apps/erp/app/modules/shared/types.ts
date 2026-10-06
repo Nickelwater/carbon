@@ -1,7 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database } from "@carbon/database";
 import type { ColumnPinningState } from "@tanstack/react-table";
 import type { z } from "zod";
-import type { StorageItem } from "~/types";
+import type { ModelUpload, StorageItem } from "~/types";
 import type {
   ApprovalDocumentType,
   approvalRequestValidator,
@@ -22,6 +26,9 @@ import type {
   getApprovalRuleByAmount,
   getNotes
 } from "./shared.service";
+
+/** A `ModelUpload` read off an item, carrying the item it came from. */
+export type ItemModelUpload = ModelUpload & { itemId: string | null };
 
 export type ApprovalFilters = {
   documentType?: ApprovalDocumentType | null;
@@ -144,8 +151,13 @@ export type OperationParameter = z.infer<typeof operationParameterValidator> & {
 };
 export type OptimisticFileObject = Omit<
   StorageItem,
-  "owner" | "updated_at" | "created_at" | "last_accessed_at" | "buckets"
->;
+  | "owner"
+  | "updated_at"
+  | "created_at"
+  | "last_accessed_at"
+  | "buckets"
+  | "metadata"
+> & { metadata: { size: number; mimetype: string } };
 
 export type QuantityEffect = (quantity: number) => number;
 

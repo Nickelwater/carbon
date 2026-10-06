@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useLingui } from "@lingui/react/macro";
 import { IoBalloonOutline } from "react-icons/io5";
 import {
@@ -67,27 +71,34 @@ export default function useQualitySubmodules() {
       name: t`Inspection`,
       routes: [
         {
-          name: t`Inspections`,
+          name: t`Inbound Inspections`,
           to: path.to.inspections,
           icon: <LuClipboardCheck />,
-          table: "inboundInspection"
+          table: "inspection"
         },
         {
           name: t`Lot Inspections`,
           to: path.to.lotInspections,
           icon: <LuClipboardCheck />,
-          table: "lotInspection"
+          table: "inspection"
         },
         {
           name: t`In-Process Inspections`,
           to: path.to.inProcessInspections,
           icon: <LuClipboardCheck />,
-          table: "inProcessInspection"
+          table: "inspection"
         },
         {
           name: t`Inspection Documents`,
           to: path.to.inspectionDocuments,
-          icon: <IoBalloonOutline />
+          icon: <IoBalloonOutline />,
+          table: "inspectionDocument"
+        },
+        {
+          name: t`Inspection Plans`,
+          to: path.to.inspectionDocuments,
+          icon: <IoBalloonOutline />,
+          table: "inspectionDocument"
         }
       ]
     },

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useLingui } from "@lingui/react/macro";
 import { useMemo } from "react";
 import {
@@ -12,6 +16,7 @@ import {
   LuCoins,
   LuEuro,
   LuFileSpreadsheet,
+  LuFolderKanban,
   LuHandCoins,
   LuLayers,
   LuScale,
@@ -139,6 +144,12 @@ export default function useAccountingSubmodules() {
             to: path.to.paymentTerms,
             role: "employee",
             icon: <LuHandCoins />
+          },
+          {
+            name: t`Projects`,
+            to: path.to.projects,
+            role: "employee",
+            icon: <LuFolderKanban />
           }
         ]
       }

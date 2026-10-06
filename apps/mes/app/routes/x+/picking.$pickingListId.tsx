@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import type {
   TrackedEntityOption,
@@ -13,7 +17,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  Count,
   cn,
   DropdownMenu,
   DropdownMenuContent,
@@ -38,6 +41,7 @@ import {
   toast,
   VStack
 } from "@carbon/react";
+import { isUnaffectedByNavigation } from "@carbon/utils";
 import { Trans } from "@lingui/react/macro";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import {
@@ -49,7 +53,10 @@ import {
   LuTriangleAlert,
   LuUndo2
 } from "react-icons/lu";
-import type { LoaderFunctionArgs } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
 import { Await, useFetcher, useLoaderData } from "react-router";
 import { Enumerable } from "~/components/Enumerable";
 import ItemThumbnail from "~/components/ItemThumbnail";
@@ -61,7 +68,24 @@ import { isPickingListLocked } from "~/services/models";
 import type { UnresolvedPickingListLine } from "~/services/picking.service";
 import { getPickingListForExecution } from "~/services/picking.service";
 import { useItems } from "~/stores";
+import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
+
+export const handle: Handle = {
+  realtime: [
+    { table: "pickingList", column: "id", param: "pickingListId" },
+    {
+      table: "pickingListLine",
+      column: "pickingListId",
+      param: "pickingListId"
+    }
+  ]
+};
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["pickingListId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client } = await requirePermissions(request, {});
@@ -136,7 +160,7 @@ export default function PickingExecutionRoute() {
 
   return (
     <div className="flex flex-col flex-1">
-      <header className="sticky top-0 z-10 flex h-[var(--header-height)] shrink-0 items-center justify-between gap-2 border-b bg-background">
+      <header className="sticky top-0 z-10 flex h-[var(--header-height)] shrink-0 items-center justify-between gap-2 border-b bg-card">
         <div className="flex items-center gap-2 px-2">
           <SidebarTrigger />
           <Heading size="h4">{pickingList.pickingListId}</Heading>
@@ -153,7 +177,7 @@ export default function PickingExecutionRoute() {
         </div>
       </header>
 
-      <main className="h-[calc(100dvh-var(--header-height))] w-full overflow-y-auto scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent p-4">
+      <main className="flex-1 min-h-0 w-full overflow-y-auto scrollbar-thin scrollbar-thumb-accent scrollbar-track-transparent p-4">
         <div className="w-full max-w-5xl mx-auto pb-16">
           <VStack spacing={4} className="w-full">
             {kits.map((kit) => (
@@ -441,9 +465,57 @@ function PickLineItem({
     }
   }, [fetcher.data]);
 
-  const lineItem = line.item as { name: string; readableId: string } | null;
+  const lineItem = line.item as {
+    name: string;
+    readableId: string;
+    unitOfMeasureCode: string | null;
+  } | null;
   const item = items.find((i) => i.id === line.itemId);
   const itemName = item?.name ?? lineItem?.name ?? "";
+  // Pick quantities are in the picked item's own stock unit (a substituted
+  // line is already converted into the successor's units at generation).
+  const unitOfMeasureCode = lineItem?.unitOfMeasureCode ?? null;
+  const unitSuffix = unitOfMeasureCode ? ` ${unitOfMeasureCode}` : "";
+  const sourceMaterial = (
+    line as {
+      jobMaterial?: {
+        itemId?: string | null;
+        quantity?: number | string | null;
+        substitutionFactor?: number | string | null;
+        item?: {
+          readableId?: string | null;
+          itemSupersession?: {
+            conversionFactor?: number | string | null;
+          } | null;
+        } | null;
+      } | null;
+    }
+  ).jobMaterial;
+  const substitutedFrom =
+    sourceMaterial?.itemId && sourceMaterial.itemId !== line.itemId
+      ? (items.find((i) => i.id === sourceMaterial.itemId)
+          ?.readableIdWithRevision ??
+        sourceMaterial.item?.readableId ??
+        sourceMaterial.itemId)
+      : null;
+  const substitutedAssemblies = (() => {
+    if (!substitutedFrom || !sourceMaterial) return null;
+    const perAssembly = Number(sourceMaterial.quantity ?? 0);
+    if (!(perAssembly > 0)) return null;
+    const substitutionFactor = Number(sourceMaterial.substitutionFactor ?? 0);
+    const conversionFactor = Number(
+      sourceMaterial.item?.itemSupersession?.conversionFactor ?? 0
+    );
+    const factor =
+      substitutionFactor > 0
+        ? 1 / substitutionFactor
+        : conversionFactor > 0
+          ? conversionFactor
+          : null;
+    if (factor === null) return null;
+    const n = Number(line.quantityToPick ?? 0) / (perAssembly * factor);
+    return Number.isInteger(n) ? n : null;
+  })();
   const source = (line.storageUnit as { name?: string } | null)?.name;
   const availableQuantity = Number(
     (line as { availableQuantity?: number }).availableQuantity ?? 0
@@ -520,10 +592,10 @@ function PickLineItem({
       )}
     >
       {quantityPicked}/{quantityToPick}
+      {unitSuffix}
     </Badge>
   ) : (
-    <Count
-      count={isShort ? quantityPicked : quantityToPick}
+    <Badge
       className={cn(
         "text-white text-base tabular-nums",
         isFullyPicked
@@ -532,7 +604,10 @@ function PickLineItem({
             ? "bg-orange-500"
             : "bg-red-600"
       )}
-    />
+    >
+      {isShort ? quantityPicked : quantityToPick}
+      {unitSuffix}
+    </Badge>
   );
 
   return (
@@ -557,6 +632,21 @@ function PickLineItem({
             <p className="truncate font-mono text-sm text-muted-foreground">
               {item?.readableIdWithRevision ?? lineItem?.readableId}
             </p>
+            {substitutedFrom && (
+              <p className="truncate text-sm text-blue-700 dark:text-blue-300">
+                ↩{" "}
+                {substitutedAssemblies !== null ? (
+                  <Trans>
+                    picking in place of {substitutedFrom}, the item on the job,
+                    for {substitutedAssemblies} assemblies
+                  </Trans>
+                ) : (
+                  <Trans>
+                    picking in place of {substitutedFrom}, the item on the job
+                  </Trans>
+                )}
+              </p>
+            )}
             {isTracked && !isFullyPicked && (
               <RecommendedLots resolve={recommendations} lineId={line.id} />
             )}
@@ -600,7 +690,8 @@ function PickLineItem({
                 className="font-mono tabular-nums normal-case"
               >
                 {lot.trackedEntity?.readableId ?? lot.trackedEntityId}
-                {isBatch && ` × ${Number(lot.quantityPicked ?? 0)}`}
+                {isBatch &&
+                  ` × ${Number(lot.quantityPicked ?? 0)}${unitSuffix}`}
               </Badge>
             ))}
           </HStack>
@@ -717,6 +808,7 @@ function PickLineItem({
           itemName={itemName}
           quantityToPick={quantityToPick}
           quantityPicked={quantityPicked}
+          unitOfMeasureCode={unitOfMeasureCode}
           onClose={() => setShortOpen(false)}
         />
       )}

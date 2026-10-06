@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Checkbox,
   DropdownMenuContent,
@@ -160,7 +164,7 @@ const SupplierAccountsTable = memo(
           accessorKey: "supplier.supplierTypeId",
           header: t`Supplier Type`,
           cell: ({ row }) => (
-            // @ts-ignore
+            // @ts-expect-error
             <Enumerable value={row.original.supplier?.supplierType?.name} />
           ),
           meta: {

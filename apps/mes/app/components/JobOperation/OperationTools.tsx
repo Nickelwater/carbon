@@ -8,7 +8,6 @@ import {
   cn,
   Heading,
   HStack,
-  ModelViewer,
   Separator,
   SidebarTrigger,
   Table,
@@ -42,7 +41,7 @@ export function OperationTools({ operation, job, tools }: OperationToolsProps) {
   const mode = useMode();
   const revalidator = useRevalidator();
   const toolIssueModal = useDisclosure();
-  const [selectedToolId, setSelectedToolId] = useState(tools[0]?.id ?? null);
+  const [selectedToolId, setSelectedToolId] = useState<string | null>(tools[0]?.id ?? null);
   const [selectedToolToIssue, setSelectedToolToIssue] =
     useState<JobOperationToolWithLife | null>(null);
 
@@ -92,7 +91,7 @@ export function OperationTools({ operation, job, tools }: OperationToolsProps) {
             <Trans>Tools</Trans>
           </Heading>
           <span className="text-muted-foreground truncate text-sm">
-            {job.jobReadableId} · {operation.description}
+            {job.jobId} · {operation.description}
           </span>
         </HStack>
       </header>
@@ -234,7 +233,7 @@ export function OperationTools({ operation, job, tools }: OperationToolsProps) {
                               remainingLife(selectedTool),
                               selectedTool.lifeLimit
                             ) && (
-                              <Badge variant="warning">
+                              <Badge variant="yellow">
                                 <Trans>Low</Trans>
                               </Badge>
                             )}
@@ -278,13 +277,7 @@ export function OperationTools({ operation, job, tools }: OperationToolsProps) {
                   <CardContent className="flex min-h-0 flex-1 flex-col p-0">
                     {selectedTool.modelPath ? (
                       <div className="min-h-[50dvh] flex-1 lg:min-h-0">
-                        <ModelViewer
-                          file={null}
-                          key={`tool-model-${selectedTool.id}-${selectedTool.modelPath}`}
-                          url={`/file/preview/private/${selectedTool.modelPath}`}
-                          mode={mode}
-                          className="h-full w-full rounded-none"
-                        />
+                        <div className="text-sm text-muted-foreground">Model preview unavailable</div>
                       </div>
                     ) : (
                       <div className="text-muted-foreground flex min-h-[12rem] flex-1 items-center justify-center p-6 text-center text-sm">

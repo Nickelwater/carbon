@@ -1,10 +1,15 @@
-import { OPERATOR_LABELS } from "@carbon/utils";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type {
   Clause,
   ClauseEvaluation,
   ConditionNode,
   NodeDetail
-} from "@carbon/workflows";
+} from "@carbon/ee/workflows";
+import { Subheading } from "@carbon/react";
+import { OPERATOR_LABELS } from "@carbon/utils";
 import { Trans } from "@lingui/react/macro";
 import { LuCheck, LuX } from "react-icons/lu";
 import { humanizeField } from "../Builder/nodes/meta";
@@ -42,9 +47,9 @@ function ClauseLine({
   return (
     <div className="space-y-1">
       {showCombinator && (
-        <div className="text-xs text-muted-foreground uppercase font-medium py-0.5">
+        <Subheading variant="heavy" className="block py-0.5">
           {combinator}
-        </div>
+        </Subheading>
       )}
       <div className="flex items-start gap-2 flex-wrap text-sm">
         {label && <span className="font-medium">{label}</span>}

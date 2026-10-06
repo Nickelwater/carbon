@@ -1,9 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { useMount, VStack } from "@carbon/react";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useLoaderData } from "react-router";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useLoaderData } from "react-router";
 import { usePanels } from "~/components/Layout";
 import {
   getJobOperationsList,
@@ -13,6 +21,11 @@ import {
 import { ProductionQuantitiesTable } from "~/modules/production/ui/Jobs";
 import { path, requestReferrer } from "~/utils/path";
 import { getGenericQueryFilters } from "~/utils/query";
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["jobId"], search: "all" })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -86,7 +99,10 @@ export default function ProductionQuantitiesRoute() {
 
   return (
     <>
-      <VStack spacing={0} className="h-[calc(100dvh-99px)]">
+      <VStack
+        spacing={0}
+        className="h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))]"
+      >
         <ProductionQuantitiesTable
           data={events}
           count={count}

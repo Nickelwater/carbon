@@ -1,11 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { JSONContent } from "@carbon/react";
 import { Menubar, VStack } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { Suspense } from "react";
 import type { LoaderFunctionArgs } from "react-router";
-import { Await, redirect, useLoaderData, useParams } from "react-router";
+import { Await, useLoaderData, useParams } from "react-router";
 import { useRouteData } from "~/hooks";
 import type { ServiceSummary } from "~/modules/items";
 import {
@@ -114,7 +119,7 @@ export default function ServiceMakeMethodPage() {
   }>(path.to.service(itemId));
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       <Suspense fallback={<Menubar />}>
         <Await resolve={makeMethods}>
           {(makeMethods) => (
@@ -128,14 +133,6 @@ export default function ServiceMakeMethodPage() {
         </Await>
       </Suspense>
 
-      <BillOfMaterial
-        key={`bom:${makeMethodId}`}
-        makeMethod={makeMethod}
-        // @ts-expect-error TS2322 - TODO: fix type
-        materials={methodMaterials}
-        operations={methodOperations}
-        replenishmentSystem={serviceData?.serviceSummary?.replenishmentSystem}
-      />
       <BillOfProcess
         key={`bop:${makeMethodId}`}
         makeMethod={makeMethod}
@@ -143,6 +140,14 @@ export default function ServiceMakeMethodPage() {
         // @ts-expect-error
         operations={methodOperations}
         tags={tags}
+      />
+      <BillOfMaterial
+        key={`bom:${makeMethodId}`}
+        makeMethod={makeMethod}
+        // @ts-expect-error TS2322 - TODO: fix type
+        materials={methodMaterials}
+        operations={methodOperations}
+        replenishmentSystem={serviceData?.serviceSummary?.replenishmentSystem}
       />
     </VStack>
   );

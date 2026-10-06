@@ -1,20 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database } from "@carbon/database";
 import { ValidatedForm } from "@carbon/form";
 import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
-  Copy,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
   HStack,
-  IconButton
+  IconButton,
+  MENU_ITEM_SHORTCUTS
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useState } from "react";
@@ -107,10 +110,6 @@ const ItemForm = ({ initialValues, type }: ItemFormProps) => {
         <HStack className="w-full justify-between">
           <CardHeader>
             <CardTitle className="line-clamp-2">{initialValues.name}</CardTitle>
-            <CardDescription className="flex items-center gap-2">
-              {initialValues.readableId}
-              <Copy text={initialValues.readableId ?? ""} />
-            </CardDescription>
           </CardHeader>
           <CardAction>
             <DropdownMenu>
@@ -122,8 +121,8 @@ const ItemForm = ({ initialValues, type }: ItemFormProps) => {
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  {/* @ts-ignore */}
+                <DropdownMenuItem shortcut={MENU_ITEM_SHORTCUTS.view} asChild>
+                  {/* @ts-expect-error */}
                   <Link to={getLinkToItemDetails(type, initialValues.id)}>
                     <Trans>View Item Master</Trans>
                   </Link>

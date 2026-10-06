@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   cn,
@@ -32,6 +36,7 @@ import {
 } from "~/components/Form";
 import { TrackingTypeIcon } from "~/components/Icons";
 import {
+  useCompanySettings,
   useCurrencyDecimals,
   useNextItemId,
   usePermissions,
@@ -78,6 +83,8 @@ const ConsumableForm = ({
 
   const { id, onIdChange, loading } = useNextItemId("Consumable");
   const permissions = usePermissions();
+  const allowLowercaseItemIds =
+    useCompanySettings()?.allowLowercaseItemIds === true;
   const isEditing = !!initialValues.id;
 
   const [defaultMethodType, setDefaultMethodType] = useState<string>(
@@ -149,7 +156,7 @@ const ConsumableForm = ({
                     value={id}
                     onChange={onIdChange}
                     isDisabled={loading}
-                    isUppercase
+                    isUppercase={!allowLowercaseItemIds}
                     autoFocus
                   />
                 )}

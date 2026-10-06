@@ -1,11 +1,21 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
+import { createMappingService } from "@carbon/ee/accounting";
 import { VStack } from "@carbon/react";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useParams } from "react-router";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useParams } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout";
 import { getCurrencyByCode } from "~/modules/accounting";
 import {
@@ -16,20 +26,40 @@ import {
   getSalesInvoiceLines,
   getSalesInvoiceShipment
 } from "~/modules/invoicing";
+import { STRIPE_CONNECT_INTEGRATION } from "~/modules/invoicing/stripe-customer.server";
 import SalesInvoiceExplorer from "~/modules/invoicing/ui/SalesInvoice/SalesInvoiceExplorer";
 import SalesInvoiceHeader from "~/modules/invoicing/ui/SalesInvoice/SalesInvoiceHeader";
 import SalesInvoiceProperties from "~/modules/invoicing/ui/SalesInvoice/SalesInvoiceProperties";
 import { getCustomer, getOpportunity } from "~/modules/sales/sales.service";
 import { getCompanySettings } from "~/modules/settings";
+import { getDatabaseClient } from "~/services/database.server";
 import { detailBreadcrumb, type Handle } from "~/utils/handle";
-import { path } from "~/utils/path";
+import { path, requestReferrer } from "~/utils/path";
 
 export const handle: Handle = {
+  realtime: [
+    { table: "salesInvoice", column: "id", param: "invoiceId" },
+    { table: "salesInvoiceLine", column: "invoiceId", param: "invoiceId" },
+    // What is applied to this invoice, and the payments behind it: voiding a
+    // payment changes the payment row only.
+    {
+      table: "invoiceSettlement",
+      column: "targetSalesInvoiceId",
+      param: "invoiceId"
+    },
+    { table: "payment", column: "targetSalesInvoiceId", param: "invoiceId" }
+  ],
   breadcrumb: detailBreadcrumb(
     { breadcrumb: msg`Sales Invoices`, to: path.to.invoicingSales },
     (data) => data?.salesInvoice?.invoiceId
-  )
+  ),
+  module: "invoicing"
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["invoiceId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId, companyGroupId } = await requirePermissions(
@@ -98,6 +128,21 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     )
   ];
 
+  let stripeInvoiceUrl: string | null = null;
+  if (salesInvoice.data?.postingDate) {
+    const mappingService = createMappingService(getDatabaseClient(), companyId);
+    const mapping = await mappingService.getByEntity(
+      "salesInvoice",
+      invoiceId,
+      STRIPE_CONNECT_INTEGRATION
+    );
+    if (mapping?.metadata) {
+      const metadata = mapping.metadata as Record<string, unknown> | undefined;
+      stripeInvoiceUrl =
+        (metadata?.hostedInvoiceUrl as string | undefined) ?? null;
+    }
+  }
+
   return {
     salesInvoice: salesInvoice.data,
     currency: currency?.data ?? null,
@@ -113,14 +158,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     opportunity: opportunity?.data ?? null,
     customer: customer?.data ?? null,
     defaultCc,
-    orgHasCredits
+    orgHasCredits,
+    stripeInvoiceUrl
   };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
-  throw redirect(
-    request.headers.get("Referer") ?? new URL(request.url).pathname
-  );
+  throw redirect(requestReferrer(request) ?? new URL(request.url).pathname);
 }
 
 export default function SalesInvoiceRoute() {
@@ -130,15 +174,15 @@ export default function SalesInvoiceRoute() {
 
   return (
     <PanelProvider>
-      <div className="flex flex-col h-[calc(100dvh-49px)] overflow-hidden w-full">
+      <div className="flex flex-col h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] overflow-hidden w-full">
         <SalesInvoiceHeader />
-        <div className="flex h-[calc(100dvh-99px)] overflow-hidden w-full">
+        <div className="flex h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] overflow-hidden w-full">
           <div className="flex flex-grow overflow-hidden">
             <ResizablePanels
               explorer={<SalesInvoiceExplorer />}
               content={
-                <div className="h-[calc(100dvh-99px)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full">
-                  <VStack spacing={2} className="p-2">
+                <div className="bg-card h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full">
+                  <VStack spacing={4} className="p-4">
                     <Outlet />
                   </VStack>
                 </div>

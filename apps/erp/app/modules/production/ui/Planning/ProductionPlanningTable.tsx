@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { useAction } from "@carbon/query";
 import {
   Button,
   Combobox,
@@ -85,16 +90,15 @@ const ProductionPlanningTable = ({
   const locations = useLocations();
   const unitOfMeasures = useUnitOfMeasure();
 
-  const mrpFetcher = useFetcher<typeof mrpAction>();
-  const bulkUpdateFetcher = useFetcher<typeof bulkUpdateAction>();
-
-  // Clear cache when MRP completes
-  useEffect(() => {
-    if (mrpFetcher.state === "idle" && mrpFetcher.data) {
-      clearOrdersCache();
-      setOrdersMap({}); // Reset local state to force recalculation
+  const mrpFetcher = useAction<typeof mrpAction>({
+    onSettled: (data) => {
+      if (data) {
+        clearOrdersCache();
+        setOrdersMap({}); // Reset local state to force recalculation
+      }
     }
-  }, [mrpFetcher.state, mrpFetcher.data]);
+  });
+  const bulkUpdateFetcher = useFetcher<typeof bulkUpdateAction>();
 
   // Clear local state when data changes (e.g., filters, search)
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
@@ -354,7 +358,7 @@ const ProductionPlanningTable = ({
             <ItemThumbnail
               size="sm"
               thumbnailPath={row.original.thumbnailPath}
-              // @ts-ignore
+              // @ts-expect-error
               type={row.original.type}
             />
 
@@ -600,7 +604,7 @@ const ProductionPlanningTable = ({
           </div>
         }
         renderActions={renderActions}
-        title={t`Planning`}
+        title={t`Material Planning`}
         table="production-planning"
         withSavedView
         withSelectableRows

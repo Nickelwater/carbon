@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   CardHeader,
   Copy,
@@ -30,7 +34,7 @@ const DocumentHeader = ({
     <CardHeader className="flex-row items-center justify-between">
       <div>
         <HStack>
-          <Heading as="h1" size="h3">
+          <Heading as="h1" size="h3" className="font-sans">
             {title}
           </Heading>
           <Copy text={title} />

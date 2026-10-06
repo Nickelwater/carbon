@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import {
   Button,
@@ -268,7 +272,7 @@ export const ProductionPlanningOrderDrawer = memo(
             <DrawerTitle className="flex items-center gap-2">
               <span>{row.readableIdWithRevision}</span>
               <Link
-                // @ts-ignore
+                // @ts-expect-error
                 to={getLinkToItemPlanning(row.type, row.id)}
               >
                 <LuExternalLink />

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import { Number as FormNumber, Submit, ValidatedForm } from "@carbon/form";
 import {
@@ -102,7 +106,7 @@ import type { Item } from "~/stores/items";
 import { path } from "~/utils/path";
 
 type AvailableShipmentLine = {
-  id: string;
+  id: string | null;
   itemId: string | null;
   description?: string | null;
   quantityToSend: number | null;
@@ -110,11 +114,18 @@ type AvailableShipmentLine = {
   saleQuantity?: number | null;
   promisedDate?: string | null;
   salesOrderReadableId: string | null;
-  salesOrderId: string;
+  salesOrderId: string | null;
   unitOfMeasureCode?: string | null;
 };
 
 type AddLineSortColumn = "order" | "item" | "promised" | "qtyDue" | "onHand";
+
+function availableLineSelectionId(line: AvailableShipmentLine): string {
+  return (
+    line.id ??
+    `${line.salesOrderId ?? "order"}-${line.itemId ?? "item"}-${line.quantityToSend ?? 0}`
+  );
+}
 
 function getShipmentLineColumnCount(showSalesOrderColumns: boolean) {
   return showSalesOrderColumns ? 8 : 5;
@@ -316,8 +327,8 @@ const ShipmentLines = ({
       const customer = customerResult.data;
       if (
         cancelled ||
-        !(customer as { contractCustomer?: boolean | null })
-          ?.contractCustomer ||
+        !customer ||
+        !(customer as { contractCustomer?: boolean | null }).contractCustomer ||
         !customer.id
       ) {
         if (!cancelled) {
@@ -703,7 +714,9 @@ const ShipmentLines = ({
         return next;
       }
 
-      const line = availableShipmentLines.find((entry) => entry.id === lineId);
+      const line = availableShipmentLines.find(
+        (entry) => availableLineSelectionId(entry) === lineId
+      );
       if (
         !line ||
         !isAvailableLineShippable(
@@ -755,22 +768,28 @@ const ShipmentLines = ({
 
   const allLinesSelected =
     selectableAvailableLines.length > 0 &&
-    selectableAvailableLines.every((line) => selectedLineIds.has(line.id));
+    selectableAvailableLines.every((line) =>
+      selectedLineIds.has(availableLineSelectionId(line))
+    );
   const someLinesSelected =
-    selectableAvailableLines.some((line) => selectedLineIds.has(line.id)) &&
+    selectableAvailableLines.some((line) =>
+      selectedLineIds.has(availableLineSelectionId(line))
+    ) &&
     !allLinesSelected;
 
   const toggleAllLines = () => {
     setSelectedLineIds((prev) => {
       const allSelected =
         selectableAvailableLines.length > 0 &&
-        selectableAvailableLines.every((line) => prev.has(line.id));
+        selectableAvailableLines.every((line) =>
+          prev.has(availableLineSelectionId(line))
+        );
       if (allSelected) return new Set();
 
       const next = new Set<string>();
       for (const line of sortedAvailableShipmentLines) {
         if (isAddLineShippable(line, next)) {
-          next.add(line.id);
+          next.add(availableLineSelectionId(line));
         }
       }
       return next;
@@ -1024,9 +1043,13 @@ const ShipmentLines = ({
                           items={items}
                           locationId={shipmentLocationId}
                           liveOnHandByItemId={liveOnHandByItemId}
-                          isSelected={selectedLineIds.has(line.id)}
+                          isSelected={selectedLineIds.has(
+                            availableLineSelectionId(line)
+                          )}
                           isShippable={isShippable}
-                          onToggle={() => toggleLineSelection(line.id)}
+                          onToggle={() =>
+                            toggleLineSelection(availableLineSelectionId(line))
+                          }
                           formatDate={formatDate}
                           showCustomerPartNumbers={
                             canToggleCustomerParts && showCustomerPartNumbers
@@ -1058,9 +1081,13 @@ const ShipmentLines = ({
                       items={items}
                       locationId={shipmentLocationId}
                       liveOnHandByItemId={liveOnHandByItemId}
-                      isSelected={selectedLineIds.has(line.id)}
+                      isSelected={selectedLineIds.has(
+                        availableLineSelectionId(line)
+                      )}
                       isShippable={isShippable}
-                      onToggle={() => toggleLineSelection(line.id)}
+                      onToggle={() =>
+                        toggleLineSelection(availableLineSelectionId(line))
+                      }
                       formatDate={formatDate}
                       showCustomerPartNumbers={
                         canToggleCustomerParts && showCustomerPartNumbers
@@ -1714,9 +1741,9 @@ function BatchForm({
       return;
     }
 
-    const attributes = batchNumber.attributes as TrackedEntityAttributes;
+    const attributes = (batchNumber as { attributes?: TrackedEntityAttributes }).attributes;
     if (
-      attributes["Shipment Line"] &&
+      attributes?.["Shipment Line"] &&
       attributes["Shipment Line"] !== line.id &&
       attributes["Shipment"] === shipment.id
     ) {
@@ -2477,7 +2504,7 @@ function getPendingAddLineDemandForItem(
       (line) =>
         line.itemId === itemId &&
         line.id !== excludeLineId &&
-        selectedLineIds.has(line.id)
+        selectedLineIds.has(availableLineSelectionId(line))
     )
     .reduce((sum, line) => sum + (line.quantityToSend ?? 0), 0);
 }
@@ -2552,7 +2579,7 @@ function isAvailableLineShippable(
       availableLines,
       selectedLineIds,
       line.itemId,
-      line.id
+      availableLineSelectionId(line)
     ),
     liveOnHandByItemId
   });
@@ -2829,8 +2856,8 @@ function compareAddShipmentLines(
 
   switch (column) {
     case "order": {
-      const aLabel = a.salesOrderReadableId ?? a.salesOrderId;
-      const bLabel = b.salesOrderReadableId ?? b.salesOrderId;
+      const aLabel = a.salesOrderReadableId ?? a.salesOrderId ?? "";
+      const bLabel = b.salesOrderReadableId ?? b.salesOrderId ?? "";
       return aLabel.localeCompare(bLabel) * factor;
     }
     case "item": {

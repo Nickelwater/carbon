@@ -1,5 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
-import { useStorageRuleViolations } from "@carbon/ee/storage-rules";
+import { useRuleViolations } from "@carbon/ee/rules";
 import { InputControlled, ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -15,6 +19,7 @@ import {
   DropdownMenuTrigger,
   Heading,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   toast,
   useDisclosure,
   VStack
@@ -68,10 +73,10 @@ const WarehouseTransferForm = ({
 }: WarehouseTransferFormProps) => {
   const { company } = useUser();
   const permissions = usePermissions();
-  // Item rules eval at every "go" status transition (Confirm/Ship/Receive/
+  // Storage rules eval at every "go" status transition (Confirm/Ship/Receive/
   // Complete). Surface violations through the hook's modal rather than the
   // plain navigation path.
-  const statusRules = useStorageRuleViolations<typeof statusAction>({
+  const statusRules = useRuleViolations<typeof statusAction>({
     action: warehouseTransfer?.id
       ? path.to.warehouseTransferStatus(warehouseTransfer.id)
       : ""
@@ -139,6 +144,7 @@ const WarehouseTransferForm = ({
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
+                    shortcut={MENU_ITEM_SHORTCUTS.delete}
                     disabled={
                       isLocked ||
                       !permissions.can("delete", "inventory") ||
@@ -331,7 +337,7 @@ const WarehouseTransferForm = ({
             />
           ) : (
             <CardHeader>
-              <Heading as="h1" size="h3">
+              <Heading as="h1" size="h3" className="font-sans">
                 <Trans>New Warehouse Transfer</Trans>
               </Heading>
             </CardHeader>
@@ -355,7 +361,11 @@ const WarehouseTransferForm = ({
                     table="warehouseTransfer"
                   />
                 )}
-                <Input name="reference" label={t`Reference`} />
+                <Input
+                  name="reference"
+                  label={t`Reference`}
+                  autoFocus={!isEditing}
+                />
                 <Location name="fromLocationId" label={t`From Location`} />
                 <Location name="toLocationId" label={t`To Location`} />
                 {isEditing && (

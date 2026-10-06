@@ -1,27 +1,27 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { getCarbonServiceRole } from "@carbon/auth/client.server";
-import { setCompanyId } from "@carbon/auth/company.server";
-import { updateCompanySession } from "@carbon/auth/session.server";
 import { ValidatedForm, validationError, validator } from "@carbon/form";
 import {
   Button,
-  Card,
-  CardContent,
   CardFooter,
   CardHeader,
   CardTitle,
   HStack,
+  PrefetchLink,
   VStack
 } from "@carbon/react";
-import { isInternalEmail } from "@carbon/utils";
+import { redirect } from "@carbon/utils";
 import { getLocalTimeZone } from "@internationalized/date";
+import { type ActionFunctionArgs, useLoaderData } from "react-router";
 import {
-  type ActionFunctionArgs,
-  Link,
-  redirect,
-  useLoaderData
-} from "react-router";
+  OnboardingCard,
+  OnboardingCardContent,
+  onboardingFormClassName
+} from "~/components";
 import {
   AddressAutocomplete,
   Currency,
@@ -32,11 +32,12 @@ import {
 } from "~/components/Form";
 import { useOnboarding } from "~/hooks";
 import { addressValidator, getCompany } from "~/modules/settings";
-import { provisionOnboardingCompany } from "~/services/onboarding.server";
 import {
   getOnboardingDraft,
   setOnboardingDraft
-} from "~/services/onboarding-draft.server";
+} from "~/modules/shared/shared.server";
+import { ONBOARDING_SHORTCUTS } from "~/shortcuts";
+import { path } from "~/utils/path";
 
 export async function loader({ request }: ActionFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {});
@@ -56,7 +57,7 @@ export async function loader({ request }: ActionFunctionArgs) {
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId, email } = await requirePermissions(request, {});
+  await requirePermissions(request, {});
 
   const formData = await request.formData();
 
@@ -68,43 +69,14 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const { next, ...companyData } = validation.data;
 
-  // Internal users get a dedicated data-choice step (demo template / backup
-  // import) that creates the company; stash this step's input for it.
-  if (isInternalEmail(email)) {
-    const draftCookie = await setOnboardingDraft(request, {
-      company: companyData
-    });
-
-    throw redirect(next, {
-      headers: [["Set-Cookie", draftCookie]]
-    });
-  }
-
-  // Public signups skip the data-choice step and create a clean company here.
-  const serviceRole = getCarbonServiceRole();
-  const companyId = await provisionOnboardingCompany(serviceRole, client, {
-    userId,
-    companyData,
-    backup: null
+  // The next (data-choice) step creates the company; stash this step's input
+  // for it.
+  const draftCookie = await setOnboardingDraft(request, {
+    company: companyData
   });
 
-  const companyRecord = await serviceRole
-    .from("company")
-    .select("companyGroupId")
-    .eq("id", companyId)
-    .single();
-  const sessionCookie = await updateCompanySession(
-    request,
-    companyId,
-    companyRecord.data?.companyGroupId ?? ""
-  );
-  const companyIdCookie = setCompanyId(companyId);
-
-  throw redirect(next, {
-    headers: [
-      ["Set-Cookie", sessionCookie],
-      ["Set-Cookie", companyIdCookie]
-    ]
+  throw redirect(next || path.to.onboarding.root, {
+    headers: [["Set-Cookie", draftCookie]]
   });
 }
 
@@ -130,16 +102,17 @@ export default function OnboardingCompany() {
   };
 
   return (
-    <Card className="max-w-lg">
+    <OnboardingCard>
       <ValidatedForm
         validator={addressValidator}
         defaultValues={initialValues}
         method="post"
+        className={onboardingFormClassName}
       >
         <CardHeader>
           <CardTitle>Now let's set up your company</CardTitle>
         </CardHeader>
-        <CardContent>
+        <OnboardingCardContent>
           <Hidden name="next" value={next} />
           <VStack spacing={4}>
             <Input autoFocus name="name" label="Company Name" />
@@ -148,7 +121,7 @@ export default function OnboardingCompany() {
             <Input name="website" label="Website" />
             <Currency name="baseCurrencyCode" label="Base Currency" />
           </VStack>
-        </CardContent>
+        </OnboardingCardContent>
 
         <CardFooter>
           <HStack>
@@ -159,14 +132,12 @@ export default function OnboardingCompany() {
               asChild
               tabIndex={-1}
             >
-              <Link to={previous} prefetch="intent">
-                Previous
-              </Link>
+              <PrefetchLink to={previous}>Previous</PrefetchLink>
             </Button>
-            <Submit>Next</Submit>
+            <Submit shortcut={ONBOARDING_SHORTCUTS.continue}>Next</Submit>
           </HStack>
         </CardFooter>
       </ValidatedForm>
-    </Card>
+    </OnboardingCard>
   );
 }

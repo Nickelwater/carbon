@@ -1,7 +1,7 @@
 ---
 description: The workflow catalog — four hand-written inputs generate one committed catalog of every trigger, action and operation a customer can pick; never hand-edit the generated files, and every declared moment must be raised somewhere or the build fails.
 paths:
-  - "packages/workflows/src/catalog/**"
+  - "packages/ee/src/workflows/catalog/**"
   - "packages/lib/src/workflows/**"
   - "scripts/generate-workflow-catalog.ts"
   - "scripts/check-workflow-catalog.ts"
@@ -16,26 +16,26 @@ customer-facing feature (a "when this happens, do that" rule built on a canvas) 
 `nonConformanceWorkflow`.
 
 Spec: `.ai/specs/2026-07-30-workflows-event-catalog.md`. Package guide:
-`packages/workflows/AGENTS.md`.
+`packages/ee/src/workflows/AGENTS.md`.
 
 ## Four hand-written inputs, three generated files
 
 ```
-packages/workflows/src/catalog/entities.ts   HAND-WRITTEN  record types + watched columns + write allowlist
-packages/workflows/src/catalog/moments.ts    HAND-WRITTEN  business events + labels + outputs
-packages/workflows/src/catalog/actions.ts    HAND-WRITTEN  the actions with no generic form
-packages/workflows/src/catalog/operations.ts HAND-WRITTEN  read-only computations
+packages/ee/src/workflows/catalog/entities.ts   HAND-WRITTEN  record types + watched columns + write allowlist
+packages/ee/src/workflows/catalog/moments.ts    HAND-WRITTEN  business events + labels + outputs
+packages/ee/src/workflows/catalog/actions.ts    HAND-WRITTEN  the actions with no generic form
+packages/ee/src/workflows/catalog/operations.ts HAND-WRITTEN  read-only computations
                     │
                     ▼  scripts/generate-workflow-catalog.ts  (buildCatalog, pure)
-packages/workflows/src/catalog/events.generated.ts   COMMITTED  ids, outputs, permission, match
-packages/workflows/src/catalog/actions.generated.ts  COMMITTED  action + operation catalogs
-packages/workflows/src/catalog/labels.generated.ts   COMMITTED  one msg`` per event, action and operation id
+packages/ee/src/workflows/catalog/events.generated.ts   COMMITTED  ids, outputs, permission, match
+packages/ee/src/workflows/catalog/actions.generated.ts  COMMITTED  action + operation catalogs
+packages/ee/src/workflows/catalog/labels.generated.ts   COMMITTED  one msg`` per event, action and operation id
 ```
 
 Today: 10 triggerable entities with 77 watched columns → 97 record events, plus 9 moments
-= **106 events**, plus property maps for 16 entities (the 10 triggerable ones and 6
-reference-only: `user`, `group`, `jobOperation`, `salesInvoice`, `purchaseInvoice`,
-`location`), plus **16 actions** and **15 operations**.
+= **106 events**, plus property maps for 17 entities (the 10 triggerable ones and 7
+reference-only: `user`, `group`, `jobOperation`, `nonConformanceType`, `salesInvoice`,
+`purchaseInvoice`, `location`), plus **16 actions** and **15 operations**.
 
 To add an entity, a moment, an action or an operation, edit the one hand-written file
 and run:
@@ -75,7 +75,7 @@ A `.changed` event hands out `record`, `before` and `after`; `created`/`deleted`
 `packages/database/src/swagger-docs-schema.ts` as an **argument**. That file is already generated and committed and — unlike `types.ts` — is
 a runtime *value* carrying every column's type, enum values and foreign-key target, so no
 TypeScript-compiler-API parsing is needed. Injecting it keeps `@carbon/database` out of
-`@carbon/workflows`' runtime graph (it is a **devDependency, types only**) and lets the
+`@carbon/ee/workflows`' runtime graph (it is a **devDependency, types only**) and lets the
 transform be unit-tested in `build.test.ts`.
 
 Entity properties are generated from the table's own columns, minus `companyId`,
@@ -112,7 +112,7 @@ Update a/an {entity}                 the generated <entity>.update action
 
 Moment, action and operation labels are hand-written and mandatory (an empty one is a
 build failure from `validateCatalogInputs`).
-`packages/workflows/src` is in `lingui.config.js`'s `erp` catalog `include` and in
+`packages/ee/src/workflows` is in `lingui.config.js`'s `erp` catalog `include` and in
 `//#lingui:compile`'s `inputs` in `turbo.json`. After regenerating, run
 `pnpm run lingui:extract && pnpm run lingui:clean` — the clean step strips the origin
 references that otherwise churn every `.po` file.
@@ -147,12 +147,13 @@ Three rules the raise sites follow:
 
 - **Raise in the service function, not the route, wherever a service function exists.** Every
   `apps/erp/app/modules/*/*.service.ts` export is also callable over `POST /api/mcp` through
-  `apps/erp/app/routes/api+/mcp+/lib/direct-executor.ts`, whose blocklist is one entry long. A
+  `apps/erp/app/routes/api+/mcp+/lib/mcp-blocked-tools.ts` (enforced by the Carbon API
+dispatch and the `gate()` middleware). A
   route-level raise silently misses every MCP caller. After changing a service signature, run
   `pnpm run generate:mcp` — the executor maps arguments by declared parameter name.
 - **Raise after the write commits, and only if it did.** For the four posting moments the write
-  happens inside a Deno edge function that cannot import app code, so the route raises once the
-  invoke returns cleanly. Place the raise **below** the route's rollback `catch`, not inside the
+  happens inside a server function (`@carbon/server-functions`) that cannot import app code, so the
+  route raises once the call returns cleanly. Place the raise **below** the route's rollback `catch`, not inside the
   `try`: `raiseMoment` not throwing stops it from *causing* a rollback, but not from being
   reached before later code throws and reverts the document to Draft. Announcing a post that
   then got rolled back would fire workflows on a record the UI still shows as Draft.
@@ -245,3 +246,32 @@ the `workflow-trigger-event-drift` SQL invariant and
   event id in the separate generated file, which also holds action and operation labels.
 - A hand-written action id that collides with a generated `<entity>.update` is a build error,
   not a silent overwrite.
+
+## Custom fields — the per-company overlay
+
+The catalog is build-time and global; a company's custom fields are runtime and per company,
+so they cannot be generated into `events.generated.ts`. Instead `catalog/custom-fields.ts`
+builds a `CatalogOverlay` from the company's `customField` rows, and
+`createWorkflowCatalog(overlay)` merges it — **generated first, overlay second**, so a real
+column always wins and a customer cannot shadow one.
+
+- The property path is ONE segment: the literal string `customFields.<fieldId>`, keyed by the
+  field's **id**, which is the key inside the JSONB blob. That keeps `walkPath` and the runtime
+  `walk` single-step, and matches the differ, which never emits the bare `customFields` key.
+- `custom-fields.ts` holds the ONLY `DataType → ValueType` map. List → `string` plus `choices`
+  from `listOptions`; User/Customer/Supplier → `t.entity(...)`; File → the stored path as a
+  string, not a link.
+- Trigger ids are `<entity>.customFields.<fieldId>.changed` and are **parsed, not looked up**:
+  `WORKFLOW_EVENTS` stays a closed, committed, drift-checked record. `getCatalogEvent(id)` is
+  the single lookup — the static map first, then `resolveCustomFieldEvent`. Every consumer goes
+  through it, including `sync.ts`'s `deriveWorkflowSubscriptions`.
+- `item` is excluded: its custom fields attach to the subtypes (`part`, `material`, `tool`, …)
+  while the catalog triggers on the shared `item` table. Reference-only entities are excluded
+  too — no `watch` block means no change events at all.
+- The matcher stays **company-blind**: `computeEventIds` derives the id from the
+  `customFields.<id>` diff key the nested differ already emits, and the existing
+  `workflowTriggerEvent` join does the filtering. No company lookup enters the hot path.
+- Writes go through the `workflow_merge_custom_fields` RPC (SECURITY INVOKER, `p_table`
+  validated against `customFieldTable`) so setting one field cannot erase the others.
+- The engine builds the overlay once per run in the `custom-fields` durable step, reading
+  `customField` through the **owner's** client like every other business read.

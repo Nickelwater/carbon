@@ -1,8 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Badge,
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   Status,
@@ -10,6 +15,7 @@ import {
   VStack
 } from "@carbon/react";
 import { getItemById, getItemReadableId } from "@carbon/utils";
+import { useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useCallback, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
@@ -66,6 +72,7 @@ function ProcessingStatus({ status }: { status?: string | null }) {
 
 const AssemblyInstructionsTable = memo(
   ({ data, count }: AssemblyInstructionsTableProps) => {
+    const { t } = useLingui();
     const navigate = useNavigate();
     const permissions = usePermissions();
     const [items] = useItems();
@@ -241,6 +248,7 @@ const AssemblyInstructionsTable = memo(
         return (
           <>
             <MenuItem
+              shortcut={MENU_ITEM_SHORTCUTS.edit}
               disabled={!permissions.can("update", "production")}
               onClick={() => {
                 navigate(path.to.assemblyInstruction(row.id!));
@@ -250,6 +258,7 @@ const AssemblyInstructionsTable = memo(
               Edit Instruction
             </MenuItem>
             <MenuItem
+              shortcut={MENU_ITEM_SHORTCUTS.delete}
               destructive
               disabled={!permissions.can("delete", "production")}
               onClick={() => {
@@ -277,7 +286,7 @@ const AssemblyInstructionsTable = memo(
           primaryAction={
             permissions.can("create", "production") && (
               <New
-                label="Assembly Instruction"
+                label={t`Assembly Instruction`}
                 to={path.to.newAssemblyInstruction}
               />
             )

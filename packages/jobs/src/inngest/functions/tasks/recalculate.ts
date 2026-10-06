@@ -1,5 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
-import type { FunctionsResponse } from "@supabase/functions-js";
+import { runLocationSchedule } from "@carbon/planning";
+import { serverFns } from "@carbon/server-functions";
+import { getJobDatabaseClient } from "../../../db";
 import { inngest } from "../../client";
 
 export const recalculateFunction = inngest.createFunction(
@@ -12,12 +18,11 @@ export const recalculateFunction = inngest.createFunction(
       logger.info(`Type: ${payload.type}, id: ${payload.id}`);
 
       const serviceRole = getCarbonServiceRole();
-      let calculateQuantities: FunctionsResponse<{ success: boolean }>;
 
       switch (payload.type) {
-        case "jobRequirements":
+        case "jobRequirements": {
           logger.info(`Recalculating job requirements for ${payload.id}`);
-          calculateQuantities = await recalculateJobRequirements(serviceRole, {
+          const calculateQuantities = await recalculateJobRequirements({
             id: payload.id,
             companyId: payload.companyId,
             userId: payload.userId
@@ -27,24 +32,23 @@ export const recalculateFunction = inngest.createFunction(
             success: !calculateQuantities.error,
             message: calculateQuantities.error?.message
           };
-
-        case "jobMakeMethodRequirements":
+        }
+        case "jobMakeMethodRequirements": {
           logger.info(
             `Recalculating job make method requirements for ${payload.id}`
           );
-          calculateQuantities = await recalculateJobMakeMethodRequirements(
-            serviceRole,
-            {
+          const { error: rescheduleError } =
+            await recalculateJobMakeMethodRequirements(serviceRole, {
               id: payload.id,
               companyId: payload.companyId,
               userId: payload.userId
-            }
-          );
+            });
 
           return {
-            success: !calculateQuantities.error,
-            message: calculateQuantities.error?.message
+            success: !rescheduleError,
+            message: rescheduleError?.message
           };
+        }
 
         default:
           return {
@@ -57,7 +61,9 @@ export const recalculateFunction = inngest.createFunction(
     if (result.success) {
       logger.info(`Success ${payload.id}`);
     } else {
-      logger.error(`Recalculation ${payload.type} failed for ${payload.id}`, {
+      logger.error("Recalculation {payloadType} failed for {payloadId}", {
+        payloadType: payload.type,
+        payloadId: payload.id,
         message: result.message
       });
     }
@@ -66,20 +72,18 @@ export const recalculateFunction = inngest.createFunction(
   }
 );
 
-async function recalculateJobRequirements(
-  client: ReturnType<typeof getCarbonServiceRole>,
-  params: {
-    id: string;
-    companyId: string;
-    userId: string;
-  }
-) {
-  return client.functions.invoke("recalculate", {
-    body: {
-      type: "jobRequirements",
-      ...params
-    }
-  });
+async function recalculateJobRequirements(params: {
+  id: string;
+  companyId: string;
+  userId: string;
+}) {
+  return serverFns
+    .system({
+      db: getJobDatabaseClient(),
+      companyId: params.companyId,
+      userId: params.userId
+    })
+    .invoke("recalculate", { type: "jobRequirements", id: params.id });
 }
 
 async function recalculateJobMakeMethodRequirements(
@@ -89,14 +93,32 @@ async function recalculateJobMakeMethodRequirements(
     companyId: string;
     userId: string;
   }
-) {
-  return client.functions.invoke("schedule", {
-    body: {
-      mode: "initial",
-      direction: "backward",
-      jobId: params.id,
+): Promise<{ error: Error | null }> {
+  // Forecast-first scheduling regenerates the WHOLE LOCATION; resolve the job's
+  // location and regenerate it IN-PROCESS (Node).
+  const { data: job, error } = await client
+    .from("job")
+    .select("locationId")
+    .eq("id", params.id)
+    .eq("companyId", params.companyId)
+    .single();
+  if (error || !job?.locationId) {
+    return {
+      error: error ? new Error(error.message) : new Error("Job has no location")
+    };
+  }
+  try {
+    await runLocationSchedule({
+      db: getJobDatabaseClient(),
+      client,
+      locationId: job.locationId,
       companyId: params.companyId,
       userId: params.userId
-    }
-  });
+    });
+    return { error: null };
+  } catch (err) {
+    return {
+      error: err instanceof Error ? err : new Error("Failed to reschedule")
+    };
+  }
 }

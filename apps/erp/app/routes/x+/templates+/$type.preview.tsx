@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { DOCUMENT_PDFS, ensureFont } from "@carbon/documents/pdf";
 import {
@@ -23,12 +27,9 @@ import { buildPreviewProps } from "~/modules/settings/documentPreview.server";
  * Buffer/streams) and guarantees the preview matches the real PDF route.
  */
 export async function action({ request, params }: ActionFunctionArgs) {
-  const { client, companyId, companyGroupId } = await requirePermissions(
-    request,
-    {
-      view: "settings"
-    }
-  );
+  const { client, companyId } = await requirePermissions(request, {
+    view: "settings"
+  });
 
   const documentType = documentTemplateTypeSchema.parse(params.type);
 
@@ -87,7 +88,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
     ? await buildPreviewProps(
         client,
         companyId,
-        companyGroupId,
         documentType,
         previewId,
         locale

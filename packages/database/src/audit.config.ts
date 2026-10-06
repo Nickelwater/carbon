@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 /**
  * Entity-Centric Audit Log Configuration
  *
@@ -154,6 +158,7 @@ export const auditConfig = {
         customerPayment: { role: "extension" }, // PK = customerId
         customerShipping: { role: "extension" }, // PK = customerId
         customerTax: { role: "extension" }, // PK = customerId
+        customerBankAccount: { entityIdColumn: "customerId" },
         contact: {
           resolve: {
             junction: "customerContact",
@@ -183,6 +188,7 @@ export const auditConfig = {
         supplierPayment: { role: "extension" }, // PK = supplierId
         supplierShipping: { role: "extension" }, // PK = supplierId
         supplierTax: { role: "extension" }, // PK = supplierId
+        supplierBankAccount: { entityIdColumn: "supplierId" },
         contact: {
           resolve: {
             junction: "supplierContact",
@@ -631,12 +637,14 @@ export const auditConfig = {
     customerPayment: "Payment",
     customerShipping: "Shipping",
     customerTax: "Tax",
+    customerBankAccount: "Bank Account",
     contact: "Contact",
     address: "Address",
     supplier: "Supplier",
     supplierPayment: "Payment",
     supplierShipping: "Shipping",
     supplierTax: "Tax",
+    supplierBankAccount: "Bank Account",
     supplierPart: "Supplier Part",
     item: "Item",
     itemShelfLife: "Shelf Life",
@@ -708,10 +716,13 @@ export const auditConfig = {
   /** Retention period before archival (days) */
   retentionDays: 30,
 
-  /** Archive storage path template */
-  archivePath: "audit-logs/{companyId}/{year}/{month}.jsonl.gz",
+  /** Archive storage path template (company-bucket keys keep the companyId
+   * prefix; pre-migration archives used audit-logs/{companyId}/... in the
+   * legacy bucket — readers resolve via the stored archivePath) */
+  archivePath: "{companyId}/audit-logs/{year}/{month}.jsonl.gz",
 
-  /** Storage bucket name for archives */
+  /** LEGACY shared bucket for pre-migration archives (read fallback only —
+   * new archives are written to the company's own private bucket) */
   archiveBucket: "private"
 } as const;
 
@@ -738,7 +749,8 @@ export const auditConfig = {
 export const fkDisplayRegistry: {
   [T in TableName]?: readonly ColumnOf<T>[];
 } = {
-  ability: ["name"],
+  // ability has no name of its own — it displays via the process one hop away
+  // (see fkDisplayHops below).
   account: ["number", "name"],
   address: ["addressLine1", "city"],
   assemblyInstruction: ["name"],
@@ -832,6 +844,11 @@ export const fkDisplayHops: {
     };
   }[TableName];
 } = {
+  ability: {
+    column: "processId",
+    table: "process",
+    displayColumns: ["name"]
+  },
   customerContact: {
     column: "contactId",
     table: "contact",

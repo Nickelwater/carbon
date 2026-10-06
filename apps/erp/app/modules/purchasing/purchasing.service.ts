@@ -1,25 +1,41 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database, Json } from "@carbon/database";
 import { fetchAllFromTable, getCompanyTimeZone } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
+import { storage } from "@carbon/files";
 import { getLogger } from "@carbon/logger";
-import { datetime, getPurchaseOrderStatus } from "@carbon/utils";
+import { serverFns } from "@carbon/server-functions";
+import {
+  async,
+  datetime,
+  EPSILON,
+  getPurchaseOrderStatus,
+  getPurchaseReturnOrderStatus,
+  round
+} from "@carbon/utils";
 import type {
+  PostgrestError,
   PostgrestResponse,
   PostgrestSingleResponse,
   SupabaseClient
 } from "@supabase/supabase-js";
+import { sql } from "kysely";
 import type { z } from "zod";
+import { createDocumentUploadUrl } from "~/modules/documents/documents.service";
 import { getEmployeeJob } from "~/modules/people";
 import type { GenericQueryFilters } from "~/utils/query";
 import { LIST_COUNT, setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
-import { getCurrencyByCode } from "../accounting/accounting.ee.service";
-import type { PurchaseInvoice } from "../invoicing/types";
 import {
-  canApproveRequest,
-  getLatestApprovalRequestForDocument,
-  upsertExternalLink
-} from "../shared/shared.service";
+  getCurrencyByCode,
+  getExchangeRate
+} from "../accounting/accounting.service";
+import type { PurchaseInvoice } from "../invoicing/types";
+import { upsertExternalLink } from "../shared/shared.service";
+import { updateSortOrder } from "../shared/sort-order";
 import type {
   purchaseOrderDeliveryValidator,
   purchaseOrderLineValidator,
@@ -27,9 +43,13 @@ import type {
   purchaseOrderStatusType,
   purchaseOrderTypeType,
   purchaseOrderValidator,
+  purchaseReturnOrderLineValidator,
+  purchaseReturnOrderStatusType,
+  purchaseReturnOrderValidator,
   purchasingRfqStatusType,
   selectedLinesValidator,
   supplierAccountingValidator,
+  supplierBankAccountValidator,
   supplierContactValidator,
   supplierPaymentValidator,
   supplierProcessValidator,
@@ -41,10 +61,11 @@ import type {
   supplierTypeValidator,
   supplierValidator
 } from "./purchasing.models";
+import { PURCHASE_ORDER_LOCKED_STATUSES } from "./purchasing.models";
 import type { PurchaseOrder, PurchasingRFQ, SupplierQuote } from "./types";
 
 const PURCHASE_ORDERS_LIST_COLUMNS =
-  "id,purchaseOrderId,status,orderDate,supplierId,supplierReference,assignee,companyId,customFields,createdAt,createdBy,updatedAt,updatedBy,thumbnailPath,itemType,orderTotal,receivableQuantity,receivedQuantity,shippingMethodId,receiptRequestedDate,receiptPromisedDate,deliveryDate,dropShipment,paymentTermId,createdByFullName,assigneeFullName" as const;
+  "id,purchaseOrderId,revisionId,status,orderDate,supplierId,supplierReference,assignee,companyId,customFields,createdAt,createdBy,updatedAt,updatedBy,thumbnailPath,itemType,orderTotal,receivableQuantity,receivedQuantity,shippingMethodId,receiptRequestedDate,receiptPromisedDate,deliveryDate,dropShipment,paymentTermId,createdByFullName,assigneeFullName" as const;
 
 const logger = getLogger("erp", "purchasing-service");
 
@@ -65,17 +86,20 @@ export async function closePurchaseOrder(
   return client
     .from("purchaseOrder")
     .update({
-      closed: true,
+      status: "Closed",
       closedAt: datetime.today(companyTz).toString(),
-      closedBy: userId
+      closedBy: userId,
+      updatedBy: userId
     })
     .eq("id", purchaseOrderId)
     .select("id")
     .single();
 }
 
+/** @mcp update */
 export async function convertSupplierQuoteToOrder(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   payload: {
     id: string;
     selectedLines: z.infer<typeof selectedLinesValidator>;
@@ -83,14 +107,14 @@ export async function convertSupplierQuoteToOrder(
     userId: string;
   }
 ) {
-  return client.functions.invoke<{ convertedId: string }>("convert", {
-    body: {
-      type: "supplierQuoteToPurchaseOrder",
-      ...payload
-    }
+  const { companyId, userId, ...input } = payload;
+  return serverFns.as({ client, db, companyId, userId }).invoke("convert", {
+    type: "supplierQuoteToPurchaseOrder",
+    ...input
   });
 }
 
+/** @mcp delete */
 export async function deletePurchaseOrder(
   client: SupabaseClient<Database>,
   purchaseOrderId: string
@@ -98,6 +122,7 @@ export async function deletePurchaseOrder(
   return client.from("purchaseOrder").delete().eq("id", purchaseOrderId);
 }
 
+/** @mcp delete */
 export async function deletePurchaseOrderLine(
   client: SupabaseClient<Database>,
   purchaseOrderLineId: string
@@ -111,6 +136,7 @@ export async function deletePurchaseOrderLine(
 // Creates a new Draft PO header + delivery + payment via insertPurchaseOrder
 // and copies the source PO's lines into it. Receipt/invoice progress is
 // reset; only the order/line definition is duplicated.
+/** @mcp create */
 export async function duplicatePurchaseOrder(
   client: SupabaseClient<Database>,
   {
@@ -202,6 +228,7 @@ export async function duplicatePurchaseOrder(
   return insertResult;
 }
 
+/** @mcp delete */
 export async function deleteSupplier(
   client: SupabaseClient<Database>,
   supplierId: string
@@ -209,6 +236,7 @@ export async function deleteSupplier(
   return client.from("supplier").delete().eq("id", supplierId);
 }
 
+/** @mcp delete */
 export async function deleteSupplierContact(
   client: SupabaseClient<Database>,
   supplierId: string,
@@ -233,6 +261,7 @@ export async function deleteSupplierContact(
   return supplierContact;
 }
 
+/** @mcp delete */
 export async function deleteSupplierLocation(
   client: SupabaseClient<Database>,
   supplierId: string,
@@ -257,6 +286,68 @@ export async function deleteSupplierLocation(
   }
 }
 
+/** @mcp delete */
+export async function deleteSupplierBankAccount(
+  client: SupabaseClient<Database>,
+  id: string
+) {
+  return client.from("supplierBankAccount").delete().eq("id", id);
+}
+
+/** @mcp read */
+export async function getSupplierBankAccounts(
+  client: SupabaseClient<Database>,
+  supplierId: string
+) {
+  return client
+    .from("supplierBankAccount")
+    .select("*")
+    .eq("supplierId", supplierId)
+    .order("name");
+}
+
+/** @mcp upsert */
+export async function upsertSupplierBankAccount(
+  db: Kysely<KyselyDatabase>,
+  bankAccount:
+    | (Omit<z.infer<typeof supplierBankAccountValidator>, "id"> & {
+        companyId: string;
+        createdBy: string;
+        customFields?: Json;
+      })
+    | (Omit<z.infer<typeof supplierBankAccountValidator>, "id"> & {
+        id: string;
+        companyId: string;
+        updatedBy: string;
+        customFields?: Json;
+      })
+) {
+  const { supplierId, companyId } = bankAccount;
+
+  if ("createdBy" in bankAccount) {
+    return await db
+      .insertInto("supplierBankAccount")
+      .values(bankAccount)
+      .returning("id")
+      .executeTakeFirstOrThrow();
+  }
+
+  const { id, ...update } = bankAccount;
+
+  // supplierId and companyId are scoping columns, not editable fields. They are
+  // also re-asserted in the WHERE clause so a forged form value cannot move
+  // this row to another supplier.
+  return await db
+    .updateTable("supplierBankAccount")
+    .set({ ...update, updatedAt: datetime.timestamp() })
+    .where("id", "=", id)
+    .where("supplierId", "=", supplierId)
+    .where("companyId", "=", companyId)
+    .returning("id")
+    .executeTakeFirstOrThrow();
+}
+
+/** @mcp delete */
 export async function deleteSupplierProcess(
   client: SupabaseClient<Database>,
   supplierProcessId: string
@@ -264,6 +355,7 @@ export async function deleteSupplierProcess(
   return client.from("supplierProcess").delete().eq("id", supplierProcessId);
 }
 
+/** @mcp delete */
 export async function deleteSupplierQuote(
   client: SupabaseClient<Database>,
   supplierQuoteId: string
@@ -271,6 +363,7 @@ export async function deleteSupplierQuote(
   return client.from("supplierQuote").delete().eq("id", supplierQuoteId);
 }
 
+/** @mcp delete */
 export async function deleteSupplierQuoteLine(
   client: SupabaseClient<Database>,
   id: string
@@ -278,6 +371,7 @@ export async function deleteSupplierQuoteLine(
   return client.from("supplierQuoteLine").delete().eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteSupplierType(
   client: SupabaseClient<Database>,
   supplierTypeId: string
@@ -285,6 +379,7 @@ export async function deleteSupplierType(
   return client.from("supplierType").delete().eq("id", supplierTypeId);
 }
 
+/** @mcp read */
 export async function getPurchaseOrder(
   client: SupabaseClient<Database>,
   purchaseOrderId: string
@@ -296,27 +391,31 @@ export async function getPurchaseOrder(
     .single();
 }
 
+/** @mcp update */
 export async function finalizeSupplierQuote(
   client: SupabaseClient<Database>,
-  supplierQuoteId: string,
-  userId: string
+  db: Kysely<KyselyDatabase>,
+  payload: { supplierQuoteId: string; companyId: string; userId: string }
 ) {
-  const quoteUpdate = await client
-    .from("supplierQuote")
-    .update({
-      status: "Active",
-      updatedAt: datetime.timestamp(),
-      updatedBy: userId
-    })
-    .eq("id", supplierQuoteId);
-
-  if (quoteUpdate.error) {
-    return quoteUpdate;
-  }
-
-  return { data: null, error: null };
+  const { companyId, userId, ...input } = payload;
+  return serverFns
+    .as({ client, db, companyId, userId })
+    .invoke("finalize-supplier-quote", input);
 }
 
+/** @mcp update */
+export async function finalizePurchasingRfq(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  payload: { rfqId: string; companyId: string; userId: string }
+) {
+  const { companyId, userId, ...input } = payload;
+  return serverFns
+    .as({ client, db, companyId, userId })
+    .invoke("finalize-purchasing-rfq", input);
+}
+
+/** @mcp read */
 export async function getPurchaseOrders(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -348,6 +447,7 @@ export async function getPurchaseOrders(
   return query;
 }
 
+/** @mcp read */
 export async function getPurchaseOrderDelivery(
   client: SupabaseClient<Database>,
   purchaseOrderId: string
@@ -359,6 +459,7 @@ export async function getPurchaseOrderDelivery(
     .single();
 }
 
+/** @mcp read */
 export async function getPurchaseOrderLocations(
   client: SupabaseClient<Database>,
   purchaseOrderId: string
@@ -370,6 +471,7 @@ export async function getPurchaseOrderLocations(
     .single();
 }
 
+/** @mcp read */
 export async function getPurchaseOrderPayment(
   client: SupabaseClient<Database>,
   purchaseOrderId: string
@@ -381,6 +483,7 @@ export async function getPurchaseOrderPayment(
     .single();
 }
 
+/** @mcp read */
 export async function getPurchaseOrderLines(
   client: SupabaseClient<Database>,
   purchaseOrderId: string
@@ -393,6 +496,7 @@ export async function getPurchaseOrderLines(
     .order("createdAt", { ascending: true });
 }
 
+/** @mcp read */
 export async function getPurchaseOrderLine(
   client: SupabaseClient<Database>,
   purchaseOrderLineId: string
@@ -404,6 +508,7 @@ export async function getPurchaseOrderLine(
     .single();
 }
 
+/** @mcp read */
 export async function getPurchaseOrderSuppliers(
   client: SupabaseClient<Database>,
   companyId: string
@@ -415,6 +520,7 @@ export async function getPurchaseOrderSuppliers(
     .order("name");
 }
 
+/** @mcp read */
 export async function getPurchasingDocumentsAssignedToMe(
   client: SupabaseClient<Database>,
   userId: string,
@@ -456,6 +562,7 @@ export async function getPurchasingDocumentsAssignedToMe(
   return merged;
 }
 
+/** @mcp read */
 export async function getPurchasingPlanning(
   client: SupabaseClient<Database>,
   locationId: string,
@@ -473,7 +580,7 @@ export async function getPurchasingPlanning(
       periods
     },
     {
-      count: "exact"
+      count: LIST_COUNT
     }
   );
 
@@ -490,6 +597,7 @@ export async function getPurchasingPlanning(
   return query;
 }
 
+/** @mcp read */
 export async function getPurchasingTerms(
   client: SupabaseClient<Database>,
   companyId: string
@@ -501,6 +609,7 @@ export async function getPurchasingTerms(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplier(
   client: SupabaseClient<Database>,
   supplierId: string
@@ -508,94 +617,23 @@ export async function getSupplier(
   return client.from("suppliers").select("*").eq("id", supplierId).single();
 }
 
-type ApprovalContext = {
-  approvalRequest: { id: string } | null;
-  canApprove: boolean;
-  decision: {
-    status: "Approved" | "Rejected";
-    decisionBy: string;
-    decisionAt: string;
-  } | null;
-};
-
-export async function getSupplierApprovalContext(
-  serviceRole: SupabaseClient<Database>,
-  supplierId: string,
-  status: string | null,
-  companyId: string,
-  userId: string
-): Promise<ApprovalContext> {
-  const latest = await getLatestApprovalRequestForDocument(
-    serviceRole,
-    "supplier",
-    supplierId
-  );
-
-  const req = latest.data;
-
-  const canApprove = await canApproveRequest(
-    serviceRole,
-    {
-      amount: req?.amount ?? null,
-      documentType: "supplier",
-      companyId
-    },
-    userId
-  );
-
-  // Look for the latest terminal decision (Approved or Rejected)
-  let decision: ApprovalContext["decision"] = null;
-  const terminalRequest = await serviceRole
-    .from("approvalRequest")
-    .select("status, decisionBy, decisionAt")
-    .eq("documentType", "supplier")
-    .eq("documentId", supplierId)
-    .in("status", ["Approved", "Rejected"])
-    .order("decisionAt", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-
-  if (
-    terminalRequest.data?.decisionBy &&
-    terminalRequest.data?.decisionAt &&
-    (terminalRequest.data.status === "Approved" ||
-      terminalRequest.data.status === "Rejected")
-  ) {
-    decision = {
-      status: terminalRequest.data.status,
-      decisionBy: terminalRequest.data.decisionBy,
-      decisionAt: terminalRequest.data.decisionAt
-    };
-  }
-
-  if (!req || req.status !== "Pending" || !req.requestedBy || !req.id) {
-    return {
-      approvalRequest: null,
-      canApprove,
-      decision
-    };
-  }
-
-  return {
-    approvalRequest: { id: req.id },
-    canApprove,
-    decision
-  };
-}
-
+/** @mcp read */
 export async function getSupplierContact(
   client: SupabaseClient<Database>,
-  supplierContactId: string
+  supplierContactId: string,
+  companyId?: string
 ) {
-  return client
+  let query = client
     .from("supplierContact")
     .select(
       "*, contact(id, firstName, lastName, email, mobilePhone, homePhone, workPhone, fax, title, notes)"
     )
-    .eq("id", supplierContactId)
-    .single();
+    .eq("id", supplierContactId);
+  if (companyId) query = query.eq("companyId", companyId);
+  return query.single();
 }
 
+/** @mcp read */
 export async function getSupplierContacts(
   client: SupabaseClient<Database>,
   supplierId: string
@@ -608,6 +646,7 @@ export async function getSupplierContacts(
     .eq("supplierId", supplierId);
 }
 
+/** @mcp read */
 export async function getSupplierInteraction(
   client: SupabaseClient<Database>,
   opportunityId: string | null
@@ -649,50 +688,88 @@ export async function getSupplierInteraction(
   }>;
 }
 
+/** @mcp read */
 export async function getSupplierInteractionDocuments(
   client: SupabaseClient<Database>,
   companyId: string,
   interactionId: string
 ) {
-  const result = await client.storage
-    .from("private")
+  const result = await storage(client)
+    .company(companyId)
     .list(`${companyId}/supplier-interaction/${interactionId}`);
 
   if (result.error) {
-    logger.error("Failed to list supplier interaction documents", result.error);
+    logger.error("Failed to list supplier interaction documents", {
+      error: result.error
+    });
     return [];
   }
 
-  return (
-    result.data?.map((f) => ({ ...f, bucket: "supplier-interaction" })) ?? []
-  );
+  return result.data.map((f) => ({
+    ...f,
+    bucket: "supplier-interaction"
+  }));
 }
 
+/** @mcp read */
 export async function getSupplierInteractionLineDocuments(
   client: SupabaseClient<Database>,
   companyId: string,
   lineId: string
 ) {
-  const result = await client.storage
-    .from("private")
+  const result = await storage(client)
+    .company(companyId)
     .list(`${companyId}/supplier-interaction-line/${lineId}`);
 
   if (result.error) {
-    logger.error(
-      "Failed to list supplier interaction line documents",
-      result.error
-    );
+    logger.error("Failed to list supplier interaction line documents", {
+      error: result.error
+    });
     return [];
   }
 
-  return (
-    result.data?.map((f) => ({
-      ...f,
-      bucket: "supplier-interaction-line"
-    })) ?? []
-  );
+  return result.data.map((f) => ({
+    ...f,
+    bucket: "supplier-interaction-line"
+  }));
 }
 
+/**
+ * Signed links to every document attached to the given lines, for an email's
+ * attachments. Lines are listed and signed together, in the lines' order.
+ */
+export async function getSupplierInteractionLineAttachments(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  lineIds: string[]
+): Promise<{ filename: string; path: string }[]> {
+  const perLine = await async.map(lineIds, async (lineId) => {
+    const docs = await getSupplierInteractionLineDocuments(
+      client,
+      companyId,
+      lineId
+    );
+    return async.map(docs, async (doc) => {
+      const storagePath = `${companyId}/supplier-interaction-line/${lineId}/${doc.name}`;
+      const { data, error } = await storage(client)
+        .company(companyId)
+        .createSignedUrl(storagePath, 3600);
+      if (!data) {
+        logger.error("Failed to create signed URL for attachment", {
+          storagePath,
+          error
+        });
+        return null;
+      }
+      return { filename: doc.name, path: data.signedUrl };
+    });
+  });
+  return perLine
+    .flat()
+    .flatMap((attachment) => (attachment ? [attachment] : []));
+}
+
+/** @mcp read */
 export async function getSupplierLocations(
   client: SupabaseClient<Database>,
   supplierId: string
@@ -705,6 +782,7 @@ export async function getSupplierLocations(
     .eq("supplierId", supplierId);
 }
 
+/** @mcp read */
 export async function getSupplierLocation(
   client: SupabaseClient<Database>,
   supplierContactId: string
@@ -718,6 +796,7 @@ export async function getSupplierLocation(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplierPayment(
   client: SupabaseClient<Database>,
   supplierId: string
@@ -729,6 +808,7 @@ export async function getSupplierPayment(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplierProcessById(
   client: SupabaseClient<Database>,
   supplierProcessId: string
@@ -740,6 +820,7 @@ export async function getSupplierProcessById(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplierProcessesByProcess(
   client: SupabaseClient<Database>,
   processId: string
@@ -750,6 +831,7 @@ export async function getSupplierProcessesByProcess(
     .eq("processId", processId);
 }
 
+/** @mcp read */
 export async function getSupplierProcessesBySupplier(
   client: SupabaseClient<Database>,
   supplierId: string
@@ -760,6 +842,7 @@ export async function getSupplierProcessesBySupplier(
     .eq("supplierId", supplierId);
 }
 
+/** @mcp read */
 export async function getSupplierQuote(
   client: SupabaseClient<Database>,
   supplierQuoteId: string
@@ -771,6 +854,7 @@ export async function getSupplierQuote(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplierQuoteByInteractionId(
   client: SupabaseClient<Database>,
   interactionId: string
@@ -782,6 +866,7 @@ export async function getSupplierQuoteByInteractionId(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplierQuoteByExternalLinkId(
   client: SupabaseClient<Database>,
   externalLinkId: string
@@ -793,6 +878,7 @@ export async function getSupplierQuoteByExternalLinkId(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplierQuotes(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -802,7 +888,7 @@ export async function getSupplierQuotes(
 ) {
   let query = client
     .from("supplierQuotes")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args.search) {
@@ -817,6 +903,7 @@ export async function getSupplierQuotes(
   return query;
 }
 
+/** @mcp read */
 export async function getSupplierQuoteLine(
   client: SupabaseClient<Database>,
   supplierQuoteLineId: string
@@ -828,6 +915,7 @@ export async function getSupplierQuoteLine(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplierQuoteLines(
   client: SupabaseClient<Database>,
   supplierQuoteId: string
@@ -839,6 +927,7 @@ export async function getSupplierQuoteLines(
     .order("sortOrder", { ascending: true });
 }
 
+/** @mcp read */
 export async function getSupplierQuoteLinePrices(
   client: SupabaseClient<Database>,
   supplierQuoteLineId: string
@@ -849,6 +938,7 @@ export async function getSupplierQuoteLinePrices(
     .eq("supplierQuoteLineId", supplierQuoteLineId);
 }
 
+/** @mcp read */
 export async function getSupplierQuoteLinePricesByQuoteId(
   client: SupabaseClient<Database>,
   supplierQuoteId: string
@@ -860,6 +950,7 @@ export async function getSupplierQuoteLinePricesByQuoteId(
     .order("supplierQuoteLineId", { ascending: true });
 }
 
+/** @mcp read */
 export async function getSupplierQuotesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -872,6 +963,7 @@ export async function getSupplierQuotesList(
   );
 }
 
+/** @mcp read */
 export async function getSupplierShipping(
   client: SupabaseClient<Database>,
   supplierId: string
@@ -883,6 +975,49 @@ export async function getSupplierShipping(
     .single();
 }
 
+// Batched report data for the Suppliers CSV export: the Purchasing/Invoice/Shipping
+// contact + address, one query per role. Queries supplierPayment/supplierShipping as
+// the FROM table (forward FK to supplierContact/supplierLocation) rather than
+// embedding them into `suppliers` — their FK back to supplier is composite
+// (supplierId, companyId), which supabase-js's type generator marks `isOneToOne:
+// false` even though supplierId alone is the real PK, so a reverse embed would type
+// (and risk behaving) as an array instead of a single object.
+/** @mcp read */
+export async function getSupplierReportContacts(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  supplierIds: string[]
+) {
+  return Promise.all([
+    client
+      .from("supplier")
+      .select(
+        `id, purchasingContact:supplierContact!supplier_purchasingContactId_fkey(contact(fullName, email, workPhone))`
+      )
+      .eq("companyId", companyId)
+      .in("id", supplierIds),
+    client
+      .from("supplierPayment")
+      .select(
+        `supplierId,
+         invoiceContact:supplierContact!supplierPayment_invoiceSupplierContactId_fkey(contact(fullName, email, workPhone)),
+         invoiceLocation:supplierLocation!supplierPayment_invoiceSupplierLocationId_fkey(address(addressLine1, addressLine2, city, stateProvince, postalCode, country(name)))`
+      )
+      .eq("companyId", companyId)
+      .in("supplierId", supplierIds),
+    client
+      .from("supplierShipping")
+      .select(
+        `supplierId,
+         shippingContact:supplierContact!supplierShipping_shippingSupplierContactId_fkey(contact(fullName, email, workPhone)),
+         shippingLocation:supplierLocation!supplierShipping_shippingSupplierLocationId_fkey(address(addressLine1, addressLine2, city, stateProvince, postalCode, country(name)))`
+      )
+      .eq("companyId", companyId)
+      .in("supplierId", supplierIds)
+  ]);
+}
+
+/** @mcp read */
 export async function getSuppliers(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -895,7 +1030,7 @@ export async function getSuppliers(
   let query = client
     .from("suppliers")
     .select("*", {
-      count: "exact"
+      count: LIST_COUNT
     })
     .eq("companyId", companyId);
 
@@ -920,6 +1055,7 @@ export async function getSuppliers(
   return query;
 }
 
+/** @mcp read */
 export async function getSuppliersList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -932,6 +1068,7 @@ export async function getSuppliersList(
   );
 }
 
+/** @mcp read */
 export async function getSupplierType(
   client: SupabaseClient<Database>,
   supplierTypeId: string
@@ -943,6 +1080,7 @@ export async function getSupplierType(
     .single();
 }
 
+/** @mcp read */
 export async function getSupplierTypes(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -950,7 +1088,7 @@ export async function getSupplierTypes(
 ) {
   let query = client
     .from("supplierType")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -966,6 +1104,7 @@ export async function getSupplierTypes(
   return query;
 }
 
+/** @mcp read */
 export async function getSupplierTypesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -977,6 +1116,7 @@ export async function getSupplierTypesList(
     .order("name");
 }
 
+/** @mcp create */
 export async function insertSupplier(
   client: SupabaseClient<Database>,
   supplier: Omit<z.infer<typeof supplierValidator>, "id"> & {
@@ -988,6 +1128,7 @@ export async function insertSupplier(
   return client.from("supplier").insert([supplier]).select("*").single();
 }
 
+/** @mcp create */
 export async function insertSupplierContact(
   client: SupabaseClient<Database>,
   supplierContact: {
@@ -1046,6 +1187,7 @@ export async function insertSupplierInteraction(
     .single();
 }
 
+/** @mcp create */
 export async function insertSupplierLocation(
   client: SupabaseClient<Database>,
   supplierLocation: {
@@ -1094,6 +1236,7 @@ export async function insertSupplierLocation(
     .single();
 }
 
+/** @mcp update */
 export async function finalizePurchaseOrder(
   client: SupabaseClient<Database>,
   purchaseOrderId: string,
@@ -1126,6 +1269,7 @@ export async function finalizePurchaseOrder(
     .eq("id", purchaseOrderId);
 }
 
+/** @mcp update */
 export async function sendSupplierQuote(
   client: SupabaseClient<Database>,
   supplierQuoteId: string,
@@ -1162,6 +1306,7 @@ export async function updatePurchaseOrderStatusLegacy(
     .eq("id", purchaseOrder.id);
 }
 
+/** @mcp update */
 export async function updatePurchaseOrderExchangeRate(
   client: SupabaseClient<Database>,
   data: {
@@ -1178,6 +1323,7 @@ export async function updatePurchaseOrderExchangeRate(
   return client.from("purchaseOrder").update(update).eq("id", update.id);
 }
 
+/** @mcp update destructive */
 export async function updatePurchaseOrderFavorite(
   client: SupabaseClient<Database>,
   args: {
@@ -1200,6 +1346,7 @@ export async function updatePurchaseOrderFavorite(
   }
 }
 
+/** @mcp update */
 export async function updatePurchaseOrderStatus(
   client: SupabaseClient<Database>,
   update: {
@@ -1210,6 +1357,44 @@ export async function updatePurchaseOrderStatus(
   }
 ) {
   return client.from("purchaseOrder").update(update).eq("id", update.id);
+}
+
+/**
+ * Reopens a released purchase order to Draft as its next revision.
+ *
+ * Compare-and-swap: the increment and the eligibility conditions are both in
+ * SQL, so concurrent requests can't share a revision number and an ineligible
+ * order matches no rows. Returns rows updated — 0 means it was not eligible.
+ * @mcp action
+ */
+export async function reopenPurchaseOrderAsRevision(
+  db: Kysely<KyselyDatabase>,
+  {
+    id,
+    companyId,
+    updatedBy
+  }: {
+    id: string;
+    companyId: string;
+    updatedBy: string;
+  }
+) {
+  const result = await db
+    .updateTable("purchaseOrder")
+    .set((eb) => ({
+      status: "Draft" as const,
+      assignee: null,
+      revisionId: eb("revisionId", "+", 1),
+      updatedBy,
+      updatedAt: datetime.timestamp()
+    }))
+    .where("id", "=", id)
+    .where("companyId", "=", companyId)
+    .where("status", "in", [...PURCHASE_ORDER_LOCKED_STATUSES])
+    .where("orderDate", "is not", null)
+    .executeTakeFirst();
+
+  return Number(result.numUpdatedRows ?? 0);
 }
 
 export async function updateSupplierAccounting(
@@ -1224,6 +1409,7 @@ export async function updateSupplierAccounting(
     .eq("id", supplierAccounting.id);
 }
 
+/** @mcp update */
 export async function updateSupplierContact(
   client: SupabaseClient<Database>,
   supplierContact: {
@@ -1246,14 +1432,22 @@ export async function updateSupplierContact(
       return customFieldUpdate;
     }
   }
+  // The contact id is the row key and the location is set on supplierContact
+  // above; neither is a contact column.
+  const {
+    contactId: _contactId,
+    supplierLocationId: _supplierLocationId,
+    ...contact
+  } = supplierContact.contact;
   return client
     .from("contact")
-    .update(sanitize(supplierContact.contact))
+    .update(sanitize(contact))
     .eq("id", supplierContact.contactId)
     .select("id")
     .single();
 }
 
+/** @mcp update */
 export async function updateSupplierLocation(
   client: SupabaseClient<Database>,
   supplierLocation: {
@@ -1291,6 +1485,7 @@ export async function updateSupplierLocation(
     .single();
 }
 
+/** @mcp update */
 export async function updateSupplierPayment(
   client: SupabaseClient<Database>,
   supplierPayment: z.infer<typeof supplierPaymentValidator> & {
@@ -1304,6 +1499,7 @@ export async function updateSupplierPayment(
     .eq("supplierId", supplierPayment.supplierId);
 }
 
+/** @mcp update */
 export async function updateSupplierQuoteExchangeRate(
   client: SupabaseClient<Database>,
   data: {
@@ -1342,6 +1538,7 @@ export async function updateSupplierQuoteFavorite(
   }
 }
 
+/** @mcp update */
 export async function updateSupplierQuoteStatus(
   client: SupabaseClient<Database>,
   update: {
@@ -1354,6 +1551,7 @@ export async function updateSupplierQuoteStatus(
   return client.from("supplierQuote").update(update).eq("id", update.id);
 }
 
+/** @mcp update */
 export async function updateSupplierShipping(
   client: SupabaseClient<Database>,
   supplierShipping: z.infer<typeof supplierShippingValidator> & {
@@ -1367,6 +1565,7 @@ export async function updateSupplierShipping(
     .eq("supplierId", supplierShipping.supplierId);
 }
 
+/** @mcp read */
 export async function getSupplierTax(
   client: SupabaseClient<Database>,
   supplierId: string
@@ -1378,6 +1577,7 @@ export async function getSupplierTax(
     .maybeSingle();
 }
 
+/** @mcp update */
 export async function updateSupplierTax(
   client: SupabaseClient<Database>,
   supplierTax: z.infer<typeof supplierTaxValidator> & {
@@ -1388,10 +1588,12 @@ export async function updateSupplierTax(
 ) {
   return client
     .from("supplierTax")
-    .update(sanitize(supplierTax))
-    .eq("supplierId", supplierTax.supplierId);
+    .update(sanitize({ ...supplierTax, updatedAt: new Date().toISOString() }))
+    .eq("supplierId", supplierTax.supplierId)
+    .eq("companyId", supplierTax.companyId);
 }
 
+/** @mcp create */
 export async function insertPurchaseOrder(
   client: SupabaseClient<Database>,
   input: {
@@ -1439,6 +1641,21 @@ export async function insertPurchaseOrder(
     purchaseOrderId = seq.data;
   }
 
+  // Resolve the rate BEFORE inserting the supplier interaction — a resolver
+  // failure must not leave an orphaned interaction row behind.
+  let exchangeRate = 1;
+  let exchangeRateUpdatedAt = new Date().toISOString();
+  if (input.currencyCode) {
+    const rate = await getExchangeRate(
+      client,
+      input.companyId,
+      input.currencyCode
+    );
+    if (rate.error) return { data: null, error: rate.error };
+    exchangeRate = rate.data;
+    exchangeRateUpdatedAt = new Date().toISOString();
+  }
+
   const [supplierInteraction, supplierPayment, supplierShipping, purchaser] =
     await Promise.all([
       insertSupplierInteraction(client, input.companyId, input.supplierId),
@@ -1463,20 +1680,6 @@ export async function insertPurchaseOrder(
 
   const { shippingMethodId, shippingTermId, incoterm, incotermLocation } =
     supplierShipping.data;
-
-  let exchangeRate = 1;
-  let exchangeRateUpdatedAt = new Date().toISOString();
-  if (input.currencyCode) {
-    const currency = await getCurrencyByCode(
-      client,
-      input.companyGroupId,
-      input.currencyCode
-    );
-    if (currency.data) {
-      exchangeRate = currency.data.exchangeRate ?? 1;
-      exchangeRateUpdatedAt = new Date().toISOString();
-    }
-  }
 
   const locationId = input.locationId ?? purchaser?.data?.locationId ?? null;
 
@@ -1542,6 +1745,7 @@ export async function insertPurchaseOrder(
   return { data: { id: orderId, purchaseOrderId }, error: null };
 }
 
+/** @mcp update */
 export async function updatePurchaseOrder(
   client: SupabaseClient<Database>,
   input: {
@@ -1557,8 +1761,7 @@ export async function updatePurchaseOrder(
     purchaseOrderType?: (typeof purchaseOrderTypeType)[number];
     notes?: string | null;
     customFields?: Json;
-  },
-  companyGroupId?: string
+  }
 ): Promise<{
   data: { id: string } | null;
   error: import("@supabase/supabase-js").PostgrestError | null;
@@ -1567,16 +1770,22 @@ export async function updatePurchaseOrder(
 
   let exchangeRate: number | undefined;
   let exchangeRateUpdatedAt: string | undefined;
-  if (updates.currencyCode && companyGroupId) {
-    const currency = await getCurrencyByCode(
+  if (updates.currencyCode) {
+    const existing = await client
+      .from("purchaseOrder")
+      .select("companyId")
+      .eq("id", id)
+      .single();
+    if (existing.error) return { data: null, error: existing.error };
+
+    const rate = await getExchangeRate(
       client,
-      companyGroupId,
+      existing.data.companyId,
       updates.currencyCode
     );
-    if (currency.data) {
-      exchangeRate = currency.data.exchangeRate ?? 1;
-      exchangeRateUpdatedAt = new Date().toISOString();
-    }
+    if (rate.error) return { data: null, error: rate.error };
+    exchangeRate = rate.data;
+    exchangeRateUpdatedAt = new Date().toISOString();
   }
 
   return client
@@ -1594,7 +1803,10 @@ export async function updatePurchaseOrder(
     .single();
 }
 
-/** @deprecated Use insertPurchaseOrder for new orders, updatePurchaseOrder for existing orders */
+/**
+ * @deprecated Use insertPurchaseOrder for new orders, updatePurchaseOrder for existing orders
+ * @mcp upsert
+ */
 export async function upsertPurchaseOrder(
   client: SupabaseClient<Database>,
   purchaseOrder:
@@ -1615,17 +1827,43 @@ export async function upsertPurchaseOrder(
       > & {
         id: string;
         purchaseOrderId: string;
+        companyGroupId?: string;
         updatedBy: string;
         customFields?: Json;
       }),
   receiptRequestedDate?: string
 ) {
   if ("id" in purchaseOrder) {
+    // locationId belongs on the delivery record, as in the insert below, and
+    // notes are stored as internalNotes/externalNotes. companyGroupId is not a
+    // column of the order at all.
+    const {
+      locationId: _locationId,
+      companyGroupId: _companyGroupId,
+      notes: _notes,
+      ...orderUpdate
+    } = purchaseOrder;
     return client
       .from("purchaseOrder")
-      .update(sanitize(purchaseOrder))
+      .update(sanitize(orderUpdate))
       .eq("id", purchaseOrder.id)
       .select("id, purchaseOrderId");
+  }
+
+  // Resolve the rate BEFORE inserting the supplier interaction — a resolver
+  // failure must not leave an orphaned interaction row behind.
+  if (purchaseOrder.currencyCode) {
+    const rate = await getExchangeRate(
+      client,
+      purchaseOrder.companyId,
+      purchaseOrder.currencyCode
+    );
+    if (rate.error) return { data: null, error: rate.error };
+    purchaseOrder.exchangeRate = rate.data;
+    purchaseOrder.exchangeRateUpdatedAt = new Date().toISOString();
+  } else {
+    purchaseOrder.exchangeRate = 1;
+    purchaseOrder.exchangeRateUpdatedAt = new Date().toISOString();
   }
 
   const [supplierInteraction, supplierPayment, supplierShipping, purchaser] =
@@ -1653,21 +1891,6 @@ export async function upsertPurchaseOrder(
 
   const { shippingMethodId, shippingTermId, incoterm, incotermLocation } =
     supplierShipping.data;
-
-  if (purchaseOrder.currencyCode) {
-    const currency = await getCurrencyByCode(
-      client,
-      purchaseOrder.companyGroupId,
-      purchaseOrder.currencyCode
-    );
-    if (currency.data) {
-      purchaseOrder.exchangeRate = currency.data.exchangeRate ?? undefined;
-      purchaseOrder.exchangeRateUpdatedAt = new Date().toISOString();
-    }
-  } else {
-    purchaseOrder.exchangeRate = 1;
-    purchaseOrder.exchangeRateUpdatedAt = new Date().toISOString();
-  }
 
   const locationId =
     purchaseOrder.locationId ?? purchaser?.data?.locationId ?? null;
@@ -1731,6 +1954,7 @@ export async function upsertPurchaseOrder(
   return order;
 }
 
+/** @mcp upsert */
 export async function upsertPurchaseOrderDelivery(
   client: SupabaseClient<Database>,
   purchaseOrderDelivery:
@@ -1760,6 +1984,48 @@ export async function upsertPurchaseOrderDelivery(
     .single();
 }
 
+const PURCHASE_ORDER_LINE_ITEM_TYPES = [
+  "Part",
+  "Material",
+  "Tool",
+  "Service",
+  "Consumable",
+  "Fixture"
+];
+
+/**
+ * Force the mutually-exclusive reference columns (`itemId`, `accountId`,
+ * `assetId`) to match the line's `purchaseOrderLineType`, nulling the ones that
+ * don't apply. `purchaseOrderLineType_check` requires exactly one of these set
+ * per type, but the form only submits the active tab's field and `sanitize()`
+ * turns *absent* keys into nothing (not null), so switching a G/L Account or
+ * Fixed Asset line to an item type would otherwise leave a stale `accountId`/
+ * `assetId` on the row and violate the check (23514). Setting the inapplicable
+ * ids to explicit `null` clears them on update and hardens every caller (form,
+ * public API, MCP) at once.
+ */
+function normalizePurchaseOrderLineReferences<
+  T extends {
+    purchaseOrderLineType: string;
+    itemId?: string | null;
+    accountId?: string | null;
+    assetId?: string | null;
+  }
+>(line: T): T {
+  if (PURCHASE_ORDER_LINE_ITEM_TYPES.includes(line.purchaseOrderLineType)) {
+    return { ...line, accountId: null, assetId: null };
+  }
+  if (line.purchaseOrderLineType === "G/L Account") {
+    return { ...line, itemId: null, assetId: null };
+  }
+  if (line.purchaseOrderLineType === "Fixed Asset") {
+    return { ...line, itemId: null, accountId: null };
+  }
+  // Comment (and any other non-reference type) carries no reference id.
+  return { ...line, itemId: null, accountId: null, assetId: null };
+}
+
+/** @mcp upsert */
 export async function upsertPurchaseOrderLine(
   client: SupabaseClient<Database>,
   purchaseOrderLine:
@@ -1774,11 +2040,13 @@ export async function upsertPurchaseOrderLine(
         customFields?: Json;
       })
 ) {
-  if ("id" in purchaseOrderLine) {
+  const normalized = normalizePurchaseOrderLineReferences(purchaseOrderLine);
+
+  if ("id" in normalized) {
     return client
       .from("purchaseOrderLine")
-      .update(sanitize(purchaseOrderLine))
-      .eq("id", purchaseOrderLine.id)
+      .update(sanitize(normalized))
+      .eq("id", normalized.id)
       .select("id")
       .single();
   }
@@ -1786,7 +2054,7 @@ export async function upsertPurchaseOrderLine(
   const existing = await client
     .from("purchaseOrderLine")
     .select("sortOrder")
-    .eq("purchaseOrderId", purchaseOrderLine.purchaseOrderId);
+    .eq("purchaseOrderId", normalized.purchaseOrderId);
 
   const maxSortOrder = (existing.data ?? []).reduce(
     (max, row) => Math.max(max, row.sortOrder ?? 0),
@@ -1795,23 +2063,26 @@ export async function upsertPurchaseOrderLine(
 
   return client
     .from("purchaseOrderLine")
-    .insert([{ ...purchaseOrderLine, sortOrder: maxSortOrder + 1 }])
+    .insert([{ ...normalized, sortOrder: maxSortOrder + 1 }])
     .select("id")
     .single();
 }
 
+/** @mcp update */
 export async function updatePurchaseOrderLineOrder(
   db: Kysely<KyselyDatabase>,
-  updates: { id: string; sortOrder: number; updatedBy: string }[]
+  companyId: string,
+  userId: string,
+  purchaseOrderId: string,
+  updates: { id: string; sortOrder: number }[]
 ) {
-  return db.transaction().execute(async (trx) => {
-    for (const { id, sortOrder, updatedBy } of updates) {
-      await trx
-        .updateTable("purchaseOrderLine")
-        .set({ sortOrder, updatedBy })
-        .where("id", "=", id)
-        .execute();
-    }
+  return updateSortOrder(db, {
+    table: "purchaseOrderLine",
+    column: "sortOrder",
+    companyId,
+    userId,
+    parent: { column: "purchaseOrderId", id: purchaseOrderId },
+    updates
   });
 }
 
@@ -1828,6 +2099,7 @@ export async function updatePurchaseOrderLineOrder(
  * received quantity is already fully invoiced gets `invoicedComplete` too —
  * otherwise the order could never reach Completed. Reopening restores the
  * natural rule (fully invoiced = ordered quantity).
+ * @mcp action
  */
 export async function shortClosePurchaseOrderLine(
   db: Kysely<KyselyDatabase>,
@@ -1899,6 +2171,7 @@ export async function shortClosePurchaseOrderLine(
   });
 }
 
+/** @mcp upsert */
 export async function upsertPurchaseOrderPayment(
   client: SupabaseClient<Database>,
   purchaseOrderPayment:
@@ -1927,6 +2200,7 @@ export async function upsertPurchaseOrderPayment(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertSupplier(
   client: SupabaseClient<Database>,
   supplier:
@@ -1959,6 +2233,7 @@ export async function upsertSupplier(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertSupplierProcess(
   client: SupabaseClient<Database>,
   supplierProcess:
@@ -1988,6 +2263,7 @@ export async function upsertSupplierProcess(
     .single();
 }
 
+/** @mcp create */
 export async function insertSupplierQuote(
   client: SupabaseClient<Database>,
   input: {
@@ -2036,15 +2312,14 @@ export async function insertSupplierQuote(
   let exchangeRate = 1;
   let exchangeRateUpdatedAt = new Date().toISOString();
   if (input.currencyCode) {
-    const currency = await getCurrencyByCode(
+    const rate = await getExchangeRate(
       client,
-      input.companyGroupId,
+      input.companyId,
       input.currencyCode
     );
-    if (currency.data) {
-      exchangeRate = currency.data.exchangeRate ?? 1;
-      exchangeRateUpdatedAt = new Date().toISOString();
-    }
+    if (rate.error) return { data: null, error: rate.error };
+    exchangeRate = rate.data;
+    exchangeRateUpdatedAt = new Date().toISOString();
   }
 
   const supplierInteraction = await insertSupplierInteraction(
@@ -2105,6 +2380,7 @@ export async function insertSupplierQuote(
   return { data: { id: createdQuoteId, supplierQuoteId }, error: null };
 }
 
+/** @mcp update */
 export async function updateSupplierQuote(
   client: SupabaseClient<Database>,
   input: {
@@ -2117,8 +2393,7 @@ export async function updateSupplierQuote(
     supplierLocationId?: string | null;
     notes?: string | null;
     customFields?: Json;
-  },
-  companyGroupId?: string
+  }
 ): Promise<{
   data: { id: string } | null;
   error: import("@supabase/supabase-js").PostgrestError | null;
@@ -2130,7 +2405,7 @@ export async function updateSupplierQuote(
 
   const existing = await client
     .from("supplierQuote")
-    .select("currencyCode")
+    .select("currencyCode, companyId")
     .eq("id", id)
     .single();
 
@@ -2138,18 +2413,16 @@ export async function updateSupplierQuote(
 
   if (
     updates.currencyCode &&
-    companyGroupId &&
     existing.data.currencyCode !== updates.currencyCode
   ) {
-    const currency = await getCurrencyByCode(
+    const rate = await getExchangeRate(
       client,
-      companyGroupId,
+      existing.data.companyId,
       updates.currencyCode
     );
-    if (currency.data) {
-      exchangeRate = currency.data.exchangeRate ?? 1;
-      exchangeRateUpdatedAt = new Date().toISOString();
-    }
+    if (rate.error) return { data: null, error: rate.error };
+    exchangeRate = rate.data;
+    exchangeRateUpdatedAt = new Date().toISOString();
   }
 
   return client
@@ -2194,15 +2467,14 @@ export async function upsertSupplierQuote(
 ) {
   if ("createdBy" in supplierQuote) {
     if (supplierQuote.currencyCode) {
-      const currency = await getCurrencyByCode(
+      const rate = await getExchangeRate(
         client,
-        supplierQuote.companyGroupId,
+        supplierQuote.companyId,
         supplierQuote.currencyCode
       );
-      if (currency.data) {
-        supplierQuote.exchangeRate = currency.data.exchangeRate ?? undefined;
-        supplierQuote.exchangeRateUpdatedAt = new Date().toISOString();
-      }
+      if (rate.error) return { data: null, error: rate.error };
+      supplierQuote.exchangeRate = rate.data;
+      supplierQuote.exchangeRateUpdatedAt = new Date().toISOString();
     } else {
       supplierQuote.exchangeRate = 1;
       supplierQuote.exchangeRateUpdatedAt = new Date().toISOString();
@@ -2216,8 +2488,12 @@ export async function upsertSupplierQuote(
 
     if (supplierInteraction.error) return supplierInteraction;
 
-    const { companyGroupId: _companyGroupId, ...supplierQuoteData } =
-      supplierQuote;
+    // supplierQuote stores notes as internalNotes/externalNotes, not `notes`.
+    const {
+      companyGroupId: _companyGroupId,
+      notes: _notes,
+      ...supplierQuoteData
+    } = supplierQuote;
     const insert = await client
       .from("supplierQuote")
       .insert([
@@ -2280,18 +2556,20 @@ export async function upsertSupplierQuote(
       supplierQuote.currencyCode &&
       currencyCode !== supplierQuote.currencyCode
     ) {
-      const currency = await getCurrencyByCode(
+      const rate = await getExchangeRate(
         client,
-        supplierQuote.companyGroupId,
+        companyId,
         supplierQuote.currencyCode
       );
-      if (currency.data) {
-        supplierQuote.exchangeRate = currency.data.exchangeRate ?? undefined;
-        supplierQuote.exchangeRateUpdatedAt = new Date().toISOString();
-      }
+      if (rate.error) return { data: null, error: rate.error };
+      supplierQuote.exchangeRate = rate.data;
+      supplierQuote.exchangeRateUpdatedAt = new Date().toISOString();
     }
-    const { companyGroupId: _companyGroupId2, ...supplierQuoteUpdateData } =
-      supplierQuote;
+    const {
+      companyGroupId: _companyGroupId2,
+      notes: _notes,
+      ...supplierQuoteUpdateData
+    } = supplierQuote;
     const companyTz = await getCompanyTimeZone(client, companyId);
     return client
       .from("supplierQuote")
@@ -2308,6 +2586,7 @@ export async function upsertSupplierQuote(
   }
 }
 
+/** @mcp upsert */
 export async function upsertSupplierQuoteLine(
   client: SupabaseClient<Database>,
   supplierQuoteLine:
@@ -2354,21 +2633,25 @@ export async function upsertSupplierQuoteLine(
     .single();
 }
 
+/** @mcp update */
 export async function updateSupplierQuoteLineOrder(
   db: Kysely<KyselyDatabase>,
-  updates: { id: string; sortOrder: number; updatedBy: string }[]
+  companyId: string,
+  userId: string,
+  supplierQuoteId: string,
+  updates: { id: string; sortOrder: number }[]
 ) {
-  return db.transaction().execute(async (trx) => {
-    for (const { id, sortOrder, updatedBy } of updates) {
-      await trx
-        .updateTable("supplierQuoteLine")
-        .set({ sortOrder, updatedBy })
-        .where("id", "=", id)
-        .execute();
-    }
+  return updateSortOrder(db, {
+    table: "supplierQuoteLine",
+    column: "sortOrder",
+    companyId,
+    userId,
+    parent: { column: "supplierQuoteId", id: supplierQuoteId },
+    updates
   });
 }
 
+/** @mcp upsert */
 export async function upsertSupplierType(
   client: SupabaseClient<Database>,
   supplierType:
@@ -2401,6 +2684,7 @@ export async function upsertSupplierType(
 // PURCHASING RFQ FUNCTIONS
 // ============================================================
 
+/** @mcp delete */
 export async function deletePurchasingRFQ(
   client: SupabaseClient<Database>,
   purchasingRfqId: string
@@ -2408,6 +2692,7 @@ export async function deletePurchasingRFQ(
   return client.from("purchasingRfq").delete().eq("id", purchasingRfqId);
 }
 
+/** @mcp delete */
 export async function deletePurchasingRFQLine(
   client: SupabaseClient<Database>,
   purchasingRfqLineId: string
@@ -2418,6 +2703,7 @@ export async function deletePurchasingRFQLine(
     .eq("id", purchasingRfqLineId);
 }
 
+/** @mcp read */
 export async function getPurchasingRFQ(
   client: SupabaseClient<Database>,
   id: string
@@ -2425,6 +2711,7 @@ export async function getPurchasingRFQ(
   return client.from("purchasingRfqs").select("*").eq("id", id).single();
 }
 
+/** @mcp read */
 export async function getPurchasingRFQs(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -2434,7 +2721,7 @@ export async function getPurchasingRFQs(
 ) {
   let query = client
     .from("purchasingRfqs")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args.search) {
@@ -2447,6 +2734,7 @@ export async function getPurchasingRFQs(
   return query;
 }
 
+/** @mcp read */
 export async function getPurchasingRFQLine(
   client: SupabaseClient<Database>,
   lineId: string
@@ -2458,6 +2746,7 @@ export async function getPurchasingRFQLine(
     .single();
 }
 
+/** @mcp read */
 export async function getPurchasingRFQLines(
   client: SupabaseClient<Database>,
   purchasingRfqId: string
@@ -2483,11 +2772,11 @@ type LinkedSupplierQuote = {
     | null;
 };
 
+/** @mcp read */
 export async function getPurchasingRFQSuppliers(
   client: SupabaseClient<Database>,
   purchasingRfqId: string
 ): Promise<PostgrestResponse<PurchasingRfqSupplierWithSupplier>> {
-  // @ts-ignore TS2589 — supabase select-string instantiation depth sits on
   // tsgo's limit; the cliff shifts as unrelated modules join the program.
   // ts-ignore, not ts-expect-error, so it satisfies both tsc and tsgo.
   return client
@@ -2496,6 +2785,7 @@ export async function getPurchasingRFQSuppliers(
     .eq("purchasingRfqId", purchasingRfqId);
 }
 
+/** @mcp create */
 export async function insertPurchasingRFQ(
   client: SupabaseClient<Database>,
   input: {
@@ -2593,7 +2883,10 @@ export async function updatePurchasingRFQ(
     .single();
 }
 
-/** @deprecated Use insertPurchasingRFQ for new RFQs, updatePurchasingRFQ for existing RFQs */
+/**
+ * @deprecated Use insertPurchasingRFQ for new RFQs, updatePurchasingRFQ for existing RFQs
+ * @mcp upsert
+ */
 export async function upsertPurchasingRFQ(
   client: SupabaseClient<Database>,
   purchasingRfq: {
@@ -2625,6 +2918,7 @@ export async function upsertPurchasingRFQ(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertPurchasingRFQLine(
   client: SupabaseClient<Database>,
   purchasingRfqLine:
@@ -2671,21 +2965,25 @@ export async function upsertPurchasingRFQLine(
     .single();
 }
 
+/** @mcp update */
 export async function updatePurchasingRFQLineOrder(
   db: Kysely<KyselyDatabase>,
-  updates: { id: string; sortOrder: number; updatedBy: string }[]
+  companyId: string,
+  userId: string,
+  purchasingRfqId: string,
+  updates: { id: string; sortOrder: number }[]
 ) {
-  return db.transaction().execute(async (trx) => {
-    for (const { id, sortOrder, updatedBy } of updates) {
-      await trx
-        .updateTable("purchasingRfqLine")
-        .set({ order: sortOrder, updatedBy })
-        .where("id", "=", id)
-        .execute();
-    }
+  return updateSortOrder(db, {
+    table: "purchasingRfqLine",
+    column: "order",
+    companyId,
+    userId,
+    parent: { column: "purchasingRfqId", id: purchasingRfqId },
+    updates
   });
 }
 
+/** @mcp upsert destructive */
 export async function upsertPurchasingRFQSuppliers(
   client: SupabaseClient<Database>,
   purchasingRfqId: string,
@@ -2717,6 +3015,7 @@ export async function upsertPurchasingRFQSuppliers(
     .select("id");
 }
 
+/** @mcp update */
 export async function updatePurchasingRFQStatus(
   client: SupabaseClient<Database>,
   args: {
@@ -2739,11 +3038,11 @@ export async function updatePurchasingRFQStatus(
     .single();
 }
 
+/** @mcp read */
 export async function getLinkedSupplierQuotes(
   client: SupabaseClient<Database>,
   purchasingRfqId: string
 ): Promise<PostgrestResponse<LinkedSupplierQuote>> {
-  // @ts-ignore - nested select instantiation exceeds tsgo depth limit
   return client
     .from("purchasingRfqToSupplierQuote")
     .select(
@@ -2755,6 +3054,7 @@ export async function getLinkedSupplierQuotes(
     .eq("purchasingRfqId", purchasingRfqId);
 }
 
+/** @mcp read */
 export async function getLinkedPurchasingRfqs(
   client: SupabaseClient<Database>,
   supplierQuoteId: string
@@ -2770,6 +3070,7 @@ export async function getLinkedPurchasingRfqs(
     .eq("supplierQuoteId", supplierQuoteId);
 }
 
+/** @mcp read */
 export async function getLinkedPurchasingRfqsForInteraction(
   client: SupabaseClient<Database>,
   supplierInteractionId: string
@@ -2799,6 +3100,7 @@ export async function getLinkedPurchasingRfqsForInteraction(
 }
 
 // Get sibling quotes (quotes sharing any RFQ with current quote)
+/** @mcp read */
 export async function getSiblingQuotesForQuote(
   client: SupabaseClient<Database>,
   supplierQuoteId: string
@@ -2819,7 +3121,6 @@ export async function getSiblingQuotesForQuote(
   const rfqIds = linkedRfqs.map((r) => r.purchasingRfqId);
 
   // Get all quotes linked to any of these RFQs (excluding current quote)
-  // @ts-ignore - nested select instantiation exceeds tsgo depth limit
   return client
     .from("purchasingRfqToSupplierQuote")
     .select(
@@ -2833,6 +3134,7 @@ export async function getSiblingQuotesForQuote(
 }
 
 // Direct Order→RFQ lookup (more efficient than going through interaction)
+/** @mcp read */
 export async function getLinkedPurchasingRfqsForOrder(
   client: SupabaseClient<Database>,
   purchaseOrderId: string
@@ -2848,12 +3150,12 @@ export async function getLinkedPurchasingRfqsForOrder(
     .eq("purchaseOrderId", purchaseOrderId);
 }
 
+/** @mcp read */
 export async function getSupplierQuotesForComparison(
   client: SupabaseClient<Database>,
   purchasingRfqId: string
 ) {
   // 1. Get all supplier quote IDs linked to this RFQ with supplier info
-  // @ts-ignore - nested select instantiation exceeds tsgo depth limit
   const linksResult: PostgrestResponse<LinkedSupplierQuote> = await client
     .from("purchasingRfqToSupplierQuote")
     .select(
@@ -2913,11 +3215,11 @@ export async function getSupplierQuotesForComparison(
 }
 
 // Get RFQ suppliers with their supplier info
+/** @mcp read */
 export async function getPurchasingRFQSuppliersWithLinks(
   client: SupabaseClient<Database>,
   purchasingRfqId: string
 ): Promise<PostgrestResponse<PurchasingRfqSupplierWithSupplier>> {
-  // @ts-ignore - nested select instantiation exceeds tsgo depth limit
   return client
     .from("purchasingRfqSupplier")
     .select("*, supplier(id, name)")
@@ -2931,6 +3233,7 @@ export type PoDefaultAttachment = {
   path: string;
 };
 
+/** @mcp read */
 export async function getDefaultAttachmentsForPO(
   client: SupabaseClient<Database>,
   args: {
@@ -2950,7 +3253,24 @@ export async function getDefaultAttachmentsForPO(
       path: `${companyId}/default-attachments/supplier/${supplierId}`
     });
   }
+  // One listing of the item folder says which items have default attachments
+  // at all, so only those are listed. A listing per PO line item, almost
+  // always empty, was most of the storage calls a PO page made. A failed
+  // listing falls back to checking every item.
+  const bucket = storage(client).company(companyId);
+  const itemFolders =
+    itemIds.length === 0
+      ? null
+      : await bucket.list(`${companyId}/default-attachments/item`);
+  const withAttachments = itemFolders?.error
+    ? null
+    : new Set(
+        (itemFolders?.data ?? [])
+          .filter((entry) => entry.id === null)
+          .map((entry) => entry.name)
+      );
   for (const id of itemIds ?? []) {
+    if (withAttachments && !withAttachments.has(id)) continue;
     prefixes.push({
       source: "item",
       path: `${companyId}/default-attachments/item/${id}`
@@ -2958,11 +3278,12 @@ export async function getDefaultAttachmentsForPO(
   }
 
   const results = await Promise.all(
-    prefixes.map(({ path }) => client.storage.from("private").list(path))
+    prefixes.map(({ path }) => bucket.list(path))
   );
 
   return results.flatMap((result, idx) => {
     const { source, path: prefix } = prefixes[idx];
+    // the union helper's structural type omits supabase's metadata field
     return (result.data ?? []).map((f) => ({
       source,
       name: f.name,
@@ -2974,5 +3295,1372 @@ export async function getDefaultAttachmentsForPO(
           : null,
       path: `${prefix}/${f.name}`
     }));
+  });
+}
+
+// ─── Purchase Return Orders (Supplier Returns) ───
+
+/** @mcp read */
+export async function getPurchaseReturnOrders(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: GenericQueryFilters & {
+    search: string | null;
+    status: string | null;
+    supplierId: string | null;
+  }
+) {
+  let query = client
+    .from("purchaseReturnOrders")
+    .select("*", { count: LIST_COUNT })
+    .eq("companyId", companyId);
+
+  if (args.search) {
+    query = query.or(
+      `purchaseReturnOrderId.ilike.%${args.search}%,supplierReference.ilike.%${args.search}%`
+    );
+  }
+
+  if (args.status) {
+    query = query.eq(
+      "status",
+      args.status as (typeof purchaseReturnOrderStatusType)[number]
+    );
+  }
+
+  if (args.supplierId) {
+    query = query.eq("supplierId", args.supplierId);
+  }
+
+  query = setGenericQueryFilters(query, args, [
+    { column: "createdAt", ascending: false }
+  ]);
+  return query;
+}
+
+/** @mcp read */
+export async function getPurchaseReturnOrder(
+  client: SupabaseClient<Database>,
+  purchaseReturnOrderId: string
+) {
+  return client
+    .from("purchaseReturnOrders")
+    .select("*")
+    .eq("id", purchaseReturnOrderId)
+    .single();
+}
+
+/** @mcp read */
+export async function getPurchaseReturnOrderLines(
+  client: SupabaseClient<Database>,
+  purchaseReturnOrderId: string,
+  companyId: string
+) {
+  return client
+    .from("purchaseReturnOrderLine")
+    .select(
+      "*, returnReason(name), item(name, readableIdWithRevision, itemTrackingType, thumbnailPath)"
+    )
+    .eq("purchaseReturnOrderId", purchaseReturnOrderId)
+    .eq("companyId", companyId)
+    .order("lineNumber");
+}
+
+/** @mcp read */
+export async function getPurchaseReturnOrderLine(
+  client: SupabaseClient<Database>,
+  lineId: string
+) {
+  return client
+    .from("purchaseReturnOrderLine")
+    .select("*")
+    .eq("id", lineId)
+    .single();
+}
+
+/** @mcp read */
+export async function getPurchaseReturnOrderLineTrackedEntities(
+  client: SupabaseClient<Database>,
+  lineIds: string[]
+) {
+  return client
+    .from("purchaseReturnOrderLineTrackedEntity")
+    .select("*, trackedEntity(id, readableId, status, quantity)")
+    .in("purchaseReturnOrderLineId", lineIds);
+}
+
+/** @mcp create */
+export async function insertPurchaseReturnOrder(
+  client: SupabaseClient<Database>,
+  input: {
+    supplierId: string;
+    companyId: string;
+    companyGroupId: string;
+    createdBy: string;
+    purchaseReturnOrderId?: string;
+    orderDate: string;
+    supplierLocationId?: string;
+    supplierContactId?: string;
+    supplierReference?: string;
+    locationId?: string;
+    purchaseOrderId?: string;
+    currencyCode?: string;
+    expirationDate?: string;
+    assignee?: string;
+    customFields?: Json;
+  }
+): Promise<{
+  data: { id: string; purchaseReturnOrderId: string } | null;
+  error: PostgrestError | null;
+}> {
+  let purchaseReturnOrderId: string;
+  if (input.purchaseReturnOrderId) {
+    purchaseReturnOrderId = input.purchaseReturnOrderId;
+  } else {
+    const seq = await client.rpc("get_next_sequence", {
+      sequence_name: "purchaseReturnOrder",
+      company_id: input.companyId
+    });
+    if (seq.error || !seq.data) {
+      return {
+        data: null,
+        error:
+          seq.error ??
+          ({
+            message: "Failed to generate return order sequence"
+          } as PostgrestError)
+      };
+    }
+    purchaseReturnOrderId = seq.data;
+  }
+
+  let currencyCode = input.currencyCode;
+  if (!currencyCode) {
+    const [supplier, company] = await Promise.all([
+      client
+        .from("supplier")
+        .select("currencyCode")
+        .eq("id", input.supplierId)
+        .single(),
+      client
+        .from("company")
+        .select("baseCurrencyCode")
+        .eq("id", input.companyId)
+        .single()
+    ]);
+    currencyCode =
+      supplier.data?.currencyCode ?? company.data?.baseCurrencyCode ?? "USD";
+  }
+
+  let exchangeRate = 1;
+  if (currencyCode) {
+    // Main's currency refactor: rates come from the get_exchange_rate RPC
+    // (base=1, per-company override, else global market store) — the old
+    // currency.exchangeRate column was dropped.
+    const exchangeRateResult = await getExchangeRate(
+      client,
+      input.companyId,
+      currencyCode
+    );
+    if (exchangeRateResult.error) {
+      return { data: null, error: exchangeRateResult.error };
+    }
+    exchangeRate = exchangeRateResult.data;
+  }
+
+  const order = await client
+    .from("purchaseReturnOrder")
+    .insert({
+      purchaseReturnOrderId,
+      supplierId: input.supplierId,
+      supplierLocationId: input.supplierLocationId,
+      supplierContactId: input.supplierContactId,
+      supplierReference: input.supplierReference ?? null,
+      locationId: input.locationId,
+      purchaseOrderId: input.purchaseOrderId,
+      currencyCode,
+      exchangeRate,
+      orderDate: input.orderDate,
+      expirationDate: input.expirationDate,
+      assignee: input.assignee,
+      companyId: input.companyId,
+      createdBy: input.createdBy,
+      customFields: input.customFields
+    })
+    .select("id, purchaseReturnOrderId")
+    .single();
+
+  return order;
+}
+
+export async function updatePurchaseReturnOrder(
+  client: SupabaseClient<Database>,
+  purchaseReturnOrder: Omit<
+    z.infer<typeof purchaseReturnOrderValidator>,
+    "id" | "purchaseReturnOrderId" | "status"
+  > & {
+    id: string;
+    updatedBy: string;
+    customFields?: Json;
+  }
+) {
+  const { id, ...update } = purchaseReturnOrder;
+  return client
+    .from("purchaseReturnOrder")
+    .update({ ...sanitize(update), updatedAt: datetime.timestamp() })
+    .eq("id", id)
+    .select("id")
+    .single();
+}
+
+/** @mcp upsert */
+export async function upsertPurchaseReturnOrderLine(
+  client: SupabaseClient<Database>,
+  line:
+    | (Omit<
+        z.infer<typeof purchaseReturnOrderLineValidator>,
+        "id" | "trackedEntityIds"
+      > & {
+        companyId: string;
+        createdBy: string;
+        customFields?: Json;
+      })
+    | (Omit<
+        z.infer<typeof purchaseReturnOrderLineValidator>,
+        "id" | "trackedEntityIds"
+      > & {
+        id: string;
+        updatedBy: string;
+        customFields?: Json;
+      })
+) {
+  if ("createdBy" in line) {
+    const existing = await client
+      .from("purchaseReturnOrderLine")
+      .select("lineNumber")
+      .eq("purchaseReturnOrderId", line.purchaseReturnOrderId)
+      .eq("companyId", line.companyId)
+      .order("lineNumber", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    return client
+      .from("purchaseReturnOrderLine")
+      .insert([
+        {
+          ...line,
+          lineNumber: (existing.data?.lineNumber ?? 0) + 1
+        }
+      ])
+      .select("id")
+      .single();
+  }
+  const { id, ...update } = line;
+  return client
+    .from("purchaseReturnOrderLine")
+    .update({ ...sanitize(update), updatedAt: datetime.timestamp() })
+    .eq("id", id)
+    .select("id")
+    .single();
+}
+
+/** @mcp delete */
+export async function deletePurchaseReturnOrder(
+  client: SupabaseClient<Database>,
+  purchaseReturnOrderId: string
+) {
+  return client
+    .from("purchaseReturnOrder")
+    .delete()
+    .eq("id", purchaseReturnOrderId);
+}
+
+/** @mcp delete */
+export async function deletePurchaseReturnOrderLine(
+  client: SupabaseClient<Database>,
+  lineId: string
+) {
+  return client.from("purchaseReturnOrderLine").delete().eq("id", lineId);
+}
+
+/** @mcp update destructive */
+export async function setPurchaseReturnOrderLineTrackedEntities(
+  client: SupabaseClient<Database>,
+  lineId: string,
+  companyId: string,
+  entityIds: string[],
+  userId: string
+) {
+  const deleteExisting = await client
+    .from("purchaseReturnOrderLineTrackedEntity")
+    .delete()
+    .eq("purchaseReturnOrderLineId", lineId)
+    .eq("companyId", companyId);
+  if (deleteExisting.error) return deleteExisting;
+  if (entityIds.length === 0) return deleteExisting;
+
+  return client.from("purchaseReturnOrderLineTrackedEntity").insert(
+    entityIds.map((trackedEntityId) => ({
+      purchaseReturnOrderLineId: lineId,
+      trackedEntityId,
+      quantity: 1,
+      companyId,
+      createdBy: userId
+    }))
+  );
+}
+
+/** @mcp read */
+export async function getPurchaseReturnOrderShipments(
+  client: SupabaseClient<Database>,
+  purchaseReturnOrderId: string,
+  companyId: string
+) {
+  return client
+    .from("shipment")
+    .select("id, shipmentId, status, postingDate, createdAt")
+    .eq("sourceDocumentId", purchaseReturnOrderId)
+    .eq("sourceDocument", "Purchase Return Order")
+    .eq("companyId", companyId)
+    .order("createdAt", { ascending: false });
+}
+
+/** @mcp read */
+export async function getPurchaseReturnOrderCredits(
+  client: SupabaseClient<Database>,
+  purchaseReturnOrderId: string,
+  companyId: string
+) {
+  return client
+    .from("memo")
+    .select("id, memoId, status, amount, currencyCode, memoDate, postingDate")
+    .eq("purchaseReturnOrderId", purchaseReturnOrderId)
+    .eq("companyId", companyId)
+    .order("createdAt", { ascending: false });
+}
+
+/** @mcp read */
+export async function getPurchaseReturnOrderIssues(
+  client: SupabaseClient<Database>,
+  purchaseReturnOrderId: string,
+  companyId: string
+) {
+  return client
+    .from("nonConformancePurchaseReturnOrderLine")
+    .select(
+      "id, purchaseReturnOrderLineId, nonConformance(id, nonConformanceId, name, status)"
+    )
+    .eq("purchaseReturnOrderId", purchaseReturnOrderId)
+    .eq("companyId", companyId);
+}
+
+/**
+ * Confirm a supplier return. The reversible-quantity cap is a transactional
+ * invariant: the governing SOURCE rows (receipt/PO/invoice lines) are
+ * row-locked so two concurrent confirms against the same source line
+ * serialize, and the aggregates are re-read under that lock
+ * (replaceInvoiceSettlements pattern).
+ * @mcp action
+ */
+export async function confirmPurchaseReturnOrder(
+  db: Kysely<KyselyDatabase>,
+  { id, companyId }: { id: string; companyId: string },
+  userId: string
+) {
+  return db.transaction().execute(async (trx) => {
+    const order = await trx
+      .selectFrom("purchaseReturnOrder")
+      .select(["id", "status"])
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!order) throw new Error("Return order not found");
+    if (order.status !== "Draft") {
+      throw new Error(
+        `Cannot confirm a return order in ${order.status} status`
+      );
+    }
+
+    const lines = await trx
+      .selectFrom("purchaseReturnOrderLine")
+      .select([
+        "id",
+        "lineNumber",
+        "quantity",
+        "purchaseOrderLineId",
+        "receiptLineId",
+        "purchaseInvoiceLineId"
+      ])
+      .where("purchaseReturnOrderId", "=", id)
+      .where("companyId", "=", companyId)
+      .forUpdate()
+      .execute();
+
+    if (lines.length === 0) {
+      throw new Error("Cannot confirm a return order with no lines");
+    }
+
+    // Reversible caps, checked per source-line link under a row lock on the
+    // governing source row. Blind lines (no links) skip the check.
+    const checks: {
+      lineNumbers: number[];
+      requested: number;
+      linkColumn:
+        | "receiptLineId"
+        | "purchaseOrderLineId"
+        | "purchaseInvoiceLineId";
+      linkId: string;
+    }[] = [];
+
+    const byLink = new Map<string, (typeof checks)[number]>();
+    for (const line of lines) {
+      const linkColumn = line.receiptLineId
+        ? ("receiptLineId" as const)
+        : line.purchaseOrderLineId
+          ? ("purchaseOrderLineId" as const)
+          : line.purchaseInvoiceLineId
+            ? ("purchaseInvoiceLineId" as const)
+            : null;
+      if (!linkColumn) continue;
+      const linkId = line[linkColumn]!;
+      const key = `${linkColumn}:${linkId}`;
+      const existing = byLink.get(key);
+      if (existing) {
+        existing.requested += Number(line.quantity);
+        existing.lineNumbers.push(line.lineNumber);
+      } else {
+        const check = {
+          lineNumbers: [line.lineNumber],
+          requested: Number(line.quantity),
+          linkColumn,
+          linkId
+        };
+        byLink.set(key, check);
+        checks.push(check);
+      }
+    }
+
+    for (const check of checks) {
+      // Lock the governing source row, then read its received base. Receipt
+      // line quantities are already inventory units; PO/invoice lines are in
+      // purchase units and convert via conversionFactor.
+      let base = 0;
+      if (check.linkColumn === "receiptLineId") {
+        const src = await trx
+          .selectFrom("receiptLine")
+          .select(["receivedQuantity"])
+          .where("id", "=", check.linkId)
+          .where("companyId", "=", companyId)
+          .forUpdate()
+          .executeTakeFirst();
+        base = Number(src?.receivedQuantity ?? 0);
+      } else if (check.linkColumn === "purchaseOrderLineId") {
+        const src = await trx
+          .selectFrom("purchaseOrderLine")
+          .select(["quantityReceived", "conversionFactor"])
+          .where("id", "=", check.linkId)
+          .where("companyId", "=", companyId)
+          .forUpdate()
+          .executeTakeFirst();
+        base =
+          Number(src?.quantityReceived ?? 0) *
+          Number(src?.conversionFactor ?? 1);
+      } else {
+        const src = await trx
+          .selectFrom("purchaseInvoiceLine")
+          .select(["quantity", "conversionFactor"])
+          .where("id", "=", check.linkId)
+          .where("companyId", "=", companyId)
+          .forUpdate()
+          .executeTakeFirst();
+        base = Number(src?.quantity ?? 0) * Number(src?.conversionFactor ?? 1);
+      }
+
+      // Everything already authorized against this source line by OTHER
+      // non-cancelled return orders (re-read under the source-row lock).
+      // A PO-line check must ALSO count returns linked via a receipt line OF
+      // that PO line: receipt-linked and PO-linked returns draw on the same
+      // received base, and per-column counting let the two link types jointly
+      // over-authorize the same goods. (A line carrying both links matches
+      // the OR once — rows are counted, not columns.) The receipt-line check
+      // deliberately does NOT count PO-linked returns the other way: they
+      // cannot be attributed to one receipt line of a multi-receipt PO line,
+      // and blocking on them would refuse legitimate returns.
+      let siblingReceiptLineIds: string[] = [];
+      if (check.linkColumn === "purchaseOrderLineId") {
+        const receiptLinesOfPoLine = await trx
+          .selectFrom("receiptLine")
+          .select(["id"])
+          .where("lineId", "=", check.linkId)
+          .where("companyId", "=", companyId)
+          .execute();
+        siblingReceiptLineIds = receiptLinesOfPoLine.map((r) => r.id);
+      }
+
+      const others = await trx
+        .selectFrom("purchaseReturnOrderLine")
+        .innerJoin(
+          "purchaseReturnOrder",
+          "purchaseReturnOrder.id",
+          "purchaseReturnOrderLine.purchaseReturnOrderId"
+        )
+        .select(({ fn }) => [
+          fn
+            .coalesce(
+              fn.sum("purchaseReturnOrderLine.quantity"),
+              sql<number>`0`
+            )
+            .as("authorized")
+        ])
+        .where((eb) =>
+          siblingReceiptLineIds.length > 0
+            ? eb.or([
+                eb(
+                  `purchaseReturnOrderLine.${check.linkColumn}`,
+                  "=",
+                  check.linkId
+                ),
+                eb(
+                  "purchaseReturnOrderLine.receiptLineId",
+                  "in",
+                  siblingReceiptLineIds
+                )
+              ])
+            : eb(
+                `purchaseReturnOrderLine.${check.linkColumn}`,
+                "=",
+                check.linkId
+              )
+        )
+        .where("purchaseReturnOrderLine.companyId", "=", companyId)
+        .where("purchaseReturnOrder.status", "!=", "Cancelled")
+        .where("purchaseReturnOrder.id", "!=", id)
+        .executeTakeFirst();
+
+      const alreadyAuthorized = Number(others?.authorized ?? 0);
+      const cap = base - alreadyAuthorized;
+      if (check.requested > cap + EPSILON) {
+        throw new Error(
+          `Line ${check.lineNumbers.join(", ")}: cannot authorize ${
+            check.requested
+          } — only ${Math.max(0, cap)} of ${base} remains returnable for the linked document line`
+        );
+      }
+    }
+
+    // Confirm releases the return for shipping. Status is derived, not fixed —
+    // a fresh confirm from Draft has nothing shipped, so it lands on "To Ship",
+    // but deriving keeps this consistent with the shipment/short-close paths.
+    const { status } = getPurchaseReturnOrderStatus(
+      lines.map((line) => ({
+        quantity: line.quantity,
+        quantityShipped: 0,
+        closedComplete: false
+      }))
+    );
+
+    await trx
+      .updateTable("purchaseReturnOrder")
+      .set({
+        status,
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .execute();
+  });
+}
+
+/**
+ * Reopen a supplier return back to Draft so its lines can be edited. THROWS.
+ * Row-locked so a shipment posting racing this reopen serializes: only a
+ * "To Ship" return with NOTHING shipped yet (or a "Cancelled" one) may reopen —
+ * once any quantity has shipped, or the return is terminal ("Completed"),
+ * reopening would strand shipped stock. "To Ship" no longer implies nothing
+ * shipped (it also covers partially shipped), so the nothing-shipped invariant
+ * is enforced on the line quantities directly.
+ *
+ * No cap is released: a Draft return still counts as authorized against its
+ * source lines (the confirm check excludes only "Cancelled"), so the
+ * authorization it holds is unchanged — only its editability.
+ * @mcp action
+ */
+export async function reopenPurchaseReturnOrder(
+  db: Kysely<KyselyDatabase>,
+  { id, companyId, userId }: { id: string; companyId: string; userId: string }
+) {
+  return db.transaction().execute(async (trx) => {
+    const order = await trx
+      .selectFrom("purchaseReturnOrder")
+      .select(["id", "status"])
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .forUpdate()
+      .executeTakeFirst();
+
+    if (!order) throw new Error("Return order not found");
+    // To Ship → Draft (un-confirm) and Cancelled → Draft (revive). A Cancelled
+    // return has no shipments and nothing shipped (the cancel guard enforces
+    // that), so reviving it to Draft is safe.
+    if (!["To Ship", "Cancelled"].includes(order.status)) {
+      throw new Error(
+        `Only a to-ship or cancelled return can be reopened — this one is ${order.status}`
+      );
+    }
+
+    // "To Ship" can be partially shipped; reopening one that has shipped stock
+    // would strand it. Refuse unless nothing has shipped yet.
+    if (order.status === "To Ship") {
+      const shippedLines = await trx
+        .selectFrom("purchaseReturnOrderLine")
+        .select(["quantityShipped"])
+        .where("purchaseReturnOrderId", "=", id)
+        .where("companyId", "=", companyId)
+        .execute();
+      if (shippedLines.some((l) => Number(l.quantityShipped) > EPSILON)) {
+        throw new Error(
+          "Cannot reopen: quantity has already shipped. Void the shipment first."
+        );
+      }
+    }
+
+    await trx
+      .updateTable("purchaseReturnOrder")
+      .set({
+        status: "Draft",
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .execute();
+  });
+}
+
+/**
+ * Cancel a supplier return. THROWS. A Kysely transaction that locks the order
+ * row first — post-shipment re-checks the order status under the same lock, so
+ * a shipment posting racing this cancel serializes: whichever commits first
+ * wins, and the loser sees the new state instead of producing a Cancelled
+ * order with shipped stock (whose caps and Issue coverage then vanish).
+ * @mcp action
+ */
+export async function cancelPurchaseReturnOrder(
+  db: Kysely<KyselyDatabase>,
+  { id, companyId, userId }: { id: string; companyId: string; userId: string }
+) {
+  return db.transaction().execute(async (trx) => {
+    const order = await trx
+      .selectFrom("purchaseReturnOrder")
+      .select(["status"])
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!order) throw new Error("Return order not found");
+    if (["Completed", "Cancelled"].includes(order.status)) {
+      throw new Error(`Cannot cancel a return order in ${order.status} status`);
+    }
+
+    const [shipments, lines] = await Promise.all([
+      trx
+        .selectFrom("shipment")
+        .select(["id"])
+        .where("sourceDocumentId", "=", id)
+        .where("sourceDocument", "=", "Purchase Return Order")
+        .where("companyId", "=", companyId)
+        .where("status", "!=", "Voided")
+        .execute(),
+      trx
+        .selectFrom("purchaseReturnOrderLine")
+        .select(["quantityShipped"])
+        .where("purchaseReturnOrderId", "=", id)
+        .where("companyId", "=", companyId)
+        .execute()
+    ]);
+
+    if (shipments.length > 0) {
+      throw new Error(
+        "Cannot cancel: a shipment exists for this return order. Delete or void it first."
+      );
+    }
+    if (lines.some((l) => Number(l.quantityShipped) > 0)) {
+      throw new Error("Cannot cancel: quantity has already been shipped");
+    }
+
+    await trx
+      .updateTable("purchaseReturnOrder")
+      .set({
+        status: "Cancelled",
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .where("id", "=", id)
+      .where("companyId", "=", companyId)
+      .execute();
+
+    return { id };
+  });
+}
+
+/**
+ * Short-close ("stop expecting") a supplier return line — the
+ * shortClosePurchaseOrderLine mechanic. The header status is derived from the
+ * lines afterwards, so short-closing the last open line completes the return
+ * (there is no separate manual Complete action, mirroring the Purchase Order).
+ * @mcp action
+ */
+export async function shortClosePurchaseReturnOrderLine(
+  db: Kysely<KyselyDatabase>,
+  {
+    lineId,
+    purchaseReturnOrderId,
+    companyId,
+    userId,
+    intent
+  }: {
+    lineId: string;
+    purchaseReturnOrderId: string;
+    companyId: string;
+    userId: string;
+    intent: "close" | "reopen";
+  }
+) {
+  return db.transaction().execute(async (trx) => {
+    const line = await trx
+      .selectFrom("purchaseReturnOrderLine")
+      .select(["id"])
+      .where("id", "=", lineId)
+      .where("purchaseReturnOrderId", "=", purchaseReturnOrderId)
+      .where("companyId", "=", companyId)
+      .executeTakeFirst();
+
+    if (!line) throw new Error("Return order line not found");
+
+    await trx
+      .updateTable("purchaseReturnOrderLine")
+      .set({
+        closedComplete: intent === "close",
+        updatedBy: userId,
+        updatedAt: datetime.timestamp()
+      })
+      .where("id", "=", lineId)
+      .where("companyId", "=", companyId)
+      .execute();
+
+    const [order, lines] = await Promise.all([
+      trx
+        .selectFrom("purchaseReturnOrder")
+        .select(["status"])
+        .where("id", "=", purchaseReturnOrderId)
+        .where("companyId", "=", companyId)
+        .executeTakeFirst(),
+      trx
+        .selectFrom("purchaseReturnOrderLine")
+        .select(["quantity", "quantityShipped", "closedComplete"])
+        .where("purchaseReturnOrderId", "=", purchaseReturnOrderId)
+        .where("companyId", "=", companyId)
+        .execute()
+    ]);
+
+    // Recompute in both the To Ship and Completed working states: short-closing
+    // the last open line completes the return, and reopening a line on a
+    // completed return drops it back to To Ship.
+    if (!order || !["To Ship", "Completed"].includes(order.status)) {
+      return;
+    }
+
+    const { status } = getPurchaseReturnOrderStatus(lines);
+
+    if (status !== order.status) {
+      await trx
+        .updateTable("purchaseReturnOrder")
+        .set({
+          status,
+          updatedBy: userId,
+          updatedAt: datetime.timestamp()
+        })
+        .where("id", "=", purchaseReturnOrderId)
+        .where("companyId", "=", companyId)
+        .execute();
+    }
+  });
+}
+
+/**
+ * "From document" picker source: posted receipt lines for the supplier with
+ * their reversible remainders (received − already authorized on non-cancelled
+ * supplier returns). BC's "Show Reversible Lines Only".
+ */
+/**
+ * Returnable receipt lines for a supplier, searched + paginated in the database
+ * via the get_returnable_receipt_lines RPC. The `received − already-authorized
+ * > 0` filter, the text search (receipt #, PO #, item readable id, item name),
+ * the recency ordering, and pagination all run in SQL so the "Add lines from
+ * receipt" modal stays responsive when a supplier has thousands of receipt
+ * lines. Each row carries `totalCount` — the size of the full returnable set
+ * before limit/offset — so the UI can page through the rest.
+ * @mcp read
+ */
+export async function getReturnableLinesForSupplier(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  supplierId: string,
+  args?: {
+    purchaseOrderId?: string;
+    search?: string;
+    limit?: number;
+    offset?: number;
+  }
+) {
+  return client.rpc("get_returnable_receipt_lines", {
+    company_id: companyId,
+    supplier_id: supplierId,
+    purchase_order_id: args?.purchaseOrderId || undefined,
+    search: args?.search?.trim() || undefined,
+    limit_count: args?.limit ?? 5,
+    offset_count: args?.offset ?? 0
+  });
+}
+
+/**
+ * Entity picker source for supplier return lines: serials/batches on hand
+ * that were received from this supplier. Provenance is the Receipt attribute
+ * (written by the receipt tracking route) resolved to the receipt's supplier
+ * — no code writes a Supplier attribute onto tracked entities.
+ * @mcp read
+ */
+export async function getReturnableEntitiesForSupplier(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  supplierId: string,
+  itemId: string
+) {
+  const receipts = await client
+    .from("receipt")
+    .select("id")
+    .eq("companyId", companyId)
+    .eq("supplierId", supplierId)
+    .eq("status", "Posted");
+  if (receipts.error) {
+    return { data: null, error: receipts.error };
+  }
+  const receiptIds = (receipts.data ?? []).map((r) => r.id);
+  if (receiptIds.length === 0) {
+    return { data: [], error: null };
+  }
+  return client
+    .from("trackedEntity")
+    .select("id, readableId, quantity, status, attributes")
+    .eq("companyId", companyId)
+    .eq("itemId", itemId)
+    .eq("status", "Available")
+    .in("attributes ->> Receipt", receiptIds);
+}
+
+/**
+ * The Available tracked entities that came in on ONE receipt line, for the item.
+ * Used to pre-select the batch/serial when a return line is added from a specific
+ * receipt — provenance is the `Receipt Line` attribute stamped at receipt.
+ * @mcp read
+ */
+export async function getReturnableEntitiesForReceiptLine(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  itemId: string,
+  receiptLineId: string
+) {
+  return client
+    .from("trackedEntity")
+    .select("id, readableId, quantity, status")
+    .eq("companyId", companyId)
+    .eq("itemId", itemId)
+    .eq("status", "Available")
+    .eq("attributes ->> Receipt Line", receiptLineId);
+}
+
+/**
+ * Per-line creditable pool = shipped − already credited. Draft memos count
+ * against the pool (two Drafts must not double-credit); the VIEW's displayed
+ * quantityCredited still derives from Posted memos only.
+ * @mcp read
+ */
+export async function getCreditableQuantitiesForPurchaseReturn(
+  client: SupabaseClient<Database>,
+  purchaseReturnOrderId: string,
+  companyId: string
+) {
+  const lines = await client
+    .from("purchaseReturnOrderLine")
+    .select("id, lineNumber, quantityShipped, unitPrice, restockFeePercent")
+    .eq("purchaseReturnOrderId", purchaseReturnOrderId)
+    .eq("companyId", companyId)
+    .order("lineNumber");
+  if (lines.error) return { data: null, error: lines.error };
+  const lineIds = (lines.data ?? []).map((l) => l.id);
+  if (lineIds.length === 0) return { data: [], error: null };
+
+  const credits = await client
+    .from("purchaseReturnOrderCreditLine")
+    .select("purchaseReturnOrderLineId, quantity, memo!inner(status)")
+    .in("purchaseReturnOrderLineId", lineIds)
+    .eq("companyId", companyId)
+    .neq("memo.status", "Voided");
+  if (credits.error) return { data: null, error: credits.error };
+
+  const creditedByLine = new Map<string, number>();
+  for (const row of credits.data ?? []) {
+    creditedByLine.set(
+      row.purchaseReturnOrderLineId,
+      (creditedByLine.get(row.purchaseReturnOrderLineId) ?? 0) +
+        Number(row.quantity)
+    );
+  }
+
+  return {
+    data: (lines.data ?? []).map((line) => {
+      const shipped = Number(line.quantityShipped);
+      const credited = creditedByLine.get(line.id) ?? 0;
+      return {
+        purchaseReturnOrderLineId: line.id,
+        lineNumber: line.lineNumber,
+        quantityShipped: shipped,
+        quantityCredited: credited,
+        creditableQuantity: Math.max(0, shipped - credited),
+        unitPrice: Number(line.unitPrice),
+        restockFeePercent: Number(line.restockFeePercent)
+      };
+    }),
+    error: null
+  };
+}
+
+/**
+ * Issue supplier credit: one AP memo + per-line purchaseReturnOrderCreditLine
+ * breakdown. Cap = shipped − already credited over NON-VOIDED memos,
+ * validated under a row lock. Amount rounded once at the currency's
+ * decimals. Returns the memo id.
+ *
+ * The memo is a **Debit** memo (the `debitMemo` DR- sequence), NOT a Credit
+ * memo. `direction` alone decides the control side for both AR and AP
+ * (`buildMemoJournal`): a Credit memo CREDITS the control account, which on
+ * AP — a liability — would INCREASE what we owe the supplier. Returning goods
+ * must reduce it, so the control leg has to be a debit. That also makes the
+ * reason leg CREDIT GRNI, clearing the debit the return shipment posted
+ * (DR GRNI / CR Inventory) so the suspense account nets to zero over the
+ * cycle. Net effect: DR AP / CR Inventory, which is the SAP/NetSuite/D365
+ * vendor-return pattern. The sales side is the mirror image and correctly
+ * stays `Credit` (crediting AR, an asset, reduces it).
+ *
+ * The rest of invoicing already assumes this: `getAvailableCredits` and
+ * `getCompanyHasOpenCredits` select supplier memos with
+ * `direction = "Debit"`, so a Credit-direction memo here is also invisible to
+ * "Apply Credit" on a supplier invoice.
+ * @mcp create
+ * @mcp audit companyGroupId, createdBy, updatedBy, userId
+ */
+export async function createPurchaseReturnOrderCredit(
+  client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
+  {
+    purchaseReturnOrderId,
+    companyId,
+    companyGroupId,
+    userId,
+    memoDate,
+    lines
+  }: {
+    purchaseReturnOrderId: string;
+    companyId: string;
+    companyGroupId: string;
+    userId: string;
+    memoDate: string;
+    lines: { purchaseReturnOrderLineId: string; quantity: number }[];
+  }
+) {
+  const order = await client
+    .from("purchaseReturnOrder")
+    .select(
+      "id, status, supplierId, currencyCode, exchangeRate, purchaseReturnOrderId"
+    )
+    .eq("id", purchaseReturnOrderId)
+    .eq("companyId", companyId)
+    .single();
+  if (order.error) throw new Error("Return order not found");
+  if (["Draft", "Cancelled"].includes(order.data.status)) {
+    throw new Error(
+      `Cannot issue credit for a return order in ${order.data.status} status`
+    );
+  }
+
+  const currency = await getCurrencyByCode(
+    client,
+    companyGroupId,
+    order.data.currencyCode
+  );
+  const decimalPlaces = currency.data?.decimalPlaces ?? 2;
+
+  const seq = await client.rpc("get_next_sequence", {
+    sequence_name: "debitMemo",
+    company_id: companyId
+  });
+  if (seq.error || !seq.data) {
+    throw new Error("Failed to allocate debit memo number");
+  }
+  const memoId = seq.data;
+
+  const requested = new Map(
+    lines
+      .filter((l) => l.quantity > 0)
+      .map((l) => [l.purchaseReturnOrderLineId, l.quantity])
+  );
+  if (requested.size === 0) {
+    throw new Error("Nothing to credit");
+  }
+
+  return db.transaction().execute(async (trx) => {
+    const orderLines = await trx
+      .selectFrom("purchaseReturnOrderLine")
+      .select([
+        "id",
+        "lineNumber",
+        "quantityShipped",
+        "unitPrice",
+        "restockFeePercent"
+      ])
+      .where("purchaseReturnOrderId", "=", purchaseReturnOrderId)
+      .where("companyId", "=", companyId)
+      .where("id", "in", [...requested.keys()])
+      .forUpdate()
+      .execute();
+
+    if (orderLines.length !== requested.size) {
+      throw new Error(
+        "One or more credit lines do not belong to this return order"
+      );
+    }
+
+    const credited = await trx
+      .selectFrom("purchaseReturnOrderCreditLine")
+      .innerJoin("memo", "memo.id", "purchaseReturnOrderCreditLine.memoId")
+      .select(({ fn }) => [
+        "purchaseReturnOrderCreditLine.purchaseReturnOrderLineId",
+        fn
+          .coalesce(
+            fn.sum("purchaseReturnOrderCreditLine.quantity"),
+            sql<number>`0`
+          )
+          .as("credited")
+      ])
+      .where("purchaseReturnOrderCreditLine.purchaseReturnOrderLineId", "in", [
+        ...requested.keys()
+      ])
+      .where("purchaseReturnOrderCreditLine.companyId", "=", companyId)
+      .where("memo.status", "!=", "Voided")
+      .groupBy("purchaseReturnOrderCreditLine.purchaseReturnOrderLineId")
+      .execute();
+    const creditedByLine = new Map(
+      credited.map((row) => [
+        row.purchaseReturnOrderLineId,
+        Number(row.credited)
+      ])
+    );
+
+    let total = 0;
+    const creditLineValues: {
+      memoId: string;
+      purchaseReturnOrderLineId: string;
+      quantity: number;
+      unitPrice: number;
+      restockFee: number;
+      companyId: string;
+      createdBy: string;
+    }[] = [];
+
+    for (const line of orderLines) {
+      const quantity = requested.get(line.id)!;
+      const shipped = Number(line.quantityShipped ?? 0);
+      const alreadyCredited = creditedByLine.get(line.id) ?? 0;
+      const creditable = shipped - alreadyCredited;
+      if (quantity > creditable + EPSILON) {
+        throw new Error(
+          `Line ${line.lineNumber}: cannot credit ${quantity} — only ${Math.max(
+            0,
+            creditable
+          )} of ${shipped} shipped remains creditable`
+        );
+      }
+      const unitPrice = Number(line.unitPrice ?? 0);
+      const feePercent = Number(line.restockFeePercent ?? 0);
+      const gross = quantity * unitPrice;
+      const restockFee = gross * feePercent;
+      total += gross - restockFee;
+      creditLineValues.push({
+        memoId: "",
+        purchaseReturnOrderLineId: line.id,
+        quantity,
+        unitPrice,
+        restockFee,
+        companyId,
+        createdBy: userId
+      });
+    }
+
+    if (total <= 0) {
+      throw new Error("Credit amount must be positive");
+    }
+
+    const memo = await trx
+      .insertInto("memo")
+      .values({
+        memoId,
+        direction: "Debit",
+        status: "Draft",
+        supplierId: order.data.supplierId,
+        memoDate,
+        currencyCode: order.data.currencyCode,
+        exchangeRate: order.data.exchangeRate ?? 1,
+        amount: round(total, decimalPlaces),
+        reference: order.data.purchaseReturnOrderId,
+        purchaseReturnOrderId,
+        companyId,
+        createdBy: userId
+      })
+      .returning(["id"])
+      .executeTakeFirstOrThrow();
+
+    await trx
+      .insertInto("purchaseReturnOrderCreditLine")
+      .values(creditLineValues.map((v) => ({ ...v, memoId: memo.id })))
+      .execute();
+
+    return memo.id;
+  });
+}
+
+/**
+ * Create Replacement Purchase Order: a draft PO from the return lines,
+ * priced from the linked PO line (purchase-UOM price + conversion factor
+ * copied) else the supplierPart default. One replacement per return.
+ * @mcp create
+ */
+export async function createReplacementPurchaseOrder(
+  client: SupabaseClient<Database>,
+  {
+    purchaseReturnOrderId,
+    companyId,
+    companyGroupId,
+    userId
+  }: {
+    purchaseReturnOrderId: string;
+    companyId: string;
+    companyGroupId: string;
+    userId: string;
+  }
+): Promise<{
+  data: { id: string } | null;
+  error: PostgrestError | null;
+}> {
+  const order = await client
+    .from("purchaseReturnOrder")
+    .select("*")
+    .eq("id", purchaseReturnOrderId)
+    .eq("companyId", companyId)
+    .single();
+  if (order.error) return { data: null, error: order.error };
+  if (["Draft", "Cancelled"].includes(order.data.status)) {
+    return {
+      data: null,
+      error: {
+        message: `Cannot create a replacement for a ${order.data.status} return order`
+      } as PostgrestError
+    };
+  }
+  if (order.data.replacementPurchaseOrderId) {
+    return {
+      data: { id: order.data.replacementPurchaseOrderId },
+      error: null
+    };
+  }
+
+  const lines = await client
+    .from("purchaseReturnOrderLine")
+    .select("*, item(type)")
+    .eq("purchaseReturnOrderId", purchaseReturnOrderId)
+    .eq("companyId", companyId);
+  if (lines.error) return { data: null, error: lines.error };
+  if ((lines.data ?? []).length === 0) {
+    return {
+      data: null,
+      error: { message: "Return order has no lines" } as PostgrestError
+    };
+  }
+
+  const linkedPoLineIds = (lines.data ?? [])
+    .map((l) => l.purchaseOrderLineId)
+    .filter(Boolean) as string[];
+  const poLines =
+    linkedPoLineIds.length > 0
+      ? await client
+          .from("purchaseOrderLine")
+          .select(
+            "id, supplierUnitPrice, conversionFactor, purchaseUnitOfMeasureCode, inventoryUnitOfMeasureCode"
+          )
+          .in("id", linkedPoLineIds)
+          .eq("companyId", companyId)
+      : { data: [], error: null };
+  if (poLines.error) return { data: null, error: poLines.error };
+  const poLineById = new Map((poLines.data ?? []).map((l) => [l.id, l]));
+
+  const supplierParts = await client
+    .from("supplierPart")
+    .select("itemId, unitPrice, conversionFactor, supplierUnitOfMeasureCode")
+    .eq("supplierId", order.data.supplierId)
+    .eq("companyId", companyId)
+    .in(
+      "itemId",
+      (lines.data ?? []).map((l) => l.itemId)
+    );
+  if (supplierParts.error) {
+    return { data: null, error: supplierParts.error };
+  }
+  const supplierPartByItem = new Map(
+    (supplierParts.data ?? []).map((sp) => [sp.itemId, sp])
+  );
+
+  const purchaseOrder = await insertPurchaseOrder(client, {
+    supplierId: order.data.supplierId,
+    companyId,
+    companyGroupId,
+    createdBy: userId,
+    currencyCode: order.data.currencyCode,
+    locationId: order.data.locationId ?? undefined,
+    supplierContactId: order.data.supplierContactId ?? undefined,
+    supplierLocationId: order.data.supplierLocationId ?? undefined,
+    supplierReference: order.data.purchaseReturnOrderId
+  });
+  if (purchaseOrder.error || !purchaseOrder.data) {
+    return { data: null, error: purchaseOrder.error };
+  }
+  const purchaseOrderId = purchaseOrder.data.id;
+
+  const lineTypeFor = (
+    itemType: string | null | undefined
+  ): Database["public"]["Enums"]["purchaseOrderLineType"] => {
+    switch (itemType) {
+      case "Part":
+      case "Material":
+      case "Tool":
+      case "Consumable":
+      case "Service":
+        return itemType;
+      default:
+        return "Part";
+    }
+  };
+
+  const replacementLines = (lines.data ?? []).map((line) => {
+    const poLine = line.purchaseOrderLineId
+      ? poLineById.get(line.purchaseOrderLineId)
+      : null;
+    const supplierPart = supplierPartByItem.get(line.itemId);
+    const conversionFactor = Number(
+      poLine?.conversionFactor ?? supplierPart?.conversionFactor ?? 1
+    );
+    // supplierUnitPrice is the supplier-currency figure; the PO line's
+    // unitPrice generated column is base currency and would double-convert
+    const unitPrice = Number(
+      poLine?.supplierUnitPrice ??
+        supplierPart?.unitPrice ??
+        Number(line.unitPrice) * conversionFactor
+    );
+    const purchaseQuantity =
+      conversionFactor > 0
+        ? Number(line.quantity) / conversionFactor
+        : Number(line.quantity);
+
+    return {
+      purchaseOrderId,
+      purchaseOrderLineType: lineTypeFor(line.item?.type),
+      itemId: line.itemId,
+      purchaseQuantity,
+      supplierUnitPrice: unitPrice,
+      conversionFactor,
+      purchaseUnitOfMeasureCode:
+        poLine?.purchaseUnitOfMeasureCode ??
+        supplierPart?.supplierUnitOfMeasureCode ??
+        line.unitOfMeasureCode,
+      inventoryUnitOfMeasureCode:
+        poLine?.inventoryUnitOfMeasureCode ?? line.unitOfMeasureCode,
+      companyId,
+      createdBy: userId
+    };
+  });
+
+  const insertLines = await client
+    .from("purchaseOrderLine")
+    .insert(replacementLines);
+  if (insertLines.error) {
+    await deletePurchaseOrder(client, purchaseOrderId);
+    return { data: null, error: insertLines.error };
+  }
+
+  const link = await client
+    .from("purchaseReturnOrder")
+    .update({
+      replacementPurchaseOrderId: purchaseOrderId,
+      updatedBy: userId,
+      updatedAt: datetime.timestamp()
+    })
+    .eq("id", purchaseReturnOrderId)
+    .eq("companyId", companyId);
+  if (link.error) return { data: null, error: link.error };
+
+  return { data: { id: purchaseOrderId }, error: null };
+}
+
+/**
+ * Create a presigned upload URL for a supplier interaction (purchase order/supplier
+ * quote/RFQ) document. First step of the two-step upload flow: PUT the file bytes to
+ * the returned `signedUrl`, then call `documents_insertUploadedDocument` with the
+ * returned `path`, the document type as `sourceDocument`, and the document id as
+ * `sourceDocumentId`. The storage folder is scoped by `interactionId`.
+ * @mcp create — part of the documented MCP signed-URL upload flow
+ *       (packages/files/AGENTS.md): a non-browser caller mints a staged
+ *       upload URL, then insertUploadedDocument converts and lands it.
+ */
+export async function createSupplierInteractionDocumentUploadUrl(
+  client: SupabaseClient<Database>,
+  args: { companyId: string; interactionId: string; name: string }
+) {
+  return createDocumentUploadUrl(client, {
+    companyId: args.companyId,
+    folder: "supplier-interaction",
+    entityId: args.interactionId,
+    name: args.name
+  });
+}
+
+/**
+ * Create a presigned upload URL for a supplier interaction LINE document. First step
+ * of the two-step upload flow: PUT the file bytes to the returned `signedUrl`, then
+ * call `documents_insertUploadedDocument` with the returned `path`, the line's
+ * document type as `sourceDocument`, and the line id as `sourceDocumentId`.
+ * @mcp create — part of the documented MCP signed-URL upload flow
+ *       (packages/files/AGENTS.md): a non-browser caller mints a staged
+ *       upload URL, then insertUploadedDocument converts and lands it.
+ */
+export async function createSupplierInteractionLineDocumentUploadUrl(
+  client: SupabaseClient<Database>,
+  args: { companyId: string; lineId: string; name: string }
+) {
+  return createDocumentUploadUrl(client, {
+    companyId: args.companyId,
+    folder: "supplier-interaction-line",
+    entityId: args.lineId,
+    name: args.name
   });
 }

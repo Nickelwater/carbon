@@ -1,5 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { describe, expect, it } from "vitest";
-import { INITIAL_NAV, type NavState, navigate, rowsAt } from "./menuNav";
+import {
+  INITIAL_NAV,
+  itemsUnder,
+  type NavState,
+  navigate,
+  rowsAt
+} from "./menuNav";
 import type { VariableTreeNode } from "./variableMenu";
 
 const item = (id: string) => ({ id, label: id });
@@ -33,6 +43,25 @@ const stateOf = (result: ReturnType<typeof navigate>) => {
   }
   return result.state;
 };
+
+describe("itemsUnder", () => {
+  it("collects every item in the tree at the root", () => {
+    expect(itemsUnder(tree, []).map((i) => i.id)).toEqual([
+      "record",
+      "name",
+      "email",
+      "count",
+      "inner"
+    ]);
+  });
+
+  it("collects only what is under the open level", () => {
+    expect(itemsUnder(tree, ["record"]).map((i) => i.id)).toEqual([
+      "name",
+      "email"
+    ]);
+  });
+});
 
 describe("rowsAt", () => {
   it("returns the root for an empty path", () => {

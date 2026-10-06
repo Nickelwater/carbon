@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 "use client";
 
 import { Checkbox, cn, HStack } from "@carbon/react";
@@ -8,7 +12,7 @@ import {
   motion,
   Reorder,
   useDragControls
-} from "framer-motion";
+} from "motion/react";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import { flushSync } from "react-dom";
@@ -144,7 +148,7 @@ function SortableListItem<T>({
                         {typeof item.title === "string" ? (
                           <span
                             className={cn(
-                              "flex font-medium text-sm md:text-base truncate hover:underline cursor-pointer",
+                              "flex min-w-0 font-medium text-sm md:text-base truncate hover:underline cursor-pointer",
                               item.checked ? "text-red-400" : "text-foreground"
                             )}
                             onClick={(e) => {
@@ -162,7 +166,10 @@ function SortableListItem<T>({
                                 onSelectItem(item.id);
                               }
                             }}
-                            className={item.checked ? "text-red-400" : ""}
+                            className={cn(
+                              "min-w-0 flex-1",
+                              item.checked && "text-red-400"
+                            )}
                           >
                             {item.title}
                           </div>

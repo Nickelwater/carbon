@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { PrintButton, ShippingLabelPrintButton } from "@carbon/printing/ui";
 import Assignee, { useOptimisticAssignment } from "./Assignee";
 import Avatar from "./Avatar";
@@ -16,6 +20,8 @@ import Documents from "./Documents";
 import EmployeeAvatar from "./EmployeeAvatar";
 import EmployeeAvatarGroup from "./EmployeeAvatarGroup";
 import Empty from "./Empty";
+import { Enumerable } from "./Enumerable";
+import { EnumerableGroup } from "./EnumerableGroup";
 import FileDropzone from "./FileDropzone";
 import Hyperlink from "./Hyperlink";
 import {
@@ -36,12 +42,19 @@ import MetricCard from "./MetricCard";
 import { ModelOptimizedIndicator } from "./ModelOptimizedIndicator";
 import MotionMoney from "./MotionMoney";
 import New from "./New";
+import {
+  OnboardingCard,
+  OnboardingCardContent,
+  onboardingFormClassName
+} from "./OnboardingCard";
 import PeriodSelector from "./PeriodSelector";
 import RealtimeDataProvider from "./RealtimeDataProvider";
+import { RevisionSuffix } from "./RevisionSuffix";
 import SearchFilter from "./SearchFilter";
 import { SearchLandingPage } from "./SearchLandingPage";
 import Select from "./Select";
 import SupplierAvatar from "./SupplierAvatar";
+import SupplierAvatarGroup from "./SupplierAvatarGroup";
 import Table, { exportOnlyColumn } from "./Table";
 import { VersionMenu } from "./VersionMenu";
 
@@ -65,6 +78,8 @@ export {
   EmployeeAvatar,
   EmployeeAvatarGroup,
   Empty,
+  Enumerable,
+  EnumerableGroup,
   FileDropzone,
   Hyperlink,
   ItemLifecycleBadge,
@@ -78,17 +93,22 @@ export {
   MotionMoney,
   ModuleIcon,
   New,
+  OnboardingCard,
+  OnboardingCardContent,
+  onboardingFormClassName,
   OperationStatusIcon,
   OperationTypeIcon,
   PeriodSelector,
   PrintButton,
   ShippingLabelPrintButton,
   RealtimeDataProvider,
+  RevisionSuffix,
   SearchFilter,
   SearchLandingPage,
   Select,
   SourcingTypeIcon,
   SupplierAvatar,
+  SupplierAvatarGroup,
   Table,
   TimeTypeIcon,
   TrackingTypeIcon,

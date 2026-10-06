@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { Combobox } from "@carbon/react";
 import type { ComponentType } from "react";
 import { useMemo } from "react";
@@ -135,6 +139,9 @@ const UserPicker = ({ value, onChange, isDisabled }: RecordPickerProps) => (
   <UserSelect
     value={value}
     usersOnly
+    // "employee" is defined negatively by get_user_select_groups: not customer- and
+    // not supplier-flagged. Ad-hoc company groups stay listed.
+    type="employee"
     isMulti={false}
     insideCanvas
     disabled={isDisabled}
@@ -147,6 +154,7 @@ const UserPicker = ({ value, onChange, isDisabled }: RecordPickerProps) => (
 const GroupPicker = ({ value, onChange, isDisabled }: RecordPickerProps) => (
   <UserSelect
     value={value}
+    type="employee"
     isMulti={false}
     insideCanvas
     disabled={isDisabled}

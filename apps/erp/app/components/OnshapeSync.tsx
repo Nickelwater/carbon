@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import { OnshapeLogo } from "@carbon/ee";
 import {
@@ -262,7 +266,7 @@ export const OnshapeSync = ({
                 <Combobox
                   isLoading={documentsFetcher.state === "loading"}
                   options={documentOptions}
-                  disabled={isDisabled}
+                  isReadOnly={isDisabled}
                   onChange={(value) => {
                     setVersionId(null);
                     setElementId(null);
@@ -282,7 +286,7 @@ export const OnshapeSync = ({
               <div className="w-[180px]">
                 <Combobox
                   isLoading={versionsFetcher.state === "loading"}
-                  disabled={isDisabled}
+                  isReadOnly={isDisabled}
                   options={versionOptions}
                   onChange={(value) => {
                     setVersionId(value);
@@ -303,7 +307,7 @@ export const OnshapeSync = ({
                 <Combobox
                   isLoading={elementsFetcher.state === "loading"}
                   options={elementOptions}
-                  disabled={isDisabled}
+                  isReadOnly={isDisabled}
                   onChange={(value) => {
                     setElementId(value);
                   }}

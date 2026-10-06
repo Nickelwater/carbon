@@ -1,6 +1,6 @@
 ---
 description: Workflow actions and operations — the two hand-written catalogue sources plus the entity `write` allowlists, and the job-side executors that carry them out as the workflow's owner. Read before adding an action, an operation, or anything a workflow can write or call.
-paths: ["packages/jobs/src/workflows/actions/**", "packages/workflows/src/catalog/actions.ts", "packages/workflows/src/catalog/operations.ts"]
+paths: ["packages/jobs/src/workflows/actions/**", "packages/ee/src/workflows/catalog/actions.ts", "packages/ee/src/workflows/catalog/operations.ts"]
 ---
 
 # Workflow Actions and Operations
@@ -15,14 +15,14 @@ Matcher: `workflow-matcher.md`.
 ## Where the catalogue comes from
 
 ```
-packages/workflows/src/catalog/actions.ts     HAND-WRITTEN  the actions with no generic form
-packages/workflows/src/catalog/operations.ts  HAND-WRITTEN  read-only computations
-packages/workflows/src/catalog/entities.ts    HAND-WRITTEN  `write` allowlist per entity
+packages/ee/src/workflows/catalog/actions.ts     HAND-WRITTEN  the actions with no generic form
+packages/ee/src/workflows/catalog/operations.ts  HAND-WRITTEN  read-only computations
+packages/ee/src/workflows/catalog/entities.ts    HAND-WRITTEN  `write` allowlist per entity
                     │
                     ▼  scripts/generate-workflow-catalog.ts → buildCatalog (pure)
-packages/workflows/src/catalog/actions.generated.ts   COMMITTED
+packages/ee/src/workflows/catalog/actions.generated.ts   COMMITTED
       WORKFLOW_ACTION_CATALOG  +  WORKFLOW_OPERATION_CATALOG   (one file, both maps)
-packages/workflows/src/catalog/labels.generated.ts    COMMITTED  labels for events, actions and operations
+packages/ee/src/workflows/catalog/labels.generated.ts    COMMITTED  labels for events, actions and operations
 ```
 
 Today: **16 actions** (6 hand-written, 10 generated `<entity>.update`) and
@@ -84,30 +84,40 @@ export function setWorkflowDispatch(fn: WorkflowDispatch): void
 export function getWorkflowDispatch(): WorkflowDispatch | undefined
 ```
 
-`apps/erp/app/routes/api+/inngest.ts` fills it at boot:
+`apps/erp/app/routes/api+/inngest.ts` fills it on first request (lazy, so the
+client build can tree-shake the server graph):
 
 ```ts
 import { functions, inngest, setWorkflowDispatch } from "@carbon/jobs/inngest";
-import { executeFunction } from "./mcp+/lib/direct-executor";
+import { callOperation } from "./v1+/lib/call.server";
 
-setWorkflowDispatch(executeFunction);
+setWorkflowDispatch((name, context, args) =>
+  callOperation(name, { ...context, authKind: "session", scopes: {} }, args)
+);
 ```
 
-`WorkflowDispatch` is declared to be **structurally** satisfied by
-`executeFunction`, so nothing in `@carbon/jobs` names an app type. An unfilled
-slot is not a crash: `runAction` returns
+`callOperation` is the Carbon API's canonical entry point (the same one MCP
+`call_tool` uses) — it runs the operation through the real
+oRPC procedure. `authKind: "session"` marks the workflow engine as an
+already-authorized in-process caller, so the per-operation API-key scope gate
+does not apply; the owner-scoped client's RLS still does. `WorkflowDispatch` is
+**structurally** satisfied by the wrapper, so nothing in `@carbon/jobs` names an
+app type. An unfilled slot is not a crash: `runAction` returns
 `"This step is not available in this environment."`
 
 `runCreateAction` (`actions/create.ts`) converts each `RuntimeValue` with
-`toPlainValue`, dispatches, then digs the new row's id out of whatever came back
-— the service functions return a Supabase envelope whose `error` it checks
-separately, and `idIn` walks a list if one came back. No id means
-`"The record was created but could not be read back."`, never a silent success.
-`companyId`, `createdBy` and `updatedBy` are stamped by the dispatcher.
+`toPlainValue`, dispatches, then digs the new row's id out of whatever came back.
+`callOperation` returns the service data already UNWRAPPED (`{ success, data }`),
+and `create.ts` handles both that and the legacy envelope shape: it checks
+`envelope.error` when the payload looks like one, and `idIn` walks a list if one
+came back. No id means `"The record was created but could not be read back."`,
+never a silent success. `companyId`, `createdBy` and `updatedBy` are stamped by
+the dispatch layer (`enrichWithAuthContext` in
+`apps/erp/app/routes/api+/v1+/lib/dispatch.server.ts`).
 
 ## `createWorkflowServices` — the one port
 
-`packages/workflows/src/runtime/types.ts` declares `WorkflowServices`
+`packages/ee/src/workflows/runtime/types.ts` declares `WorkflowServices`
 (`runAction`, `runOperation`, `search`). It is **required** on `RuntimeContext`,
 so a missing implementation is a compile error. The pure runtime knows nothing
 else about the world.
@@ -198,6 +208,34 @@ nobody to notify."` when both are absent. `subject` and `message` arrive already
 rendered — nothing here reads a template. When the customer named no record, the
 **run** stands in as the notification's subject (`documentId: aboutId ?? runId`).
 `trigger` only queues, so the summary claims recipients, never delivery.
+
+### Channels
+
+`channels` is a multi-select catalog input — `t.list(t.string)` with
+`choices: ["inApp", "email", "slack"]` and `defaultValue: ["inApp", "email"]`.
+The executor keeps only the names that are real `NotificationDestination`s and
+passes them as `destinations`; an empty or absent value **omits the field**, so
+the notify job falls back to its default map for `NotificationEvent.Workflow`
+(in-app plus email) — which is what a node saved before this input existed means.
+
+Three things about it are load-bearing:
+
+- **In-app cannot be switched off.** `notify.ts` force-adds
+  `NotificationDestination.InApp` to every notification so the bell menu reflects
+  everything, product-wide. The builder therefore shows it ticked and disabled
+  rather than offering a switch that does nothing.
+- **The input is optional, not required**, precisely because in-app is locked on:
+  requiring it could only ever be satisfied trivially, and it would block publish
+  on notify nodes saved before the field existed in a picker where the author
+  cannot tick the one channel that is actually on.
+- **Availability is a build-time concern.** Email needs `EMAIL_NOTIFICATIONS`
+  (Business/Partner) and Slack needs the company's Slack integration active; the
+  job skips a channel it cannot use with a `console.warn` at most. The builder
+  disables the option and says why (`fields/choiceOptions.tsx`) — that is the only
+  place the author ever finds out. "Unavailable" only blocks ADDING a channel; one
+  already stored (the seeded `email` default on a company with no plan for it) stays
+  removable, or the author is looking at a channel they cannot clear. Only a `LOCKED`
+  choice is frozen. `fields/multiChoice.ts` `choiceState` owns that distinction.
 
 ## The webhook action
 
@@ -297,8 +335,8 @@ matcher's subscription reconciler is already careful never to touch a company's
   `GONE` ("This step is no longer available.") means the catalog no longer has it,
   `NO_DISPATCH` means the dispatcher was never injected, `UNKNOWN_RESULT` means a
   `call` action declares no `record` output to hand back.
-- `toPlainValue` lives in `update.ts` and is imported by `create.ts` so both
-  convert identically. Don't fork it.
+- `toPlainValue` lives in `actions/values.ts` and is imported by BOTH `update.ts` and
+  `create.ts` so they convert identically. Don't fork it.
 - `update.ts` and `search.ts` both cast the client to an untyped `SupabaseClient`
   before `.from(table)`. The table is only known at run time, and typing it costs a
   ~350-way instantiation `apps/erp` cannot afford.

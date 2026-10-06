@@ -1,7 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { ValidatedForm, validationError, validator } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Card,
@@ -17,11 +22,12 @@ import {
   toast,
   VStack
 } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useFetcher, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import {
@@ -30,7 +36,6 @@ import {
   Number as NumberInput,
   Submit
 } from "~/components/Form";
-import SettingsSectionHeader from "~/components/SettingsSectionHeader";
 import { useFlags } from "~/hooks";
 import { getDefaultAccounts } from "~/modules/accounting";
 import {
@@ -167,33 +172,33 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function AccountingSettingsRoute() {
   const { companySettings, accountDefaults } = useLoaderData<typeof loader>();
-  const fetcher = useFetcher<typeof action>();
-  const taxFetcher = useFetcher<typeof action>();
+  const fetcher = useAction<typeof action>({
+    onSettled: (data) => {
+      if (data && "success" in data) {
+        if (data.success === true && data.message) {
+          toast.success(data.message);
+        }
+        if (data.success === false && data.message) {
+          toast.error(data.message);
+        }
+      }
+    }
+  });
+  const taxFetcher = useAction<typeof action>({
+    onSettled: (data) => {
+      if (data && "success" in data) {
+        if (data.success === true && data.message) {
+          toast.success(data.message);
+        }
+        if (data.success === false && data.message) {
+          toast.error(data.message);
+        }
+      }
+    }
+  });
   const { isInternal } = useFlags();
 
   const taxEnabled = companySettings.assetTaxDepreciationEnabled ?? false;
-
-  useEffect(() => {
-    if (fetcher.data && "success" in fetcher.data) {
-      if (fetcher.data.success === true && fetcher.data.message) {
-        toast.success(fetcher.data.message);
-      }
-      if (fetcher.data.success === false && fetcher.data.message) {
-        toast.error(fetcher.data.message);
-      }
-    }
-  }, [fetcher.data]);
-
-  useEffect(() => {
-    if (taxFetcher.data && "success" in taxFetcher.data) {
-      if (taxFetcher.data.success === true && taxFetcher.data.message) {
-        toast.success(taxFetcher.data.message);
-      }
-      if (taxFetcher.data.success === false && taxFetcher.data.message) {
-        toast.error(taxFetcher.data.message);
-      }
-    }
-  }, [taxFetcher.data]);
 
   const handleAccountingToggle = useCallback(
     (checked: boolean) => {
@@ -229,7 +234,7 @@ export default function AccountingSettingsRoute() {
   );
 
   return (
-    <ScrollArea className="w-full h-[calc(100dvh-49px)]">
+    <ScrollArea className="w-full h-[calc(100dvh-var(--topbar-height)-var(--content-inset))]">
       <VStack
         spacing={4}
         className="py-12 px-4 max-w-[60rem] h-full mx-auto gap-4"
@@ -237,10 +242,6 @@ export default function AccountingSettingsRoute() {
         <Heading size="h3">
           <Trans>Accounting</Trans>
         </Heading>
-
-        <SettingsSectionHeader>
-          <Trans>Ledger</Trans>
-        </SettingsSectionHeader>
 
         <Card>
           <CardHeader>
@@ -292,38 +293,50 @@ export default function AccountingSettingsRoute() {
           </CardContent>
         </Card>
 
-        <SettingsSectionHeader>
-          <Trans>Currency</Trans>
-        </SettingsSectionHeader>
-
         <Card>
           <CardHeader>
+            <CardTitle>
+              <Trans>Show Trailing Zeros</Trans>
+            </CardTitle>
+            <CardDescription>
+              <Trans>
+                Pad amounts to their currency's decimal places, so 300 appears
+                as 300.00 and columns of figures stay aligned. Turn this off to
+                show only the digits that carry value. Printed documents and
+                stored amounts are unaffected either way.
+              </Trans>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <HStack className="justify-between items-center">
-              <div>
-                <CardTitle>
-                  <Trans>Show Trailing Zeros</Trans>
-                </CardTitle>
-                <CardDescription>
-                  <Trans>
-                    Pad amounts to their currency's decimal places, so 300
-                    appears as 300.00 and columns of figures stay aligned. Turn
-                    this off to show only the digits that carry value. Printed
-                    documents and stored amounts are unaffected either way.
-                  </Trans>
-                </CardDescription>
-              </div>
+              <VStack className="items-start" spacing={1}>
+                <span className="font-medium">
+                  {companySettings.showCurrencyTrailingZeros ? (
+                    <Trans>Trailing zeros are shown</Trans>
+                  ) : (
+                    <Trans>Trailing zeros are hidden</Trans>
+                  )}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {companySettings.showCurrencyTrailingZeros ? (
+                    <Trans>
+                      Amounts are padded to their currency's decimal places.
+                    </Trans>
+                  ) : (
+                    <Trans>
+                      Amounts show only the digits that carry value.
+                    </Trans>
+                  )}
+                </span>
+              </VStack>
               <Switch
                 checked={companySettings.showCurrencyTrailingZeros}
                 onCheckedChange={handleTrailingZerosToggle}
                 disabled={fetcher.state !== "idle"}
               />
             </HStack>
-          </CardHeader>
+          </CardContent>
         </Card>
-
-        <SettingsSectionHeader>
-          <Trans>Assets</Trans>
-        </SettingsSectionHeader>
 
         <ValidatedForm
           className="w-full"

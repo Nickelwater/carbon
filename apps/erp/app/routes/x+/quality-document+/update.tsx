@@ -1,12 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import type { Database } from "@carbon/database";
-import { trigger } from "@carbon/jobs";
-import { getLogger } from "@carbon/logger";
-import { NotificationEvent } from "@carbon/notifications";
-import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ActionFunctionArgs } from "react-router";
-import { qualityDocumentStatus } from "~/modules/quality/quality.models";
 import {
   canApproveRequest,
   createApprovalRequest,
@@ -15,7 +13,14 @@ import {
   getLatestApprovalRequestForDocument,
   hasPendingApproval,
   isApprovalRequired
-} from "~/modules/shared";
+} from "@carbon/ee/approvals.server";
+import { trigger } from "@carbon/jobs";
+import { getLogger } from "@carbon/logger";
+import { NotificationEvent } from "@carbon/notifications";
+import { unchecked } from "@carbon/utils";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { ActionFunctionArgs } from "react-router";
+import { qualityDocumentStatus } from "~/modules/quality/quality.models";
 
 const logger = getLogger("erp", "update");
 
@@ -40,15 +45,31 @@ async function processToActive(
   const archivedIdsToMoveToDraft: string[] = [];
   const canTransitionToActive = (s: string | null) =>
     s === "Draft" || s === "Archived";
-  for (const doc of docList) {
-    if (!canTransitionToActive(doc.status)) continue;
-    const approvalRequired = await isApprovalRequired(
+  // The same answer for every document: read once, and only when one needs it.
+  const transitioning = docList.filter((doc) =>
+    canTransitionToActive(doc.status)
+  );
+  const approvalRequired =
+    transitioning.length > 0 &&
+    (await isApprovalRequired(
       serviceRole,
       "qualityDocument",
       companyId,
       undefined
+    ));
+  let approvers: Promise<string[]> | undefined;
+  const getApprovers = () => {
+    approvers ??= getApprovalRuleByAmount(
+      serviceRole,
+      "qualityDocument",
+      companyId,
+      undefined
+    ).then((rule) =>
+      rule.data ? getApproverUserIdsForRule(serviceRole, rule.data) : []
     );
-    if (!approvalRequired) continue;
+    return approvers;
+  };
+  for (const doc of approvalRequired ? transitioning : []) {
     const hasPending = await hasPendingApproval(
       serviceRole,
       "qualityDocument",
@@ -67,15 +88,7 @@ async function processToActive(
       amount: undefined
     });
 
-    const rule = await getApprovalRuleByAmount(
-      serviceRole,
-      "qualityDocument",
-      companyId,
-      undefined
-    );
-    const approverIds = rule.data
-      ? await getApproverUserIdsForRule(serviceRole, rule.data)
-      : [];
+    const approverIds = await getApprovers();
 
     if (approverIds.length > 0) {
       try {
@@ -105,7 +118,8 @@ async function processToActive(
         updatedBy: userId,
         updatedAt: new Date().toISOString()
       })
-      .eq("id", docId);
+      .eq("id", docId)
+      .eq("companyId", companyId);
   }
   const idsToUpdateToActive = ids.filter((id) => !idsToSkipActive.includes(id));
   if (idsToUpdateToActive.length === 0) {
@@ -118,7 +132,8 @@ async function processToActive(
       updatedBy: userId,
       updatedAt: new Date().toISOString()
     })
-    .in("id", idsToUpdateToActive);
+    .in("id", idsToUpdateToActive)
+    .eq("companyId", companyId);
 }
 
 /**
@@ -194,12 +209,15 @@ export async function action({ request }: ActionFunctionArgs) {
     case "name":
       return await client
         .from("qualityDocument")
-        .update({
-          [field]: value,
-          updatedBy: userId,
-          updatedAt: new Date().toISOString()
-        })
-        .in("id", ids as string[]);
+        .update(
+          unchecked({
+            [field]: value,
+            updatedBy: userId,
+            updatedAt: new Date().toISOString()
+          })
+        )
+        .in("id", ids as string[])
+        .eq("companyId", companyId);
     case "status": {
       const statusValue = value as (typeof qualityDocumentStatus)[number];
       if (!qualityDocumentStatus.includes(statusValue)) {
@@ -209,7 +227,10 @@ export async function action({ request }: ActionFunctionArgs) {
       const currentDocs = await client
         .from("qualityDocument")
         .select("id, status")
-        .in("id", ids as string[]);
+        .in("id", ids as string[])
+        // docList drives service-role approval writes below — this company's
+        // documents only.
+        .eq("companyId", companyId);
 
       if (currentDocs.error) {
         return { error: currentDocs.error, data: null };
@@ -247,7 +268,8 @@ export async function action({ request }: ActionFunctionArgs) {
           updatedBy: userId,
           updatedAt: new Date().toISOString()
         })
-        .in("id", idList);
+        .in("id", idList)
+        .eq("companyId", companyId);
     }
     case "tags":
       return await client
@@ -257,7 +279,8 @@ export async function action({ request }: ActionFunctionArgs) {
           updatedBy: userId,
           updatedAt: new Date().toISOString()
         })
-        .in("id", ids as string[]);
+        .in("id", ids as string[])
+        .eq("companyId", companyId);
 
     default:
       return { error: { message: "Invalid field" }, data: null };

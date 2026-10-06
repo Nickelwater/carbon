@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 "use client";
 
 import * as TabsPrimitive from "@radix-ui/react-tabs";
@@ -18,7 +22,7 @@ const TabsList = forwardRef<
       // No fixed height and no border — p-1 sizes the box, so the space
       // around the triggers is uniform on every side (a fixed h-* squeezed
       // them, and a border-b read as an extra pixel of bottom padding)
-      "inline-flex items-center justify-center rounded-[0.5rem] bg-muted p-1 text-muted-foreground shadow-[inset_0_1px_2px_rgba(0,0,0,0.15)]",
+      "inline-flex items-center justify-center rounded-[0.5rem] bg-muted p-1 text-muted-foreground border border-border",
       className
     )}
     {...props}

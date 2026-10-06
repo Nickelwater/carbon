@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, notFound, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
@@ -11,10 +15,11 @@ import {
   ModalFooter,
   ModalHeader,
   ModalTitle,
+  useCloseRoute,
   VStack
 } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useNavigate } from "react-router";
 import { z } from "zod";
 import { Submit, Supplier } from "~/components/Form";
 import { usePermissions } from "~/hooks";
@@ -137,14 +142,14 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function PurchaseFixedAssetRoute() {
-  const navigate = useNavigate();
+  const closeRoute = useCloseRoute();
   const permissions = usePermissions();
 
   return (
     <Modal
       open
       onOpenChange={(open) => {
-        if (!open) navigate(-1);
+        if (!open) closeRoute();
       }}
     >
       <ModalContent>
@@ -162,7 +167,7 @@ export default function PurchaseFixedAssetRoute() {
               <Submit isDisabled={!permissions.can("create", "purchasing")}>
                 Create Purchase Order
               </Submit>
-              <Button size="md" variant="solid" onClick={() => navigate(-1)}>
+              <Button size="md" variant="solid" onClick={() => closeRoute()}>
                 Cancel
               </Button>
             </HStack>

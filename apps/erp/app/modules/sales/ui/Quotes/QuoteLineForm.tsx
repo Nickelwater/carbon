@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
+import { useRuleViolations } from "@carbon/ee/rules";
 import { TextArea, ValidatedForm } from "@carbon/form";
 import {
   Badge,
@@ -11,6 +16,7 @@ import {
   DropdownMenuTrigger,
   HStack,
   IconButton,
+  MENU_ITEM_SHORTCUTS,
   ModalCard,
   ModalCardBody,
   ModalCardContent,
@@ -31,7 +37,6 @@ import { BsThreeDotsVertical } from "react-icons/bs";
 import { LuCircleArrowUp, LuTrash } from "react-icons/lu";
 import {
   Link,
-  useFetcher,
   useNavigation,
   useParams,
   useSubmit
@@ -122,7 +127,6 @@ const QuoteLineForm = ({
   onClose
 }: QuoteLineFormProps) => {
   const { t, i18n } = useLingui();
-  const fetcher = useFetcher<typeof action>();
   const permissions = usePermissions();
   const { company } = useUser();
   const { carbon } = useCarbon();
@@ -130,6 +134,20 @@ const QuoteLineForm = ({
   const { quoteId } = useParams();
 
   if (!quoteId) throw new Error("quoteId not found");
+
+  // Sales-rule enforcement: submissions run through the violation hook's
+  // fetcher so a blocked response opens <rules.ViolationModal /> with an
+  // acknowledge-and-resubmit path for warns. Modal close happens on success
+  // (not on submit) so violations can surface first.
+  const rules = useRuleViolations<typeof action>({
+    action: initialValues.id
+      ? path.to.quoteLine(quoteId, initialValues.id)
+      : path.to.newQuoteLine(quoteId),
+    onSuccess: () => {
+      if (type === "modal") onClose?.();
+    }
+  });
+  const fetcher = rules.fetcher;
 
   const [items] = useItems();
   const routeData = useRouteData<{
@@ -147,6 +165,9 @@ const QuoteLineForm = ({
   const isQuotePartLine = !isEditing && partSourceState === "quotePart";
   const isEditingQuotePartLine =
     isEditing && !!(initialValues as { quotePartId?: string }).quotePartId;
+  const sortedQuantity = [...(initialValues.quantity ?? [])].sort(
+    (a, b) => a - b
+  );
 
   const [itemData, setItemData] = useState<{
     customerPartId: string;
@@ -344,7 +365,7 @@ const QuoteLineForm = ({
           <ModalCardContent size="xxlarge">
             <ValidatedForm
               fetcher={fetcher}
-              defaultValues={initialValues}
+              defaultValues={{ ...initialValues, quantity: sortedQuantity }}
               validator={
                 isQuotePartLine ? newQuotePartLineValidator : quoteLineValidator
               }
@@ -356,9 +377,6 @@ const QuoteLineForm = ({
               }
               className="w-full"
               isDisabled={isEditing && isLocked}
-              onSubmit={() => {
-                if (type === "modal") onClose?.();
-              }}
             >
               <HStack className="w-full justify-between items-start">
                 <ModalCardHeader>
@@ -387,7 +405,7 @@ const QuoteLineForm = ({
                             className="flex items-center gap-2"
                           >
                             <MethodIcon type={itemData.methodType} />
-                            {initialValues?.quantity.join(", ")}
+                            {sortedQuantity.join(", ")}
                           </Badge>
                           {initialValues?.taxPercent > 0 ? (
                             <Badge variant="red">
@@ -420,6 +438,7 @@ const QuoteLineForm = ({
                       <DropdownMenuContent align="end">
                         {!isLocked && (
                           <DropdownMenuItem
+                            shortcut={MENU_ITEM_SHORTCUTS.delete}
                             destructive
                             onClick={deleteDisclosure.onOpen}
                           >
@@ -435,7 +454,10 @@ const QuoteLineForm = ({
                           />
                         ) : (
                           itemData.itemId && (
-                            <DropdownMenuItem asChild>
+                            <DropdownMenuItem
+                              shortcut={MENU_ITEM_SHORTCUTS.view}
+                              asChild
+                            >
                               <Link
                                 to={getLinkToItemDetails(
                                   lineType,
@@ -769,6 +791,7 @@ const QuoteLineForm = ({
           </ModalCardContent>
         </ModalCard>
       </ModalCardProvider>
+      <rules.ViolationModal />
       {isEditing && deleteDisclosure.isOpen && (
         <DeleteQuoteLine
           line={initialValues as QuotationLine}

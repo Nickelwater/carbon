@@ -1,10 +1,18 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useParams } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useParams } from "react-router";
 import {
   getAvailableSalesOrderLinesForCustomer,
   getShipment,
@@ -17,11 +25,21 @@ import { detailBreadcrumb, type Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
 export const handle: Handle = {
+  realtime: [
+    { table: "shipment", column: "id", param: "shipmentId" },
+    { table: "shipmentLine", column: "shipmentId", param: "shipmentId" }
+  ],
   breadcrumb: detailBreadcrumb(
     { breadcrumb: msg`Shipments`, to: path.to.shipments },
     (data) => data?.shipment?.shipmentId
-  )
+  ),
+  module: "inventory"
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["shipmentId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -73,7 +91,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   const availableShipmentLines =
-    customerId && !shipment.data.postedAt
+    customerId && shipment.data.status !== "Posted"
       ? await getAvailableSalesOrderLinesForCustomer(
           client,
           customerId,
@@ -107,7 +125,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       .select(
         "id, salesOrderLineId, shipped, serialNumber, salesOrderLine:salesOrderLineId(assetId, description, fixedAsset:assetId(name, fixedAssetId, serialNumber))"
       )
-      .eq("shipmentId", shipmentId);
+      .eq("shipmentId", shipmentId)
+      .eq("companyId", companyId);
 
     fixedAssetLines = (faLineRecords.data ?? [])
       .filter((row) => {
@@ -150,9 +169,9 @@ export default function ShipmentRoute() {
   if (!shipmentId) throw new Error("Could not find shipmentId");
 
   return (
-    <div className="flex h-[calc(100dvh-49px)] overflow-y-auto scrollbar-hide w-full">
+    <div className="flex h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] overflow-y-auto scrollbar-hide w-full">
       <div className="h-full p-4 w-full max-w-5xl mx-auto">
-        <div className="flex flex-col gap-2 pb-16 w-full">
+        <div className="flex flex-col gap-4 pb-16 w-full">
           <Outlet />
         </div>
       </div>

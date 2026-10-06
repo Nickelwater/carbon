@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 "use client";
 import { useCarbon } from "@carbon/auth";
 import { ValidatedForm } from "@carbon/form";
@@ -18,7 +22,6 @@ import {
   HStack,
   IconButton,
   Label,
-  ScrollArea,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -29,7 +32,7 @@ import {
 } from "@carbon/react";
 import { getItemReadableId, INPUT_FORMAT } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { nanoid } from "nanoid";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -37,11 +40,11 @@ import {
   LuArrowLeft,
   LuChevronDown,
   LuChevronRight,
-  LuCog,
   LuExternalLink,
   LuGitPullRequest,
   LuGitPullRequestCreate,
-  LuGitPullRequestCreateArrow
+  LuGitPullRequestCreateArrow,
+  LuRedoDot
 } from "react-icons/lu";
 import { Link, useFetcher, useFetchers, useParams } from "react-router";
 import type { z } from "zod";
@@ -156,8 +159,10 @@ function makeItem(
     id: material.id!,
     title: (
       <VStack spacing={0} className="py-1 cursor-pointer">
-        <div className="flex items-center gap-2 group">
-          <h3 className="font-semibold truncate">{itemReadableId ?? ""}</h3>
+        <div className="flex w-full min-w-0 items-center gap-2 group">
+          <h3 className="font-semibold min-w-0 truncate">
+            {itemReadableId ?? ""}
+          </h3>
           <ItemLifecycleBadge
             mode={items.find((i) => i.id === material.itemId)?.supersessionMode}
           />
@@ -251,7 +256,7 @@ const initialMethodMaterial: Omit<Material, "jobMakeMethodId" | "order"> & {
   description: string;
 } = {
   itemId: "",
-  // @ts-ignore
+  // @ts-expect-error
   itemType: "Item" as const,
   methodType: "Purchase to Order" as const,
   description: "",
@@ -571,15 +576,13 @@ const JobBillOfMaterial = ({
         </CardAction>
       </HStack>
       <CardContent>
-        <ScrollArea type="auto" className="max-h-[60dvh]">
-          <SortableList
-            items={items}
-            onReorder={onReorder}
-            onToggleItem={onToggleItem}
-            onRemoveItem={onRemoveItem}
-            renderItem={renderListItem}
-          />
-        </ScrollArea>
+        <SortableList
+          items={items}
+          onReorder={onReorder}
+          onToggleItem={onToggleItem}
+          onRemoveItem={onRemoveItem}
+          renderItem={renderListItem}
+        />
       </CardContent>
     </Card>
   );
@@ -959,7 +962,7 @@ function MaterialForm({
             <Badge
               variant={jobOperations.length > 0 ? "secondary" : "destructive"}
             >
-              <LuCog className="size-3 mr-1" />
+              <LuRedoDot className="size-3 mr-1" />
               {itemData.jobOperationId
                 ? jobOperations.find((o) => o.id === itemData.jobOperationId)
                     ?.description || t`Selected Operation`
@@ -1019,7 +1022,7 @@ function MaterialForm({
         transition={{
           type: "spring",
           bounce: 0,
-          duration: 0.55
+          duration: 0.25
         }}
       >
         <motion.div

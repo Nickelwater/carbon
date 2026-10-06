@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import "./zod.client";
 import { CONTROLLED_ENVIRONMENT, error, getBrowserEnv } from "@carbon/auth";
 import { flashClientMiddleware } from "@carbon/auth/middleware/flash.client";
 import {
@@ -5,14 +10,22 @@ import {
   flashMiddleware,
   flashResultContext
 } from "@carbon/auth/middleware/flash.server";
+import { formBodyMiddleware } from "@carbon/auth/middleware/form-body.server";
+import { securityMiddleware } from "@carbon/auth/middleware/security.server";
 import { validator } from "@carbon/form";
 import { requestIdMiddleware } from "@carbon/logger/middleware.server";
 import { Button, Heading, Toaster, useMode } from "@carbon/react";
 import type { Theme } from "@carbon/utils";
-import { modeValidator, themes } from "@carbon/utils";
+import {
+  colorSchemeHintScript,
+  modeValidator,
+  prefetchCacheMiddleware,
+  themes
+} from "@carbon/utils";
 import { faviconLinks } from "@carbon/utils/favicon";
 import { Analytics } from "@vercel/analytics/react";
 import type React from "react";
+import { useContext } from "react";
 import type {
   ActionFunctionArgs,
   LinksFunction,
@@ -27,6 +40,7 @@ import {
   Outlet,
   Scripts,
   ScrollRestoration,
+  UNSAFE_FrameworkContext,
   useLoaderData
 } from "react-router";
 import { getMode, setMode } from "~/services/mode.server";
@@ -35,7 +49,13 @@ import NProgress from "~/styles/nprogress.css?url";
 import Tailwind from "~/styles/tailwind.css?url";
 import { getTheme } from "./services/theme.server";
 
-export const middleware = [requestIdMiddleware, flashMiddleware];
+export const middleware = [
+  requestIdMiddleware,
+  securityMiddleware,
+  formBodyMiddleware,
+  flashMiddleware,
+  prefetchCacheMiddleware
+];
 export const clientMiddleware = [flashClientMiddleware];
 
 export const links: LinksFunction = () => [
@@ -75,7 +95,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
         SUPABASE_URL,
         SUPABASE_ANON_KEY
       },
-      mode: getMode(request),
+      ...getMode(request),
       theme: getTheme(request),
       result: context.get(flashResultContext)
     },
@@ -123,6 +143,7 @@ function Document({
   mode?: "light" | "dark";
   theme?: string;
 }) {
+  const nonce = useContext(UNSAFE_FrameworkContext)?.nonce;
   const selectedTheme = themes.find((t) => t.name === theme) as
     | Theme
     | undefined;
@@ -160,6 +181,13 @@ function Document({
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
+        {/* Before any paint: records the OS color scheme for a `system` user
+            and reloads once if the server rendered the wrong mode. */}
+        <script
+          nonce={nonce}
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: colorSchemeHintScript }}
+        />
         <Meta />
         <title>{title}</title>
         <Links />
@@ -176,6 +204,7 @@ function Document({
 }
 
 export default function App() {
+  const nonce = useContext(UNSAFE_FrameworkContext)?.nonce;
   const loaderData = useLoaderData<typeof loader>();
   const env = loaderData?.env ?? {};
   const theme = loaderData?.theme ?? "zinc";
@@ -187,6 +216,9 @@ export default function App() {
     <Document mode={mode} theme={theme}>
       <Outlet />
       <script
+        // Server render only: on the client the nonce is undefined (and browsers hide it).
+        nonce={nonce}
+        suppressHydrationWarning
         dangerouslySetInnerHTML={{
           __html: `window.env = ${JSON.stringify(env)}`
         }}

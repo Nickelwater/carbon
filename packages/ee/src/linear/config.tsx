@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: LicenseRef-Carbon-Commercial
+// Carbon Enterprise file, licensed only under the Carbon Commercial License
+// (packages/ee/LICENSE). Not AGPL. Running, modifying, or copying it beyond those terms requires a commercial license.
+
 import { Copy, Input, InputGroup, InputRightElement } from "@carbon/react";
 import { isBrowser } from "@carbon/utils";
 import type { SVGProps } from "react";
@@ -18,18 +22,32 @@ export const Linear = defineIntegration({
     {
       name: "apiKey",
       label: "API Key",
-      type: "text",
+      type: "secret",
       required: true,
+      value: ""
+    },
+    {
+      name: "webhookSigningSecret",
+      label: "Webhook Signing Secret",
+      description:
+        "Optional. When set, Carbon rejects webhook requests that are not signed with this secret.",
+      type: "secret",
+      required: false,
       value: ""
     }
   ],
   schema: z.object({
+    // Empty means "keep the existing vaulted secret" (the field loads masked and
+    // is not sent to the browser). Presence is enforced at install-time in the
+    // settings action; a non-empty value must still be a valid Linear key.
     apiKey: z
       .string()
-      .min(1, { message: "API Key is required" })
-      .refine((val) => val.startsWith("lin_api"), {
+      .refine((val) => val === "" || val.startsWith("lin_api"), {
         message: "Linear API Key must start with 'lin_api'"
-      })
+      }),
+    // Optional, vaulted like apiKey (empty keeps the stored value). When set,
+    // the webhook route requires a valid `Linear-Signature` on every delivery.
+    webhookSigningSecret: z.string().optional()
   })
 });
 
@@ -57,6 +75,12 @@ function SetupInstructions({ companyId }: { companyId: string }) {
           <Copy text={webhookUrl} />
         </InputRightElement>
       </InputGroup>
+
+      <p className="text-sm text-muted-foreground">
+        After you save the webhook, Linear shows a signing secret on the
+        webhook's detail page. Copy it into the "Webhook Signing Secret" field
+        below so Carbon only accepts requests that Linear has signed.
+      </p>
 
       <p className="text-sm text-muted-foreground">
         Next, from the sidebar go to "Security and access" page and generate a

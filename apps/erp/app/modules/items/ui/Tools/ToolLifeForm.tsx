@@ -166,7 +166,6 @@ export default function ToolLifeForm({
             <Combobox
               name="dedicatedPartReadableId"
               label={t`Dedicated Part`}
-              description={t`Required for permanent tools`}
               options={dedicatedPartOptions}
             />
           </div>
@@ -180,7 +179,7 @@ export default function ToolLifeForm({
                 </strong>
               </span>
               {isToolLifeLow(policy.lifeRemaining, policy.lifeLimit) && (
-                <Badge variant="warning">
+                <Badge variant="yellow">
                   <Trans>Low life</Trans>
                 </Badge>
               )}
@@ -223,7 +222,7 @@ export default function ToolLifeForm({
                           {row.lifeRemaining ?? 0} {lifeUnit}
                         </span>
                         {isToolLifeLow(row.lifeRemaining, policy.lifeLimit) && (
-                          <Badge variant="warning">
+                          <Badge variant="yellow">
                             <Trans>Low</Trans>
                           </Badge>
                         )}

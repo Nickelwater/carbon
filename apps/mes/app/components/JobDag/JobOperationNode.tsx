@@ -1,4 +1,8 @@
-import { BarProgress, cn } from "@carbon/react";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { Badge, BarProgress, cn } from "@carbon/react";
 import { Handle, type NodeProps, Position } from "@xyflow/react";
 import { memo } from "react";
 import { useNavigate } from "react-router";
@@ -14,6 +18,8 @@ type JobOperationNodeData = {
   quantityReworked: number;
   quantityScrapped: number;
   isRework: boolean;
+  // Readable id of the live batch the operation runs in, or null.
+  batchReadableId?: string | null;
   direction: "LR" | "TB";
 };
 
@@ -65,6 +71,11 @@ function JobOperationNodeImpl({ data }: NodeProps) {
             <span className="shrink-0 text-[10px] font-semibold text-red-600 bg-red-100 rounded px-1">
               Rework
             </span>
+          )}
+          {d.batchReadableId && (
+            <Badge variant="blue" className="shrink-0 px-1 text-[10px]">
+              {d.batchReadableId}
+            </Badge>
           )}
         </div>
         <BarProgress

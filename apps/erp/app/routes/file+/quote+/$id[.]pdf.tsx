@@ -1,5 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { ensureFont, QuotePDF } from "@carbon/documents/pdf";
+import { ensureFont, getQuoteDisplayId, QuotePDF } from "@carbon/documents/pdf";
 import {
   collectSectionIds,
   resolveTemplate,
@@ -141,7 +145,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       }, {}) ?? {};
   }
 
-  let exchangeRate = 1;
+  // The document's own stamped rate — never a live lookup, so a reprint can't
+  // silently change. Legacy pre-stamping quotes (null) render at 1, consistent
+  // with their line snapshots' default. The currency row is read for its
+  // display decimals only.
+  const exchangeRate = quote.data?.exchangeRate ?? 1;
   let currencyDecimals: number | null = null;
   if (quote.data?.currencyCode) {
     const currency = await getCurrencyByCode(
@@ -149,9 +157,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       companyGroupId,
       quote.data.currencyCode
     );
-    if (currency.data?.exchangeRate) {
-      exchangeRate = currency.data.exchangeRate;
-    }
     currencyDecimals = currency.data?.decimalPlaces ?? null;
   }
 
@@ -203,7 +208,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const headers = new Headers({
     "Content-Type": "application/pdf",
-    "Content-Disposition": `inline; filename="${company.data.name} - ${quote.data.quoteId}.pdf"`
+    "Content-Disposition": `inline; filename="${company.data.name} - ${getQuoteDisplayId(quote.data)}.pdf"`
   });
   return new Response(new Uint8Array(body), { status: 200, headers });
 }

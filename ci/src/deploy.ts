@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { $ } from "execa";
 
 import { client } from "./client";
@@ -52,12 +56,17 @@ export type Workspace = {
   jira_client_secret: string | null;
   jira_oauth_redirect_url: string | null;
   jira_state_secret: string | null;
+  onshape_client_id: string | null;
+  onshape_client_secret: string | null;
+  onshape_oauth_redirect_url: string | null;
   openai_api_key: string | null;
   posthog_api_host: string | null;
   posthog_project_public_key: string | null;
   quickbooks_client_id: string | null;
   quickbooks_client_secret: string | null;
   quickbooks_webhook_secret: string | null;
+  ramp_client_id: string | null;
+  ramp_client_secret: string | null;
   redis_url: string | null;
   resend_api_key: string | null;
   resend_domain: string | null;
@@ -71,6 +80,7 @@ export type Workspace = {
   stripe_bypass_company_ids: string | null;
   stripe_secret_key: string | null;
   stripe_webhook_secret: string | null;
+  stripe_connect_webhook_secret: string | null;
   url_erp: string | null;
   url_mes: string | null;
   xero_client_id: string | null;
@@ -133,12 +143,17 @@ async function deploy(): Promise<void> {
         jira_oauth_redirect_url,
         jira_state_secret,
         jwt_secret,
+        onshape_client_id,
+        onshape_client_secret,
+        onshape_oauth_redirect_url,
         openai_api_key,
         posthog_api_host,
         posthog_project_public_key,
         quickbooks_client_id,
         quickbooks_client_secret,
         quickbooks_webhook_secret,
+        ramp_client_id,
+        ramp_client_secret,
         redis_url,
         resend_api_key,
         resend_domain,
@@ -154,6 +169,7 @@ async function deploy(): Promise<void> {
         stripe_bypass_company_ids,
         stripe_secret_key,
         stripe_webhook_secret,
+        stripe_connect_webhook_secret,
         url_erp,
         url_mes,
         xero_client_id,
@@ -291,12 +307,17 @@ async function deploy(): Promise<void> {
           JIRA_CLIENT_SECRET: jira_client_secret ?? undefined,
           JIRA_OAUTH_REDIRECT_URL: jira_oauth_redirect_url ?? undefined,
           JIRA_STATE_SECRET: jira_state_secret ?? undefined,
+          ONSHAPE_CLIENT_ID: onshape_client_id ?? undefined,
+          ONSHAPE_CLIENT_SECRET: onshape_client_secret ?? undefined,
+          ONSHAPE_OAUTH_REDIRECT_URL: onshape_oauth_redirect_url ?? undefined,
           OPENAI_API_KEY: openai_api_key,
           POSTHOG_API_HOST: posthog_api_host ?? undefined,
           POSTHOG_PROJECT_PUBLIC_KEY: posthog_project_public_key ?? undefined,
           QUICKBOOKS_CLIENT_ID: quickbooks_client_id ?? undefined,
           QUICKBOOKS_CLIENT_SECRET: quickbooks_client_secret ?? undefined,
           QUICKBOOKS_WEBHOOK_SECRET: quickbooks_webhook_secret ?? undefined,
+          RAMP_CLIENT_ID: ramp_client_id ?? undefined,
+          RAMP_CLIENT_SECRET: ramp_client_secret ?? undefined,
           REDIS_URL: redis_url ?? undefined,
           RESEND_API_KEY: resend_api_key,
           RESEND_DOMAIN: resend_domain ?? "carbon.ms",
@@ -310,6 +331,8 @@ async function deploy(): Promise<void> {
           STRIPE_BYPASS_COMPANY_IDS: stripe_bypass_company_ids ?? undefined,
           STRIPE_SECRET_KEY: stripe_secret_key ?? undefined,
           STRIPE_WEBHOOK_SECRET: stripe_webhook_secret ?? undefined,
+          STRIPE_CONNECT_WEBHOOK_SECRET:
+            stripe_connect_webhook_secret ?? undefined,
           SUPABASE_ANON_KEY: anon_key,
           SUPABASE_DB_URL: database_connection_pooler_url,
           SUPABASE_JWT_SECRET: jwt_secret ?? undefined,

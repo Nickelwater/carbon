@@ -1,11 +1,20 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import { VStack } from "@carbon/react";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
 import { Suspense } from "react";
-import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Await, redirect, useLoaderData, useParams } from "react-router";
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Await, useLoaderData, useParams } from "react-router";
 import { useRouteData } from "~/hooks";
 import { getBatchProperties } from "~/modules/inventory";
 import BatchPropertiesConfig from "~/modules/inventory/ui/Batches/BatchPropertiesConfig";
@@ -17,6 +26,11 @@ import {
 } from "~/modules/items";
 import { ItemPurchasingForm, SupplierParts } from "~/modules/items/ui/Item";
 import { path } from "~/utils/path";
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["itemId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -53,7 +67,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId } = await requirePermissions(request, {
+  const { client, companyId, userId } = await requirePermissions(request, {
     update: "parts"
   });
 
@@ -72,6 +86,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const updateConsumablePurchasing = await upsertItemPurchasing(client, {
     ...validation.data,
     itemId,
+    companyId,
     updatedBy: userId
   });
   if (updateConsumablePurchasing.error) {
@@ -119,13 +134,14 @@ export default function ConsumablePurchasingRoute() {
   };
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       <ItemPurchasingForm
         key={initialValues.itemId}
         initialValues={initialValues}
         allowedSuppliers={
           supplierParts.map((s) => s.supplierId).filter(Boolean) as string[]
         }
+        supplierParts={supplierParts}
       />
       <SupplierParts
         supplierParts={supplierParts}

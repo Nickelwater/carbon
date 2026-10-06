@@ -1,10 +1,18 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Json } from "@carbon/database";
+import { getPurchaseOrderDisplayId } from "@carbon/documents/utils";
 import { DatePicker, InputControlled, ValidatedForm } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
+  Copy,
   HStack,
   IconButton,
+  Subheading,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -12,12 +20,13 @@ import {
   VStack
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import {
   LuCirclePlay,
   LuCopy,
   LuExternalLink,
   LuInfo,
+  LuKeySquare,
   LuLink,
   LuRefreshCcw
 } from "react-icons/lu";
@@ -61,13 +70,13 @@ const PurchaseOrderProperties = () => {
     supplierQuote: SupplierQuote;
   }>(path.to.purchaseOrder(orderId));
 
-  const fetcher = useFetcher<typeof action>();
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error(fetcher.data.error.message);
+  const fetcher = useAction<typeof action>({
+    onError: (data) => {
+      if (data?.error) {
+        toast.error(data.error.message);
+      }
     }
-  }, [fetcher.data]);
-
+  });
   const { company } = useUser();
   const exchangeRateFetcher = useFetcher<typeof exchangeRateAction>();
   const { t } = useLingui();
@@ -128,13 +137,13 @@ const PurchaseOrderProperties = () => {
   return (
     <VStack
       spacing={4}
-      className="w-96 bg-card h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
+      className="w-96 bg-background/30 h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
     >
       <VStack spacing={4}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+          <Subheading as="h3" variant="light">
             <Trans>Properties</Trans>
-          </h3>
+          </Subheading>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -157,6 +166,13 @@ const PurchaseOrderProperties = () => {
                 <span>Copy link to Purchase Order</span>
               </TooltipContent>
             </Tooltip>
+            <Copy
+              text={orderId}
+              label={t`Copy purchase order unique identifier`}
+              icon={<LuKeySquare className="size-3" />}
+              variant="ghost"
+              className="w-auto"
+            />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -166,7 +182,7 @@ const PurchaseOrderProperties = () => {
                   className="p-1"
                   onClick={() =>
                     copyToClipboard(
-                      routeData?.purchaseOrder?.purchaseOrderId ?? ""
+                      getPurchaseOrderDisplayId(routeData?.purchaseOrder)
                     )
                   }
                 >
@@ -180,7 +196,7 @@ const PurchaseOrderProperties = () => {
           </HStack>
         </HStack>
         <span className="text-sm">
-          {routeData?.purchaseOrder?.purchaseOrderId}
+          {getPurchaseOrderDisplayId(routeData?.purchaseOrder)}
         </span>
       </VStack>
 
@@ -460,12 +476,7 @@ const PurchaseOrderProperties = () => {
                 icon={<LuRefreshCcw />}
                 isDisabled={isDisabled}
                 onClick={() => {
-                  const formData = new FormData();
-                  formData.append(
-                    "currencyCode",
-                    routeData?.purchaseOrder?.currencyCode ?? ""
-                  );
-                  exchangeRateFetcher.submit(formData, {
+                  exchangeRateFetcher.submit(null, {
                     method: "post",
                     action: path.to.purchaseOrderExchangeRate(orderId)
                   });

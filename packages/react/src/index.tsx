@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { JSONContent } from "@tiptap/react";
 
 export {
@@ -27,6 +31,7 @@ import {
 import type { BadgeProps } from "./Badge";
 import { Badge, BadgeCloseButton } from "./Badge";
 import { BarProgress } from "./BarProgress";
+import { useBotProtection } from "./BotProtection";
 import {
   BottomSheet,
   BottomSheetBody,
@@ -39,6 +44,7 @@ import {
 } from "./BottomSheet";
 import type { ButtonProps } from "./Button";
 import { Button, buttonVariants } from "./Button";
+import { CarbonPulse } from "./CarbonPulse";
 import {
   Card,
   CardAction,
@@ -64,8 +70,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger
 } from "./Collapsible";
-import type { ComboboxProps } from "./Combobox";
-import { Combobox } from "./Combobox";
+import type { ComboboxFilter, ComboboxOption, ComboboxProps } from "./Combobox";
+import { Combobox, filterComboboxOptions } from "./Combobox";
 import {
   Command,
   CommandDialog,
@@ -105,6 +111,7 @@ import { CreatableCombobox } from "./CreateableCombobox";
 import type { CreatableMultiSelectProps } from "./CreateableMultiSelect";
 import { CreatableMultiSelect } from "./CreateableMultiSelect";
 import {
+  Calendar,
   DatePicker,
   DateRangePicker,
   DateTimePicker,
@@ -112,6 +119,7 @@ import {
 } from "./Date";
 import type { DateTimeProps } from "./DateTime";
 import { DateTime } from "./DateTime";
+import { DisabledReason, getDisabledReason } from "./DisabledReason";
 import {
   Drawer,
   DrawerBody,
@@ -140,6 +148,7 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger
 } from "./Dropdown";
+import { Enumerable } from "./Enumerable";
 import { File } from "./File";
 import {
   FormControl,
@@ -154,8 +163,11 @@ import { generateHTML, HTML } from "./HTML";
 import type {
   Modifier,
   Shortcut,
-  ShortcutDefinition
+  ShortcutDefinition,
+  ShortcutInput,
+  ShortcutKeyMapEntry
 } from "./hooks/useShortcutKeys";
+import { KeyboardKeys, useShortcutKeyMap } from "./hooks/useShortcutKeys";
 import { IconButton } from "./IconButton";
 import type { InputProps } from "./Input";
 import {
@@ -177,7 +189,6 @@ import { Kbd } from "./Kbd";
 import { Label } from "./Label";
 import { LabelWithHelp } from "./LabelWithHelp";
 import { Loading } from "./Loading";
-import { LoadingBars } from "./LoadingBars";
 import {
   Menu,
   MenuCheckboxItem,
@@ -235,6 +246,15 @@ import {
 } from "./ModalDrawer";
 import type { MultiSelectProps } from "./MultiSelect";
 import { MultiSelect } from "./MultiSelect";
+import {
+  NavRail,
+  NavRailBrand,
+  NavRailDivider,
+  NavRailGroup,
+  NavRailItem,
+  NavRailLink,
+  navRailItemClasses
+} from "./NavRail";
 import type { NumberFieldProps } from "./Number";
 import {
   NumberDecrementStepper,
@@ -259,9 +279,10 @@ import {
   PopoverHeader,
   PopoverTrigger
 } from "./Popover";
+import { PrefetchLink } from "./PrefetchLink";
 import { Progress } from "./Progress";
 import { PulsingDot } from "./PulsingDot";
-import { RadioGroup, RadioGroupItem } from "./Radio";
+import { RadioGroup, RadioGroupButton, RadioGroupItem } from "./Radio";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -281,6 +302,8 @@ import {
   SelectValue
 } from "./Select";
 import { Separator } from "./Separator";
+import type { ShortcutHelpEntry } from "./ShortcutHelpOverlay";
+import { ShortcutHelpKeys, ShortcutHelpOverlay } from "./ShortcutHelpOverlay";
 import { ShortcutKey, shortcutKeyVariants } from "./ShortcutKey";
 import {
   Sidebar,
@@ -313,7 +336,11 @@ import { Slider } from "./Slider";
 import { Spinner } from "./Spinner";
 import { SplitButton } from "./SplitButton";
 import { Status } from "./Status";
+import type { SubheadingProps } from "./Subheading";
+import { Subheading } from "./Subheading";
 import { Switch } from "./Switch";
+import type { MenuItemShortcut } from "./shortcuts";
+import { MENU_ITEM_SHORTCUTS, SHORTCUTS } from "./shortcuts";
 import { Table, TableCaption, Tbody, Td, Tfoot, Th, Thead, Tr } from "./Table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./Tabs";
 import type { TextareaProps } from "./Textarea";
@@ -342,7 +369,9 @@ import {
 import { TruncatedTooltipText } from "./TruncatedTooltipText";
 import { TVColorBars } from "./TVColorBars";
 import { cn } from "./utils/cn";
+import { hasOpenDialog, isInsideTopmostDialog } from "./utils/dialog";
 import { copyToClipboard } from "./utils/dom";
+import { isEditableTarget } from "./utils/keyboard";
 import { getValidChildren, reactNodeToString } from "./utils/react";
 import { VStack } from "./VStack";
 
@@ -375,6 +404,7 @@ export {
   AvatarGroupList,
   AvatarOverflowIndicator,
   Badge,
+  Enumerable,
   BadgeCloseButton,
   Button,
   Card,
@@ -397,6 +427,7 @@ export {
   CollapsibleContent,
   CollapsibleTrigger,
   Combobox,
+  filterComboboxOptions,
   Command,
   CommandDialog,
   CommandEmpty,
@@ -428,10 +459,12 @@ export {
   Count,
   CreatableCombobox,
   CreatableMultiSelect,
+  Calendar,
   DatePicker,
   DateRangePicker,
   DateTime,
   DateTimePicker,
+  DisabledReason,
   Drawer,
   DrawerBody,
   DrawerContent,
@@ -483,7 +516,7 @@ export {
   Label,
   LabelWithHelp,
   Loading,
-  LoadingBars,
+  CarbonPulse,
   Menu,
   MenuCheckboxItem,
   MenuGroup,
@@ -534,6 +567,13 @@ export {
   NumberDecrementStepper,
   NumberField,
   NumberIncrementStepper,
+  NavRail,
+  NavRailBrand,
+  NavRailDivider,
+  NavRailGroup,
+  NavRailItem,
+  NavRailLink,
+  navRailItemClasses,
   NumberInput,
   NumberInputGroup,
   NumberInputStepper,
@@ -546,9 +586,11 @@ export {
   PopoverFooter,
   PopoverHeader,
   PopoverTrigger,
+  PrefetchLink,
   Progress,
   PulsingDot,
   RadioGroup,
+  RadioGroupButton,
   RadioGroupItem,
   ResizableHandle,
   ResizablePanel,
@@ -566,7 +608,16 @@ export {
   SelectTrigger,
   SelectValue,
   Separator,
+  KeyboardKeys,
+  MENU_ITEM_SHORTCUTS,
+  SHORTCUTS,
+  ShortcutHelpKeys,
+  ShortcutHelpOverlay,
   ShortcutKey,
+  hasOpenDialog,
+  isEditableTarget,
+  isInsideTopmostDialog,
+  useShortcutKeyMap,
   Sidebar,
   SidebarContent,
   SidebarFooter,
@@ -595,6 +646,7 @@ export {
   Spinner,
   SplitButton,
   Status,
+  Subheading,
   Switch,
   Table,
   TableCaption,
@@ -617,6 +669,7 @@ export {
   TrackedEntityPicker,
   usePickOrderOptions,
   TruncatedTooltipText,
+  getDisabledReason,
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -633,6 +686,7 @@ export {
   reactNodeToString,
   shortcutKeyVariants,
   toast,
+  useBotProtection,
   useModalCardType,
   useModalDrawerType,
   useOperatingSystem,
@@ -644,6 +698,8 @@ export type {
   ButtonProps,
   ChoiceCardOption,
   ChoiceSelectOption,
+  ComboboxFilter,
+  ComboboxOption,
   ComboboxProps,
   CreatableComboboxProps,
   CreatableMultiSelectProps,
@@ -653,9 +709,14 @@ export type {
   Modifier,
   MultiSelectProps,
   NumberFieldProps,
+  MenuItemShortcut,
   OperatingSystemPlatform,
   Shortcut,
   ShortcutDefinition,
+  ShortcutHelpEntry,
+  ShortcutInput,
+  ShortcutKeyMapEntry,
+  SubheadingProps,
   TextareaProps,
   ExpiredEntityPolicy,
   TrackedEntityOption,

@@ -1,11 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useLingui } from "@lingui/react/macro";
 import {
   LuContainer,
   LuFileText,
   LuLayoutList,
+  LuListTodo,
   LuPackageSearch,
-  LuSquareChartGantt,
-  LuStar
+  LuStar,
+  LuUndo2
 } from "react-icons/lu";
 import { usePermissions } from "~/hooks";
 import { useSavedViews } from "~/hooks/useSavedViews";
@@ -34,26 +39,32 @@ export default function usePurchasingSubmodules() {
           table: "purchasingRfq"
         },
         {
-          name: t`Quotes`,
+          name: t`Supplier Quotes`,
           to: path.to.supplierQuotes,
           icon: <LuFileText />,
           table: "supplierQuote"
         },
         {
-          name: t`Orders`,
+          name: t`Purchase Orders`,
           to: path.to.purchaseOrders,
           icon: <LuLayoutList />,
           table: "purchaseOrder"
+        },
+        {
+          name: t`Returns`,
+          to: path.to.purchaseReturnOrders,
+          icon: <LuUndo2 />,
+          table: "purchaseReturnOrder"
         }
       ]
     },
     {
-      name: t`Plan`,
+      name: t`Planning`,
       routes: [
         {
-          name: t`Planning`,
+          name: t`Material Planning`,
           to: path.to.purchasingPlanning,
-          icon: <LuSquareChartGantt />,
+          icon: <LuListTodo />,
           table: "purchase-planning"
         }
       ]

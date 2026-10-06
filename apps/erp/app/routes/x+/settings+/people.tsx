@@ -1,6 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
+import { updateConsoleSetting } from "@carbon/ee/console.server";
+import { companyHasFeature } from "@carbon/ee/plan.server";
 import {
   Badge,
   Button,
@@ -24,17 +30,16 @@ import {
   toast,
   VStack
 } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { useCallback, useEffect, useState } from "react";
-
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useFetcher, useLoaderData } from "react-router";
-import {
-  getCompanySettings,
-  updateConsoleSetting,
-  updateTimeCardSetting
-} from "~/modules/settings";
+import { useFetcher, useLoaderData } from "react-router";
+import { UpgradeOverlayUpgradeButton } from "~/components/UpgradeOverlay";
+import { usePlanGate } from "~/hooks/usePlanGate";
+import { getCompanySettings, updateTimeCardSetting } from "~/modules/settings";
+import { getDatabaseClient } from "~/services/database.server";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
@@ -77,8 +82,21 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   if (intent === "console") {
+    // Enterprise: console (kiosk) mode is gated. `companyHasFeature` blocks the
+    // Community edition outright and applies the plan check on Cloud.
+    const hasConsole = await companyHasFeature(client, companyId, {
+      feature: "PERMISSIONS"
+    });
+    if (!hasConsole) {
+      return {
+        success: false,
+        message: "Console mode requires the Business plan"
+      };
+    }
+
     const update = await updateConsoleSetting(
       client,
+      getDatabaseClient(),
       companyId,
       enabled,
       userId
@@ -86,23 +104,22 @@ export async function action({ request }: ActionFunctionArgs) {
 
     if (update.error) return { success: false, message: update.error.message };
 
-    // Check if a PIN was auto-generated for the user
-    if (enabled) {
-      const userPin = await client
-        .from("employee")
-        .select("pin" as any)
-        .eq("id", userId)
-        .eq("companyId", companyId)
-        .maybeSingle();
+    // A PIN generated for the enabling user is returned ONCE here — it is
+    // stored hashed and can never be read back.
+    if (update.pin) {
+      return {
+        success: true,
+        message: "Console mode enabled",
+        pin: update.pin
+      };
+    }
 
-      const pin = (userPin.data as any)?.pin;
-      if (pin) {
-        return {
-          success: true,
-          message: "Console mode enabled",
-          pin
-        };
-      }
+    // Console mode is on; only the enabling user's PIN is missing.
+    if (update.pinError) {
+      return {
+        success: false,
+        message: `Console mode enabled, but ${update.pinError.toLowerCase()}. Set one from Users → Employees → Set Console PIN.`
+      };
     }
 
     return { success: true, message: "Console mode settings updated" };
@@ -114,6 +131,8 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function PeopleSettingsRoute() {
   const { companySettings } = useLoaderData<typeof loader>();
   const fetcher = useFetcher<typeof action>();
+  // Enterprise: console (kiosk) mode is gated to the Business plan.
+  const { isGated: consoleGated } = usePlanGate({ feature: "PERMISSIONS" });
   const [showPinModal, setShowPinModal] = useState(false);
   const [generatedPin, setGeneratedPin] = useState<string | null>(null);
 
@@ -155,7 +174,7 @@ export default function PeopleSettingsRoute() {
   );
 
   return (
-    <ScrollArea className="w-full h-[calc(100dvh-49px)]">
+    <ScrollArea className="w-full h-[calc(100dvh-var(--topbar-height)-var(--content-inset))]">
       <VStack
         spacing={4}
         className="py-12 px-4 max-w-[60rem] h-full mx-auto gap-4"
@@ -193,7 +212,9 @@ export default function PeopleSettingsRoute() {
                 </HStack>
 
                 <span className="text-sm text-muted-foreground">
-                  {(companySettings as any).consoleEnabled ? (
+                  {consoleGated ? (
+                    <Trans>Available on the Business plan</Trans>
+                  ) : (companySettings as any).consoleEnabled ? (
                     <Trans>
                       Operators can use shared workstations with PIN
                       authentication.
@@ -203,11 +224,15 @@ export default function PeopleSettingsRoute() {
                   )}
                 </span>
               </VStack>
-              <Switch
-                checked={(companySettings as any).consoleEnabled ?? false}
-                onCheckedChange={handleConsoleToggle}
-                disabled={isToggling}
-              />
+              {consoleGated ? (
+                <UpgradeOverlayUpgradeButton />
+              ) : (
+                <Switch
+                  checked={(companySettings as any).consoleEnabled ?? false}
+                  onCheckedChange={handleConsoleToggle}
+                  disabled={isToggling}
+                />
+              )}
             </HStack>
           </CardContent>
         </Card>
@@ -280,8 +305,8 @@ export default function PeopleSettingsRoute() {
                 </div>
                 <p className="text-xs text-muted-foreground text-center">
                   <Trans>
-                    Remember this PIN. You will need it to exit console mode on
-                    MES terminals.
+                    This PIN will not be shown again. You will need it to exit
+                    console mode on MES terminals.
                   </Trans>
                 </p>
               </VStack>

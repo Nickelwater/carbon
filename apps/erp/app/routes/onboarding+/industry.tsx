@@ -1,13 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { setCompanyId } from "@carbon/auth/company.server";
 import { updateCompanySession } from "@carbon/auth/session.server";
+import { datasetForIndustry } from "@carbon/database/datasets";
 import { ValidatedForm, validationError, validator } from "@carbon/form";
 import {
   Button,
-  Card,
-  CardContent,
   CardDescription,
   CardFooter,
   CardHeader,
@@ -15,9 +18,10 @@ import {
   ChoiceCardGroup,
   type ChoiceCardOption,
   cn,
-  HStack
+  HStack,
+  PrefetchLink
 } from "@carbon/react";
-import { isInternalEmail } from "@carbon/utils";
+import { isInternalEmail, redirect } from "@carbon/utils";
 import { type ReactNode, useState } from "react";
 import {
   LuBot,
@@ -25,18 +29,22 @@ import {
   LuDatabase,
   LuFactory,
   LuFileX,
+  LuSatellite,
   LuUpload,
   LuWrench
 } from "react-icons/lu";
 import {
   type ActionFunctionArgs,
   Form,
-  Link,
-  redirect,
   useLoaderData,
   useNavigation
 } from "react-router";
 import { z } from "zod";
+import {
+  OnboardingCard,
+  OnboardingCardContent,
+  onboardingFormClassName
+} from "~/components";
 import { Hidden, Submit } from "~/components/Form";
 import { useOnboarding } from "~/hooks";
 import {
@@ -44,12 +52,13 @@ import {
   getIndustries,
   onboardingCompanyValidator
 } from "~/modules/settings";
-import { provisionOnboardingCompany } from "~/services/onboarding.server";
 import {
   clearOnboardingDraft,
   getOnboardingDraft,
   type OnboardingDraft
-} from "~/services/onboarding-draft.server";
+} from "~/modules/shared/shared.server";
+import { provisionOnboardingCompany } from "~/services/onboarding.server";
+import { ONBOARDING_SHORTCUTS } from "~/shortcuts";
 import { path } from "~/utils/path";
 
 type DataChoice = "template" | "import" | "none";
@@ -71,6 +80,7 @@ const onboardingIndustryValidator = z
 const INDUSTRY_ICONS: Record<string, ReactNode> = {
   bot: <LuBot className="h-5 w-5" />,
   cog: <LuCog className="h-5 w-5" />,
+  satellite: <LuSatellite className="h-5 w-5" />,
   wrench: <LuWrench className="h-5 w-5" />
 };
 
@@ -85,33 +95,39 @@ function appendDraftCompany(
 }
 
 export async function loader({ request }: ActionFunctionArgs) {
-  const { client, companyId, email } = await requirePermissions(request, {});
+  const { client, companyId, email } = await requirePermissions(request, {
+    // Onboarding acts on the user's own account: a portal-only user may still
+    // create a company of their own.
+    allowPortalAccounts: true
+  });
 
-  // The data-choice step is internal-only; public signups create their company
-  // in the company step. Guard direct navigation to this route.
-  if (!isInternalEmail(email)) {
-    throw redirect(path.to.onboarding.company);
-  }
+  // Restoring from a backup stays internal-only; the demo template and a clean
+  // start are open to every signup.
+  const canRestoreBackup = isInternalEmail(email);
 
   const company = await getCompany(client, companyId);
   const draft = await getOnboardingDraft(request);
-  const industries = (await getIndustries(client)).data ?? [];
+  const allIndustries = (await getIndustries(client)).data ?? [];
+
+  // Only industries with a registered dataset can be offered under "Use a demo
+  // template" — the others would create a clean company while the card promises
+  // sample data, with nothing to tell the user which happened.
+  const industries = allIndustries.filter((i) => datasetForIndustry(i.id));
 
   if (company.error || !company.data) {
-    return { company: null, draft, industries };
+    return { company: null, draft, industries, canRestoreBackup };
   }
 
-  return { company: company.data, draft, industries };
+  return { company: company.data, draft, industries, canRestoreBackup };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId, email } = await requirePermissions(request, {});
-
-  // Internal-only step — reject direct POSTs from public signups.
-  if (!isInternalEmail(email)) {
-    throw redirect(path.to.onboarding.company);
-  }
+  const { client, userId, email } = await requirePermissions(request, {
+    // Onboarding acts on the user's own account: a portal-only user may still
+    // create a company of their own.
+    allowPortalAccounts: true
+  });
 
   // Get draft data from previous step (company)
   const draft = await getOnboardingDraft(request);
@@ -128,6 +144,11 @@ export async function action({ request }: ActionFunctionArgs) {
   }
 
   const { dataChoice } = industryValidation.data;
+
+  // Backup restore is internal-only — reject direct POSTs from public signups.
+  if (dataChoice === "import" && !isInternalEmail(email)) {
+    throw redirect(path.to.onboarding.industry);
+  }
 
   // Carry forward the company data captured in the previous (company) step.
   if (draft?.company) appendDraftCompany(formData, draft.company);
@@ -154,10 +175,27 @@ export async function action({ request }: ActionFunctionArgs) {
       ? backupFile
       : null;
 
+  // "Use a demo template" → the dataset registered for the chosen industry.
+  // The loader only offers industries that have one; refuse rather than fall
+  // through to a clean seed, which would look identical to a crashed job.
+  let template: string | null = null;
+  if (dataChoice === "template") {
+    const dataset = datasetForIndustry(companyData.industryId);
+    if (!dataset) {
+      return validationError({
+        fieldErrors: {
+          industryId: "No demo data is available for that industry yet"
+        }
+      });
+    }
+    template = dataset.key;
+  }
+
   const companyId = await provisionOnboardingCompany(serviceRole, client, {
     userId,
     companyData,
-    backup
+    backup,
+    template
   });
 
   const companyRecord = await serviceRole
@@ -173,7 +211,7 @@ export async function action({ request }: ActionFunctionArgs) {
   const companyIdCookie = setCompanyId(companyId);
   const clearDraftCookie = await clearOnboardingDraft(request);
 
-  throw redirect(next, {
+  throw redirect(next || path.to.onboarding.root, {
     headers: [
       ["Set-Cookie", sessionCookie],
       ["Set-Cookie", companyIdCookie],
@@ -185,7 +223,8 @@ export async function action({ request }: ActionFunctionArgs) {
 type Step = "data-question" | "industry-selection" | "import-upload";
 
 export default function OnboardingIndustry() {
-  const { company, industries } = useLoaderData<typeof loader>();
+  const { company, industries, canRestoreBackup } =
+    useLoaderData<typeof loader>();
   const { next, previous } = useOnboarding();
 
   // Determine initial step based on existing company data
@@ -196,8 +235,14 @@ export default function OnboardingIndustry() {
     return "data-question";
   };
 
+  // The loader already dropped industries with no dataset; if that leaves none,
+  // there is no demo template to offer at all.
+  const canUseTemplate = industries.length > 0;
+
   const [step, setStep] = useState<Step>(getInitialStep);
-  const [dataChoice, setDataChoice] = useState<DataChoice>("template");
+  const [dataChoice, setDataChoice] = useState<DataChoice>(
+    canUseTemplate ? "template" : "none"
+  );
   const [importFile, setImportFile] = useState<File | null>(null);
   const navigation = useNavigation();
   // Provisioning (unpack + seed + enqueue import) runs in the action and can take
@@ -228,19 +273,28 @@ export default function OnboardingIndustry() {
   };
 
   const dataChoiceOptions: ChoiceCardOption<DataChoice>[] = [
-    {
-      value: "template",
-      title: "Use a demo template",
-      description:
-        "We'll add sample customers, suppliers, parts and quotes to explore Carbon",
-      icon: <LuDatabase className="h-5 w-5" />
-    },
-    {
-      value: "import" as const,
-      title: "Restore from a backup",
-      description: "Set up from a Carbon backup of another company",
-      icon: <LuUpload className="h-5 w-5" />
-    },
+    ...(canUseTemplate
+      ? [
+          {
+            value: "template" as const,
+            title: "Use a demo template",
+            description:
+              "We'll set up sample customers, suppliers, parts and orders — they appear shortly after you finish",
+            icon: <LuDatabase className="h-5 w-5" />
+          }
+        ]
+      : []),
+    ...(canRestoreBackup
+      ? [
+          {
+            value: "import" as const,
+            title: "Restore from a backup",
+            description:
+              "Set up from a backup of another Carbon company environment",
+            icon: <LuUpload className="h-5 w-5" />
+          }
+        ]
+      : []),
     {
       value: "none",
       title: "I don't need data",
@@ -251,21 +305,26 @@ export default function OnboardingIndustry() {
 
   if (step === "import-upload") {
     return (
-      <Card className="max-w-lg">
-        <Form method="post" encType="multipart/form-data">
+      <OnboardingCard>
+        <Form
+          method="post"
+          encType="multipart/form-data"
+          className={onboardingFormClassName}
+        >
           <CardHeader>
             <CardTitle>Restore from a backup</CardTitle>
             <CardDescription>
               Upload a Carbon backup and we'll set up your new company from it.
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <OnboardingCardContent>
             <input type="hidden" name="next" value={next} />
             <input type="hidden" name="dataChoice" value="import" />
             <label
               className={cn(
                 "flex cursor-pointer flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center transition-colors",
-                "border-border hover:border-primary/50 hover:bg-accent/50"
+                "border-border hover:border-primary/50 hover:bg-accent/50",
+                "has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring"
               )}
             >
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted text-muted-foreground">
@@ -293,7 +352,7 @@ export default function OnboardingIndustry() {
                 onChange={(e) => setImportFile(e.target.files?.[0] ?? null)}
               />
             </label>
-          </CardContent>
+          </OnboardingCardContent>
           <CardFooter>
             <HStack>
               <Button
@@ -309,6 +368,7 @@ export default function OnboardingIndustry() {
                 variant="primary"
                 size="md"
                 type="submit"
+                shortcut={ONBOARDING_SHORTCUTS.continue}
                 isLoading={isSubmitting}
                 isDisabled={!importFile || isSubmitting}
               >
@@ -317,16 +377,17 @@ export default function OnboardingIndustry() {
             </HStack>
           </CardFooter>
         </Form>
-      </Card>
+      </OnboardingCard>
     );
   }
 
   return (
-    <Card className="max-w-lg">
+    <OnboardingCard>
       <ValidatedForm
         validator={onboardingIndustryValidator}
         defaultValues={initialValues}
         method="post"
+        className={onboardingFormClassName}
       >
         {step === "data-question" ? (
           <>
@@ -336,7 +397,7 @@ export default function OnboardingIndustry() {
                 Choose how to set up your new company.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <OnboardingCardContent>
               <Hidden name="next" value={next} />
               <Hidden name="dataChoice" value={dataChoice} />
               <ChoiceCardGroup
@@ -344,8 +405,9 @@ export default function OnboardingIndustry() {
                 value={dataChoice}
                 onChange={setDataChoice}
                 options={dataChoiceOptions}
+                autoFocus
               />
-            </CardContent>
+            </OnboardingCardContent>
 
             <CardFooter>
               <HStack>
@@ -356,17 +418,16 @@ export default function OnboardingIndustry() {
                   asChild
                   tabIndex={-1}
                 >
-                  <Link to={previous} prefetch="intent">
-                    Previous
-                  </Link>
+                  <PrefetchLink to={previous}>Previous</PrefetchLink>
                 </Button>
                 {dataChoice === "none" ? (
-                  <Submit>Next</Submit>
+                  <Submit shortcut={ONBOARDING_SHORTCUTS.continue}>Next</Submit>
                 ) : (
                   <Button
                     variant="primary"
                     size="md"
                     type="button"
+                    shortcut={ONBOARDING_SHORTCUTS.continue}
                     onClick={handleNext}
                   >
                     Next
@@ -383,7 +444,7 @@ export default function OnboardingIndustry() {
                 We'll set up demo data to match your industry
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <OnboardingCardContent>
               <Hidden name="next" value={next} />
               <Hidden name="dataChoice" value="template" />
               <Hidden name="industryId" value={selectedIndustryId} />
@@ -391,8 +452,9 @@ export default function OnboardingIndustry() {
                 value={selectedIndustryId}
                 onChange={setSelectedIndustryId}
                 options={industryOptions}
+                autoFocus
               />
-            </CardContent>
+            </OnboardingCardContent>
 
             <CardFooter>
               <HStack>
@@ -404,12 +466,17 @@ export default function OnboardingIndustry() {
                 >
                   Previous
                 </Button>
-                <Submit isDisabled={!selectedIndustryId}>Next</Submit>
+                <Submit
+                  isDisabled={!selectedIndustryId}
+                  shortcut={ONBOARDING_SHORTCUTS.continue}
+                >
+                  Next
+                </Submit>
               </HStack>
             </CardFooter>
           </>
         )}
       </ValidatedForm>
-    </Card>
+    </OnboardingCard>
   );
 }

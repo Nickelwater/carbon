@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
@@ -5,19 +9,17 @@ import { validationError, validator } from "@carbon/form";
 import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
 import { Menubar, VStack } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Await, redirect, useLoaderData, useParams } from "react-router";
+import { Await, useLoaderData, useParams } from "react-router";
 import { CadModel, DeferredFiles } from "~/components";
 import { usePermissions, useRouteData } from "~/hooks";
 import type { ItemFile, MakeMethod, ToolSummary } from "~/modules/items";
 import {
-  getItemChangeNoticeData,
   getItemManufacturing,
-  getMakeMethodById,
-  getMakeMethods,
   getMethodMaterialsByMakeMethod,
   getMethodOperationsByMakeMethodId,
   getToolLifeLedger,
@@ -28,7 +30,12 @@ import {
   upsertItemManufacturing,
   upsertTool
 } from "~/modules/items";
-import { getRevisionLock } from "~/modules/items/items.server";
+import {
+  getItemChangeNoticeDataOnce,
+  getMakeMethodByIdOnce,
+  getMakeMethodsOnce,
+  getRevisionLock
+} from "~/modules/items/items.server";
 import {
   ChangeNoticeDraftLockReason,
   getChangeNoticeDraftLock,
@@ -66,10 +73,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const requestedMethodId = url.searchParams.get("methodId");
 
   const [makeMethods, revisionLock, changeNoticeData] = await Promise.all([
-    getMakeMethods(client, itemId, companyId),
+    getMakeMethodsOnce(client, itemId, companyId),
     getRevisionLock(client, { itemId, companyId }),
     // Tool → CO traceability (4b): CO history for this tool + type labels.
-    getItemChangeNoticeData(client, itemId, companyId)
+    getItemChangeNoticeDataOnce(client, itemId, companyId)
   ]);
   const revisionStatus = revisionLock.revisionStatus;
   const releaseControl = revisionLock.releaseControl;
@@ -99,11 +106,18 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     };
   }
 
-  const fullMethod = await getMakeMethodById(client, makeMethod.id, companyId);
+  const fullMethod = await getMakeMethodByIdOnce(
+    client,
+    makeMethod.id,
+    companyId
+  );
   if (fullMethod.error || !fullMethod.data) {
     return {
       methodData: null,
       tags: [],
+      toolLifePolicy: toolLifePolicy.data,
+      serialLife: [],
+      toolLifeLedger: [],
       revisionStatus,
       releaseControl,
       ...changeNoticeData
@@ -162,7 +176,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId } = await requirePermissions(request, {
+  const { client, companyId, userId } = await requirePermissions(request, {
     update: "parts"
   });
 
@@ -216,6 +230,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const updateTool = await upsertTool(client, {
     ...validation.data,
     id: itemId,
+    companyId,
     customFields: setCustomFields(formData),
     updatedBy: userId
   });
@@ -276,7 +291,7 @@ export default function ToolDetailsRoute() {
     : null;
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       <ItemNotes
         id={toolData.toolSummary?.id ?? null}
         title={toolData.toolSummary?.name ?? ""}
@@ -291,6 +306,24 @@ export default function ToolDetailsRoute() {
           ledger={toolLifeLedger}
         />
       )}
+      {permissions.is("employee") &&
+        methodData &&
+        ["Make", "Buy and Make"].includes(
+          toolData.toolSummary?.replenishmentSystem ?? ""
+        ) && (
+          <Suspense fallback={<Menubar />}>
+            <Await resolve={toolData?.makeMethods}>
+              {(makeMethods) => (
+                <MakeMethodTools
+                  itemId={methodData.makeMethod.itemId}
+                  makeMethods={makeMethods?.data ?? []}
+                  type="Tool"
+                  currentMethodId={methodData.makeMethod.id}
+                />
+              )}
+            </Await>
+          </Suspense>
+        )}
       {permissions.is("employee") && (
         <ItemOpenChangeNoticeAlert changeNotices={changeNotices ?? []} />
       )}
@@ -300,22 +333,9 @@ export default function ToolDetailsRoute() {
             toolData.toolSummary?.replenishmentSystem ?? ""
           ) && (
             <>
-              <Suspense fallback={<Menubar />}>
-                <Await resolve={toolData?.makeMethods}>
-                  {(makeMethods) => (
-                    <MakeMethodTools
-                      itemId={methodData.makeMethod.itemId}
-                      makeMethods={makeMethods?.data ?? []}
-                      type="Tool"
-                      currentMethodId={methodData.makeMethod.id}
-                    />
-                  )}
-                </Await>
-              </Suspense>
               {manufacturingInitialValues && (
                 <ItemManufacturingForm
                   key={itemId}
-                  // @ts-ignore
                   initialValues={manufacturingInitialValues}
                   withConfiguration={false}
                 />
@@ -326,25 +346,26 @@ export default function ToolDetailsRoute() {
             toolData.toolSummary?.replenishmentSystem ?? ""
           ) && (
             <>
-              <BillOfMaterial
-                key={`bom:${itemId}`}
+              <BillOfProcess
+                key={`bop:${itemId}`}
                 makeMethod={methodData.makeMethod}
-                // @ts-ignore
+                // @ts-expect-error
+                operations={methodData.methodOperations ?? []}
                 materials={methodData.methodMaterials ?? []}
-                // @ts-ignore
-                operations={methodData.methodOperations}
-                replenishmentSystem={toolData.toolSummary?.replenishmentSystem}
+                tags={tags}
                 revisionStatus={revisionStatus}
                 releaseControl={releaseControl}
                 isDisabled={!!draftLock}
                 disabledReason={lockReason}
               />
-              <BillOfProcess
-                key={`bop:${itemId}`}
+              <BillOfMaterial
+                key={`bom:${itemId}`}
                 makeMethod={methodData.makeMethod}
-                // @ts-ignore
-                operations={methodData.methodOperations ?? []}
-                tags={tags}
+                // @ts-expect-error
+                materials={methodData.methodMaterials ?? []}
+                // @ts-expect-error
+                operations={methodData.methodOperations}
+                replenishmentSystem={toolData.toolSummary?.replenishmentSystem}
                 revisionStatus={revisionStatus}
                 releaseControl={releaseControl}
                 isDisabled={!!draftLock}
@@ -372,7 +393,7 @@ export default function ToolDetailsRoute() {
           <CadModel
             isReadOnly={!permissions.can("update", "parts") || !!draftLock}
             metadata={{ itemId }}
-            modelPath={toolData?.toolSummary?.modelPath ?? null}
+            modelUpload={toolData?.toolSummary ?? null}
             title={t`CAD Model`}
             titleExtras={lockHint}
           />

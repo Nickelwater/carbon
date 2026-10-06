@@ -1,10 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Json } from "@carbon/database";
 import { InputControlled, Select, ValidatedForm } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Alert,
   AlertTitle,
   Badge,
   Button,
+  Copy,
   HStack,
   Modal,
   ModalBody,
@@ -12,6 +18,7 @@ import {
   ModalFooter,
   ModalHeader,
   ModalTitle,
+  Subheading,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -22,7 +29,7 @@ import {
 import { Trans, useLingui } from "@lingui/react/macro";
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { LuCopy, LuKeySquare, LuLink, LuTriangleAlert } from "react-icons/lu";
-import { Await, Link, useFetcher, useParams } from "react-router";
+import { Await, Link, useParams } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import {
@@ -46,6 +53,7 @@ import Shape from "~/components/Form/Shape";
 import Substance from "~/components/Form/Substance";
 import { ItemThumbnailUpload } from "~/components/ItemThumnailUpload";
 import { useRouteData } from "~/hooks";
+import { useResolved } from "~/hooks/useResolved";
 import { useSettings } from "~/hooks/useSettings";
 import { methodType } from "~/modules/shared";
 import type { action } from "~/routes/x+/items+/update";
@@ -108,7 +116,7 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
     supplierParts: SupplierPart[];
     pickMethods: PickMethod[];
     tags: { name: string }[];
-    supersession?: {
+    supersession?: Promise<{
       successorItemId: string | null;
       successorEffectivityDate: string | null;
       successor: {
@@ -116,15 +124,27 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
         readableIdWithRevision: string;
         name: string;
       } | null;
-    } | null;
-    supersededBy?: Array<{
-      predecessor: {
-        id: string;
-        readableIdWithRevision: string;
-        name: string;
-      } | null;
-    }>;
+    } | null>;
+    supersededBy?: Promise<
+      Array<{
+        predecessor: {
+          id: string;
+          readableIdWithRevision: string;
+          name: string;
+        } | null;
+      }>
+    >;
   }>(path.to.material(itemId));
+  const supersession = useResolved(
+    routeDataFromRoute?.supersession,
+    null,
+    itemId
+  );
+  const supersededBy = useResolved(
+    routeDataFromRoute?.supersededBy,
+    null,
+    itemId
+  );
   const routeData = data ?? routeDataFromRoute;
 
   const locations = data?.locations ?? sharedMaterialsData?.locations ?? [];
@@ -140,13 +160,13 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
   //     ? optimisticAssignment
   //     : routeData?.materialSummary?.assignee;
 
-  const fetcher = useFetcher<typeof action>();
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error(fetcher.data.error.message);
+  const fetcher = useAction<typeof action>({
+    onError: (data) => {
+      if (data?.error) {
+        toast.error(data.error.message);
+      }
     }
-  }, [fetcher.data]);
-
+  });
   const confirmDisclosure = useDisclosure();
   const [materialPropertyUpdate, setMaterialPropertyUpdate] = useState<{
     field:
@@ -160,6 +180,7 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
   } | null>(null);
 
   const settings = useSettings();
+  const allowLowercaseItemIds = settings.allowLowercaseItemIds === true;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   const onUpdate = useCallback(
@@ -180,7 +201,8 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
         | "finishId"
         | "materialTypeId"
         | "materialId"
-        | "mpn",
+        | "mpn"
+        | "requiresInspection",
       value: string | null
     ) => {
       const formData = new FormData();
@@ -228,7 +250,7 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
         ].includes(field)
       ) {
         setMaterialPropertyUpdate({
-          // @ts-ignore
+          // @ts-expect-error
           field,
           value
         });
@@ -295,13 +317,13 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
     <>
       <VStack
         spacing={4}
-        className="w-96 bg-card h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
+        className="w-96 bg-background/30 h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
       >
         <VStack spacing={2}>
           <HStack className="w-full justify-between">
-            <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+            <Subheading as="h3" variant="light">
               <Trans>Properties</Trans>
-            </h3>
+            </Subheading>
             <HStack spacing={1}>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -325,26 +347,13 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
                   </span>
                 </TooltipContent>
               </Tooltip>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    aria-label={t`Copy`}
-                    size="sm"
-                    className="p-1"
-                    onClick={() =>
-                      copyToClipboard(routeData?.materialSummary?.id ?? "")
-                    }
-                  >
-                    <LuKeySquare className="w-3 h-3" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <span>
-                    <Trans>Copy material unique identifier</Trans>
-                  </span>
-                </TooltipContent>
-              </Tooltip>
+              <Copy
+                text={routeData?.materialSummary?.id ?? ""}
+                label={t`Copy material unique identifier`}
+                icon={<LuKeySquare className="size-3" />}
+                variant="ghost"
+                className="w-auto"
+              />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
@@ -392,6 +401,7 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
                     name="materialId"
                     inline
                     size="sm"
+                    isUppercase={!allowLowercaseItemIds}
                     value={routeData?.materialSummary?.readableId ?? ""}
                     onBlur={(e) => {
                       onUpdate("materialId", e.target.value ?? null);
@@ -408,7 +418,7 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
               validator={z.object({
                 name: z.string()
               })}
-              className="w-full -mt-2"
+              className="w-full"
             >
               <span className="text-xs text-muted-foreground">
                 <InputControlled
@@ -772,27 +782,23 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
             />
           </ValidatedForm>
         )}
-        {routeDataFromRoute?.supersession?.successor && (
+        {supersession?.successor && (
           <div className="w-full">
             <h3 className="text-xs text-muted-foreground mb-1">
               <Trans>Superseded By</Trans>
             </h3>
             <Link
-              to={path.to.material(
-                routeDataFromRoute.supersession.successor.id
-              )}
+              to={path.to.material(supersession.successor.id)}
               className="text-sm text-primary hover:underline"
             >
-              {routeDataFromRoute.supersession.successor.readableIdWithRevision}
+              {supersession.successor.readableIdWithRevision}
             </Link>
-            {routeDataFromRoute.supersession.successorEffectivityDate && (
+            {supersession.successorEffectivityDate && (
               <p className="text-xs text-muted-foreground">
                 <Trans>
                   From{" "}
                   <DateTime
-                    value={
-                      routeDataFromRoute.supersession.successorEffectivityDate
-                    }
+                    value={supersession.successorEffectivityDate}
                     variant="date"
                   />
                 </Trans>
@@ -800,12 +806,12 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
             )}
           </div>
         )}
-        {(routeDataFromRoute?.supersededBy?.length ?? 0) > 0 && (
+        {(supersededBy?.length ?? 0) > 0 && (
           <div className="w-full">
             <h3 className="text-xs text-muted-foreground mb-1">
               <Trans>Supersedes</Trans>
             </h3>
-            {routeDataFromRoute?.supersededBy?.map(
+            {supersededBy?.map(
               (ref) =>
                 ref.predecessor && (
                   <Link
@@ -882,7 +888,7 @@ const MaterialProperties = ({ data }: MaterialPropertiesProps) => {
           }}
           onConfirm={() => {
             onUpdate(
-              // @ts-ignore
+              // @ts-expect-error
               materialPropertyUpdate?.field,
               materialPropertyUpdate?.value
             );

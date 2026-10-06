@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { useAction } from "@carbon/query";
 import {
   Button,
   Combobox,
@@ -90,7 +95,14 @@ const PlanningTable = memo(
     const unitOfMeasures = useUnitOfMeasure();
     const [suppliers] = useSuppliers();
 
-    const mrpFetcher = useFetcher<typeof mrpAction>();
+    const mrpFetcher = useAction<typeof mrpAction>({
+      onSettled: (data) => {
+        if (data) {
+          clearOrdersCache();
+          setOrdersMap({}); // Reset local state to force recalculation
+        }
+      }
+    });
     const bulkUpdateFetcher = useFetcher<typeof bulkUpdateAction>();
 
     // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
@@ -160,6 +172,31 @@ const PlanningTable = memo(
       }
     );
 
+    // Re-seed default suppliers whenever the planning rows change. The useState
+    // initializer above only runs once at mount, so an item that gained a
+    // supplier after the page loaded — data revalidated after adding a supplier
+    // part, running MRP, filtering, or an initially-empty list — would never get
+    // its default picked up, and the order drawer would reject it as having "no
+    // supplier". Merge only: an item the user explicitly chose a supplier for is
+    // left untouched.
+    useEffect(() => {
+      setSuppliersMap((prev) => {
+        const next = { ...prev };
+        let changed = false;
+        for (const item of data) {
+          if (next[item.id]) continue;
+          const seed =
+            item.preferredSupplierId ??
+            (item.suppliers as SupplierPart[] | null)?.[0]?.supplierId;
+          if (seed) {
+            next[item.id] = seed;
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, [data]);
+
     const isDisabled =
       !permissions.can("create", "production") ||
       bulkUpdateFetcher.state !== "idle" ||
@@ -177,14 +214,6 @@ const PlanningTable = memo(
     const [ordersByItemId, setOrdersByItemId] = useState<
       Map<string, PlannedOrder[]>
     >(new Map());
-
-    // Clear cache when MRP completes
-    useEffect(() => {
-      if (mrpFetcher.state === "idle" && mrpFetcher.data) {
-        clearOrdersCache();
-        setOrdersMap({}); // Reset local state to force recalculation
-      }
-    }, [mrpFetcher.state, mrpFetcher.data]);
 
     // Clear local state when data changes (e.g., filters, search)
     // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
@@ -653,7 +682,7 @@ const PlanningTable = memo(
             </div>
           }
           renderActions={renderActions}
-          title={t`Planning`}
+          title={t`Material Planning`}
           table="planning"
           withSavedView
           withSelectableRows

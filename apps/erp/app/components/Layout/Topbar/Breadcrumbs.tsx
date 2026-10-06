@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   Avatar,
@@ -50,6 +54,7 @@ import type { Company } from "~/modules/settings";
 import { companyValidator } from "~/modules/settings/settings.models";
 import type { BreadcrumbSegment } from "~/utils/handle";
 import { path } from "~/utils/path";
+import { useCompanySwitchRedirect } from "./CompanySwitcher";
 
 export const BreadcrumbHandle = z.object({
   breadcrumb: z.any(),
@@ -65,11 +70,12 @@ const Breadcrumbs = () => {
   const { i18n } = useLingui();
   const matches = useMatches();
 
+  // Only a `msg` descriptor is translatable; a plain string is data (an entity's
+  // readable id) and is shown as-is.
   const translateBreadcrumb = (value: unknown): ReactNode => {
     if (typeof value === "object" && value !== null && "id" in value) {
       return i18n._(value as { id: string; message?: string });
     }
-    if (typeof value === "string") return i18n._(value);
     return value as ReactNode;
   };
 
@@ -136,6 +142,7 @@ const Breadcrumbs = () => {
 };
 
 function CompanyBreadcrumb() {
+  const switchRedirect = useCompanySwitchRedirect();
   const { t } = useLingui();
   const routeData = useRouteData<{ company: Company; companies: Company[] }>(
     path.to.authenticatedRoot
@@ -230,6 +237,13 @@ function CompanyBreadcrumb() {
                           method="post"
                           action={path.to.companySwitch(c.companyId!)}
                         >
+                          {switchRedirect && (
+                            <input
+                              type="hidden"
+                              name="redirectTo"
+                              value={switchRedirect}
+                            />
+                          )}
                           <DropdownMenuItem
                             className="flex items-center justify-between w-full"
                             asChild
@@ -279,7 +293,7 @@ function CompanyBreadcrumb() {
                 action={path.to.newCompany}
                 validator={companyValidator}
                 method="post"
-                onSubmit={companyForm.onClose}
+                onAfterSubmit={companyForm.onClose}
                 defaultValues={{
                   countryCode: "US",
                   baseCurrencyCode: "USD",

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Badge,
   Button,
@@ -9,6 +13,7 @@ import {
   HStack,
   IconButton,
   Input,
+  MENU_ITEM_SHORTCUTS,
   useDisclosure
 } from "@carbon/react";
 import { useState } from "react";
@@ -94,7 +99,7 @@ const AssemblyInstructionHeader = () => {
   };
 
   return (
-    <div className="flex flex-shrink-0 items-center justify-between px-4 py-2 bg-card border-b border-border h-[50px] overflow-x-auto scrollbar-hide dark:border-none dark:shadow-[inset_0_0_1px_rgb(255_255_255_/_0.24),_0_0_0_0.5px_rgb(0,0,0,1),0px_0px_4px_rgba(0,_0,_0,_0.08)]">
+    <div className="flex flex-shrink-0 items-center justify-between gap-x-4 px-4 py-2 bg-card border-b border-border h-[var(--header-height)] overflow-x-auto scrollbar-hide">
       <HStack className="flex-grow" spacing={1}>
         <IconButton
           aria-label="Toggle Explorer"
@@ -127,7 +132,7 @@ const AssemblyInstructionHeader = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent>
             {item && itemTypesWithDetails.includes(item.type) && (
-              <DropdownMenuItem asChild>
+              <DropdownMenuItem shortcut={MENU_ITEM_SHORTCUTS.view} asChild>
                 <Link
                   to={getLinkToItemDetails(
                     item.type as MethodItemType,
@@ -155,6 +160,7 @@ const AssemblyInstructionHeader = () => {
               Re-convert Model
             </DropdownMenuItem>
             <DropdownMenuItem
+              shortcut={MENU_ITEM_SHORTCUTS.delete}
               disabled={
                 !permissions.can("delete", "production") ||
                 !permissions.is("employee")

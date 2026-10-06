@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 export type TimezoneOption = { label: string; value: string };
 export type TimezoneGroup = { label: string; options: TimezoneOption[] };
 
@@ -36,6 +40,31 @@ const timeZoneNameOf = (
   }).formatToParts(new Date(Date.UTC(new Date().getUTCFullYear(), month, 15)));
   return parts.find((p) => p.type === "timeZoneName")?.value ?? "";
 };
+
+const displayNameCache = new Map<string, string>();
+
+/**
+ * A zone's colloquial name ("Eastern Time"), from CLDR. Empty when the runtime
+ * only offers a bare "GMT+05:30", which the offset already covers.
+ */
+export function getTimezoneDisplayName(zone: string): string {
+  const cached = displayNameCache.get(zone);
+  if (cached !== undefined) return cached;
+
+  let name = "";
+  try {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone: zone,
+      timeZoneName: "longGeneric"
+    }).formatToParts(new Date());
+    const value = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+    if (!/^(GMT|UTC)([+-]|$)/.test(value)) name = value;
+  } catch {
+    // Unresolvable zone, or an ICU without `longGeneric`.
+  }
+  displayNameCache.set(zone, name);
+  return name;
+}
 
 const ABBREVIATION = /^[A-Za-z]{2,6}$/;
 const abbreviationCache = new Map<string, string[]>();

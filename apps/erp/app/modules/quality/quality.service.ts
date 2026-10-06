@@ -1,15 +1,20 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database, Json } from "@carbon/database";
 import { fetchAllFromTable, getCompanyTimeZone } from "@carbon/database";
+import { storage } from "@carbon/files";
 import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
 import { datetime } from "@carbon/utils";
 import { parseDate } from "@internationalized/date";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
 import type { z } from "zod";
 import { getItemFiles } from "~/modules/items/items.service";
 import type { Filter, GenericQueryFilters, Sort } from "~/utils/query";
-import { setGenericQueryFilters } from "~/utils/query";
+import { LIST_COUNT, setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
 
 const logger = getLogger("erp", "quality");
@@ -19,7 +24,6 @@ import {
   listInspectionFeatures,
   mapBalloonIdsToFeatureIdsForDocument
 } from "~/modules/production/inspectionDocumentDb";
-import type { inspectionDocumentValidator } from "~/modules/production/production.models";
 import { rewireSamplingPlansToActiveInspectionDocument } from "./inspectionDocumentVersioning";
 
 export {
@@ -34,6 +38,8 @@ import type {
   gaugeRole,
   gaugeTypeValidator,
   gaugeValidator,
+  inspectionDocumentSamplingValidator,
+  inspectionDocumentValidator,
   inspectionTypes,
   issueTypeValidator,
   issueValidator,
@@ -50,6 +56,7 @@ import type {
   riskSource,
   riskStatus
 } from "./quality.models";
+/** @mcp action */
 export async function activateGauge(
   client: SupabaseClient<Database>,
   gaugeId: string
@@ -60,6 +67,7 @@ export async function activateGauge(
     .eq("id", gaugeId);
 }
 
+/** @mcp action */
 export async function deactivateGauge(
   client: SupabaseClient<Database>,
   gaugeId: string
@@ -70,6 +78,7 @@ export async function deactivateGauge(
     .eq("id", gaugeId);
 }
 
+/** @mcp delete */
 export async function deleteGauge(
   client: SupabaseClient<Database>,
   gaugeId: string
@@ -77,6 +86,7 @@ export async function deleteGauge(
   return client.from("gauges").delete().eq("id", gaugeId);
 }
 
+/** @mcp delete */
 export async function deleteGaugeCalibrationRecord(
   client: SupabaseClient<Database>,
   gaugeCalibrationRecordId: string
@@ -87,6 +97,7 @@ export async function deleteGaugeCalibrationRecord(
     .eq("id", gaugeCalibrationRecordId);
 }
 
+/** @mcp delete */
 export async function deleteGaugeType(
   client: SupabaseClient<Database>,
   gaugeTypeId: string
@@ -94,6 +105,7 @@ export async function deleteGaugeType(
   return client.from("gaugeType").delete().eq("id", gaugeTypeId);
 }
 
+/** @mcp delete */
 export async function deleteIssue(
   client: SupabaseClient<Database>,
   nonConformanceId: string
@@ -101,6 +113,7 @@ export async function deleteIssue(
   return client.from("nonConformance").delete().eq("id", nonConformanceId);
 }
 
+/** @mcp delete */
 export async function deleteIssueAssociation(
   client: SupabaseClient<Database>,
   type: string,
@@ -147,6 +160,44 @@ export async function deleteIssueAssociation(
         .from("nonConformanceReceiptLine")
         .delete()
         .eq("id", associationId);
+    case "salesReturnOrderLines":
+      return await client
+        .from("nonConformanceSalesReturnOrderLine")
+        .delete()
+        .eq("id", associationId);
+    case "purchaseReturnOrderLines": {
+      // This association row carries the per-quantity coverage that reduces
+      // closeIssue's write-off. Deleting it after the linked return line has
+      // shipped would make closeIssue write the same goods off AGAIN (the
+      // return shipment already relieved inventory) — double relief for
+      // untracked stock. Cancel or void the return instead.
+      const association = await client
+        .from("nonConformancePurchaseReturnOrderLine")
+        .select("id, purchaseReturnOrderLine(quantityShipped)")
+        .eq("id", associationId)
+        .maybeSingle();
+      if (association.error) return association;
+      const shipped = Number(
+        (
+          association.data?.purchaseReturnOrderLine as {
+            quantityShipped: number | null;
+          } | null
+        )?.quantityShipped ?? 0
+      );
+      if (shipped > 0) {
+        return {
+          data: null,
+          error: {
+            message:
+              "Cannot remove this supplier-return link: quantity has already shipped against it, and the Issue's write-off depends on that coverage. Void the return shipment first."
+          } as PostgrestError
+        };
+      }
+      return await client
+        .from("nonConformancePurchaseReturnOrderLine")
+        .delete()
+        .eq("id", associationId);
+    }
     case "trackedEntities":
       return await client
         .from("nonConformanceTrackedEntity")
@@ -162,6 +213,7 @@ export async function deleteIssueAssociation(
   }
 }
 
+/** @mcp delete */
 export async function deleteIssueType(
   client: SupabaseClient<Database>,
   nonConformanceTypeId: string
@@ -172,6 +224,7 @@ export async function deleteIssueType(
     .eq("id", nonConformanceTypeId);
 }
 
+/** @mcp delete */
 export async function deleteIssueWorkflow(
   client: SupabaseClient<Database>,
   nonConformanceWorkflowId: string
@@ -182,6 +235,7 @@ export async function deleteIssueWorkflow(
     .eq("id", nonConformanceWorkflowId);
 }
 
+/** @mcp delete */
 export async function deleteRequiredAction(
   client: SupabaseClient<Database>,
   requiredActionId: string
@@ -192,6 +246,7 @@ export async function deleteRequiredAction(
     .eq("id", requiredActionId);
 }
 
+/** @mcp delete */
 export async function deleteQualityDocument(
   client: SupabaseClient<Database>,
   qualityDocumentId: string
@@ -211,6 +266,7 @@ export async function deleteQualityDocumentStep(
     .eq("companyId", companyId);
 }
 
+/** @mcp delete */
 export async function deleteRisk(
   client: SupabaseClient<Database>,
   riskId: string
@@ -218,6 +274,7 @@ export async function deleteRisk(
   return client.from("riskRegister").delete().eq("id", riskId);
 }
 
+/** @mcp read */
 export async function getIssueFromExternalLink(
   client: SupabaseClient<Database>,
   id: string
@@ -229,6 +286,7 @@ export async function getIssueFromExternalLink(
     .single();
 }
 
+/** @mcp read */
 export async function getGauge(
   client: SupabaseClient<Database>,
   gaugeId: string
@@ -236,6 +294,7 @@ export async function getGauge(
   return client.from("gauges").select("*").eq("id", gaugeId).single();
 }
 
+/** @mcp read */
 export async function getGauges(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -243,7 +302,7 @@ export async function getGauges(
 ) {
   let query = client
     .from("gauges")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -261,6 +320,7 @@ export async function getGauges(
   return query;
 }
 
+/** @mcp read */
 export async function getGaugesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -275,6 +335,7 @@ export async function getGaugesList(
   );
 }
 
+/** @mcp read */
 export async function getGaugeCalibrationRecord(
   client: SupabaseClient<Database>,
   id: string
@@ -286,6 +347,7 @@ export async function getGaugeCalibrationRecord(
     .single();
 }
 
+/** @mcp read */
 export async function getGaugeCalibrationRecords(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -293,7 +355,7 @@ export async function getGaugeCalibrationRecords(
 ) {
   let query = client
     .from("gaugeCalibrationRecords")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -312,6 +374,7 @@ export async function getGaugeCalibrationRecords(
   return query;
 }
 
+/** @mcp read */
 export async function getGaugeCalibrationRecordsByGaugeId(
   client: SupabaseClient<Database>,
   gaugeId: string
@@ -323,6 +386,7 @@ export async function getGaugeCalibrationRecordsByGaugeId(
     .order("createdAt", { ascending: false });
 }
 
+/** @mcp read */
 export async function getGaugeTypesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -334,6 +398,7 @@ export async function getGaugeTypesList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getGaugeType(
   client: SupabaseClient<Database>,
   gaugeTypeId: string
@@ -341,6 +406,7 @@ export async function getGaugeType(
   return client.from("gaugeType").select("*").eq("id", gaugeTypeId).single();
 }
 
+/** @mcp read */
 export async function getGaugeTypes(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -348,7 +414,7 @@ export async function getGaugeTypes(
 ) {
   let query = client
     .from("gaugeType")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -364,6 +430,7 @@ export async function getGaugeTypes(
   return query;
 }
 
+/** @mcp read */
 export async function getIssue(
   client: SupabaseClient<Database>,
   nonConformanceId: string
@@ -375,6 +442,7 @@ export async function getIssue(
     .single();
 }
 
+/** @mcp read */
 export async function getIssues(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -382,7 +450,7 @@ export async function getIssues(
 ) {
   let query = client
     .from("issues")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -400,6 +468,7 @@ export async function getIssues(
   return query;
 }
 
+/** @mcp read */
 export async function getIssueWorkflow(
   client: SupabaseClient<Database>,
   nonConformanceWorkflowId: string
@@ -411,6 +480,7 @@ export async function getIssueWorkflow(
     .single();
 }
 
+/** @mcp read */
 export async function getIssueActionTasks(
   client: SupabaseClient<Database>,
   id: string,
@@ -474,6 +544,7 @@ export async function getIssueActionTasks(
   };
 }
 
+/** @mcp read */
 export async function getIssueApprovalTasks(
   client: SupabaseClient<Database>,
   id: string,
@@ -487,6 +558,7 @@ export async function getIssueApprovalTasks(
     .order("approvalType", { ascending: true });
 }
 
+/** @mcp read */
 export async function getIssueItems(
   client: SupabaseClient<Database>,
   id: string,
@@ -500,6 +572,7 @@ export async function getIssueItems(
     .order("createdAt", { ascending: true });
 }
 
+/** @mcp read */
 export async function getIssueAssociations(
   client: SupabaseClient<Database>,
   nonConformanceId: string,
@@ -513,6 +586,8 @@ export async function getIssueAssociations(
     salesOrderLines,
     shipmentLines,
     receiptLines,
+    salesReturnOrderLines,
+    purchaseReturnOrderLines,
     trackedEntities,
     customers,
     suppliers,
@@ -643,6 +718,34 @@ export async function getIssueAssociations(
         receiptLineId,
         receiptId,
         receiptReadableId
+      `
+      )
+      .eq("nonConformanceId", nonConformanceId)
+      .eq("companyId", companyId),
+
+    // Sales Return Order Lines
+    client
+      .from("nonConformanceSalesReturnOrderLine")
+      .select(
+        `
+        id,
+        salesReturnOrderLineId,
+        salesReturnOrderId,
+        salesReturnOrderReadableId
+      `
+      )
+      .eq("nonConformanceId", nonConformanceId)
+      .eq("companyId", companyId),
+
+    // Purchase Return Order Lines
+    client
+      .from("nonConformancePurchaseReturnOrderLine")
+      .select(
+        `
+        id,
+        purchaseReturnOrderLineId,
+        purchaseReturnOrderId,
+        purchaseReturnOrderReadableId
       `
       )
       .eq("nonConformanceId", nonConformanceId)
@@ -786,6 +889,22 @@ export async function getIssueAssociations(
         documentLineId: item.receiptLineId,
         documentReadableId: item.receiptReadableId || ""
       })) || [],
+    salesReturnOrderLines:
+      salesReturnOrderLines.data?.map((item) => ({
+        id: item.id,
+        type: "salesReturnOrderLines",
+        documentId: item.salesReturnOrderId ?? "",
+        documentLineId: item.salesReturnOrderLineId,
+        documentReadableId: item.salesReturnOrderReadableId || ""
+      })) || [],
+    purchaseReturnOrderLines:
+      purchaseReturnOrderLines.data?.map((item) => ({
+        id: item.id,
+        type: "purchaseReturnOrderLines",
+        documentId: item.purchaseReturnOrderId ?? "",
+        documentLineId: item.purchaseReturnOrderLineId,
+        documentReadableId: item.purchaseReturnOrderReadableId || ""
+      })) || [],
     trackedEntities:
       trackedEntities.data?.map((item) => ({
         id: item.id,
@@ -824,6 +943,7 @@ export async function getIssueAssociations(
   };
 }
 
+/** @mcp read */
 export async function getIssueReviewers(
   client: SupabaseClient<Database>,
   id: string,
@@ -837,6 +957,7 @@ export async function getIssueReviewers(
     .order("id", { ascending: true });
 }
 
+/** @mcp read */
 export async function getIssueSuppliers(
   client: SupabaseClient<Database>,
   id: string,
@@ -850,6 +971,7 @@ export async function getIssueSuppliers(
     .order("id", { ascending: true });
 }
 
+/** @mcp read */
 export async function getIssueTasks(
   client: SupabaseClient<Database>,
   id: string,
@@ -871,6 +993,7 @@ export async function getIssueTasks(
   ]);
 }
 
+/** @mcp read */
 export async function getIssueType(
   client: SupabaseClient<Database>,
   nonConformanceTypeId: string
@@ -882,6 +1005,7 @@ export async function getIssueType(
     .single();
 }
 
+/** @mcp read */
 export async function getIssueTypeByName(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -903,6 +1027,7 @@ export async function getIssueTypeByName(
   return query.limit(1).maybeSingle();
 }
 
+/** @mcp read */
 export async function getIssueTypes(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -910,7 +1035,7 @@ export async function getIssueTypes(
 ) {
   let query = client
     .from("nonConformanceType")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -926,6 +1051,7 @@ export async function getIssueTypes(
   return query;
 }
 
+/** @mcp read */
 export async function getIssueWorkflows(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -933,7 +1059,7 @@ export async function getIssueWorkflows(
 ) {
   let query = client
     .from("nonConformanceWorkflow")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId)
     .eq("active", true);
 
@@ -950,6 +1076,7 @@ export async function getIssueWorkflows(
   return query;
 }
 
+/** @mcp read */
 export async function getIssueWorkflowsList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -962,6 +1089,7 @@ export async function getIssueWorkflowsList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getIssueTypesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -973,6 +1101,7 @@ export async function getIssueTypesList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getQualityActions(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -980,7 +1109,7 @@ export async function getQualityActions(
 ) {
   let query = client
     .from("qualityActions")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -998,6 +1127,7 @@ export async function getQualityActions(
   return query;
 }
 
+/** @mcp read */
 export async function getQualityDocument(
   client: SupabaseClient<Database>,
   id: string
@@ -1009,6 +1139,7 @@ export async function getQualityDocument(
     .single();
 }
 
+/** @mcp read */
 export async function getQualityDocumentSteps(
   client: SupabaseClient<Database>,
   qualityDocumentId: string
@@ -1019,6 +1150,7 @@ export async function getQualityDocumentSteps(
     .eq("qualityDocumentId", qualityDocumentId);
 }
 
+/** @mcp read */
 export async function getQualityDocumentVersions(
   client: SupabaseClient<Database>,
   qualityDocument: { name: string; version: number },
@@ -1033,6 +1165,7 @@ export async function getQualityDocumentVersions(
     .order("version", { ascending: false });
 }
 
+/** @mcp read */
 export async function getQualityDocuments(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1041,7 +1174,7 @@ export async function getQualityDocuments(
   let query = client
     .from("qualityDocuments")
     .select("*", {
-      count: "exact"
+      count: LIST_COUNT
     })
     .eq("companyId", companyId);
 
@@ -1058,6 +1191,7 @@ export async function getQualityDocuments(
   return query;
 }
 
+/** @mcp read */
 export async function getQualityDocumentsList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1066,31 +1200,28 @@ export async function getQualityDocumentsList(
     id: string;
     name: string;
     version: number;
-    processId: string;
     status: string;
-  }>(
-    client,
-    "qualityDocument",
-    "id, name, version, processId, status",
-    (query) =>
-      query
-        .eq("companyId", companyId)
-        .order("name", { ascending: true })
-        .order("version", { ascending: false })
+  }>(client, "qualityDocument", "id, name, version, status", (query) =>
+    query
+      .eq("companyId", companyId)
+      .order("name", { ascending: true })
+      .order("version", { ascending: false })
   );
 }
 
+/** @mcp read */
 export async function getQualityFiles(
   client: SupabaseClient<Database>,
   id: string,
   companyId: string
 ) {
-  const result = await client.storage
-    .from("private")
+  const result = await storage(client)
+    .company(companyId)
     .list(`${companyId}/quality/${id}`);
-  return result.data || [];
+  return result.data ?? [];
 }
 
+/** @mcp read */
 export async function getRequiredActionsList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1103,6 +1234,7 @@ export async function getRequiredActionsList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getRequiredActions(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1110,7 +1242,7 @@ export async function getRequiredActions(
 ) {
   let query = client
     .from("nonConformanceRequiredAction")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -1126,6 +1258,7 @@ export async function getRequiredActions(
   return query;
 }
 
+/** @mcp read */
 export async function getRequiredAction(
   client: SupabaseClient<Database>,
   requiredActionId: string
@@ -1137,6 +1270,7 @@ export async function getRequiredAction(
     .single();
 }
 
+/** @mcp read */
 export async function getRisk(
   client: SupabaseClient<Database>,
   riskId: string
@@ -1144,6 +1278,7 @@ export async function getRisk(
   return client.from("riskRegister").select("*").eq("id", riskId).single();
 }
 
+/** @mcp read */
 export async function getRisks(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -1158,7 +1293,7 @@ export async function getRisks(
   let query = client
     .from("riskRegisters")
     .select("*", {
-      count: "exact"
+      count: LIST_COUNT
     })
     .eq("companyId", companyId);
 
@@ -1189,6 +1324,7 @@ export async function getRisks(
   return query;
 }
 
+/** @mcp create */
 export async function insertIssueReviewer(
   client: SupabaseClient<Database>,
   reviewer: z.infer<typeof nonConformanceReviewerValidator> & {
@@ -1200,6 +1336,7 @@ export async function insertIssueReviewer(
   return client.from("nonConformanceReviewer").insert(reviewer);
 }
 
+/** @mcp update destructive */
 export async function updateIssueActionProcesses(
   client: SupabaseClient<Database>,
   args: {
@@ -1235,6 +1372,7 @@ export async function updateIssueActionProcesses(
   }
 }
 
+/** @mcp update */
 export async function updateIssueStatus(
   client: SupabaseClient<Database>,
   update: {
@@ -1248,6 +1386,7 @@ export async function updateIssueStatus(
   return client.from("nonConformance").update(update).eq("id", update.id);
 }
 
+/** @mcp update */
 export async function updateIssueTaskStatus(
   client: SupabaseClient<Database>,
   args: {
@@ -1296,6 +1435,7 @@ export async function updateIssueTaskStatus(
     .single();
 }
 
+/** @mcp update */
 export async function updateIssueTaskContent(
   client: SupabaseClient<Database>,
   args: {
@@ -1345,6 +1485,7 @@ export async function updateRiskStatus(
   return client.from("riskRegister").update({ status }).eq("id", riskId);
 }
 
+/** @mcp create */
 export async function insertGauge(
   client: SupabaseClient<Database>,
   input: {
@@ -1424,6 +1565,7 @@ export async function insertGauge(
   };
 }
 
+/** @mcp update */
 export async function updateGauge(
   client: SupabaseClient<Database>,
   input: {
@@ -1487,6 +1629,7 @@ export async function upsertGauge(
   }
 }
 
+/** @mcp upsert */
 export async function upsertGaugeCalibrationRecord(
   client: SupabaseClient<Database>,
   gaugeCalibrationRecord:
@@ -1571,6 +1714,7 @@ export async function upsertGaugeCalibrationRecord(
     .eq("id", gaugeCalibrationRecord.id);
 }
 
+/** @mcp upsert */
 export async function upsertGaugeType(
   client: SupabaseClient<Database>,
   gaugeType:
@@ -1595,6 +1739,7 @@ export async function upsertGaugeType(
   }
 }
 
+/** @mcp create */
 export async function insertIssue(
   client: SupabaseClient<Database>,
   input: {
@@ -1707,16 +1852,20 @@ export async function insertIssue(
   }
 
   if (jobOperationId) {
+    // Callers pass the service role, so every lookup keyed on a caller id is
+    // scoped: a foreign id matches nothing and no link is written.
     const jobOperation = await client
       .from("jobOperation")
       .select("*")
       .eq("id", jobOperationId)
+      .eq("companyId", input.companyId)
       .single();
     if (jobOperation?.data) {
       const job = await client
         .from("job")
         .select("*")
         .eq("id", jobOperation.data.jobId)
+        .eq("companyId", input.companyId)
         .single();
       if (job.data) {
         const jobOperationInsert = await client
@@ -1761,6 +1910,7 @@ export async function insertIssue(
       .from("salesOrderLine")
       .select("*, salesOrder(salesOrderId)")
       .eq("id", salesOrderLineId)
+      .eq("companyId", input.companyId)
       .single();
     if (salesOrderLine.data) {
       const salesOrderLineInsert = await client
@@ -1788,6 +1938,7 @@ export async function insertIssue(
       .from("supplierProcess")
       .select("*")
       .eq("id", operationSupplierProcessId)
+      .eq("companyId", input.companyId)
       .single();
 
     if (operationSupplierProcess.data) {
@@ -1815,6 +1966,7 @@ export async function insertIssue(
   };
 }
 
+/** @mcp update */
 export async function updateIssue(
   client: SupabaseClient<Database>,
   input: {
@@ -2009,8 +2161,15 @@ export async function upsertIssue(
 
     return result;
   } else {
-    // biome-ignore lint/correctness/noUnusedVariables: suppressed due to migration
-    const { items, ...data } = nonConformance;
+    // The link fields live on their own tables, as in the insert above.
+    const {
+      items: _items,
+      jobOperationId: _jobOperationId,
+      customerId: _customerId,
+      salesOrderLineId: _salesOrderLineId,
+      operationSupplierProcessId: _operationSupplierProcessId,
+      ...data
+    } = nonConformance;
     return client
       .from("nonConformance")
       .update(sanitize(data))
@@ -2018,6 +2177,7 @@ export async function upsertIssue(
   }
 }
 
+/** @mcp upsert */
 export async function upsertIssueWorkflow(
   client: SupabaseClient<Database>,
   nonConformanceWorkflow:
@@ -2044,6 +2204,7 @@ export async function upsertIssueWorkflow(
   }
 }
 
+/** @mcp upsert */
 export async function upsertIssueType(
   client: SupabaseClient<Database>,
   nonConformanceType:
@@ -2071,6 +2232,7 @@ export async function upsertIssueType(
   }
 }
 
+/** @mcp upsert */
 export async function upsertRequiredAction(
   client: SupabaseClient<Database>,
   requiredAction:
@@ -2098,6 +2260,7 @@ export async function upsertRequiredAction(
   }
 }
 
+/** @mcp upsert */
 export async function upsertQualityDocument(
   client: SupabaseClient<Database>,
   qualityDocument:
@@ -2202,6 +2365,7 @@ export async function upsertQualityDocumentStep(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertRisk(
   client: SupabaseClient<Database>,
   risk:
@@ -2293,6 +2457,7 @@ function mapInspectionDocument(row: Record<string, unknown>) {
     updatedBy: (row.updatedBy as string | null) ?? null,
     createdAt: String(row.createdAt),
     updatedAt: (row.updatedAt as string | null) ?? null,
+    sampling: (row.sampling as Record<string, unknown> | null) ?? null,
     content: {
       drawingNumber,
       pdfUrl: toPreviewUrl((row.storagePath as string | null) ?? null),
@@ -2593,7 +2758,7 @@ export async function upsertInspectionDocument(
       updatePayload.defaultPageHeight = defaultPageHeight;
     }
 
-    return documentClient
+    return (documentClient as any)
       .from("inspectionDocument")
       .update(updatePayload)
       .eq("id", id)
@@ -2763,7 +2928,7 @@ export async function upsertInspectionDocument(
       updateFields.defaultPageHeight = sourceDocument.defaultPageHeight;
     }
 
-    await documentClient
+    await (documentClient as any)
       .from("inspectionDocument")
       .update(updateFields)
       .eq("id", newId)
@@ -2855,7 +3020,7 @@ export async function upsertInspectionDocument(
       };
     }
 
-    const partFileUpdate = await documentClient
+    const partFileUpdate = await (documentClient as any)
       .from("inspectionDocument")
       .update({
         storagePath: copiedStoragePath,
@@ -3457,6 +3622,7 @@ function remapInspectionSorts(sorts?: Sort[]): Sort[] | undefined {
   }));
 }
 
+/** @mcp read */
 export async function getInspections(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -3469,9 +3635,10 @@ export async function getInspections(
 ) {
   // No receipt embed: the generic sourceDocumentId carries no FK, so the
   // source document is denormalized onto the row (sourceDocumentReadableId).
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- PostgREST select depth (TS2589)
   let query = (client as any)
     .from("inspection")
-    .select(INSPECTION_SELECT_LIST, { count: "exact" })
+    .select(INSPECTION_SELECT_LIST, { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.type) {
@@ -3485,12 +3652,10 @@ export async function getInspections(
   }
 
   if (args?.status) {
-    // @ts-ignore - status is a valid enum value
     query = query.eq("status", args.status);
   }
 
   if (args?.source) {
-    // @ts-ignore - source is a valid enum value
     query = query.eq("sourceDocument", args.source);
   }
 
@@ -3503,6 +3668,7 @@ export async function getInspections(
   return query;
 }
 
+/** @mcp read */
 export async function getInspection(
   client: SupabaseClient<Database>,
   id: string,
@@ -3697,12 +3863,13 @@ export async function getInProcessInspectionDependencies(
 // All inspection lots created for a receipt (one per inspected receipt line),
 // keyed by the source-generic columns. Powers the receipt header's link/dropdown
 // to its inspections.
+/** @mcp read */
 export async function getReceiptInspections(
   client: SupabaseClient<Database>,
   receiptId: string,
   companyId: string
 ) {
-  return (client as any)
+  return client
     .from("inspection")
     .select("id, inspectionId, itemId, itemReadableId, status")
     .eq("sourceDocument", "Receipt")
@@ -3713,6 +3880,7 @@ export async function getReceiptInspections(
 
 // Receipt-sourced lots only: the received tracked entities are linked to the
 // receipt line through their attributes.
+/** @mcp read */
 export async function getInspectionTrackedEntities(
   client: SupabaseClient<Database>,
   inspectionId: string,
@@ -3751,6 +3919,7 @@ export async function getInspectionTrackedEntities(
     .eq("companyId", companyId);
 }
 
+/** @mcp read */
 export async function getInspectionSamplingPlans(
   client: SupabaseClient<Database>,
   inspectionId: string,
@@ -3761,12 +3930,49 @@ export async function getInspectionSamplingPlans(
   return client
     .from("inspectionSamplingPlan")
     .select(
-      "*, inspectionFeature(id, label, description, pageNumber, type, nominalValue, tolerancePlus, toleranceMinus, unit)"
+      "*, inspectionFeature(id, label, description, pageNumber, type, nominalValue, tolerancePlus, toleranceMinus, unit, gaugeTypeId, gaugeType(name))"
     )
     .eq("inspectionId", inspectionId)
     .eq("companyId", companyId);
 }
 
+// The gauges an inspection lot's view needs: every Active gauge (the
+// selectable options — Inactive gauges are retired and never offered, the
+// engine refuses them too) plus any gauge already recorded on this lot, even
+// if it has since been retired, so the record keeps showing its readable id.
+/** @mcp read */
+export async function getInspectionGauges(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  inspectionId: string
+) {
+  const recorded = await client
+    .from("inspectionSamplingPlan")
+    .select("gaugeId")
+    .eq("inspectionId", inspectionId)
+    .eq("companyId", companyId)
+    .not("gaugeId", "is", null);
+  const recordedIds = [
+    ...new Set((recorded.data ?? []).map((row) => row.gaugeId as string))
+  ];
+
+  const query = client
+    .from("gauges")
+    .select(
+      "id, gaugeId, description, gaugeTypeId, gaugeStatus, gaugeCalibrationStatusWithDueDate, nextCalibrationDate"
+    )
+    .eq("companyId", companyId);
+
+  return (
+    recordedIds.length > 0
+      ? query.or(
+          `gaugeStatus.eq.Active,id.in.(${recordedIds.map((id) => `"${id}"`).join(",")})`
+        )
+      : query.eq("gaugeStatus", "Active")
+  ).order("gaugeId");
+}
+
+/** @mcp read */
 export async function getInspectionMeasurements(
   client: SupabaseClient<Database>,
   inspectionId: string,
@@ -3779,6 +3985,7 @@ export async function getInspectionMeasurements(
     .eq("companyId", companyId);
 }
 
+/** @mcp read */
 export async function getItemInspectionDocumentAssignments(
   client: SupabaseClient<Database>,
   itemId: string,
@@ -3791,6 +3998,7 @@ export async function getItemInspectionDocumentAssignments(
     .eq("companyId", companyId);
 }
 
+/** @mcp upsert destructive */
 export async function upsertItemInspectionDocumentAssignment(
   client: SupabaseClient<Database>,
   assignment: z.infer<typeof itemInspectionDocumentAssignmentValidator> & {
@@ -3835,4 +4043,39 @@ export async function upsertItemInspectionDocumentAssignment(
     companyId: assignment.companyId,
     createdBy: assignment.userId
   });
+}
+
+/** @mcp read */
+export async function getInspectionDocumentsForItem(
+  client: SupabaseClient<Database>,
+  itemId: string,
+  companyId: string
+) {
+  return client
+    .from("inspectionDocument")
+    .select("id, fileName, drawingNumber, version")
+    .eq("companyId", companyId)
+    .eq("partId", itemId)
+    .order("updatedAt", { ascending: false, nullsFirst: false });
+}
+
+/** @mcp update */
+export async function updateInspectionDocumentSampling(
+  client: SupabaseClient<Database>,
+  args: z.infer<typeof inspectionDocumentSamplingValidator> & {
+    inspectionDocumentId: string;
+    companyId: string;
+    userId: string;
+  }
+) {
+  const { inspectionDocumentId, companyId, userId, ...sampling } = args;
+  return client
+    .from("inspectionDocument")
+    .update({
+      ...sampling,
+      updatedBy: userId,
+      updatedAt: new Date().toISOString()
+    })
+    .eq("id", inspectionDocumentId)
+    .eq("companyId", companyId);
 }

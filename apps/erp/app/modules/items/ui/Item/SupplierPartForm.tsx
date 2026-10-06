@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -12,13 +16,7 @@ import {
   DrawerFooter,
   DrawerHeader,
   DrawerTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuIcon,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
   HStack,
-  IconButton,
   Table,
   Tbody,
   Td,
@@ -40,7 +38,7 @@ import { INPUT_FORMAT } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { LuEllipsisVertical, LuTrash } from "react-icons/lu";
+import { LuTrash } from "react-icons/lu";
 import { Link, useFetcher, useParams } from "react-router";
 import type { z } from "zod";
 import { DateTime } from "~/components";
@@ -387,7 +385,8 @@ function PriceBreaks({
         error: null,
         count: null,
         status: 200,
-        statusText: "OK"
+        statusText: "OK",
+        success: true
       }) as const,
     []
   );
@@ -402,40 +401,13 @@ function PriceBreaks({
     [noOpMutation, baseCurrency, currencyDecimals]
   );
 
-  const columns = useMemo<ColumnDef<PriceBreakRow>[]>(
-    () => [
+  const columns = useMemo<ColumnDef<PriceBreakRow>[]>(() => {
+    const cols: ColumnDef<PriceBreakRow>[] = [
       {
         accessorKey: "quantity",
         header: t`Quantity`,
         cell: ({ row }) => (
-          <HStack className="justify-between min-w-[80px]">
-            <span>{row.original.quantity}</span>
-            {!isDisabled && (
-              <div className="relative w-6 h-5">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <IconButton
-                      aria-label={t`Price break actions`}
-                      icon={<LuEllipsisVertical />}
-                      size="md"
-                      className="absolute right-[-1px] top-[-6px]"
-                      variant="ghost"
-                      onClick={(e) => e.stopPropagation()}
-                    />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() => removeRow(row.index)}
-                      destructive
-                    >
-                      <DropdownMenuIcon icon={<LuTrash />} />
-                      Delete Price Break
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )}
-          </HStack>
+          <span className="block min-w-[80px]">{row.original.quantity}</span>
         )
       },
       {
@@ -443,9 +415,34 @@ function PriceBreaks({
         header: t`Unit Price`,
         cell: ({ row }) => formatter.format(row.original.unitPrice)
       }
-    ],
-    [isDisabled, removeRow, formatter, t]
-  );
+    ];
+
+    // A price break is local, unsaved state until the drawer is submitted, so
+    // removing a row costs nothing and needs no confirmation — it gets its own
+    // column and deletes in one click rather than hiding behind a kebab menu.
+    if (!isDisabled) {
+      cols.push({
+        id: "delete",
+        header: "",
+        size: 40,
+        cell: ({ row }) => (
+          <button
+            type="button"
+            aria-label={t`Delete Price Break`}
+            className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded"
+            onClick={(e) => {
+              e.stopPropagation();
+              removeRow(row.index);
+            }}
+          >
+            <LuTrash className="w-4 h-4" />
+          </button>
+        )
+      });
+    }
+
+    return cols;
+  }, [isDisabled, removeRow, formatter, t]);
 
   return (
     <div className="space-y-3 w-full">

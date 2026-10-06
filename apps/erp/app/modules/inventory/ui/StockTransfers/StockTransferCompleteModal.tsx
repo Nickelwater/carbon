@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
+import { useAction } from "@carbon/query";
 import {
   Alert,
   AlertDescription,
@@ -19,9 +24,9 @@ import {
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
-import { useFetcher, useNavigation, useParams } from "react-router";
+import { useNavigation, useParams } from "react-router";
 import { useUser } from "~/hooks";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
@@ -106,15 +111,14 @@ const StockTransferPostModal = ({ onClose }: { onClose: () => void }) => {
     validateStockTransferTracking();
   });
 
-  const fetcher = useFetcher<{}>();
-  const submitted = useRef(false);
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
-  useEffect(() => {
-    if (fetcher.state === "idle" && submitted.current) {
-      onClose();
+  const fetcher = useAction<{}>({
+    onSettled: () => {
+      if (submitted.current) {
+        onClose();
+      }
     }
-  }, [fetcher.state]);
-
+  });
+  const submitted = useRef(false);
   return (
     <Modal
       open={true}

@@ -1,15 +1,22 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
+import { redirect } from "@carbon/utils";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useLoaderData, useParams } from "react-router";
+import { useLoaderData, useParams } from "react-router";
 import {
   employeeJobValidator,
   getEmployeeJob,
   updateEmployeeJob
 } from "~/modules/people";
 import { PersonJob } from "~/modules/people/ui/Person";
+import { notifyScheduleInputsChanged } from "~/modules/production";
+import { getDatabaseClient } from "~/services/database.server";
 import { getCustomFields, setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
 
@@ -36,7 +43,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, companyId, userId } = await requirePermissions(request, {
+  const { companyId, userId } = await requirePermissions(request, {
     update: "people"
   });
   const { personId } = params;
@@ -49,7 +56,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const updateJob = await updateEmployeeJob(client, personId, {
+  const updateJob = await updateEmployeeJob(getDatabaseClient(), personId, {
     ...validation.data,
     companyId,
     updatedBy: userId,
@@ -61,6 +68,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
       await flash(request, error(updateJob.error, "Failed to update job"))
     );
   }
+
+  await notifyScheduleInputsChanged(
+    companyId,
+    "employee-shift",
+    "Shift assignment changed"
+  );
 
   throw redirect(
     path.to.personJob(personId),
@@ -77,6 +90,7 @@ export default function PersonJobRoute() {
     startDate: job.startDate ?? "",
     locationId: job.locationId ?? "",
     shiftId: job.shiftId ?? "",
+    departmentId: job.departmentId ?? "",
     managerId: job.managerId ?? "",
     ...getCustomFields(job.customFields)
   };

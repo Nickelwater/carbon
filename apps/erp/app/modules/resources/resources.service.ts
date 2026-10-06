@@ -1,8 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database, Json } from "@carbon/database";
+import {
+  type BatchRules,
+  compactBatchRules,
+  resolveBatchRules
+} from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { z } from "zod";
 import type { GenericQueryFilters } from "~/utils/query";
-import { setGenericQueryFilters } from "~/utils/query";
+import { LIST_COUNT, setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
 import type {
   failureModeValidator,
@@ -24,6 +33,7 @@ import type {
   workCenterValidator
 } from "./resources.models";
 
+/** @mcp action */
 export async function activateWorkCenter(
   client: SupabaseClient<Database>,
   id: string
@@ -31,6 +41,7 @@ export async function activateWorkCenter(
   return client.from("workCenter").update({ active: true }).eq("id", id);
 }
 
+/** @mcp delete */
 export async function deleteAbility(
   client: SupabaseClient<Database>,
   abilityId: string,
@@ -41,6 +52,7 @@ export async function deleteAbility(
     : client.from("ability").update({ active: false }).eq("id", abilityId);
 }
 
+/** @mcp delete */
 export async function deleteContractor(
   client: SupabaseClient<Database>,
   contractorId: string
@@ -48,16 +60,15 @@ export async function deleteContractor(
   return client.from("contractor").delete().eq("id", contractorId);
 }
 
+/** @mcp delete */
 export async function deleteEmployeeAbility(
   client: SupabaseClient<Database>,
   employeeAbilityId: string
 ) {
-  return client
-    .from("employeeAbility")
-    .update({ active: false })
-    .eq("id", employeeAbilityId);
+  return client.from("employeeAbility").delete().eq("id", employeeAbilityId);
 }
 
+/** @mcp delete */
 export async function deleteFailureMode(
   client: SupabaseClient<Database>,
   failureModeId: string
@@ -65,6 +76,7 @@ export async function deleteFailureMode(
   return client.from("maintenanceFailureMode").delete().eq("id", failureModeId);
 }
 
+/** @mcp delete */
 export async function deleteLocation(
   client: SupabaseClient<Database>,
   locationId: string
@@ -72,6 +84,7 @@ export async function deleteLocation(
   return client.from("location").delete().eq("id", locationId);
 }
 
+/** @mcp delete */
 export async function deleteMaintenanceDispatch(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -86,6 +99,7 @@ export async function deleteMaintenanceDispatchComment(
   return client.from("maintenanceDispatchComment").delete().eq("id", commentId);
 }
 
+/** @mcp delete */
 export async function deleteMaintenanceDispatchEvent(
   client: SupabaseClient<Database>,
   eventId: string
@@ -93,6 +107,7 @@ export async function deleteMaintenanceDispatchEvent(
   return client.from("maintenanceDispatchEvent").delete().eq("id", eventId);
 }
 
+/** @mcp delete */
 export async function deleteMaintenanceDispatchItem(
   client: SupabaseClient<Database>,
   itemId: string
@@ -110,6 +125,7 @@ export async function deleteMaintenanceDispatchWorkCenter(
     .eq("id", workCenterId);
 }
 
+/** @mcp delete */
 export async function deleteMaintenanceSchedule(
   client: SupabaseClient<Database>,
   scheduleId: string
@@ -124,6 +140,7 @@ export async function deleteMaintenanceScheduleItem(
   return client.from("maintenanceScheduleItem").delete().eq("id", itemId);
 }
 
+/** @mcp delete */
 export async function deletePartner(
   client: SupabaseClient<Database>,
   partnerId: string
@@ -131,6 +148,7 @@ export async function deletePartner(
   return client.from("partner").delete().eq("id", partnerId);
 }
 
+/** @mcp action */
 export async function activateProcess(
   client: SupabaseClient<Database>,
   processId: string
@@ -138,6 +156,7 @@ export async function activateProcess(
   return client.from("process").update({ active: true }).eq("id", processId);
 }
 
+/** @mcp action */
 export async function processDeactivate(
   client: SupabaseClient<Database>,
   processId: string
@@ -145,6 +164,7 @@ export async function processDeactivate(
   return client.from("process").update({ active: false }).eq("id", processId);
 }
 
+/** @mcp delete */
 export async function deleteProcess(
   client: SupabaseClient<Database>,
   processId: string
@@ -152,6 +172,7 @@ export async function deleteProcess(
   return client.from("process").delete().eq("id", processId);
 }
 
+/** @mcp delete */
 export async function deleteShift(
   client: SupabaseClient<Database>,
   shiftId: string
@@ -160,6 +181,7 @@ export async function deleteShift(
   return client.from("shift").update({ active: false }).eq("id", shiftId);
 }
 
+/** @mcp delete */
 export async function deleteSuggestion(
   client: SupabaseClient<Database>,
   suggestionId: string
@@ -167,6 +189,7 @@ export async function deleteSuggestion(
   return client.from("suggestion").delete().eq("id", suggestionId);
 }
 
+/** @mcp delete */
 export async function deleteTraining(
   client: SupabaseClient<Database>,
   trainingId: string
@@ -174,6 +197,7 @@ export async function deleteTraining(
   return client.from("training").delete().eq("id", trainingId);
 }
 
+/** @mcp delete */
 export async function deleteTrainingAssignment(
   client: SupabaseClient<Database>,
   assignmentId: string
@@ -181,6 +205,7 @@ export async function deleteTrainingAssignment(
   return client.from("trainingAssignment").delete().eq("id", assignmentId);
 }
 
+/** @mcp delete */
 export async function deleteTrainingQuestion(
   client: SupabaseClient<Database>,
   trainingQuestionId: string,
@@ -193,6 +218,7 @@ export async function deleteTrainingQuestion(
     .eq("companyId", companyId);
 }
 
+/** @mcp delete */
 export async function deleteWorkCenter(
   client: SupabaseClient<Database>,
   id: string
@@ -200,59 +226,128 @@ export async function deleteWorkCenter(
   return client.from("workCenter").update({ active: false }).eq("id", id);
 }
 
+/** @mcp read */
 export async function getAbilities(
   client: SupabaseClient<Database>,
   companyId: string,
   args: GenericQueryFilters & { search: string | null }
 ) {
+  // The "employees" filter narrows abilities to those a selected employee is
+  // assigned to. It targets employeeAbility (a related table), not a column on
+  // ability, so resolve it to a set of abilityIds first and drop it from the
+  // generic column filters.
+  const employeeFilter = args.filters?.find((f) => f.column === "employees");
+  const filters = args.filters?.filter((f) => f.column !== "employees");
+
+  // Name/search/sort resolve against the `abilities` view (name comes from the
+  // linked process). employeeAbility is stitched in one .in() query afterward
+  // rather than embedded, so the read never depends on a view→table embed.
   let query = client
-    .from("ability")
-    .select(`*, employeeAbility(employeeId)`, {
-      count: "exact"
-    })
+    .from("abilities")
+    .select(`*`, { count: LIST_COUNT })
     .eq("companyId", companyId)
-    .eq("active", true)
-    .eq("employeeAbility.active", true);
+    .eq("active", true);
+
+  if (employeeFilter?.value) {
+    const employeeIds = employeeFilter.value.split(",");
+    const assigned = await client
+      .from("employeeAbility")
+      .select("abilityId")
+      .eq("companyId", companyId)
+      .in("employeeId", employeeIds);
+    const abilityIds = [
+      ...new Set((assigned.data ?? []).map((row) => row.abilityId))
+    ];
+    // No matching abilities → force an empty result rather than no filter
+    query = query.in("id", abilityIds.length > 0 ? abilityIds : [""]);
+  }
 
   if (args?.search) {
     query = query.ilike("name", `%${args.search}%`);
   }
 
-  query = setGenericQueryFilters(query, args, [
+  query = setGenericQueryFilters(query, { ...args, filters }, [
     { column: "name", ascending: true }
   ]);
-  return query;
+
+  const result = await query;
+  if (result.error || !result.data) return result;
+
+  const abilityIds = result.data.map((a) => a.id).filter(Boolean) as string[];
+  const employeeAbilities = await client
+    .from("employeeAbility")
+    .select("abilityId, employeeId, expiresAt")
+    .eq("companyId", companyId)
+    .in("abilityId", abilityIds.length > 0 ? abilityIds : [""]);
+
+  const byAbility = new Map<
+    string,
+    { employeeId: string; expiresAt: string | null }[]
+  >();
+  for (const ea of employeeAbilities.data ?? []) {
+    if (!ea.abilityId) continue;
+    const list = byAbility.get(ea.abilityId) ?? [];
+    list.push({ employeeId: ea.employeeId, expiresAt: ea.expiresAt });
+    byAbility.set(ea.abilityId, list);
+  }
+
+  return {
+    ...result,
+    data: result.data.map((a) => ({
+      ...a,
+      employeeAbility: a.id ? (byAbility.get(a.id) ?? []) : []
+    }))
+  };
 }
 
+/** @mcp read */
 export async function getAbilitiesList(
   client: SupabaseClient<Database>,
   companyId: string
 ) {
   return client
-    .from("ability")
+    .from("abilities")
     .select(`id, name`)
     .eq("companyId", companyId)
+    .eq("active", true)
     .order("name");
 }
 
+/** @mcp read */
 export async function getAbility(
   client: SupabaseClient<Database>,
   abilityId: string
 ) {
-  return client
-    .from("ability")
-    .select(
-      `*, employeeAbility(id, employeeId, lastTrainingDate, trainingDays, trainingCompleted)`,
-      {
-        count: "exact"
-      }
-    )
+  // Name resolves through the `abilities` view (from the linked process);
+  // employeeAbility is stitched afterward so this never relies on a view embed.
+  const ability = await client
+    .from("abilities")
+    .select(`*`)
     .eq("id", abilityId)
     .eq("active", true)
-    .eq("employeeAbility.active", true)
     .single();
+
+  if (ability.error || !ability.data) return ability;
+
+  const employeeAbility = await client
+    .from("employeeAbility")
+    .select("id, employeeId, lastTrainingDate, expiresAt")
+    .eq("abilityId", abilityId);
+
+  return {
+    ...ability,
+    // The view types id/name as nullable, but the INNER JOIN to a NOT-NULL
+    // process guarantees both — coerce so consumers keep non-null id/name.
+    data: {
+      ...ability.data,
+      id: ability.data.id ?? "",
+      name: ability.data.name ?? "",
+      employeeAbility: employeeAbility.data ?? []
+    }
+  };
 }
 
+/** @mcp read */
 export async function getContractor(
   client: SupabaseClient<Database>,
   contractorId: string
@@ -264,6 +359,7 @@ export async function getContractor(
     .single();
 }
 
+/** @mcp read */
 export async function getContractors(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -290,17 +386,32 @@ export async function getContractors(
   return query;
 }
 
+/** @mcp read */
 export async function getEmployeeAbilities(
   client: SupabaseClient<Database>,
-  employeeId: string
+  employeeId: string,
+  companyId: string
 ) {
   return client
     .from("employeeAbility")
-    .select(`*, ability(id, name, curve, shadowWeeks)`)
+    .select(`*, ability(id, curve, shadowWeeks, process(name))`)
     .eq("employeeId", employeeId)
-    .eq("active", true);
+    .eq("companyId", companyId);
 }
 
+/** @mcp read */
+export async function getEmployeeAbility(
+  client: SupabaseClient<Database>,
+  employeeAbilityId: string
+) {
+  return client
+    .from("employeeAbility")
+    .select("*")
+    .eq("id", employeeAbilityId)
+    .single();
+}
+
+/** @mcp read */
 export async function getFailureMode(
   client: SupabaseClient<Database>,
   failureModeId: string
@@ -312,6 +423,7 @@ export async function getFailureMode(
     .single();
 }
 
+/** @mcp read */
 export async function getFailureModes(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -319,7 +431,7 @@ export async function getFailureModes(
 ) {
   let query = client
     .from("maintenanceFailureMode")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -335,6 +447,7 @@ export async function getFailureModes(
   return query;
 }
 
+/** @mcp read */
 export async function getFailureModesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -346,6 +459,7 @@ export async function getFailureModesList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getLocation(
   client: SupabaseClient<Database>,
   locationId: string
@@ -353,6 +467,7 @@ export async function getLocation(
   return client.from("location").select("*").eq("id", locationId).single();
 }
 
+/** @mcp read */
 export async function getLocations(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -360,7 +475,7 @@ export async function getLocations(
 ) {
   let query = client
     .from("location")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -376,6 +491,7 @@ export async function getLocations(
   return query;
 }
 
+/** @mcp read */
 export async function getLocationsList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -387,6 +503,7 @@ export async function getLocationsList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatch(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -405,6 +522,7 @@ export async function getMaintenanceDispatch(
     .single();
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchComments(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -419,6 +537,7 @@ export async function getMaintenanceDispatchComments(
     .order("createdAt", { ascending: false });
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchEvents(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -434,6 +553,7 @@ export async function getMaintenanceDispatchEvents(
     .order("startTime", { ascending: false });
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchItems(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -447,6 +567,7 @@ export async function getMaintenanceDispatchItems(
     .eq("maintenanceDispatchId", dispatchId);
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchItemTrackedEntities(
   client: SupabaseClient<Database>,
   maintenanceDispatchItemId: string
@@ -462,6 +583,7 @@ export async function getMaintenanceDispatchItemTrackedEntities(
     .eq("maintenanceDispatchItemId", maintenanceDispatchItemId);
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatches(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -469,7 +591,7 @@ export async function getMaintenanceDispatches(
 ) {
   let query = client
     .from("maintenanceDispatch")
-    .select(`*`, { count: "exact" })
+    .select(`*`, { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -485,6 +607,7 @@ export async function getMaintenanceDispatches(
   return query;
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchesByLocation(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -497,7 +620,7 @@ export async function getMaintenanceDispatchesByLocation(
       p_company_id: companyId,
       p_location_id: locationId
     },
-    { count: "exact" }
+    { count: LIST_COUNT }
   );
 
   if (args?.search) {
@@ -513,6 +636,7 @@ export async function getMaintenanceDispatchesByLocation(
   return query;
 }
 
+/** @mcp read */
 export async function getMaintenanceDispatchWorkCenters(
   client: SupabaseClient<Database>,
   dispatchId: string
@@ -526,6 +650,7 @@ export async function getMaintenanceDispatchWorkCenters(
     .eq("maintenanceDispatchId", dispatchId);
 }
 
+/** @mcp read */
 export async function getMaintenanceSchedule(
   client: SupabaseClient<Database>,
   scheduleId: string
@@ -540,6 +665,7 @@ export async function getMaintenanceSchedule(
     .single();
 }
 
+/** @mcp read */
 export async function getMaintenanceScheduleItems(
   client: SupabaseClient<Database>,
   scheduleId: string
@@ -553,6 +679,7 @@ export async function getMaintenanceScheduleItems(
     .eq("maintenanceScheduleId", scheduleId);
 }
 
+/** @mcp read */
 export async function getMaintenanceSchedules(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -560,7 +687,7 @@ export async function getMaintenanceSchedules(
 ) {
   let query = client
     .from("maintenanceSchedules")
-    .select(`*`, { count: "exact" })
+    .select(`*`, { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -580,6 +707,7 @@ export async function getMaintenanceSchedules(
   return query;
 }
 
+/** @mcp read */
 export async function getMaintenanceSchedulesByLocation(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -592,7 +720,7 @@ export async function getMaintenanceSchedulesByLocation(
       p_company_id: companyId,
       p_location_id: locationId
     },
-    { count: "exact" }
+    { count: LIST_COUNT }
   );
 
   if (args?.search) {
@@ -612,6 +740,7 @@ export async function getMaintenanceSchedulesByLocation(
   return query;
 }
 
+/** @mcp read */
 export async function getOutstandingTrainingsForUser(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -640,6 +769,39 @@ export async function getOutstandingTrainingsForUser(
   return { data: filteredData, error: null };
 }
 
+/** @mcp read */
+export async function getTrainingAssignmentStatusForEmployee(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  employeeId: string
+) {
+  const { data, error } = await client.rpc("get_training_assignment_status", {
+    p_company_id: companyId,
+    p_employee_id: employeeId
+  });
+
+  if (error) return { data: null, error };
+
+  // Surface the trainings that need attention first: Overdue, then Pending,
+  // then Not Required, then Completed.
+  const statusOrder: Record<string, number> = {
+    Overdue: 0,
+    Pending: 1,
+    "Not Required": 2,
+    Completed: 3
+  };
+
+  const sorted = (data ?? []).sort((a, b) => {
+    const aOrder = statusOrder[a.status] ?? 4;
+    const bOrder = statusOrder[b.status] ?? 4;
+    if (aOrder !== bOrder) return aOrder - bOrder;
+    return (a.trainingName ?? "").localeCompare(b.trainingName ?? "");
+  });
+
+  return { data: sorted, error: null };
+}
+
+/** @mcp read */
 export async function getPartner(
   client: SupabaseClient<Database>,
   partnerId: string,
@@ -653,6 +815,7 @@ export async function getPartner(
     .single();
 }
 
+/** @mcp read */
 export async function getPartnerBySupplierId(
   client: SupabaseClient<Database>,
   partnerId: string
@@ -664,6 +827,7 @@ export async function getPartnerBySupplierId(
     .single();
 }
 
+/** @mcp read */
 export async function getPartners(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -688,6 +852,7 @@ export async function getPartners(
   return query;
 }
 
+/** @mcp read */
 export async function getProcess(
   client: SupabaseClient<Database>,
   processId: string
@@ -695,6 +860,7 @@ export async function getProcess(
   return client.from("processes").select("*").eq("id", processId).single();
 }
 
+/** @mcp read */
 export async function getProcesses(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -702,7 +868,7 @@ export async function getProcesses(
 ) {
   let query = client
     .from("processes")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -718,6 +884,7 @@ export async function getProcesses(
   return query;
 }
 
+/** @mcp read */
 export async function getProcessesList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -730,6 +897,7 @@ export async function getProcessesList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getSuggestion(
   client: SupabaseClient<Database>,
   suggestionId: string
@@ -737,6 +905,7 @@ export async function getSuggestion(
   return client.from("suggestions").select("*").eq("id", suggestionId).single();
 }
 
+/** @mcp read */
 export async function getSuggestions(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -744,7 +913,7 @@ export async function getSuggestions(
 ) {
   let query = client
     .from("suggestions")
-    .select("*", { count: "exact" })
+    .select("*", { count: LIST_COUNT })
     .eq("companyId", companyId);
 
   if (args?.search) {
@@ -760,6 +929,7 @@ export async function getSuggestions(
   return query;
 }
 
+/** @mcp read */
 export async function getTraining(
   client: SupabaseClient<Database>,
   id: string
@@ -771,6 +941,7 @@ export async function getTraining(
     .single();
 }
 
+/** @mcp read */
 export async function getTrainingAssignment(
   client: SupabaseClient<Database>,
   assignmentId: string
@@ -782,6 +953,7 @@ export async function getTrainingAssignment(
     .single();
 }
 
+/** @mcp read */
 export async function getTrainingAssignmentForCompletion(
   client: SupabaseClient<Database>,
   assignmentId: string
@@ -806,6 +978,7 @@ export async function getTrainingAssignmentForCompletion(
     .single();
 }
 
+/** @mcp read */
 export async function getTrainingAssignments(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -823,6 +996,7 @@ export async function getTrainingAssignments(
   return query;
 }
 
+/** @mcp read */
 export async function getTrainingAssignmentStatus(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -877,6 +1051,7 @@ export async function getTrainingAssignmentStatus(
   return { data: filteredData, error: null, count };
 }
 
+/** @mcp read */
 export async function getTrainingAssignmentSummary(
   client: SupabaseClient<Database>,
   companyId: string
@@ -886,6 +1061,7 @@ export async function getTrainingAssignmentSummary(
   });
 }
 
+/** @mcp read */
 export async function getTrainingQuestions(
   client: SupabaseClient<Database>,
   trainingId: string
@@ -897,6 +1073,7 @@ export async function getTrainingQuestions(
     .order("sortOrder", { ascending: true });
 }
 
+/** @mcp read */
 export async function getTrainings(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -905,7 +1082,7 @@ export async function getTrainings(
   let query = client
     .from("trainings")
     .select("*", {
-      count: "exact"
+      count: LIST_COUNT
     })
     .eq("companyId", companyId);
 
@@ -922,6 +1099,7 @@ export async function getTrainings(
   return query;
 }
 
+/** @mcp read */
 export async function getTrainingsList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -934,18 +1112,41 @@ export async function getTrainingsList(
     .order("name", { ascending: true });
 }
 
+/** @mcp read */
 export async function getWorkCenter(
   client: SupabaseClient<Database>,
   id: string
 ) {
-  return client
+  const workCenter = await client
     .from("workCenters")
     .select("*")
     .eq("active", true)
     .eq("id", id)
     .single();
+
+  if (workCenter.error) {
+    return workCenter;
+  }
+
+  // The "workCenters" view now exposes "alwaysOn" (recreated in the
+  // capacity-planning migration), but read it explicitly here alongside the
+  // "workCenterShift" operating-shift assignments the view does not carry.
+  const [alwaysOn, shifts] = await Promise.all([
+    client.from("workCenter").select("alwaysOn").eq("id", id).single(),
+    client.from("workCenterShift").select("shiftId").eq("workCenterId", id)
+  ]);
+
+  return {
+    ...workCenter,
+    data: {
+      ...workCenter.data,
+      alwaysOn: alwaysOn.data?.alwaysOn ?? false,
+      shifts: shifts.data?.map((shift) => shift.shiftId) ?? []
+    }
+  };
 }
 
+/** @mcp read */
 export async function getWorkCenters(
   client: SupabaseClient<Database>,
   companyId: string,
@@ -954,7 +1155,7 @@ export async function getWorkCenters(
   let query = client
     .from("workCenters")
     .select("*", {
-      count: "exact"
+      count: LIST_COUNT
     })
     .eq("companyId", companyId);
 
@@ -971,6 +1172,7 @@ export async function getWorkCenters(
   return query;
 }
 
+/** @mcp read */
 export async function getWorkCentersByLocation(
   client: SupabaseClient<Database>,
   locationId: string
@@ -1013,6 +1215,7 @@ export async function getWorkCentersByLocation(
   return { data: mergedData, error: null };
 }
 
+/** @mcp read */
 export async function getWorkCentersList(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1025,6 +1228,7 @@ export async function getWorkCentersList(
     .order("name");
 }
 
+/** @mcp read */
 export async function getWorkCentersListWithBlockingStatus(
   client: SupabaseClient<Database>,
   companyId: string
@@ -1037,42 +1241,40 @@ export async function getWorkCentersListWithBlockingStatus(
     .order("name");
 }
 
-export async function insertAbility(
+/**
+ * Processes that do not yet have an ability. Feeds the New Ability picker so a
+ * planner can only mint an ability for a process that lacks one — an ability is
+ * a process's qualification, and a process may have at most one.
+ * @mcp read
+ */
+export async function getProcessesWithoutAbility(
   client: SupabaseClient<Database>,
-  ability: {
-    name: string;
-    curve: {
-      data: {
-        week: number;
-        value: number;
-      }[];
-    };
-    shadowWeeks: number;
-    companyId: string;
-    createdBy: string;
-  }
-) {
-  return client.from("ability").insert([ability]).select("*").single();
-}
-
-export async function insertEmployeeAbilities(
-  client: SupabaseClient<Database>,
-  abilityId: string,
-  employeeIds: string[],
   companyId: string
 ) {
-  const employeeAbilities = employeeIds.map((employeeId) => ({
-    abilityId,
-    employeeId,
-    companyId,
-    trainingCompleted: true
-  }));
+  const abilities = await client
+    .from("ability")
+    .select("processId")
+    .eq("companyId", companyId);
+  if (abilities.error) return abilities;
 
-  return client
-    .from("employeeAbility")
-    .insert(employeeAbilities)
-    .select("id")
-    .single();
+  const taken = new Set(
+    (abilities.data ?? [])
+      .map((a) => a.processId)
+      .filter((id): id is string => Boolean(id))
+  );
+
+  const processes = await client
+    .from("process")
+    .select("id, name")
+    .eq("companyId", companyId)
+    .eq("active", true)
+    .order("name");
+  if (processes.error) return processes;
+
+  return {
+    ...processes,
+    data: (processes.data ?? []).filter((p) => !taken.has(p.id))
+  };
 }
 
 export async function insertTrainingCompletion(
@@ -1096,23 +1298,146 @@ export async function insertTrainingCompletion(
     .single();
 }
 
+/**
+ * The ability a training assignment's training grants on completion, or null.
+ * Completing training upserts an `employeeAbility` via the
+ * `grant_ability_on_training_completion` trigger, so the caller can restamp the
+ * scheduler (`notifyScheduleInputsChanged`) for that ability's operator pool.
+ * @mcp read
+ */
+export async function getTrainingGrantedAbilityId(
+  client: SupabaseClient<Database>,
+  trainingAssignmentId: string,
+  companyId: string
+): Promise<string | null> {
+  const assignment = await client
+    .from("trainingAssignment")
+    .select("trainingId")
+    .eq("id", trainingAssignmentId)
+    .eq("companyId", companyId)
+    .maybeSingle();
+  if (!assignment.data?.trainingId) return null;
+
+  const training = await client
+    .from("training")
+    .select("grantsAbilityId")
+    .eq("id", assignment.data.trainingId)
+    .eq("companyId", companyId)
+    .maybeSingle();
+  return training.data?.grantsAbilityId ?? null;
+}
+
+/** @mcp update */
 export async function updateAbility(
   client: SupabaseClient<Database>,
   id: string,
-  ability: Partial<{
-    name: string;
-    curve: {
-      data: {
-        week: number;
-        value: number;
-      }[];
-    };
-    shadowWeeks: number;
-  }>
+  ability: {
+    // Name is not stored — it derives from the linked process; it appears in
+    // the MCP schema for caller context only. The recertification cadence is
+    // the one editable field. Both are optional in the published schema.
+    name?: string;
+    recertifyEveryDays?: number | null;
+  }
 ) {
-  return client.from("ability").update(sanitize(ability)).eq("id", id);
+  return client
+    .from("ability")
+    .update({ recertifyEveryDays: ability.recertifyEveryDays })
+    .eq("id", id);
 }
 
+/**
+ * Resolves the qualification expiry for an employee ability. An explicit
+ * expiresAt wins; otherwise it is computed from lastTrainingDate + the
+ * ability's recertifyEveryDays (null when the ability never expires).
+ * @mcp action
+ */
+export async function resolveEmployeeAbilityExpiresAt(
+  client: SupabaseClient<Database>,
+  abilityId: string,
+  lastTrainingDate: string | null,
+  expiresAt: string | null
+): Promise<string | null> {
+  if (expiresAt || !lastTrainingDate) return expiresAt;
+
+  const ability = await client
+    .from("ability")
+    .select("recertifyEveryDays")
+    .eq("id", abilityId)
+    .single();
+
+  if (!ability.data?.recertifyEveryDays) return null;
+
+  const [y, m, d] = lastTrainingDate.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + ability.data.recertifyEveryDays))
+    .toISOString()
+    .slice(0, 10);
+}
+
+/** @mcp upsert */
+export async function upsertEmployeeAbilityCell(
+  client: SupabaseClient<Database>,
+  cell: {
+    employeeId: string;
+    abilityId: string;
+    companyId: string;
+    lastTrainingDate: string | null;
+    expiresAt: string | null;
+  }
+) {
+  return client
+    .from("employeeAbility")
+    .upsert(cell, { onConflict: "employeeId,abilityId" })
+    .select("id")
+    .single();
+}
+
+/**
+ * Find-or-create the ability linked 1:1 to a process. Called when a process
+ * has "Requires Ability" toggled on — the ability (named after the process)
+ * is what employees get qualified against.
+ * @mcp action
+ */
+export async function ensureProcessAbility(
+  client: SupabaseClient<Database>,
+  args: {
+    processId: string;
+    companyId: string;
+    userId: string;
+    recertifyEveryDays?: number | null;
+  }
+) {
+  const existing = await client
+    .from("ability")
+    .select("id")
+    .eq("processId", args.processId)
+    .eq("companyId", args.companyId)
+    .maybeSingle();
+
+  if (existing.error || existing.data) {
+    return existing;
+  }
+
+  // Name is not stored — it is the process's name, read live through the
+  // `abilities` view.
+  return client
+    .from("ability")
+    .insert([
+      {
+        processId: args.processId,
+        companyId: args.companyId,
+        curve: {
+          data: [{ week: 0, value: 100 }]
+        },
+        shadowWeeks: 0,
+        recertifyEveryDays: args.recertifyEveryDays ?? null,
+        createdBy: args.userId
+      }
+    ])
+    .select("id")
+    .single();
+}
+
+/** @mcp update */
 export async function updateSuggestionEmoji(
   client: SupabaseClient<Database>,
   suggestionId: string,
@@ -1129,6 +1454,7 @@ export async function updateSuggestionTags(
   return client.from("suggestion").update({ tags }).eq("id", suggestionId);
 }
 
+/** @mcp update */
 export async function updateTrainingQuestionOrder(
   client: SupabaseClient<Database>,
   updates: {
@@ -1146,6 +1472,10 @@ export async function updateTrainingQuestionOrder(
   return Promise.all(updatePromises);
 }
 
+/**
+ * @mcp upsert destructive
+ * @mcp key contractor id
+ */
 export async function upsertContractor(
   client: SupabaseClient<Database>,
   contractorWithAbilities:
@@ -1204,44 +1534,7 @@ export async function upsertContractor(
   return client.from("contractorAbility").insert(contractorAbilities);
 }
 
-export async function upsertEmployeeAbility(
-  client: SupabaseClient<Database>,
-  employeeAbility: {
-    id?: string;
-    abilityId: string;
-    employeeId: string;
-    trainingCompleted: boolean;
-    trainingDays?: number;
-    companyId: string;
-  }
-) {
-  const { id, ...update } = employeeAbility;
-  if (id) {
-    return client.from("employeeAbility").update(sanitize(update)).eq("id", id);
-  }
-
-  const deactivatedId = await client
-    .from("employeeAbility")
-    .select("id")
-    .eq("employeeId", employeeAbility.employeeId)
-    .eq("abilityId", employeeAbility.abilityId)
-    .eq("active", false)
-    .single();
-
-  if (deactivatedId.data?.id) {
-    return client
-      .from("employeeAbility")
-      .update(sanitize({ ...update, active: true }))
-      .eq("id", deactivatedId.data.id);
-  }
-
-  return client
-    .from("employeeAbility")
-    .insert([{ ...update }])
-    .select("id")
-    .single();
-}
-
+/** @mcp upsert */
 export async function upsertFailureMode(
   client: SupabaseClient<Database>,
   failureMode:
@@ -1256,19 +1549,18 @@ export async function upsertFailureMode(
         customFields?: Json;
       })
 ) {
-  if ("createdBy" in failureMode) {
-    return client
-      .from("maintenanceFailureMode")
-      .insert([failureMode])
-      .select("id");
-  } else {
-    return client
-      .from("maintenanceFailureMode")
-      .update(sanitize(failureMode))
-      .eq("id", failureMode.id);
+  // maintenanceFailureMode has no customFields column.
+  const { customFields: _customFields, ...mode } = failureMode;
+  if ("createdBy" in mode) {
+    return client.from("maintenanceFailureMode").insert([mode]).select("id");
   }
+  return client
+    .from("maintenanceFailureMode")
+    .update(sanitize(mode))
+    .eq("id", mode.id);
 }
 
+/** @mcp upsert */
 export async function upsertLocation(
   client: SupabaseClient<Database>,
   location:
@@ -1292,6 +1584,7 @@ export async function upsertLocation(
   return client.from("location").insert([location]).select("*").single();
 }
 
+/** @mcp create */
 export async function insertMaintenanceDispatch(
   client: SupabaseClient<Database>,
   input: {
@@ -1313,6 +1606,7 @@ export async function insertMaintenanceDispatch(
     suspectedFailureModeId?: string;
     plannedStartTime?: string;
     plannedEndTime?: string;
+    takesWorkCenterOffline?: boolean;
     content?: Json;
   }
 ): Promise<{
@@ -1355,6 +1649,7 @@ export async function insertMaintenanceDispatch(
       suspectedFailureModeId: input.suspectedFailureModeId ?? null,
       plannedStartTime: input.plannedStartTime ?? null,
       plannedEndTime: input.plannedEndTime ?? null,
+      takesWorkCenterOffline: input.takesWorkCenterOffline ?? false,
       content: input.content,
       companyId: input.companyId,
       createdBy: input.createdBy,
@@ -1374,6 +1669,7 @@ export async function insertMaintenanceDispatch(
   };
 }
 
+/** @mcp update */
 export async function updateMaintenanceDispatch(
   client: SupabaseClient<Database>,
   input: {
@@ -1398,6 +1694,7 @@ export async function updateMaintenanceDispatch(
     plannedEndTime?: string | null;
     actualStartTime?: string | null;
     actualEndTime?: string | null;
+    takesWorkCenterOffline?: boolean;
     content?: Json;
   }
 ): Promise<{
@@ -1450,6 +1747,7 @@ export async function upsertMaintenanceDispatch(
   }
 }
 
+/** @mcp upsert */
 export async function upsertMaintenanceDispatchComment(
   client: SupabaseClient<Database>,
   comment:
@@ -1476,6 +1774,7 @@ export async function upsertMaintenanceDispatchComment(
   }
 }
 
+/** @mcp upsert */
 export async function upsertMaintenanceDispatchEvent(
   client: SupabaseClient<Database>,
   event:
@@ -1502,6 +1801,7 @@ export async function upsertMaintenanceDispatchEvent(
   }
 }
 
+/** @mcp upsert */
 export async function upsertMaintenanceDispatchItem(
   client: SupabaseClient<Database>,
   item:
@@ -1554,6 +1854,7 @@ export async function upsertMaintenanceDispatchWorkCenter(
   }
 }
 
+/** @mcp upsert */
 export async function upsertMaintenanceSchedule(
   client: SupabaseClient<Database>,
   schedule:
@@ -1606,6 +1907,10 @@ export async function upsertMaintenanceScheduleItem(
   }
 }
 
+/**
+ * @mcp upsert
+ * @mcp key partner id
+ */
 export async function upsertPartner(
   client: SupabaseClient<Database>,
   partner:
@@ -1630,6 +1935,46 @@ export async function upsertPartner(
   }
 }
 
+// Fold the six per-dimension form fields into the sparse `batchRules` JSONB the
+// process row stores. All-default (or empty) → null, which reads back as today's
+// behavior via resolveBatchRules. Returns { batchRules } plus the six fields to
+// strip from the process write (they are not columns).
+function extractBatchRules<
+  T extends {
+    batchRuleItem?: BatchRules["item"];
+    batchRuleSubstance?: BatchRules["substance"];
+    batchRuleGrade?: BatchRules["grade"];
+    batchRuleDimension?: BatchRules["dimension"];
+    batchRuleForm?: BatchRules["form"];
+    batchRuleFinish?: BatchRules["finish"];
+    batchRuleProducedItem?: BatchRules["producedItem"];
+  }
+>(source: T) {
+  const {
+    batchRuleItem,
+    batchRuleSubstance,
+    batchRuleGrade,
+    batchRuleDimension,
+    batchRuleForm,
+    batchRuleFinish,
+    batchRuleProducedItem,
+    ...rest
+  } = source;
+  const batchRules = compactBatchRules(
+    resolveBatchRules({
+      item: batchRuleItem,
+      substance: batchRuleSubstance,
+      grade: batchRuleGrade,
+      dimension: batchRuleDimension,
+      form: batchRuleForm,
+      finish: batchRuleFinish,
+      producedItem: batchRuleProducedItem
+    })
+  ) as Json;
+  return { batchRules, rest };
+}
+
+/** @mcp upsert destructive */
 export async function upsertProcess(
   client: SupabaseClient<Database>,
   process:
@@ -1646,12 +1991,14 @@ export async function upsertProcess(
       })
 ) {
   if ("createdBy" in process) {
-    const { workCenters, ...insert } = process;
+    const { batchRules, rest: withoutRules } = extractBatchRules(process);
+    const { workCenters, ...insert } = withoutRules;
     const processInsert = await client
       .from("process")
       .insert([
         {
           ...insert,
+          batchRules,
           defaultStandardFactor: insert.defaultStandardFactor ?? "Minutes/Piece"
         }
       ])
@@ -1680,10 +2027,14 @@ export async function upsertProcess(
 
     return processInsert;
   }
-  const { workCenters, ...update } = process;
+  const { batchRules, rest: withoutRules } = extractBatchRules(process);
+  const { workCenters, ...update } = withoutRules;
   const processUpdate = await client
     .from("process")
-    .update(sanitize(update))
+    // batchRules isn't in `update` — extractBatchRules destructured the six
+    // batchRule* form fields out and folded them into this value — so it must
+    // be added explicitly (null = all-default, and null must be written).
+    .update({ ...sanitize(update), batchRules })
     .eq("id", process.id);
   if (processUpdate.error) {
     return processUpdate;
@@ -1717,6 +2068,7 @@ export async function upsertProcess(
   return processUpdate;
 }
 
+/** @mcp upsert */
 export async function upsertTraining(
   client: SupabaseClient<Database>,
   training:
@@ -1741,6 +2093,7 @@ export async function upsertTraining(
   return client.from("training").insert([training]).select("id").single();
 }
 
+/** @mcp upsert */
 export async function upsertTrainingAssignment(
   client: SupabaseClient<Database>,
   assignment: {
@@ -1775,6 +2128,7 @@ export async function upsertTrainingAssignment(
     .single();
 }
 
+/** @mcp upsert */
 export async function upsertTrainingQuestion(
   client: SupabaseClient<Database>,
   trainingQuestion:
@@ -1802,6 +2156,7 @@ export async function upsertTrainingQuestion(
     .single();
 }
 
+/** @mcp upsert destructive */
 export async function upsertWorkCenter(
   client: SupabaseClient<Database>,
   workCenter:
@@ -1818,7 +2173,7 @@ export async function upsertWorkCenter(
       })
 ) {
   if ("createdBy" in workCenter) {
-    const { processes, ...insert } = workCenter;
+    const { processes, shifts, ...insert } = workCenter;
     const workCenterInsert = await client
       .from("workCenter")
       .insert([insert])
@@ -1845,9 +2200,26 @@ export async function upsertWorkCenter(
       }
     }
 
+    const workCenterShifts = shifts?.map((shift) => ({
+      workCenterId,
+      shiftId: shift,
+      companyId: insert.companyId,
+      createdBy: insert.createdBy
+    }));
+
+    if (workCenterShifts) {
+      const workCenterShiftInsert = await client
+        .from("workCenterShift")
+        .insert(workCenterShifts);
+
+      if (workCenterShiftInsert.error) {
+        return workCenterShiftInsert;
+      }
+    }
+
     return workCenterInsert;
   }
-  const { processes, ...update } = workCenter;
+  const { processes, shifts, ...update } = workCenter;
   const workCenterUpdate = await client
     .from("workCenter")
     .update(sanitize(update))
@@ -1878,6 +2250,31 @@ export async function upsertWorkCenter(
       .insert(workCenterProcesses);
     if (workCenterProcessUpdate.error) {
       return workCenterProcessUpdate;
+    }
+  }
+
+  const deleteShifts = await client
+    .from("workCenterShift")
+    .delete()
+    .eq("workCenterId", workCenter.id);
+
+  if (deleteShifts.error) {
+    return deleteShifts;
+  }
+
+  const workCenterShifts = shifts?.map((shift) => ({
+    workCenterId: workCenter.id,
+    shiftId: shift,
+    companyId: update.companyId,
+    createdBy: update.updatedBy
+  }));
+
+  if (workCenterShifts) {
+    const workCenterShiftUpdate = await client
+      .from("workCenterShift")
+      .insert(workCenterShifts);
+    if (workCenterShiftUpdate.error) {
+      return workCenterShiftUpdate;
     }
   }
 

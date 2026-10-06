@@ -1,5 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
+import { activeJobStatuses } from "@carbon/database";
 import { getLogger } from "@carbon/logger";
+import { useAction } from "@carbon/query";
 import {
   Alert,
   AlertDescription,
@@ -7,6 +13,7 @@ import {
   Button,
   Checkbox,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   Modal,
@@ -22,22 +29,23 @@ import {
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
-import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef, useState } from "react";
 import {
   LuAlignLeft,
   LuBuilding2,
   LuCheck,
-  LuCog,
   LuDollarSign,
+  LuLocateFixed,
   LuPencil,
+  LuRedoDot,
   LuTrash,
   LuTriangleAlert,
-  LuUser,
-  LuWrench
+  LuUser
 } from "react-icons/lu";
-import { useFetcher, useNavigate } from "react-router";
+import { useNavigate } from "react-router";
 import { EmployeeAvatar, Hyperlink, New, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
+import { EnumerableGroup } from "~/components/EnumerableGroup";
 import { useProcesses } from "~/components/Form/Process";
 import { Confirm } from "~/components/Modals";
 import {
@@ -127,29 +135,28 @@ const WorkCentersTable = memo(
             </HStack>
           ),
           meta: {
-            icon: <LuWrench />
+            icon: <LuLocateFixed />
           }
         },
         {
           id: "processes",
           header: t`Processes`,
           cell: ({ row }) => (
-            <span className="flex gap-2 items-center flex-wrap py-2">
-              {((row.original.processes ?? []) as Array<string>).map((p) => {
-                const process = processes.find((proc) => proc.value === p);
-                return (
-                  <Enumerable
-                    key={process?.label}
-                    value={process?.label ?? null}
-                    onClick={() => navigate(path.to.process(process?.value!))}
-                    className="cursor-pointer"
-                  />
-                );
-              })}
-            </span>
+            <EnumerableGroup
+              items={((row.original.processes ?? []) as Array<string>).flatMap(
+                (p) => {
+                  const process = processes.find((proc) => proc.value === p);
+                  if (!process) return [];
+                  return {
+                    label: process.label,
+                    onClick: () => navigate(path.to.process(process.value))
+                  };
+                }
+              )}
+            />
           ),
           meta: {
-            icon: <LuCog />,
+            icon: <LuRedoDot />,
             filter: {
               type: "static",
               options: processes.map((process) => ({
@@ -303,6 +310,7 @@ const WorkCentersTable = memo(
       (row) => (
         <>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.edit}
             onClick={() => {
               navigate(`${path.to.workCenter(row.id!)}?${params?.toString()}`);
             }}
@@ -420,7 +428,7 @@ function DeleteWorkCenterModal({
     const { data, error } = await carbon
       .from("jobOperation")
       .select("job(jobId, id, status)")
-      .in("job.status", ["Ready", "In Progress", "Paused"])
+      .in("job.status", [...activeJobStatuses])
       .neq("status", "Done")
       .eq("workCenterId", workCenter.id!)
       .eq("companyId", company?.id);
@@ -438,15 +446,15 @@ function DeleteWorkCenterModal({
     }
   };
 
-  const fetcher = useFetcher<{}>();
-  const submitted = useRef(false);
-  useEffect(() => {
-    if (fetcher.state === "idle" && submitted.current) {
-      onSubmit?.();
-      submitted.current = false;
+  const fetcher = useAction<{}>({
+    onSettled: () => {
+      if (submitted.current) {
+        onSubmit?.();
+        submitted.current = false;
+      }
     }
-  }, [fetcher.state, onSubmit]);
-
+  });
+  const submitted = useRef(false);
   useMount(() => {
     getActiveOperations();
   });

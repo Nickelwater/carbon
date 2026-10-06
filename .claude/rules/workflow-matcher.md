@@ -3,7 +3,7 @@ description: The workflow matcher — how one database announcement or business 
 paths:
   - "packages/jobs/src/workflows/**"
   - "packages/jobs/src/inngest/functions/workflows/**"
-  - "packages/workflows/src/sync.ts"
+  - "packages/ee/src/workflows/sync.ts"
 ---
 
 # Workflow Matcher
@@ -45,9 +45,12 @@ Kysely client is the package-wide `getJobDatabaseClient()` from `packages/jobs/s
 which `events/queue.ts` and the company backup/restore tasks share.
 
 The trigger payload (`kind: "record" | "moment"`) is declared once as `runTriggerSchema` /
-`RunTrigger` in `packages/workflows/src/run-trigger.ts` — `@carbon/workflows` is the only
-package both `@carbon/lib` (which types `carbon/workflow-run.queued` with it) and
-`@carbon/jobs` (which parses with it) already depend on.
+`RunTrigger` in the CE-safe leaf `@carbon/workflows-core` (`packages/workflows-core/`).
+`@carbon/lib` (which types `carbon/workflow-run.queued` with it) imports it type-only from
+that leaf, and `@carbon/jobs` parses with it; the commercial engine
+(`@carbon/ee/workflows`) re-exports it from the leaf (`packages/ee/src/workflows/run-trigger.ts`).
+The leaf exists precisely so `@carbon/lib` does not have to depend on the commercial engine —
+that edge would be a `lib → ee → lib` cycle.
 
 ## Announcement → event ids
 
@@ -87,7 +90,7 @@ person-caused firing gets `{rootRunId: null, causedByRunId: null, depth: 0, path
 
 - **Cycle** — the candidate workflow id is already in `path` → blocked,
   `"Cycle: this workflow already ran in this chain"`.
-- **Depth** — `depth >= MAX_CHAIN_DEPTH` (10, from `@carbon/workflows`) → blocked,
+- **Depth** — `depth >= MAX_CHAIN_DEPTH` (10, from `@carbon/ee/workflows`) → blocked,
   `"Chain depth limit reached (10 hops)"`.
 
 A blocked firing is **recorded as a `Blocked` workflowRun, never silently dropped** — that
@@ -116,7 +119,7 @@ replay can never double-fire:
 
 ## Subscriptions are derived, never hand-managed
 
-`packages/workflows/src/sync.ts` owns both levels and keeps them in one transaction:
+`packages/ee/src/workflows/sync.ts` owns both levels and keeps them in one transaction:
 
 - `deriveWorkflowTriggerRows(nodes)` — trigger nodes → one desired `workflowTriggerEvent`
   row per event id, carrying that node's origin (first origin wins on a duplicate id).
@@ -127,16 +130,20 @@ replay can never double-fire:
 - `syncWorkflowTriggers(db, companyId, workflowId, lockCompany)` — rewrite one workflow's trigger rows
   (delete-then-insert; the table has no UPDATE policy by design), **write `workflow.nextRunAt`**
   (the scheduler's bookmark, or null for event-triggered workflows), and reconcile the company's
-  subscriptions. Returns `{ eventIds, tables, scheduled }`. Call it on promote, on trigger edit,
-  and on activate/deactivate.
+  subscriptions. Returns `{ eventIds, tables, scheduled }`. Call it on publish, on trigger edit,
+  and on unpublish.
 - `syncWorkflowSubscriptions(db, companyId)` — standalone repair from existing rows.
 
 Reconciliation is surgical: only `handlerType = 'WORKFLOW'` rows are touched, matched by
 exact `(companyId, name, table)`, and a row with the wrong `operations` is deleted and
 re-inserted. It never resets a company's WEBHOOK/SEARCH/AUDIT subscriptions.
 
-**Why this lives in `@carbon/workflows` and not `@carbon/database`:** it must read
-`WORKFLOW_EVENTS`, and `@carbon/workflows` already dev-depends on `@carbon/database` — the
+The gate inside it is `workflow.publishedVersionId` alone — set means published, `NULL` means
+draft and an empty desired set. The old `active` boolean was removed in migration
+`20260824163808_workflow-publish-unpublish.sql`.
+
+**Why this lives in `@carbon/ee/workflows` and not `@carbon/database`:** it must read
+`WORKFLOW_EVENTS`, and the engine already dev-depends on `@carbon/database` — the
 reverse edge is a package cycle Turborepo rejects. Kysely is imported **type-only** here
 (`import type { Kysely, Transaction }`), so the package gains no runtime dependency; node-pg
 serializes plain objects/arrays for the JSONB and `TEXT[]` columns, so no runtime `sql` tag
@@ -146,11 +153,11 @@ is needed.
 transaction. Reconciliation reads the company's ENTIRE subscription set inside a per-workflow
 transaction, so two overlapping publishes would each compute `desired` from pre-commit state and
 one could delete a subscription the other still needs — silently stopping delivery for that table.
-The caller owns it because `@carbon/workflows` imports Kysely **type-only** (the package is bundled
+The caller owns it because `@carbon/ee/workflows` imports Kysely **type-only** (the package is bundled
 for the browser) and cannot run raw SQL; `workflows.server.ts` supplies
 `` sql`SELECT pg_advisory_xact_lock(hashtext(${companyId}))` ``.
 
-Kysely bypasses RLS. **The caller authorizes first** — phase 7's activation route gates on
+Kysely bypasses RLS. **The caller authorizes first** — the publish and unpublish routes gate on
 `workflows_update` before calling.
 
 ## Gotchas
@@ -164,3 +171,17 @@ Kysely bypasses RLS. **The caller authorizes first** — phase 7's activation ro
   account's concurrency, not a per-`companyId`/per-`workflowId` cap. See `workflow-engine.md`.
 - Deploy-time drift checks live with `packages/checks`: the `workflow-trigger-event-drift`
   SQL invariant and `pnpm --filter @carbon/checks workflow-events`.
+
+## Custom-field trigger ids
+
+`computeEventIds` emits `<entity>.customFields.<fieldId>.changed` for every
+`customFields.<id>` key in the diff, on any table that maps to a triggerable entity. The id is
+**derived from the data, never looked up** — it is per company and the catalog is not — so the
+matcher stays company-blind and no company lookup enters the hot path. `catalog.getEvent(id)`
+is what decides whether the entity may carry one at all (`item` and reference-only entities
+cannot), so that rule lives in exactly one place. Custom-field ids are appended AFTER the
+generated `.changed` ids, keeping "first event id wins" picking the same winner as before for a
+workflow subscribed to both a column and a field on the same update.
+
+`deriveWorkflowSubscriptions` resolves through `getCatalogEvent` rather than indexing
+`WORKFLOW_EVENTS`, which is what gives a custom-field trigger its `UPDATE` subscription.

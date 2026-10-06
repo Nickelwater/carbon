@@ -1,14 +1,21 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database, Tables } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
 import { trackWorkEvent } from "@carbon/lib/telemetry";
 import { getLogger } from "@carbon/logger";
-import { getPurchaseOrderStatus, supportedModelTypes } from "@carbon/utils";
+import { type ServerFnInput, serverFns } from "@carbon/server-functions";
+import { supportedModelTypes } from "@carbon/files/cad";
+import { getPurchaseOrderStatus } from "@carbon/utils";
 import type {
+  PostgrestResponse,
   PostgrestSingleResponse,
   SupabaseClient
 } from "@supabase/supabase-js";
 import type { GenericQueryFilters } from "~/utils/query";
-import { setGenericQueryFilters } from "~/utils/query";
+import { LIST_COUNT, setGenericQueryFilters } from "~/utils/query";
 import { sanitize } from "~/utils/supabase";
 import type {
   approvalDocumentType,
@@ -26,7 +33,7 @@ import type {
   UpsertApprovalRuleInput
 } from "./types";
 
-const logger = getLogger("erp", "shared-service");
+const logger = getLogger("erp", "shared");
 
 export async function approveRequest(
   db: Kysely<KyselyDatabase>,
@@ -156,7 +163,7 @@ export async function approveRequest(
 
         if (siblingIds.length > 0) {
           await trx
-            .updateTable("itemSamplingPlan")
+            .updateTable("itemInspectionDocumentAssignment")
             .set({ inspectionDocumentId: documentId })
             .where("companyId", "=", doc.companyId)
             .where(
@@ -878,11 +885,19 @@ export async function getModelByItemId(
     .eq("id", itemId)
     .single();
 
+  const emptyModelFields = {
+    modelId: null as string | null,
+    modelName: null as string | null,
+    modelPath: null as string | null,
+    modelSize: null as number | null,
+    thumbnailPath: null as string | null
+  };
+
   if (!item.data || !item.data.modelUploadId) {
     return {
       itemId: item.data?.id ?? null,
       type: item.data?.type ?? null,
-      modelPath: null
+      ...emptyModelFields
     };
   }
 
@@ -896,14 +911,19 @@ export async function getModelByItemId(
     return {
       itemId: item.data?.id ?? null,
       type: item.data?.type ?? null,
-      modelSize: null
+      ...emptyModelFields
     };
   }
 
   return {
-    itemId: item.data!.id,
-    type: item.data!.type,
-    ...model.data
+    itemId: item.data.id,
+    type: item.data.type,
+    ...model.data,
+    modelId: model.data.id,
+    modelName: model.data.name,
+    modelPath: model.data.glbPath ?? model.data.modelPath,
+    modelSize: model.data.size,
+    thumbnailPath: model.data.thumbnailPath
   };
 }
 
@@ -1032,8 +1052,10 @@ export async function hasPendingApproval(
   return (result.data?.length ?? 0) > 0;
 }
 
+/** @mcp action */
 export async function importCsv(
   client: SupabaseClient<Database>,
+  db: Kysely<KyselyDatabase>,
   args: {
     table: string;
     filePath: string;
@@ -1043,9 +1065,11 @@ export async function importCsv(
     userId: string;
   }
 ) {
-  return client.functions.invoke("import-csv", {
-    body: args
-  });
+  // The operation validates `table` and the enum mappings' real shape
+  // (field → { value → mapped }).
+  return serverFns
+    .as({ client, db, companyId: args.companyId, userId: args.userId })
+    .invoke("import-csv", args as unknown as ServerFnInput<"import-csv">);
 }
 
 export async function insertNote(
@@ -1459,4 +1483,136 @@ export function resolveSupplierPrice(
       fallbackUnitPrice * exchangeRate
     ) / exchangeRate
   );
+}
+
+
+/**
+ * What a "Purchase to Order" quote material's unit cost IS: a typed cost wins,
+ * anything else re-resolves from supplier price breaks. Every reader of a
+ * bought-to-order cost must go through this — reaching for
+ * lookupBuyPriceFromMap directly silently ignores a typed cost.
+ *
+ * Mirrored in `packages/database/src/methods.ts`.
+ * @mcp action
+ */
+export function resolveBuyUnitCost(
+  material: {
+    itemId: string;
+    unitCost: number;
+    unitCostSource?: string | null;
+  },
+  requestedQty: number,
+  priceMap: SupplierPriceMap
+): number {
+  if (material.unitCostSource === "manual") return material.unitCost;
+  return lookupBuyPriceFromMap(
+    material.itemId,
+    requestedQty,
+    priceMap,
+    material.unitCost
+  );
+}
+
+export type EnforcementRuleFamily =
+  Database["public"]["Enums"]["enforcementRuleFamily"];
+
+export type EnforcementRuleRow =
+  Database["public"]["Tables"]["enforcementRule"]["Row"];
+
+// Authoring writes (`upsertEnforcementRule` / `deleteEnforcementRule`) and their
+// `EnforcementRuleInsert` / `EnforcementRuleUpdate` input types moved to
+// `@carbon/ee/rules.server` (`packages/ee/src/rules/service.server.ts`), where
+// they embed the commercial `requireEntitlement` gate. The read helpers below
+// stay here (ERP admin surface, client-safe).
+
+/** @mcp read */
+export async function getEnforcementRules(
+  client: SupabaseClient<Database>,
+  family: EnforcementRuleFamily,
+  companyId: string,
+  args?: GenericQueryFilters & {
+    search: string | null;
+    targetType?:
+      | Database["public"]["Enums"]["enforcementRuleTargetType"]
+      | null;
+  }
+): Promise<PostgrestResponse<EnforcementRuleRow>> {
+  let query = client
+    .from("enforcementRule")
+    .select("*", { count: LIST_COUNT })
+    .eq("companyId", companyId)
+    .eq("family", family);
+
+  if (args?.search) {
+    query = query.ilike("name", `%${args.search}%`);
+  }
+  if (args?.targetType) {
+    query = query.eq("targetType", args.targetType);
+  }
+
+  // The `family` argument is a union rather than a literal, which is enough to
+  // drop PostgREST's inferred row type to `any`; state it once here so every
+  // caller gets a real row instead of re-annotating at each call site.
+  return setGenericQueryFilters(query, args ?? {}, [
+    { column: "name", ascending: true }
+  ]) as unknown as Promise<PostgrestResponse<EnforcementRuleRow>>;
+}
+
+/** @mcp read */
+export async function getEnforcementRule(
+  client: SupabaseClient<Database>,
+  family: EnforcementRuleFamily,
+  id: string,
+  companyId: string
+): Promise<PostgrestSingleResponse<EnforcementRuleRow>> {
+  return (
+    client
+      .from("enforcementRule")
+      .select("*")
+      .eq("id", id)
+      .eq("family", family)
+      // RLS scopes the user client already; the explicit predicate is
+      // defense-in-depth for service-role callers (these functions are
+      // MCP-exposed).
+      .eq("companyId", companyId)
+      // Same union-family `any` collapse as `getEnforcementRules` above.
+      .single() as unknown as Promise<
+      PostgrestSingleResponse<EnforcementRuleRow>
+    >
+  );
+}
+
+/**
+ * Pin counts per rule id. Rule ids are globally unique, so counting by id needs
+ * no family predicate even though the item table is shared between families.
+ * Work-center pins only exist for the storage family; passing sales ids simply
+ * matches nothing there.
+ * @mcp read
+ */
+export async function getEnforcementRuleAssignmentCounts(
+  client: SupabaseClient<Database>,
+  ruleIds: string[]
+) {
+  if (ruleIds.length === 0) return { data: {}, error: null };
+
+  const tables = [
+    "enforcementRuleItemAssignment",
+    "enforcementRuleWorkCenterAssignment"
+  ] as const;
+
+  const results = await Promise.all(
+    tables.map((table) =>
+      client.from(table).select("ruleId").in("ruleId", ruleIds)
+    )
+  );
+
+  const counts: Record<string, number> = {};
+  for (const { data, error } of results) {
+    if (error) return { data: {}, error };
+    for (const row of (data ?? []) as Array<{ ruleId: string }>) {
+      counts[row.ruleId] = (counts[row.ruleId] ?? 0) + 1;
+    }
+  }
+
+  return { data: counts, error: null };
 }

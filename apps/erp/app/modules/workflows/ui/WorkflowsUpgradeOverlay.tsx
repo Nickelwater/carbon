@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { Badge, Button, HStack, VStack } from "@carbon/react";
 import { Trans } from "@lingui/react/macro";
 import { LuWorkflow } from "react-icons/lu";
@@ -17,19 +21,19 @@ const mockRows = [
   {
     name: "New Order Notification",
     event: "sales.order.created",
-    active: true
+    published: true
   },
   {
     name: "Low Stock Alert",
     event: "inventory.stock.below-minimum",
-    active: true
+    published: true
   },
   {
     name: "Invoice Overdue",
     event: "accounting.invoice.overdue",
-    active: false
+    published: false
   },
-  { name: "Supplier PO Sent", event: "purchasing.order.sent", active: true }
+  { name: "Supplier PO Sent", event: "purchasing.order.sent", published: true }
 ];
 
 export default function WorkflowsUpgradeOverlay() {
@@ -66,8 +70,12 @@ export default function WorkflowsUpgradeOverlay() {
                 <span className="text-muted-foreground text-xs font-mono">
                   {row.event}
                 </span>
-                <Badge variant={row.active ? "outline" : "secondary"}>
-                  {row.active ? <Trans>Active</Trans> : <Trans>Inactive</Trans>}
+                <Badge variant={row.published ? "green" : "gray"}>
+                  {row.published ? (
+                    <Trans>Published</Trans>
+                  ) : (
+                    <Trans>Draft</Trans>
+                  )}
                 </Badge>
               </div>
             ))}

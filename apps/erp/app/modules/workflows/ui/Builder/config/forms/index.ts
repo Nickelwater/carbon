@@ -1,8 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type {
   WorkflowIssue,
   WorkflowNode,
   WorkflowNodeType
-} from "@carbon/workflows";
+} from "@carbon/ee/workflows";
 import type { ComponentType } from "react";
 import type { BuilderNode } from "../../../../types";
 import { ActionForm } from "./ActionForm";
@@ -21,6 +25,8 @@ export type NodeFormProps<K extends WorkflowNodeType = WorkflowNodeType> = {
   };
   /** Issues for this node, so forms can highlight the affected field. */
   issues?: WorkflowIssue[];
+  /** The version is published: render every control disabled rather than inert. */
+  isReadOnly?: boolean;
 };
 
 /** Spelled out: a missing kind is a TS2741, not a blank panel. */
@@ -39,4 +45,5 @@ export const NODE_FORMS: {
 export type AnyNodeForm = ComponentType<{
   node: BuilderNode;
   issues?: WorkflowIssue[];
+  isReadOnly?: boolean;
 }>;

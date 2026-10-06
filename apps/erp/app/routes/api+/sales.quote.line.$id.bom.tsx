@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import type { Database } from "@carbon/database";
 import type { LoaderFunctionArgs } from "react-router";
@@ -89,6 +93,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       machineUnit: op.machineUnit,
       operationUnitCost: op.operationUnitCost,
       operationMinimumCost: op.operationMinimumCost,
+      setupRate: op.setupRate ?? 0,
       laborRate: op.laborRate ?? 0,
       machineRate: op.machineRate ?? 0,
       overheadRate: op.overheadRate ?? 0,

@@ -1,10 +1,97 @@
-import { getCarbonServiceRole } from "@carbon/auth/client.server";
-import { trigger } from "@carbon/jobs";
-import { nanoid } from "nanoid";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
 
-// Server-only: enqueues the in-place restore inngest jobs. Kept out of the
-// route module so `@carbon/jobs` (which pulls Node `Buffer` via the Inngest
-// client) never lands in the browser bundle.
+import { getCarbonServiceRole } from "@carbon/auth/client.server";
+import type { Database } from "@carbon/database";
+import { companyHasFeature } from "@carbon/ee/plan.server";
+import { trigger } from "@carbon/jobs";
+import {
+  compatibilityStatus,
+  getCompanyTableCatalog,
+  purgeScopeViolations,
+  reportBackupCompatibility,
+  selectExportableTables
+} from "@carbon/jobs/backups";
+import { getLogger } from "@carbon/logger";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { nanoid } from "nanoid";
+import { getDatabaseClient } from "~/services/database.server";
+import { canAccessBackups } from "~/utils/backups";
+
+const log = getLogger("erp", "backups");
+
+/**
+ * Backups are a Business/Enterprise feature (`BACKUPS`), plus an escape hatch for
+ * internal staff and local dev (`canAccessBackups`). Community/Starter cannot
+ * reach them. Shared by every backup route gate so they can never diverge.
+ */
+export async function canManageBackups(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  email: string | null | undefined
+): Promise<boolean> {
+  if (canAccessBackups(email)) return true;
+  return companyHasFeature(client, companyId, { feature: "BACKUPS" });
+}
+
+import {
+  type CompanyBackupSummary,
+  listCompanyBackupFolders
+} from "./backups.service";
+
+// Server-only: enqueues the in-place restore inngest jobs and computes the
+// live compatibility verdict. Kept out of the route module so `@carbon/jobs`
+// (which pulls Node `Buffer` via the Inngest client) never lands in the
+// browser bundle.
+
+/**
+ * The Backups loader's list: each ready backup's manifest diffed against
+ * TODAY's schema, so the badge and the restore disclosure describe what a
+ * restore would actually do right now. Computed on every load rather than
+ * stored — a verdict written at export time compares the manifest against the
+ * very schema it was projected from and can only ever say "ready".
+ */
+export async function getCompanyBackups(
+  client: SupabaseClient<Database>,
+  companyId: string
+): Promise<{ data: CompanyBackupSummary[] | null; error: Error | null }> {
+  const { data, error } = await listCompanyBackupFolders(client, companyId);
+  if (error || !data) return { data: null, error };
+
+  // One schema read per page load, shared by every row. A failure here must
+  // NOT take the page down: listing, downloading and deleting backups all work
+  // without a verdict, and the restore has its own gate. So a database that is
+  // unreachable or out of connections costs the badges, not the screen.
+  let catalog: Awaited<ReturnType<typeof getCompanyTableCatalog>> | null = null;
+  if (data.some((b) => b.manifest)) {
+    try {
+      catalog = await getCompanyTableCatalog(getDatabaseClient());
+    } catch (err) {
+      log.warn("Backups: live compatibility unavailable — listing without it", {
+        companyId,
+        error: err instanceof Error ? err.message : String(err)
+      });
+    }
+  }
+
+  return {
+    data: data.map(({ manifest, ...summary }) => {
+      // No catalog (schema unreadable) or no manifest (incomplete export) →
+      // `compatibility` stays null: "not checked", never a green "ready".
+      if (!catalog || !manifest) return summary;
+      const report = reportBackupCompatibility(catalog, manifest);
+      return {
+        ...summary,
+        compatibility: {
+          status: compatibilityStatus(report),
+          findings: report.findings
+        }
+      };
+    }),
+    error: null
+  };
+}
 
 /**
  * Kick off an in-place restore of `filePath` (one of this company's own
@@ -55,4 +142,75 @@ export async function dismissCompanyExportFailure(
     .delete()
     .eq("integration", "company-export")
     .eq("companyId", companyId);
+}
+
+/**
+ * Permanently delete this company's rows whose NOT-NULL FK escapes company scope
+ * (and rows depending on them) — the data the export guard refuses on, and the
+ * reason a restore's pre-restore snapshot fails on a company with them. Only
+ * ever called from the user-confirmed "Remove corrupted data and restore"
+ * action. One transaction; children first (see `purgeScopeViolations`).
+ */
+export async function purgeCorruptedRows(
+  companyId: string
+): Promise<{ deleted: Array<{ table: string; rows: number }> }> {
+  const db = getDatabaseClient();
+  const serviceRole = getCarbonServiceRole();
+  const company = await serviceRole
+    .from("company")
+    .select("companyGroupId")
+    .eq("id", companyId)
+    .single();
+  if (company.error) throw new Error(company.error.message);
+
+  const catalog = await getCompanyTableCatalog(db);
+  const { exportable } = selectExportableTables(catalog);
+  const byName = new Map(catalog.tables.map((t) => [t.name, t]));
+  const result = await db
+    .transaction()
+    .execute((trx) =>
+      purgeScopeViolations(
+        trx,
+        exportable,
+        byName,
+        companyId,
+        company.data.companyGroupId ?? null
+      )
+    );
+  log.warn("Backups: purged out-of-scope rows before restore", {
+    companyId,
+    deleted: result.deleted
+  });
+  return result;
+}
+
+/**
+ * Starts a company backup export (`carbon/company-export`). The caller has
+ * already checked `update: settings` and `canManageBackups`; the job itself
+ * enforces the BACKUPS entitlement.
+ */
+export async function exportCompanyBackup(args: {
+  companyId: string;
+  userId: string;
+  label?: string;
+  includeStorage?: "none" | "all";
+  /** Opt-in recovery: leave out rows whose links escape company scope. */
+  skipCorrupted?: boolean;
+}): Promise<{ error: Error | null }> {
+  try {
+    await trigger("company-export", {
+      companyId: args.companyId,
+      userId: args.userId,
+      label: args.label?.slice(0, 80),
+      includeStorage: args.includeStorage ?? "none",
+      skipCorrupted: args.skipCorrupted === true
+    });
+    return { error: null };
+  } catch (error) {
+    log.error("Failed to start backup export", {
+      companyId: args.companyId,
+      error
+    });
+    return { error: error as Error };
+  }
 }

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useMemo } from "react";
@@ -29,11 +33,10 @@ const MethodOperationsTable = memo(
           cell: ({ row }) => (
             <Hyperlink
               to={getPathToMakeMethod(
-                // @ts-ignore
+                // @ts-expect-error
                 row.original.makeMethod?.item?.type,
-                // @ts-ignore
                 row.original.makeMethod?.item?.id,
-                // @ts-ignore
+                // @ts-expect-error
                 row.original.makeMethod?.id
               )}
               className="max-w-[260px] truncate"
@@ -46,7 +49,6 @@ const MethodOperationsTable = memo(
           accessorKey: "makeMethod.item.readableIdWithRevision",
           header: t`Item ID`,
           cell: ({ row }) => {
-            // @ts-ignore
             return row.original.makeMethod?.item?.readableIdWithRevision;
           },
           meta: {

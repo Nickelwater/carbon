@@ -1,5 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { HTMLAttributes } from "react";
-import { createContext, forwardRef, useContext, useState } from "react";
+import {
+  createContext,
+  forwardRef,
+  useContext,
+  useMemo,
+  useState
+} from "react";
 import { LuChevronDown, LuChevronUp } from "react-icons/lu";
 import { IconButton } from "./IconButton";
 import { cn } from "./utils/cn";
@@ -33,16 +43,24 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
 
     const isCollapsed = controlledIsCollapsed ?? uncontrolledIsCollapsed;
 
-    const toggle = () => {
-      if (onCollapsedChange) {
-        onCollapsedChange(!isCollapsed);
-      } else {
-        setUncontrolledIsCollapsed(!isCollapsed);
-      }
-    };
+    // A stable value: an inline object re-rendered every consumer whenever the
+    // card's parent rendered.
+    const context = useMemo(
+      () => ({
+        isCollapsed,
+        toggle: () => {
+          if (onCollapsedChange) {
+            onCollapsedChange(!isCollapsed);
+          } else {
+            setUncontrolledIsCollapsed(!isCollapsed);
+          }
+        }
+      }),
+      [isCollapsed, onCollapsedChange]
+    );
 
     return (
-      <CardContext.Provider value={{ isCollapsed, toggle }}>
+      <CardContext.Provider value={context}>
         <div
           ref={ref}
           className={cn(
@@ -55,7 +73,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
             <IconButton
               aria-label={isCollapsed ? "Expand" : "Collapse"}
               variant="ghost"
-              onClick={toggle}
+              onClick={context.toggle}
               className="absolute right-2 top-2"
               icon={
                 isCollapsed ? (
@@ -168,7 +186,7 @@ const CardTitle = forwardRef<
   <h3
     ref={ref}
     className={cn(
-      "text-base font-medium font-headline leading-none tracking-tight text-foreground/90 text-pretty line-clamp-2",
+      "text-base font-medium leading-none tracking-tight text-foreground/90 text-pretty line-clamp-2",
       className
     )}
     {...props}

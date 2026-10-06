@@ -1,12 +1,18 @@
-import { assertIsPost, error } from "@carbon/auth";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { assertIsPost, error, notFound } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
+import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { Fragment } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useLoaderData, useParams } from "react-router";
+import { Outlet, useLoaderData, useParams } from "react-router";
 import { CadModel, DeferredFiles } from "~/components";
 import { usePermissions, useRouteData } from "~/hooks";
 import type { PurchasingRFQ } from "~/modules/purchasing";
@@ -23,9 +29,12 @@ import {
   SupplierInteractionLineDocuments,
   SupplierInteractionLineNotes
 } from "~/modules/purchasing/ui/SupplierInteraction";
+import { getModelByItemId } from "~/modules/shared";
 import { setCustomFields } from "~/utils/form";
 import { requireUnlocked } from "~/utils/lockedGuard.server";
 import { path } from "~/utils/path";
+
+const logger = getLogger("erp", "purchasing-rfq-line-details");
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   const { companyId } = await requirePermissions(request, {
@@ -47,8 +56,31 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
     );
   }
 
+  // The service role bypasses RLS and lineId comes from the URL: the line must
+  // belong to this company and to the RFQ in the URL.
+  if (
+    line.data.companyId !== companyId ||
+    line.data.purchasingRfqId !== rfqId
+  ) {
+    logger.error("Purchasing RFQ line not found for company", {
+      companyId,
+      rfqId,
+      lineId
+    });
+    throw notFound("Purchasing RFQ line not found");
+  }
+
+  // purchasingRfqLines is the one line view that exposes modelPath without the
+  // model's id, so read the whole row off the item instead — only when the line
+  // says there is a model at all.
+  const model =
+    line.data?.modelPath && line.data.itemId
+      ? await getModelByItemId(serviceRole, line.data.itemId)
+      : null;
+
   return {
     line: line.data,
+    model,
     files: getSupplierInteractionLineDocuments(serviceRole, companyId, lineId)
   };
 };
@@ -106,7 +138,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function PurchasingRFQLine() {
-  const { line, files } = useLoaderData<typeof loader>();
+  const { line, model, files } = useLoaderData<typeof loader>();
 
   const permissions = usePermissions();
 
@@ -165,7 +197,7 @@ export default function PurchasingRFQLine() {
           purchasingRfqLineId: line.id ?? undefined,
           itemId: line.itemId ?? undefined
         }}
-        modelPath={line?.modelPath ?? null}
+        modelUpload={model}
         title="CAD Model"
         uploadClassName="aspect-square min-h-[420px] max-h-[70vh]"
         viewerClassName="aspect-square min-h-[420px] max-h-[70vh]"

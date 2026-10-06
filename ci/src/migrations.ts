@@ -1,12 +1,45 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { createClient } from "@supabase/supabase-js";
 import { $ } from "execa";
 
 import { client } from "./client";
+import type { LedgerDatabase } from "./one-off-scripts";
+import { selectPendingScripts } from "./one-off-scripts";
 import {
   SUPABASE_ACCESS_TOKEN,
   SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID,
   SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_SECRET,
   SUPABASE_AUTH_EXTERNAL_GOOGLE_REDIRECT_URI,
 } from "./env";
+
+/**
+ * PostgREST errors do not always populate `message` — a transport or gateway
+ * failure can arrive with every field undefined, which rendered the only clue
+ * we logged as the literal string "undefined". Serialize whatever is actually
+ * present so the next failure is diagnosable from CI output alone.
+ */
+function describePostgrestError(error: unknown): string {
+  if (!error || typeof error !== "object") return String(error);
+
+  const { message, code, details, hint } = error as {
+    message?: string;
+    code?: string;
+    details?: string;
+    hint?: string;
+  };
+
+  const parts = [
+    message && `message=${message}`,
+    code && `code=${code}`,
+    details && `details=${details}`,
+    hint && `hint=${hint}`,
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(" ") : JSON.stringify(error);
+}
 
 export type Workspace = {
   id: number;
@@ -22,7 +55,97 @@ export type Workspace = {
   database_password: string | null;
   jwt_key: string | null;
   service_role_key: string | null;
+  inngest_base_url: string | null;
+  inngest_event_key: string | null;
 };
+
+/**
+ * Run the one-off scripts this workspace has not run yet, recording each in the
+ * workspace's OWN `scriptRun` table. The scripts are whatever is in
+ * `scripts/one-off/` — see that folder's README.
+ *
+ * Runs after `supabase db push`, so a script can rely on the schema the same
+ * deploy just applied — the bucket copy needs the buckets that
+ * 20260917163108_company-bucket-provisioning.sql provisions.
+ *
+ * A script is spawned as a subprocess with the per-workspace env explicitly
+ * injected rather than imported and called: `scripts/lib/local-script-config.ts`
+ * lets a `.env.local` file OVERRIDE the passed environment, so an in-process
+ * call could silently target the wrong database on any machine that has one.
+ *
+ * A failure here does NOT abort the workspace's migration — the schema is
+ * already pushed and correct. Returns false instead of throwing so the caller
+ * can mark the run errored without the failure being re-reported as a failed
+ * migration; because nothing is recorded in the ledger, the next deploy
+ * retries it.
+ */
+async function runPendingScripts(
+  workspace: Workspace,
+  $$: typeof $
+): Promise<boolean> {
+  const { database_url, service_role_key } = workspace;
+  if (!database_url || !service_role_key) {
+    console.log(
+      `⏭️  Skipping one-off scripts for ${workspace.id}: missing database url or service role key`
+    );
+    return true;
+  }
+
+  const ledger = createClient<LedgerDatabase>(database_url, service_role_key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+
+  const pending = await selectPendingScripts(ledger);
+  if (pending.length === 0) return true;
+
+  let succeeded = true;
+
+  for (const script of pending) {
+    console.log(`✅ 📜 Running ${script.name} for ${workspace.id}`);
+    try {
+      const { stdout } = await $$`tsx ${script.path}`;
+      const tail = stdout.trim().split("\n").slice(-20).join("\n");
+
+      // ignoreDuplicates: a row for this name may already exist — a retried
+      // insert whose first attempt landed, or an earlier run that recorded it.
+      // Either way the run IS recorded; keep the original row (and its ranAt)
+      // rather than failing the whole deploy over bookkeeping.
+      const { error } = await ledger
+        .from("scriptRun")
+        .upsert(
+          { name: script.name, result: { output: tail } },
+          { onConflict: "name", ignoreDuplicates: true }
+        );
+
+      if (error) {
+        // The work is done but unrecorded, so the next deploy runs it again.
+        // Every listed script must be idempotent for exactly this reason.
+        throw new Error(
+          `ran but could not be recorded: ${describePostgrestError(
+            error
+          )}. It will run again on the next deploy.`
+        );
+      }
+
+      console.log(`✅ 📜 Completed ${script.name} for ${workspace.id}`);
+    } catch (e) {
+      console.error(
+        `🔴 📜 Script ${script.name} failed for ${workspace.id}`,
+        e instanceof Error ? e.message : describePostgrestError(e)
+      );
+      if (e instanceof Error && e.stack) console.error(e.stack);
+      succeeded = false;
+    }
+  }
+
+  if (!succeeded) {
+    console.error(
+      `🔴 📜 One or more one-off scripts failed for ${workspace.id}. Migrations already succeeded; the failed scripts are unrecorded and retry on the next deploy.`
+    );
+  }
+
+  return succeeded;
+}
 
 async function migrate(): Promise<void> {
   console.log("✅ 🌱 Starting migrations");
@@ -98,6 +221,40 @@ async function migrate(): Promise<void> {
         await $$`supabase functions deploy`;
       }
 
+      // Postgres posts its Inngest events (util.send_inngest_event) to a URL in
+      // its Vault. This sets the event key in it, and the address only when
+      // none is stored yet: a changed `inngest_base_url` here needs
+      // set_inngest_event_url run by hand. The app does the same on boot from
+      // its own INNGEST_EVENT_KEY, so a workspace with no key here is wired by
+      // its first instance instead.
+      if (!workspace.inngest_event_key || !service_role_key) {
+        console.log(
+          `⏭️  📨 ${workspace.id} has no Inngest event key here: the app sets the database's event URL on boot`
+        );
+      } else {
+        // PostgREST reloads its schema a few seconds after a migration, so the
+        // function this run just created is not callable at once.
+        const eventUrlClient = createClient(database_url, service_role_key);
+        let eventUrlError: { message: string } | null = null;
+        for (let attempt = 1; attempt <= 6; attempt++) {
+          ({ error: eventUrlError } = await eventUrlClient.rpc(
+            "set_inngest_event_config",
+            {
+              p_key: workspace.inngest_event_key,
+              p_base_url: workspace.inngest_base_url ?? "https://inn.gs/",
+            }
+          ));
+          if (!eventUrlError) break;
+          await new Promise((resolve) => setTimeout(resolve, 5_000));
+        }
+        if (eventUrlError) {
+          console.error(
+            `🔴 📨 Failed to set the Inngest event URL for ${workspace.id}: ${eventUrlError.message}`
+          );
+          hasErrors = true;
+        }
+      }
+
       if (!workspace.seeded) {
         try {
           console.log(`✅ 🌱 Seeding ${workspace.id}`);
@@ -120,6 +277,13 @@ async function migrate(): Promise<void> {
       }
 
       console.log(`✅ 🐓 Successfully migrated ${workspace.id}`);
+
+      // After the success log: the schema is pushed and correct regardless of
+      // how the scripts go, so a script failure must not read as a failed
+      // migration. It still fails the overall run via `hasErrors`.
+      if (!(await runPendingScripts(workspace, $$))) {
+        hasErrors = true;
+      }
     } catch (error) {
       console.error(`🔴 🍳 Failed to migrate ${workspace.id}`, error);
       hasErrors = true;

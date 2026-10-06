@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   cn,
   IconButton,
@@ -64,7 +68,8 @@ export function BuilderControls({ panOnScroll, onTogglePanOnScroll }: Props) {
   const allExpanded = useBuilderStore((s) =>
     s.nodes.every((n) => n.expanded !== false)
   );
-  const isReadOnly = useBuilderStore((s) => s.isReadOnly);
+  const canChangeDefinition = useBuilderStore((s) => s.canChangeDefinition);
+  const canMoveNodes = useBuilderStore((s) => s.canMoveNodes);
 
   return (
     // One Panel owns the whole bottom-right overlay. The minimap is a Panel of its
@@ -90,7 +95,7 @@ export function BuilderControls({ panOnScroll, onTogglePanOnScroll }: Props) {
         <ControlButton
           aria-label={t`Auto arrange`}
           icon={<LuNetwork />}
-          isDisabled={isReadOnly}
+          isDisabled={!canMoveNodes}
           onClick={autoArrange}
         />
         <ControlButton
@@ -98,6 +103,8 @@ export function BuilderControls({ panOnScroll, onTogglePanOnScroll }: Props) {
           icon={allExpanded ? <LuMinimize2 /> : <LuMaximize2 />}
           aria-pressed={!allExpanded}
           className={cn(!allExpanded && "bg-muted")}
+          // `expanded` is part of the persisted definition, so this is an edit.
+          isDisabled={!canChangeDefinition}
           onClick={() => expandAll(!allExpanded)}
         />
         <div className="mx-0.5 h-4 w-px bg-border" />

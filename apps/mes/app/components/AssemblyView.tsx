@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import type { Database, Json } from "@carbon/database";
 import { getLogger } from "@carbon/logger";
@@ -21,6 +25,7 @@ import {
   DropdownMenuRadioItem,
   DropdownMenuTrigger,
   generateHTML,
+  hasOpenDialog,
   IconButton,
   Modal,
   ModalBody,
@@ -30,6 +35,7 @@ import {
   ModalOverlay,
   ModalTitle,
   Separator,
+  ShortcutKey,
   SidebarTrigger,
   Spinner,
   Status,
@@ -38,8 +44,8 @@ import {
   useDisclosure,
   useKeyboardWedge,
   useMode,
-  useRealtimeChannel,
-  useRouteData
+  useRouteData,
+  useShortcutKeys
 } from "@carbon/react";
 import { formatDurationMilliseconds } from "@carbon/utils";
 import type {
@@ -48,11 +54,14 @@ import type {
   Fastener,
   Motion
 } from "@carbon/viewer";
-import { AssemblyPlayer } from "@carbon/viewer";
+import { AssemblyPlayer, buildSubAssemblyPlan } from "@carbon/viewer";
 import { ModelPreview } from "@carbon/viewer/model-preview";
+import { useLingui } from "@lingui/react/macro";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  LuArrowLeft,
   LuBox,
+  LuBoxes,
   LuCheck,
   LuChevronLeft,
   LuChevronRight,
@@ -73,19 +82,13 @@ import {
   LuListFilter,
   LuPause,
   LuPlay,
-  LuSkipForward,
   LuTimer,
   LuTrash,
   LuUndo2,
   LuWrench,
   LuX
 } from "react-icons/lu";
-import {
-  useFetcher,
-  useNavigate,
-  useRevalidator,
-  useSearchParams
-} from "react-router";
+import { useFetcher, useNavigate, useSearchParams } from "react-router";
 import { TrackingTypeIcon } from "~/components/Icons";
 import { ImageZoomViewer } from "~/components/ImageZoomViewer";
 import { OperationChat } from "~/components/JobOperation/components/Chat";
@@ -96,7 +99,7 @@ import { QuantityModal } from "~/components/JobOperation/components/QuantityModa
 import { ReworkModal } from "~/components/JobOperation/components/ReworkModal";
 import { SerialSelectorModal } from "~/components/JobOperation/components/SerialSelectorModal";
 import { RecordModal } from "~/components/JobOperation/components/Step";
-import { useUser } from "~/hooks";
+import { useRealtime, useUser } from "~/hooks";
 import { isSerialEntityIncompleteForOperation } from "~/services/operations.service";
 import type {
   JobMaterial,
@@ -165,6 +168,9 @@ type SlideModel = {
   modelPath: string | null;
   thumbnailPath: string | null;
   glbPath: string | null;
+  // The optimiser's output, recorded by model-optimize. Preferred over deriving
+  // the path, which is only ever a guess.
+  optimizedModelPath?: string | null;
   processingStatus?: string | null;
 };
 
@@ -195,6 +201,12 @@ type AssemblyPlayback = {
     title: string | null;
     instructionText: string | null;
     componentNodeIds: string[] | null;
+    hiddenComponentNodeIds: string[] | null;
+    /** The sub-assembly (header step) this step belongs to */
+    parentStepId: string | null;
+    /** On a header: the step that fits the finished sub-assembly */
+    usedInStepId: string | null;
+    isSubAssembly: boolean;
     motion: Json;
     camera: Json | null;
     fastener: Json | null;
@@ -205,6 +217,9 @@ type AssemblyPlayback = {
 
 const playerMotionTypes = ["linear", "L", "helix", "path", "none"];
 
+/** Opens a sub-assembly: the step bar and the player show only its steps. */
+const SUB_ASSEMBLY_PARAM = "subAssembly";
+
 // DB row → @carbon/viewer AssemblyStep.
 function toViewerStep(step: AssemblyPlayback["steps"][number]): AssemblyStep {
   const motion = step.motion as Motion | null;
@@ -214,6 +229,10 @@ function toViewerStep(step: AssemblyPlayback["steps"][number]): AssemblyStep {
     title: step.title,
     instructionText: step.instructionText,
     componentNodeIds: step.componentNodeIds ?? [],
+    hiddenComponentNodeIds: step.hiddenComponentNodeIds ?? [],
+    parentStepId: step.parentStepId ?? null,
+    usedInStepId: step.usedInStepId ?? null,
+    isSubAssembly: step.isSubAssembly,
     motion:
       motion &&
       typeof motion === "object" &&
@@ -519,8 +538,8 @@ export function AssemblyView({
   const { carbon } = useCarbon();
   const mode = useMode();
   const navigate = useNavigate();
-  const revalidator = useRevalidator();
   const [searchParams, setSearchParams] = useSearchParams();
+  const { t } = useLingui();
   // Which main panel is shown: the assembly details, the 3D model, or chat.
   const [tab, setTab] = useState<"details" | "model" | "chat">("details");
 
@@ -560,48 +579,16 @@ export function AssemblyView({
 
   // Live sync — refresh loader data when this operation's events, step records,
   // job, or tracked entities change (incl. edits from the operation view).
-  useRealtimeChannel({
-    topic: `assembly:${operationId}`,
-    dependencies: [operationId],
-    setup(channel) {
-      const refresh = () => revalidator.revalidate();
-      return channel
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "productionEvent",
-            filter: `jobOperationId=eq.${operationId}`
-          },
-          refresh
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "jobOperationStepRecord" },
-          refresh
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "trackedActivity" },
-          refresh
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "jobOperation",
-            filter: `id=eq.${operationId}`
-          },
-          refresh
-        );
-    }
-  });
+  useRealtime("productionEvent", `jobOperationId=eq.${operationId}`);
+  useRealtime("jobOperationStepRecord", `operationId=eq.${operationId}`);
+  useRealtime("trackedActivity", `jobOperationId=eq.${operationId}`);
+  useRealtime("jobOperation", `id=eq.${operationId}`);
 
   // Kanban barcode scan → complete the operation (matches the operation view).
+  // The returned buffer is non-empty while a scan burst is in flight — the
+  // keyboard-shortcut effect below yields Enter to the wedge during that window.
   const completeFetcher = useFetcher();
-  useKeyboardWedge({
+  const wedgeBuffer = useKeyboardWedge({
     test: (input) =>
       kanban?.completedBarcodeOverride
         ? input === kanban.completedBarcodeOverride
@@ -932,25 +919,43 @@ export function AssemblyView({
     // row flips to issued the instant the owning step is done. Extra parts
     // (perUnit 0, issued ad-hoc from the floor) are excluded so their raw
     // quantityIssued drives the X/0 display instead.
-    const perUnit = m.quantity ?? 0;
+    //
+    // A link may carry a per-step quantity (the BOM line split across steps:
+    // 5 screws here, 5 on another step). The row on THIS step then shows and
+    // flips by the current step's share, matching the per-step backflush.
+    // UNTRACKED only: tracked (serial/batch) parts are issued by scanning and
+    // their quantityIssued is attributed per line, not per step — pairing a
+    // per-step requirement with line-level issued would overstate completion
+    // on later steps, so tracked cards keep the whole-line numbers.
+    const linkShare =
+      !isTrackedMat && step?.id != null
+        ? ((m.jobOperationStepQuantities ?? {})[step.id] ?? null)
+        : null;
+    const perUnit = linkShare ?? m.quantity ?? 0;
     const ownedStepDoneForUnit = isLoose
       ? !!firstStep && isStepDone(firstStep)
-      : steps.some(
-          (s) => (m.jobOperationStepIds ?? []).includes(s.id) && isStepDone(s)
-        );
+      : linkShare !== null && step != null
+        ? isStepDone(step)
+        : steps.some(
+            (s) => (m.jobOperationStepIds ?? []).includes(s.id) && isStepDone(s)
+          );
     const issuedOverride =
       !isTrackedMat && perUnit > 0
         ? ownedStepDoneForUnit
           ? perUnit
           : 0
         : undefined;
-    const state = getIssuedForUnit(m, {
+    // Shadow the line quantity with the step share so the card's required/issued
+    // numbers describe this step's portion of the split, not the whole line.
+    const effectiveMaterial =
+      linkShare !== null ? { ...m, quantity: perUnit } : m;
+    const state = getIssuedForUnit(effectiveMaterial, {
       unitIndex: currentUnitIndex,
       issuedIsPerUnit,
       issuedOverride
     });
     return {
-      m,
+      m: effectiveMaterial,
       stepNumbers,
       isTrackedMat,
       issuedIsPerUnit,
@@ -968,6 +973,12 @@ export function AssemblyView({
     (v) => v.isTrackedMat && v.state.required > 0 && !v.state.fullyIssued
   );
   const hasPendingScans = pendingScanMaterials.length > 0;
+
+  // The current step's primary action (Mark done / open RecordModal), lifted via
+  // ref so the keyboard-shortcut effect can trigger it from the parent. Null when
+  // the step is done, gated, or submitting — the key is inert exactly when the
+  // button is.
+  const primaryStepActionRef = useRef<(() => void) | null>(null);
 
   // Open production events per work type (to pass to the complete flow so it
   // can close them on completion).
@@ -1003,10 +1014,17 @@ export function AssemblyView({
     if (slide.modelUploadId) {
       const model = slideModels?.[slide.modelUploadId] ?? null;
       // ModelPreview loads the assembler-converted GLB fast tier when present and
-      // falls back to parsing the raw upload client-side (WASM tier).
+      // falls back to parsing the raw upload client-side (WASM tier). Only a REAL
+      // recorded artifact may be passed as glbUrl: a non-null value makes
+      // ModelPreview treat a server model as available and skip the raw tier
+      // entirely (`useRawTier` requires `!hasServerModel`), so guessing the
+      // optimiser's `optimized.glb` path left an unconverted model showing
+      // "Couldn't load the 3D model." instead of rendering from the raw upload.
       const glbUrl = model?.glbPath
         ? getPrivateUrl(model.glbPath)
-        : optimizedModelPreviewUrl(model?.modelPath ?? null);
+        : model?.optimizedModelPath
+          ? getPrivateUrl(model.optimizedModelPath)
+          : null;
       const rawUrl = model?.modelPath ? getPrivateUrl(model.modelPath) : null;
       return {
         kind: "model" as const,
@@ -1052,6 +1070,88 @@ export function AssemblyView({
     return index >= 0 ? index : null;
   }, [assemblyPlayback, step]);
   const playbackAvailable = playbackIndex !== null && viewerSteps.length > 0;
+
+  // Sub-assemblies come from the instruction: a job step belongs to one when
+  // its instruction step (the provenance marker) does. The bar shows each
+  // sub-assembly as one entry; ?subAssembly= opens it, so the bar and the
+  // player show only its steps. Hand-authored job steps stay top level.
+  const subPlan = useMemo(
+    () => buildSubAssemblyPlan(viewerSteps),
+    [viewerSteps]
+  );
+  const headerOfJobStep = (jobStep: Step | undefined) => {
+    const marker = jobStep?.assemblyInstructionStepId;
+    const info = marker ? subPlan.get(marker) : undefined;
+    return info && !info.isHeader ? info.headerId : null;
+  };
+  const subAssemblyTitle = (headerId: string) =>
+    viewerSteps.find((viewerStep) => viewerStep.id === headerId)?.title ||
+    t`Sub-Assembly`;
+  const subAssemblyNumber = (headerId: string) =>
+    subPlan.get(headerId)?.number ?? "";
+  const requestedSubAssembly = searchParams.get(SUB_ASSEMBLY_PARAM);
+  const openSubAssemblyId =
+    requestedSubAssembly && subPlan.get(requestedSubAssembly)?.isHeader
+      ? requestedSubAssembly
+      : null;
+  const scopeStepIds = useMemo(
+    () =>
+      openSubAssemblyId
+        ? viewerSteps
+            .filter(
+              (viewerStep) => viewerStep.parentStepId === openSubAssemblyId
+            )
+            .map((viewerStep) => viewerStep.id)
+        : null,
+    [openSubAssemblyId, viewerSteps]
+  );
+  const playbackInfo =
+    playbackIndex !== null
+      ? subPlan.get(viewerSteps[playbackIndex]?.id ?? "")
+      : undefined;
+  const isolationLabel =
+    playbackInfo && !playbackInfo.isHeader && playbackInfo.headerId
+      ? t`Sub-Assembly ${subAssemblyNumber(playbackInfo.headerId)} · ${subAssemblyTitle(
+          playbackInfo.headerId
+        )} — shown on its own`
+      : null;
+  const carriedIn = playbackInfo?.carriesIn ?? [];
+  const carryInLabel =
+    carriedIn.length > 0
+      ? carriedIn
+          .map(
+            (headerId) =>
+              t`Uses ${subAssemblyNumber(headerId)} · ${subAssemblyTitle(headerId)}`
+          )
+          .join(", ")
+      : null;
+
+  // The bar's entries: a job step, or a sub-assembly holding its job steps.
+  type BarItem =
+    | { kind: "step"; index: number }
+    | { kind: "subAssembly"; headerId: string; indices: number[] };
+  const barItems: BarItem[] = [];
+  const subAssemblyItems = new Map<
+    string,
+    Extract<BarItem, { kind: "subAssembly" }>
+  >();
+  steps.forEach((jobStep, index) => {
+    const headerId = headerOfJobStep(jobStep);
+    if (!headerId) {
+      barItems.push({ kind: "step", index });
+      return;
+    }
+    let item = subAssemblyItems.get(headerId);
+    if (!item) {
+      item = { kind: "subAssembly", headerId, indices: [] };
+      subAssemblyItems.set(headerId, item);
+      barItems.push(item);
+    }
+    item.indices.push(index);
+  });
+  const openIndices = openSubAssemblyId
+    ? (subAssemblyItems.get(openSubAssemblyId)?.indices ?? [])
+    : [];
   const selectedCaption =
     typeof selected === "number"
       ? (stepSlides[selected]?.caption ?? null)
@@ -1092,6 +1192,64 @@ export function AssemblyView({
       (prev) => {
         const next = new URLSearchParams(prev);
         next.set("step", String(n));
+        // Leaving an opened sub-assembly's steps closes it.
+        const open = next.get(SUB_ASSEMBLY_PARAM);
+        if (open && headerOfJobStep(steps[n]) !== open) {
+          next.delete(SUB_ASSEMBLY_PARAM);
+        }
+        return next;
+      },
+      { replace: true, preventScrollReset: true }
+    );
+  }
+
+  function openSubAssembly(headerId: string, indices: number[]) {
+    const target =
+      indices.find((index) => !isStepDone(steps[index])) ?? indices[0] ?? 0;
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set(SUB_ASSEMBLY_PARAM, headerId);
+        next.set("step", String(target));
+        return next;
+      },
+      { replace: true, preventScrollReset: true }
+    );
+  }
+
+  const stepMatchesFilter = (s: Step) =>
+    stepFilter === "all"
+      ? true
+      : stepFilter === "completed"
+        ? isStepDone(s)
+        : !isStepDone(s);
+  const stepSegmentTone = (s: Step, i: number) =>
+    isStepDone(s)
+      ? isStepBadResult(s)
+        ? "bg-red-500"
+        : "bg-emerald-500"
+      : i === currentStep
+        ? "bg-foreground"
+        : "bg-border";
+  const renderStepSegment = (s: Step, i: number) => (
+    <button
+      key={s.id}
+      type="button"
+      aria-label={`Go to step ${i + 1}`}
+      onClick={() => goToStep(i)}
+      className={cn(
+        "h-3 flex-1 rounded-[2px] transition-colors",
+        stepSegmentTone(s, i),
+        !isStepDone(s) && i !== currentStep && "hover:bg-muted-foreground/40"
+      )}
+    />
+  );
+
+  function closeSubAssembly() {
+    setSearchParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.delete(SUB_ASSEMBLY_PARAM);
         return next;
       },
       { replace: true, preventScrollReset: true }
@@ -1145,6 +1303,88 @@ export function AssemblyView({
 
     if (!isLastStep) goToStep(currentStep + 1);
   }, [currentStep, currentStepDone, isLastStep, allStepsRecorded]);
+
+  // ── Keyboard shortcuts (Bluetooth clicker / pedal friendly) ────────────────
+  // Space/Enter fire the current step's primary action (Mark done, or open the
+  // RecordModal for input steps); ←/→ navigate steps (→ ≡ Skip). Bound via
+  // useShortcutKeys (react-hotkeys-hook), which already skips editable targets
+  // (inputs, textareas, contenteditable/ProseMirror) and modifier combos.
+  // preventDefault in the action stops a focused button's native click (Space
+  // clicks on keyup only if keydown wasn't prevented; Enter's click is the
+  // keydown's default action) — otherwise one press could both record and
+  // re-trigger the focused button.
+  const ARMED_SWALLOW_MS = 750;
+  const shortcutArmedAtRef = useRef<number | null>(null);
+
+  useShortcutKeys({
+    shortcut: ["enter", "space"],
+    action: (event) => {
+      event.preventDefault();
+      shortcutArmedAtRef.current = Date.now();
+      primaryStepActionRef.current?.();
+    },
+    guard: (event) =>
+      // Any open dialog (RecordModal, issue/scan modals, zoom) keeps native
+      // key semantics — the armed-clicker swallow below is the one exception.
+      !hasOpenDialog() &&
+      // A barcode wedge scan terminates with Enter — yield it to
+      // useKeyboardWedge while a scan burst is buffered.
+      !(event.key === "Enter" && wedgeBuffer !== "") &&
+      // No primary action (step done, gated, or submitting) → leave the
+      // action keys native, so a keyboard user who focused Skip can still
+      // activate it with Space/Enter.
+      primaryStepActionRef.current !== null
+  });
+
+  useShortcutKeys({
+    shortcut: ["arrowright", "arrowleft"],
+    action: (event) => {
+      // Always claimed (even at the ends) so an arrow press never falls
+      // through to page scroll.
+      event.preventDefault();
+      if (event.key === "ArrowRight" && !isLastStep) goToStep(currentStep + 1);
+      else if (event.key === "ArrowLeft" && currentStep > 0)
+        goToStep(currentStep - 1);
+    },
+    guard: () => !hasOpenDialog()
+  });
+
+  // The one piece the library can't do: for a short window after the shortcut
+  // opens a modal, the action keys stay swallowed — the RecordModal autofocuses
+  // (and selects) its input, so a clicker DOUBLE-press would otherwise natively
+  // submit the form's DEFAULT value (a 0 measurement). That interception must
+  // run in the CAPTURE phase, before the autofocused input (and the modal's own
+  // Enter hotkey) ever sees the key — react-hotkeys-hook only listens in the
+  // bubble phase. After the window a deliberate Enter submits normally (the
+  // selected default is a valid thing to accept), and any other key or a
+  // pointer tap ends the window early.
+  useEffect(() => {
+    function swallowArmedClicker(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const isAction = event.key === " " || event.key === "Enter";
+      const armedAt = shortcutArmedAtRef.current;
+      if (
+        hasOpenDialog() &&
+        isAction &&
+        armedAt !== null &&
+        Date.now() - armedAt < ARMED_SWALLOW_MS
+      ) {
+        event.preventDefault();
+        event.stopPropagation();
+      } else {
+        shortcutArmedAtRef.current = null;
+      }
+    }
+    function handlePointerDown() {
+      shortcutArmedAtRef.current = null;
+    }
+    document.addEventListener("keydown", swallowArmedClicker, true);
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    return () => {
+      document.removeEventListener("keydown", swallowArmedClicker, true);
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+    };
+  }, []);
 
   // Stop the labor clock automatically once every step is recorded for this unit.
   const allDoneRef = useRef(allStepsRecorded);
@@ -1384,7 +1624,7 @@ export function AssemblyView({
     mode === "dark" ? user.company.logoDarkIcon : user.company.logoLightIcon;
 
   return (
-    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background text-foreground">
+    <div className="relative flex h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
       {/* ── HEADER ── */}
       <header className="flex h-[52px] shrink-0 items-center bg-card border-b border-border">
         {/* Full-height segment matching the Flag issue / Complete / timer buttons. */}
@@ -1463,7 +1703,7 @@ export function AssemblyView({
 
       {/* ── STEPS BAR (segmented, click to jump; green = done) ── */}
       {steps.length > 0 && (
-        <div className="flex h-9 shrink-0 items-center gap-3 bg-card border-b border-border px-5">
+        <div className="flex min-h-9 shrink-0 items-center gap-3 bg-card border-b border-border px-5 py-1">
           {/* Label reflects the active filter so a filtered bar (e.g. only the completed,
               all-green steps) is never mistaken for "everything done". */}
           <span className="whitespace-nowrap text-xs text-muted-foreground">
@@ -1473,34 +1713,64 @@ export function AssemblyView({
                 ? `${steps.length - doneCount} incomplete`
                 : `${doneCount} / ${steps.length} done`}
           </span>
-          <div className="flex flex-1 items-center gap-1">
-            {steps
-              .map((s, i) => [s, i] as const)
-              .filter(([s]) =>
-                stepFilter === "all"
-                  ? true
-                  : stepFilter === "completed"
-                    ? isStepDone(s)
-                    : !isStepDone(s)
-              )
-              .map(([s, i]) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-label={`Go to step ${i + 1}`}
-                  onClick={() => goToStep(i)}
-                  className={cn(
-                    "h-3 flex-1 rounded-[2px] transition-colors",
-                    isStepDone(s)
-                      ? isStepBadResult(s)
-                        ? "bg-red-500"
-                        : "bg-emerald-500"
-                      : i === currentStep
-                        ? "bg-foreground"
-                        : "bg-border hover:bg-muted-foreground/40"
-                  )}
-                />
-              ))}
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            {openSubAssemblyId ? (
+              <>
+                <Button
+                  variant="ghost"
+                  size="md"
+                  leftIcon={<LuArrowLeft />}
+                  onClick={closeSubAssembly}
+                >
+                  {t`All steps`}
+                </Button>
+                <span className="max-w-[40%] shrink-0 truncate text-xs text-muted-foreground">
+                  {t`Sub-Assembly ${subAssemblyNumber(openSubAssemblyId)} · ${subAssemblyTitle(openSubAssemblyId)}`}
+                </span>
+                {openIndices
+                  .filter((i) => stepMatchesFilter(steps[i]))
+                  .map((i) => renderStepSegment(steps[i], i))}
+              </>
+            ) : (
+              barItems.map((item) => {
+                if (item.kind === "step") {
+                  const s = steps[item.index];
+                  return stepMatchesFilter(s)
+                    ? renderStepSegment(s, item.index)
+                    : null;
+                }
+                const members = item.indices.map((i) => steps[i]);
+                const allDone = members.every(isStepDone);
+                if (stepFilter === "completed" && !allDone) return null;
+                if (stepFilter === "incomplete" && allDone) return null;
+                const isCurrent = item.indices.includes(currentStep);
+                return (
+                  <button
+                    key={item.headerId}
+                    type="button"
+                    aria-label={t`Open sub-assembly ${subAssemblyNumber(item.headerId)}: ${subAssemblyTitle(item.headerId)}`}
+                    title={t`Sub-Assembly ${subAssemblyNumber(item.headerId)} · ${subAssemblyTitle(item.headerId)}`}
+                    onClick={() => openSubAssembly(item.headerId, item.indices)}
+                    style={{ flexGrow: item.indices.length }}
+                    className={cn(
+                      "flex h-6 flex-1 basis-0 items-center gap-0.5 rounded-[3px] border px-1 transition-colors hover:bg-muted",
+                      isCurrent ? "border-foreground" : "border-border"
+                    )}
+                  >
+                    <LuBoxes className="size-3.5 shrink-0 text-muted-foreground" />
+                    {item.indices.map((i) => (
+                      <span
+                        key={steps[i].id}
+                        className={cn(
+                          "h-2 flex-1 rounded-[1px]",
+                          stepSegmentTone(steps[i], i)
+                        )}
+                      />
+                    ))}
+                  </button>
+                );
+              })
+            )}
             {stepFilter === "incomplete" && doneCount === steps.length && (
               <span className="text-xs text-emerald-500">All steps done</span>
             )}
@@ -1859,6 +2129,9 @@ export function AssemblyView({
                           glbUrl={getPrivateUrl(assemblyPlayback.glbPath)}
                           graphUrl={getPrivateUrl(assemblyPlayback.graphPath)}
                           steps={viewerSteps}
+                          scopeStepIds={scopeStepIds}
+                          isolationLabel={isolationLabel}
+                          carryInLabel={carryInLabel}
                           activeStepIndex={playbackIndex ?? 0}
                           playStepNonce={currentStep}
                           autoPlay
@@ -2044,14 +2317,21 @@ export function AssemblyView({
                     <p className="text-lg font-medium leading-relaxed">
                       {step.name ?? `Step ${currentStep + 1}`}
                     </p>
-                    {stepDescriptionHtml ? (
-                      <div
-                        className="prose prose-sm max-w-none text-sm text-foreground dark:prose-invert"
-                        dangerouslySetInnerHTML={{
-                          __html: stepDescriptionHtml
-                        }}
-                      />
-                    ) : null}
+                    {/* generateHTML returns nothing on the server, so the
+                        server never renders this block: rendering it during
+                        hydration would not match. */}
+                    <ClientOnly>
+                      {() =>
+                        stepDescriptionHtml ? (
+                          <div
+                            className="prose prose-sm max-w-none text-sm text-foreground dark:prose-invert"
+                            dangerouslySetInnerHTML={{
+                              __html: stepDescriptionHtml
+                            }}
+                          />
+                        ) : null
+                      }
+                    </ClientOnly>
                   </>
                 ) : (
                   <p className="text-sm text-muted-foreground">
@@ -2228,6 +2508,7 @@ export function AssemblyView({
                     activeIndex={activeIndex}
                     done={isStepDone(step)}
                     disabled={hasPendingScans}
+                    actionRef={primaryStepActionRef}
                   />
                 </div>
               )}
@@ -2235,11 +2516,15 @@ export function AssemblyView({
                 variant="outline"
                 size="lg"
                 className="shrink-0"
-                rightIcon={<LuSkipForward />}
                 isDisabled={isLastStep}
                 onClick={() => goToStep(currentStep + 1)}
               >
                 Skip
+                <ShortcutKey
+                  shortcut="arrowright"
+                  variant="medium"
+                  className="hidden md:flex"
+                />
               </Button>
             </div>
           </div>
@@ -2644,13 +2929,18 @@ function TimerControl({
         <input type="hidden" name="unitIndex" value={unitIndex} />
       ) : null}
       <button
+        disabled={fetcher.state !== "idle"}
         type="submit"
         aria-label={active ? "Pause timer" : "Start timer"}
         className="flex h-full shrink-0 items-center gap-1 border-l border-border px-2 transition-colors hover:bg-accent active:scale-[0.98] md:gap-2 md:px-4"
       >
         <span className="hidden flex-col items-end leading-none sm:flex">
           <span className="text-sm font-medium tabular-nums">
-            {formatElapsed(elapsed)}
+            {/* The clock moves between the server render and hydration, so the
+                elapsed time is only rendered in the browser. */}
+            <ClientOnly fallback={formatElapsed(0)}>
+              {() => formatElapsed(elapsed)}
+            </ClientOnly>
           </span>
           <span className="text-[9px] uppercase tracking-wider text-muted-foreground">
             {workType}
@@ -2883,7 +3173,8 @@ function StepCompleteAction({
   step,
   activeIndex,
   done,
-  disabled = false
+  disabled = false,
+  actionRef
 }: {
   step: Step;
   activeIndex: number;
@@ -2891,6 +3182,9 @@ function StepCompleteAction({
   // Soft gate: the step's tracked parts aren't fully issued for this unit, so
   // block completion (Mark done / Record) until they're scanned. Skip bypasses.
   disabled?: boolean;
+  // Written every render with the primary action so the parent's Space/Enter
+  // shortcut fires the same thing the button would.
+  actionRef?: { current: (() => void) | null };
 }) {
   const fetcher = useFetcher();
   const user = useUser();
@@ -2924,6 +3218,22 @@ function StepCompleteAction({
     fd.append("booleanValue", "true");
     fetcher.submit(fd, { method: "post", action: path.to.record });
   }
+
+  // No dep array: re-assign every render so the shortcut always sees the
+  // freshest closure; cleared on unmount so a stale action can't fire.
+  useEffect(() => {
+    if (!actionRef) return;
+    if (done || disabled || busy) {
+      actionRef.current = null;
+    } else if (type === "Task") {
+      actionRef.current = markTaskDone;
+    } else {
+      actionRef.current = recordModal.onOpen;
+    }
+    return () => {
+      actionRef.current = null;
+    };
+  });
 
   // ── Already done: show recorded value + Undo button ──
   if (done && record) {
@@ -2991,6 +3301,11 @@ function StepCompleteAction({
         onClick={markTaskDone}
       >
         Mark done
+        <ShortcutKey
+          shortcut="enter"
+          variant="medium"
+          className="hidden md:flex"
+        />
       </Button>
     );
   }
@@ -3006,6 +3321,11 @@ function StepCompleteAction({
         onClick={recordModal.onOpen}
       >
         Record
+        <ShortcutKey
+          shortcut="enter"
+          variant="medium"
+          className="hidden md:flex"
+        />
       </Button>
       {recordModal.isOpen && (
         <RecordModal

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type React from "react";
 import { forwardRef, useRef } from "react";
 import * as ReactAria from "react-aria-components";
@@ -54,8 +58,19 @@ const NumberField = ({
   );
 };
 
-const NumberInputGroup = (props: ReactAria.GroupProps) => {
-  return <ReactAria.Group {...props} />;
+// `relative` anchors the absolutely positioned NumberInputStepper to the input;
+// without it the arrows attach to the nearest positioned ancestor (e.g. a modal).
+const NumberInputGroup = ({ className, ...props }: ReactAria.GroupProps) => {
+  return (
+    <ReactAria.Group
+      className={
+        typeof className === "function"
+          ? (values) => cn("relative", className(values))
+          : cn("relative", className)
+      }
+      {...props}
+    />
+  );
 };
 
 const NumberInputStepper = ({

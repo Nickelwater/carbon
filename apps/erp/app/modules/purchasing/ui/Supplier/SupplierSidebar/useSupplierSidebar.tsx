@@ -1,19 +1,25 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useLingui } from "@lingui/react/macro";
 import {
   LuBuilding,
-  LuCog,
   LuContact,
   LuCreditCard,
   LuFiles,
+  LuLandmark,
   LuLayoutList,
   LuMapPin,
   LuPackageSearch,
   LuReceipt,
+  LuRedoDot,
   LuShieldAlert,
   LuTruck
 } from "react-icons/lu";
 import { useParams } from "react-router";
 import { usePermissions } from "~/hooks";
+import { DETAIL_TAB_SHORTCUTS } from "~/shortcuts";
 import type { Role } from "~/types";
 import { path } from "~/utils/path";
 
@@ -33,7 +39,7 @@ export function useSupplierSidebar({ contacts, locations }: Props) {
       name: t`Details`,
       to: path.to.supplierDetails(supplierId),
       icon: <LuBuilding />,
-      shortcut: "Command+Shift+d"
+      shortcut: DETAIL_TAB_SHORTCUTS.details
     },
     {
       name: t`Contacts`,
@@ -41,7 +47,7 @@ export function useSupplierSidebar({ contacts, locations }: Props) {
       role: ["employee"],
       count: contacts,
       icon: <LuContact />,
-      shortcut: "Command+Shift+c"
+      shortcut: DETAIL_TAB_SHORTCUTS.contacts
     },
     {
       name: t`Locations`,
@@ -49,41 +55,54 @@ export function useSupplierSidebar({ contacts, locations }: Props) {
       role: ["employee", "supplier"],
       count: locations,
       icon: <LuMapPin />,
-      shortcut: "Command+Shift+l"
+      shortcut: DETAIL_TAB_SHORTCUTS.locations
     },
     {
       name: t`Payment`,
       to: path.to.supplierPayment(supplierId),
       role: ["employee"],
       icon: <LuCreditCard />,
-      shortcut: "Command+Shift+p"
+      shortcut: DETAIL_TAB_SHORTCUTS.payment
     },
     {
       name: t`Tax`,
       to: path.to.supplierTax(supplierId),
       role: ["employee"],
       icon: <LuReceipt />,
-      shortcut: "Command+Shift+t"
+      shortcut: DETAIL_TAB_SHORTCUTS.tax
     },
     {
       name: t`Shipping`,
       to: path.to.supplierShipping(supplierId),
       role: ["employee"],
       icon: <LuTruck />,
-      shortcut: "Command+Shift+s"
+      shortcut: DETAIL_TAB_SHORTCUTS.shipping
     },
     {
       name: t`Processes`,
       to: path.to.supplierProcesses(supplierId),
       role: ["employee"],
-      icon: <LuCog />,
-      shortcut: "Command+Shift+r"
+      icon: <LuRedoDot />,
+      shortcut: DETAIL_TAB_SHORTCUTS.processes
+    },
+    {
+      name: t`Documents`,
+      to: path.to.supplierDocuments(supplierId),
+      role: ["employee"],
+      icon: <LuFiles />
     },
     {
       name: t`Default Attachments`,
       to: path.to.supplierDefaultAttachments(supplierId),
       role: ["employee"],
       icon: <LuFiles />
+    },
+    {
+      name: t`Bank Accounts`,
+      to: path.to.supplierBankAccounts(supplierId),
+      role: ["employee"],
+      permission: { action: "view" as const, module: "accounting" },
+      icon: <LuLandmark />
     },
     {
       name: t`Risks`,
@@ -112,18 +131,33 @@ export function useSupplierSidebar({ contacts, locations }: Props) {
     //   to: path.to.supplierShipping(supplierId),
     //   role: ["employee"],
     //   icon: <LuTruck />,
-    //   shortcut: "Command+Shift+s",
+    //   shortcut: DETAIL_TAB_SHORTCUTS.shipping,
     // },
     // {
     //   name: t`Accounting`,
     //   to: path.to.supplierAccounting(supplierId),
     //   role: ["employee"],
     //   icon: <LuLandmark />,
-    //   shortcut: "Command+Shift+a",
+    //   shortcut: DETAIL_TAB_SHORTCUTS.accounting,
     // },
-  ].filter(
-    (item) =>
+  ].filter((item) => {
+    // `role` gates on WHO the user is (employee / supplier / customer);
+    // `permission` gates on WHAT they may do (a <module>_<action> grant).
+    // They are separate checks — permissions.is() cannot express a module permission.
+    const roleOk =
       item.role === undefined ||
-      item.role.some((role) => permissions.is(role as Role))
-  );
+      item.role.some((role) => permissions.is(role as Role));
+    const permission = (
+      item as {
+        permission?: {
+          action: "view" | "create" | "update" | "delete";
+          module: string;
+        };
+      }
+    ).permission;
+    const permissionOk =
+      permission === undefined ||
+      permissions.can(permission.action, permission.module);
+    return roleOk && permissionOk;
+  });
 }

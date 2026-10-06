@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Button,
   Card,
@@ -5,8 +9,10 @@ import {
   cn,
   Modal,
   ModalContent,
+  useEdition,
   VStack
 } from "@carbon/react";
+import { Edition } from "@carbon/utils";
 import { Trans } from "@lingui/react/macro";
 import type { ReactNode } from "react";
 import { Link } from "react-router";
@@ -18,7 +24,7 @@ function UpgradeOverlayRoot({ children, className }: WithChildren) {
   return (
     <div
       className={cn(
-        "relative w-full h-full min-h-[calc(100dvh-49px)]",
+        "relative w-full h-full min-h-[calc(100dvh-var(--topbar-height)-var(--content-inset))]",
         className
       )}
     >
@@ -129,25 +135,80 @@ function UpgradeOverlayDialog({
 }) {
   return (
     <Modal open={open} onOpenChange={onOpenChange}>
-      <ModalContent className="max-w-md">
-        <CardContent className="flex flex-col items-center text-center gap-4 pt-8 pb-6">
+      <ModalContent className="max-w-md bg-card dark:bg-muted/40">
+        <div className="flex flex-col items-center text-center gap-4 px-6 pt-4 pb-8">
           {children}
-        </CardContent>
+        </div>
       </ModalContent>
     </Modal>
   );
 }
 
+/**
+ * Generic section-level gate: blurs the real (inert) section and centers the
+ * upgrade card over it. Unlike the full-page overlays, it sizes to the section
+ * — the min-height only guarantees the card fits over short content.
+ */
+function UpgradeOverlaySection({
+  icon,
+  title,
+  description,
+  children,
+  className
+}: {
+  icon: ReactNode;
+  title: ReactNode;
+  description: ReactNode;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <UpgradeOverlayRoot className={cn("min-h-80", className)}>
+      <UpgradeOverlayPreview className="flex min-h-80 flex-col justify-center">
+        {children}
+      </UpgradeOverlayPreview>
+      <UpgradeOverlayCard>
+        <UpgradeOverlayIcon>{icon}</UpgradeOverlayIcon>
+        <UpgradeOverlayContent>
+          <UpgradeOverlayTitle>{title}</UpgradeOverlayTitle>
+          <UpgradeOverlayDescription>{description}</UpgradeOverlayDescription>
+        </UpgradeOverlayContent>
+        <UpgradeOverlayActions>
+          <UpgradeOverlayUpgradeButton />
+        </UpgradeOverlayActions>
+      </UpgradeOverlayCard>
+    </UpgradeOverlayRoot>
+  );
+}
+
 function UpgradeOverlayUpgradeButton({
   children,
-  to = path.to.billing
+  to
 }: {
   children?: ReactNode;
   to?: string;
 }) {
+  // On Cloud the upgrade path is the Business plan (Stripe billing); everywhere
+  // else (self-hosted Community) it's an Enterprise license, which is a
+  // conversation off-app rather than a self-serve billing page.
+  const isCloud = useEdition() === Edition.Cloud;
+  const target = to ?? (isCloud ? path.to.billing : path.to.pricing);
+  const isExternal = target.startsWith("http");
+
   return (
     <Button asChild>
-      <Link to={to}>{children ?? <Trans>Upgrade to Business</Trans>}</Link>
+      <Link
+        to={target}
+        reloadDocument={isExternal}
+        target={isExternal ? "_blank" : undefined}
+      >
+        {children ??
+          (isCloud ? (
+            <Trans>Upgrade to Business</Trans>
+          ) : (
+            <Trans>Upgrade to Enterprise</Trans>
+          ))}
+      </Link>
     </Button>
   );
 }
@@ -164,6 +225,7 @@ export {
   UpgradeOverlayIcon,
   UpgradeOverlayInline,
   UpgradeOverlayPreview,
+  UpgradeOverlaySection,
   UpgradeOverlayStickyGradient,
   UpgradeOverlayTitle,
   UpgradeOverlayUpgradeButton

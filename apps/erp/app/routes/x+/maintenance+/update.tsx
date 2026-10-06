@@ -1,13 +1,29 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import type { ActionFunctionArgs } from "react-router";
+import { notifyScheduleInputsChanged } from "~/modules/production";
 import {
   isMaintenanceDispatchLocked,
   updateMaintenanceDispatch
 } from "~/modules/resources";
+import { postMaintenanceLabor } from "~/modules/resources/resources.server";
 import { requireUnlockedBulk } from "~/utils/lockedGuard.server";
 
+// Field changes that can move a work center's downtime window.
+const SCHEDULE_AFFECTING_FIELDS = new Set([
+  "status",
+  "workCenterId",
+  "plannedStartTime",
+  "plannedEndTime",
+  "actualStartTime",
+  "actualEndTime"
+]);
+
 export async function action({ request }: ActionFunctionArgs) {
-  const { client, userId } = await requirePermissions(request, {
+  const { client, companyId, userId } = await requirePermissions(request, {
     update: "resources"
   });
 
@@ -23,10 +39,11 @@ export async function action({ request }: ActionFunctionArgs) {
     return { error: { message: "Invalid form data" }, data: null };
   }
 
-  // Per-ID locked check
+  // Per-ID locked check (also carries the offline flag + work center so a
+  // downtime-affecting edit can stamp the schedule below).
   const dispatches = await client
     .from("maintenanceDispatch")
-    .select("id, status")
+    .select("id, status, takesWorkCenterOffline, workCenterId")
     .in("id", ids as string[]);
 
   const lockedError = requireUnlockedBulk({
@@ -91,6 +108,43 @@ export async function action({ request }: ActionFunctionArgs) {
       error: { message: "Failed to update maintenance dispatch(es)" },
       data: null
     };
+  }
+
+  // A downtime-affecting change on an offline dispatch (status, work center, or
+  // timing) moves the work center's outage window — stamp it so the wave
+  // regenerates. Completing/cancelling restores the hours the same way.
+  if (SCHEDULE_AFFECTING_FIELDS.has(field)) {
+    const affectedWorkCenterIds = new Set<string>();
+    for (const d of dispatches.data ?? []) {
+      if (!d.takesWorkCenterOffline) continue;
+      if (d.workCenterId) affectedWorkCenterIds.add(d.workCenterId);
+    }
+    for (const workCenterId of affectedWorkCenterIds) {
+      await notifyScheduleInputsChanged(
+        companyId,
+        "work-center",
+        "Machine downtime changed",
+        workCenterId
+      );
+    }
+  }
+
+  // Completing closes every open timecard (end_maintenance_events_on_complete)
+  // — post their labor.
+  if (field === "status" && value === "Completed") {
+    const postingError = await postMaintenanceLabor({
+      maintenanceDispatchIds: ids as string[],
+      companyId,
+      userId
+    });
+    if (postingError) {
+      return {
+        error: {
+          message: `Updated, but labor cost did not post: ${postingError}`
+        },
+        data: results.map((result) => result.data)
+      };
+    }
   }
 
   return { data: results.map((result) => result.data) };

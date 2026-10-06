@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   CarbonEdition,
   CarbonProvider,
@@ -6,17 +10,26 @@ import {
   getCarbon,
   getCompanies,
   getUser,
-  ITAR_RIDER_PDF_PATH
+  hasPermission,
+  ITAR_RIDER_PDF_PATH,
+  isAuthProviderEnabled,
+  SESSION_HEARTBEAT_MS,
+  SESSION_IDLE_LOCK_MS
 } from "@carbon/auth";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
+import { setConsolePinIn } from "@carbon/auth/console-pin.server";
 import { userHasVerifiedTotpFactor } from "@carbon/auth/mfa.server";
 import {
   destroyAuthSession,
   requireAuthSession
 } from "@carbon/auth/session.server";
+import { getUserClaims } from "@carbon/auth/users.server";
+import { isConsoleModeEnabledForCompany } from "@carbon/ee/console.server";
 import type { PrintingSettings } from "@carbon/printing";
 import { getPrinterRoutes } from "@carbon/printing";
 import { PrintingProvider } from "@carbon/printing/ui";
+import { RouteRealtime } from "@carbon/query";
+import { setClientCompanyId } from "@carbon/query/cache";
 import {
   Button,
   Heading,
@@ -31,8 +44,10 @@ import {
 import { getStripeCustomerByCompanyId } from "@carbon/stripe/stripe.server";
 import {
   Edition,
-  isSearchParamOnlyNavigation,
-  requiresItarEntityCertification
+  redirect,
+  redirectExternal,
+  requiresItarEntityCertification,
+  SHELL_MAX_AGE_MS
 } from "@carbon/utils";
 import { Trans } from "@lingui/react/macro";
 import posthog from "posthog-js";
@@ -48,7 +63,6 @@ import {
   data,
   Form,
   Outlet,
-  redirect,
   useLoaderData,
   useNavigate
 } from "react-router";
@@ -56,10 +70,12 @@ import { AppSidebar } from "~/components";
 import { ConsolePill } from "~/components/ConsolePill";
 import { PinInOverlay } from "~/components/PinInOverlay";
 import RealtimeDataProvider from "~/components/RealtimeDataProvider";
+import SessionLockOverlay from "~/components/SessionLockOverlay";
+import ShortcutHelp from "~/components/ShortcutHelp";
 import { TimeCardWarning } from "~/components/TimeCardWarning";
 import { userContext } from "~/context";
+import { useIdle } from "~/hooks";
 import { userMiddleware } from "~/middleware/user";
-import { refreshConsolePinIn } from "~/services/console.server";
 import { getItarCertificationStatus } from "~/services/itar.service";
 import { getActiveMaintenanceEventsCount } from "~/services/maintenance.service";
 import {
@@ -69,12 +85,19 @@ import {
 import { getOpenClockEntry } from "~/services/people.service";
 import { ERP_URL, MES_URL, path } from "~/utils/path";
 
+// Set from the component when loader data arrives, not in shouldRevalidate:
+// link prefetching calls that too.
+let shellLoadedAt = Date.now();
+
 export const shouldRevalidate: ShouldRevalidateFunction = ({
   currentUrl,
-  nextUrl,
   formMethod,
+  formAction,
   defaultShouldRevalidate
 }) => {
+  // The refreshed session reaches the client through this loader.
+  if (formAction === path.to.refreshSession) return true;
+
   if (
     currentUrl.pathname.startsWith("/refresh-session") ||
     currentUrl.pathname.startsWith("/switch-company") ||
@@ -83,16 +106,21 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
     return true;
   }
 
-  // This loader is the app shell: 9 queries plus an auth round-trip. Without
-  // this it re-ran on every filter, sort and page click, none of which can
-  // change anything it returns.
-  // NOTE: `useRevalidator().revalidate()` — how the realtime hooks refresh —
-  // also looks like a same-pathname GET, so the shell does not re-run for
-  // realtime events either. Leaf loaders still refresh, which is the intent.
-  // Shell data that must react to a realtime change needs an explicit case
-  // above.
-  if (isSearchParamOnlyNavigation({ currentUrl, nextUrl, formMethod })) {
-    return false;
+  // Console mode + pin-in/out live in this shell loader (via userMiddleware).
+  // Those actions set cookies, so the shell MUST re-run for the change to show —
+  // without this, the overlay/console state only updated on a full page refresh.
+  if (
+    formAction === path.to.consolePinIn ||
+    formAction === path.to.consolePinOut ||
+    formAction === path.to.consoleToggle
+  ) {
+    return true;
+  }
+
+  // Only a mutation can change what the shell returns, so a GET re-runs it
+  // only once the data has aged out — that covers out-of-band changes.
+  if (!formMethod || formMethod === "GET") {
+    return Date.now() - shellLoadedAt > SHELL_MAX_AGE_MS;
   }
 
   return defaultShouldRevalidate;
@@ -101,26 +129,11 @@ export const shouldRevalidate: ShouldRevalidateFunction = ({
 export const middleware: MiddlewareFunction[] = [userMiddleware];
 
 export async function loader({ request, context }: LoaderFunctionArgs) {
-  const { accessToken, companyId, expiresAt, expiresIn, userId } =
-    await requireAuthSession(request, { verify: true });
+  const authSession = await requireAuthSession(request, { verify: true });
+  const { accessToken, companyId, expiresAt, expiresIn, userId } = authSession;
 
   // share a client between requests
   const client = getCarbon(accessToken);
-
-  // parallelize the requests
-  const [companies, user] = await Promise.all([
-    getCompanies(client, userId),
-    getUser(client, userId)
-  ]);
-
-  if (user.error || !user.data) {
-    await destroyAuthSession(request);
-  }
-
-  const company = companies.data?.find((c) => c.companyId === companyId);
-  if (!company) {
-    throw redirect(path.to.accountSettings);
-  }
 
   // Get the location and console state from middleware context
   const ctx = context.get(userContext);
@@ -132,6 +145,9 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const serviceRole = getCarbonServiceRole();
 
   let [
+    companies,
+    user,
+    activeMaintenanceCount,
     companyPlan,
     locations,
     activeEvents,
@@ -140,6 +156,9 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     locationEmployees,
     printerRoutes
   ] = await Promise.all([
+    getCompanies(client, userId),
+    getUser(client, userId),
+    getActiveMaintenanceEventsCount(client, locationId),
     getStripeCustomerByCompanyId(companyId, userId),
     getLocationsByCompany(client, companyId),
     getActiveJobCount(client, {
@@ -165,10 +184,43 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     getPrinterRoutes(serviceRole, companyId)
   ]);
 
+  if (user.error || !user.data) {
+    throw await destroyAuthSession(request);
+  }
+
+  const company = companies.data?.find((c) => c.companyId === companyId);
+  if (!company) {
+    // A company-less authenticated user (e.g. an enterprise first-run user who
+    // hasn't onboarded) has no MES to enter — MES doesn't host onboarding.
+    // Send them to a terminal screen that links to ERP onboarding, not into
+    // accountSettings (an ERP /x route that would itself bounce a no-company
+    // user, i.e. a redirect loop).
+    throw redirect(path.to.setupRequired);
+  }
+
   const locationEmployeeIds =
     locationEmployees.data?.map((e: { id: string }) => e.id) ?? [];
   const timeCardEnabled = companySettings.data?.timeCardEnabled ?? false;
-  const consoleEnabled = companySettings.data?.consoleEnabled ?? false;
+  // Console mode as the gate sees it (flag AND entitlement), never the raw
+  // flag. A console session was already checked by `userMiddleware`, which
+  // kept it through a settings read error (`null`); otherwise the flag this
+  // loader read is passed in, so the entitlement check adds no second read.
+  const consoleEnabled = consoleMode
+    ? ctx?.consoleEnabled !== false
+    : (await isConsoleModeEnabledForCompany(client, companyId, {
+        consoleEnabled: companySettings.data?.consoleEnabled ?? false
+      })) === true;
+  // Entering console mode needs `settings_update` on the SESSION user (the
+  // console.toggle action enforces it); the sidebar only offers the switch to
+  // them, or to a terminal already in console mode so it can always leave.
+  const canEnterConsoleMode =
+    consoleEnabled &&
+    hasPermission(
+      (await getUserClaims(userId, companyId)).permissions,
+      "settings",
+      "update",
+      companyId
+    );
 
   // Org-enforced MFA, mirroring the ERP shell. Enrollment itself lives only in
   // the ERP (MES has no account settings), so the gate here points there.
@@ -177,15 +229,13 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   const mfaRequired =
     !consoleMode &&
     (CONTROLLED_ENVIRONMENT || companySettings.data?.requireMfa === true);
-  const mfaEnrollmentRequired = mfaRequired
-    ? !(await userHasVerifiedTotpFactor(userId))
-    : false;
-
-  // Get active maintenance count after we have the location
-  const activeMaintenanceCount = await getActiveMaintenanceEventsCount(
-    client,
-    locationId
-  );
+  // SSO sessions trust the IdP for MFA in all environments, including
+  // controlled — user decision, mirroring the ERP shell.
+  const ssoMfaExempt = Boolean(authSession.ssoProviderId);
+  const mfaEnrollmentRequired =
+    mfaRequired && !ssoMfaExempt
+      ? !(await userHasVerifiedTotpFactor(userId))
+      : false;
 
   // ITAR gate — only queried in controlled environments. `entityRequired` is
   // false for Carbon staff: the Rider binds the customer's own organization, so
@@ -200,7 +250,8 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
     : { entityCertified: true, userCertified: true, entityRequired: false };
 
   if (!companyPlan && CarbonEdition === Edition.Cloud) {
-    throw redirect(path.to.onboarding);
+    // Onboarding lives in the ERP: another origin.
+    throw redirectExternal(path.to.onboarding);
   }
 
   if (!locations.data || locations.data.length === 0) {
@@ -212,7 +263,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
   if (pinnedInUser && ctx) {
     headers.append(
       "Set-Cookie",
-      refreshConsolePinIn(companyId, {
+      await setConsolePinIn(companyId, userId, {
         userId: pinnedInUser.userId,
         name: pinnedInUser.name,
         avatarUrl: pinnedInUser.avatarUrl,
@@ -233,6 +284,7 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       company,
       companies: companies.data ?? [],
       consoleEnabled,
+      canEnterConsoleMode,
       consoleMode: consoleEnabled && consoleMode,
       location: locationId,
       locationEmployeeIds,
@@ -251,13 +303,26 @@ export async function loader({ request, context }: LoaderFunctionArgs) {
       user: user.data,
       itarCertification,
       // Server-decided, never client-inferred — same reason as the ITAR gate.
-      mfaEnrollmentRequired
+      mfaEnrollmentRequired,
+      // Session lock (NIST 3.1.10) — client idle UX config. Console DEVICE
+      // sessions are exempt (their lock is the operator pin-in; a shared kiosk
+      // must not be force-logged-out mid-shift). Server enforcement lives in
+      // requireAuthSession, which also skips console sessions.
+      sessionTimeout: {
+        enabled: CONTROLLED_ENVIRONMENT && !(consoleEnabled && consoleMode),
+        idleMs: SESSION_IDLE_LOCK_MS,
+        heartbeatMs: SESSION_HEARTBEAT_MS,
+        // Offer passkey re-auth on the lock overlay when the provider is enabled;
+        // the /unlock action gates the actual credential, TOTP stays available.
+        hasPasskeyAuth: isAuthProviderEnabled("passkey")
+      }
     },
     headers.has("Set-Cookie") ? { headers } : undefined
   );
 }
 
 export default function AuthenticatedRoute() {
+  const loaderData = useLoaderData<typeof loader>();
   const {
     session,
     activeEvents,
@@ -265,6 +330,7 @@ export default function AuthenticatedRoute() {
     company,
     companies,
     consoleEnabled,
+    canEnterConsoleMode,
     consoleMode,
     location,
     locationEmployeeIds,
@@ -277,10 +343,43 @@ export default function AuthenticatedRoute() {
     useMetric,
     user,
     itarCertification,
-    mfaEnrollmentRequired
-  } = useLoaderData<typeof loader>();
+    mfaEnrollmentRequired,
+    sessionTimeout
+  } = loaderData;
+  // During render, not in an effect: the first child reads it.
+  setClientCompanyId(company?.id ?? null, user?.id ?? null);
+  // biome-ignore lint/correctness/useExhaustiveDependencies: runs each time the loader does
+  useEffect(() => {
+    shellLoadedAt = Date.now();
+  }, [loaderData]);
 
   const navigate = useNavigate();
+
+  // Session lock (NIST 3.1.10) — client idle UX only; server enforces in
+  // requireAuthSession. Inert unless CONTROLLED_ENVIRONMENT and non-console.
+  const { isIdle, resume } = useIdle({
+    enabled: sessionTimeout.enabled,
+    idleMs: sessionTimeout.idleMs,
+    heartbeatMs: sessionTimeout.heartbeatMs,
+    heartbeatUrl: "/api/session/heartbeat"
+  });
+
+  // Console (shared-kiosk) idle lock (NIST 3.1.10). A controlled-environment
+  // console session is exempt from the session-wide lock above (sessionTimeout.
+  // enabled is false for it) — its lock is the operator pin-in. On idle, reload:
+  // the server-tightened pin-in (console-pin.server) has by then expired, so the
+  // reload surfaces the PinInOverlay and the operator must re-PIN.
+  const { isIdle: consoleIsIdle } = useIdle({
+    enabled: CONTROLLED_ENVIRONMENT && consoleMode,
+    idleMs: sessionTimeout.idleMs,
+    heartbeatMs: sessionTimeout.heartbeatMs,
+    heartbeatUrl: "/api/session/heartbeat"
+  });
+  useEffect(() => {
+    if (consoleIsIdle && typeof window !== "undefined") {
+      window.location.reload();
+    }
+  }, [consoleIsIdle]);
 
   useNProgress();
   useKeyboardWedge({
@@ -387,7 +486,14 @@ export default function AuthenticatedRoute() {
   }
 
   return (
-    <div className="h-screen w-full overflow-y-auto lg:overflow-hidden">
+    <div className="h-dvh w-full overflow-y-auto lg:overflow-hidden">
+      {/* Idle lock conceals the app (3.1.10). Not over the ITAR/MFA gates. */}
+      {isIdle && !itarScreen && !mfaScreen && (
+        <SessionLockOverlay
+          onUnlocked={resume}
+          hasPasskeyAuth={sessionTimeout.hasPasskeyAuth}
+        />
+      )}
       {(itarScreen ?? mfaScreen) ? (
         (itarScreen ?? mfaScreen)
       ) : (
@@ -403,14 +509,17 @@ export default function AuthenticatedRoute() {
             }}
           >
             <RealtimeDataProvider>
-              <SidebarProvider defaultOpen={false} touch>
+              {company?.id && <RouteRealtime companyId={company.id} />}
+              <SidebarProvider defaultOpen={false}>
                 <TooltipProvider delayDuration={0}>
                   <AppSidebar
                     activeEvents={activeEvents}
                     activeMaintenanceCount={activeMaintenanceCount}
                     company={company}
                     companies={companies}
-                    consoleEnabled={consoleEnabled}
+                    consoleEnabled={
+                      consoleEnabled && (consoleMode || canEnterConsoleMode)
+                    }
                     consoleMode={consoleMode}
                     location={location}
                     locations={locations}
@@ -418,7 +527,13 @@ export default function AuthenticatedRoute() {
                     pinnedInUser={pinnedInUser}
                     timeCardEnabled={timeCardEnabled}
                   />
-                  <Outlet />
+                  <div className="flex flex-1 flex-col min-w-0 overflow-hidden bg-card md:mt-2 md:mr-2 md:mb-2 md:rounded-2xl md:border md:border-border">
+                    {/* A company switch stays on the same page. Without the key the page
+                        keeps its state, so a form still held the previous company's
+                        values and saving wrote them to the new one. */}
+                    <Outlet key={companyId} />
+                  </div>
+                  <ShortcutHelp />
                   {timeCardEnabled && (
                     <Suspense fallback={null}>
                       <Await resolve={openClockEntry}>

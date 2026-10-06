@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import type { Database } from "@carbon/database";
@@ -211,6 +215,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     logger.error("Failed to load shipment", { error: shipment.error });
   }
 
+  // RLS admits a shipment from any company the user belongs to, but the source
+  // document below is read with the service role — pin it to this company.
+  if (shipment.data && shipment.data.companyId !== companyId) {
+    logger.error("Shipment does not belong to this company", {
+      companyId,
+      shipmentId: id
+    });
+    throw new Response("Not found", { status: 404 });
+  }
+
   if (shipmentLines.error) {
     logger.error("Failed to load shipmentLines", {
       error: shipmentLines.error
@@ -341,11 +355,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return new Response(new Uint8Array(body), { status: 200, headers });
   }
 
+  const sourceDocumentId = shipment.data.sourceDocumentId;
+  if (!sourceDocumentId) {
+    return new Response("Shipment has no source document", { status: 400 });
+  }
+
   switch (shipment.data.sourceDocument) {
     case "Sales Order": {
       const [salesOrder, salesOrderShipment] = await Promise.all([
-        getSalesOrder(serviceRole, shipment.data.sourceDocumentId),
-        getSalesOrderShipment(serviceRole, shipment.data.sourceDocumentId)
+        getSalesOrder(serviceRole, sourceDocumentId),
+        getSalesOrderShipment(serviceRole, sourceDocumentId)
       ]);
 
       const [
@@ -551,8 +570,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     }
     case "Purchase Order": {
       const [purchaseOrder, purchaseOrderDelivery] = await Promise.all([
-        getPurchaseOrder(client, shipment.data.sourceDocumentId),
-        getPurchaseOrderDelivery(client, shipment.data.sourceDocumentId)
+        getPurchaseOrder(client, sourceDocumentId),
+        getPurchaseOrderDelivery(client, sourceDocumentId)
       ]);
 
       const [
@@ -641,7 +660,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     case "Outbound Transfer": {
       const warehouseTransfer = await getWarehouseTransfer(
         client,
-        shipment.data.sourceDocumentId
+        sourceDocumentId
       );
 
       if (warehouseTransfer.error) {

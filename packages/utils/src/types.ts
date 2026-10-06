@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { z } from "zod";
 
 export enum Edition {
@@ -8,6 +12,9 @@ export enum Edition {
 }
 
 export type Mode = "light" | "dark";
+
+/** What the user chose; `system` follows the operating system. */
+export type ModePreference = Mode | "system";
 
 export const modeValidator = z.object({
   mode: z.enum(["light", "dark", "system"])
@@ -22,6 +29,9 @@ export enum Plan {
 
 // DB stores partner tiers as `PARTNER-300/400/500` etc. Collapse them onto
 // `Plan.Partner` so plan-gate checks (`requirement.includes(plan)`) match.
+export const companyPlanCacheKey = (companyId: string) =>
+  `companyPlan:${companyId}`;
+
 export function normalizePlanId(planId: string | null | undefined): Plan {
   if (!planId) return Plan.Unknown;
   if (planId.startsWith("PARTNER")) return Plan.Partner;
@@ -36,6 +46,8 @@ export interface TrackedEntityAttributes {
   Customer?: string;
   Job?: string;
   "Job Make Method"?: string;
+  "Job Operation"?: string;
+  "Job Operation Index"?: number;
   "Purchase Order"?: string;
   "Purchase Order Line"?: string;
   "Receipt Line Index"?: number;
@@ -52,6 +64,8 @@ export interface TrackedEntityAttributes {
   Shipment?: string;
   "Split Entity ID"?: string;
   "Split From Entity ID"?: string;
+  "Merged From Entity IDs"?: string[];
+  Shelf?: string;
   "Stock Transfer Line"?: string;
   "Stock Transfer"?: string;
   expirationDate?: string;

@@ -1,11 +1,12 @@
 import type { Database } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { getInspectionDocument, getInspectionPlan } from "~/modules/production";
 import {
   getInboundInspection,
-  getInboundInspectionLotTrackedEntities,
   getInboundInspectionMeasurements,
   getInProcessInspectionDependencies,
+  getInspectionDocument,
+  getInspectionPlan,
+  getInspectionTrackedEntities,
   getIssueTypesList
 } from "~/modules/quality";
 import type {
@@ -55,7 +56,7 @@ export async function loadInspectionLotDetail(
     ((insp as { sourceType?: string }).sourceType as string | undefined) ??
     "Receipt";
 
-  const lotEntities = await getInboundInspectionLotTrackedEntities(
+  const lotEntities = await getInspectionTrackedEntities(
     client,
     insp.id,
     companyId,
@@ -73,7 +74,7 @@ export async function loadInspectionLotDetail(
         ? getInspectionPlan(client, inspectionDocumentId)
         : Promise.resolve({ data: null, error: null }),
       inspectionDocumentId
-        ? getInspectionDocument(client, inspectionDocumentId, companyId)
+        ? getInspectionDocument(client, inspectionDocumentId)
         : Promise.resolve({ data: null, error: null }),
       getInboundInspectionMeasurements(client, sampleIds)
     ]);

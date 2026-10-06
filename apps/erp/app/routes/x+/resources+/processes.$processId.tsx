@@ -1,14 +1,20 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, notFound } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
-import type {
-  ActionFunctionArgs,
-  ClientActionFunctionArgs,
-  LoaderFunctionArgs
-} from "react-router";
-import { redirect, useLoaderData, useNavigate } from "react-router";
+import { useCloseRoute } from "@carbon/react";
+import type { BatchRules } from "@carbon/utils";
+import { redirect } from "@carbon/utils";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useLoaderData } from "react-router";
+import { notifyScheduleInputsChanged } from "~/modules/production";
 import {
+  batchRuleInitialValues,
+  ensureProcessAbility,
   getProcess,
   ProcessForm,
   processValidator,
@@ -16,7 +22,6 @@ import {
 } from "~/modules/resources";
 import { getCustomFields, setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
-import { getCompanyId, processesQuery } from "~/utils/react-query";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client } = await requirePermissions(request, {
@@ -57,6 +62,10 @@ export async function action({ request }: ActionFunctionArgs) {
   const { id, ...d } = validation.data;
   if (!id) throw notFound("Process ID was not found");
 
+  const existingProcess = await getProcess(client, id);
+  const previouslyRequiredAbility =
+    existingProcess.data?.requiresAbility ?? false;
+
   const createProcess = await upsertProcess(client, {
     id,
     ...d,
@@ -75,21 +84,72 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
-  return modal ? createProcess : redirect(path.to.processes);
-}
+  let abilityId: string | undefined;
+  if (d.requiresAbility) {
+    const abilityResult = await ensureProcessAbility(client, {
+      processId: id,
+      companyId,
+      userId
+    });
+    if (abilityResult.error) {
+      // Don't leave an unschedulable process behind: requiresAbility=true
+      // without its backing ability gates scheduling on a qualification
+      // nobody can hold
+      await client
+        .from("process")
+        .update({ requiresAbility: previouslyRequiredAbility })
+        .eq("id", id)
+        .eq("companyId", companyId);
+      throw redirect(
+        path.to.processes,
+        await flash(
+          request,
+          error(abilityResult.error, "Failed to create process ability.")
+        )
+      );
+    }
+    abilityId = abilityResult.data?.id;
+  } else if (previouslyRequiredAbility) {
+    const ability = await client
+      .from("ability")
+      .select("id")
+      .eq("processId", id)
+      .eq("companyId", companyId)
+      .maybeSingle();
+    abilityId = ability.data?.id;
+  }
 
-export async function clientAction({ serverAction }: ClientActionFunctionArgs) {
-  window.clientCache?.setQueryData(
-    processesQuery(getCompanyId()).queryKey,
-    null
-  );
-  return await serverAction();
+  const requiresAbility = d.requiresAbility ?? false;
+  if (requiresAbility !== previouslyRequiredAbility) {
+    // A requiresAbility flip changes the operator gate for every job with an
+    // unfinished operation on this process, so the schedule must be recomputed.
+    // Prefer the process's ability for precise scoping (the "ability" kind
+    // resolves ability → process → affected jobs); fall back to a company-wide
+    // mark when the ability can't be resolved, so the notify NEVER silently
+    // no-ops — that gap is why a requiresAbility change could leave the forecast
+    // stale.
+    const reason = requiresAbility
+      ? `Process "${d.name}" now requires an ability`
+      : `Process "${d.name}" no longer requires an ability`;
+    if (abilityId) {
+      await notifyScheduleInputsChanged(
+        companyId,
+        "ability",
+        reason,
+        abilityId
+      );
+    } else {
+      await notifyScheduleInputsChanged(companyId, "reorder", reason);
+    }
+  }
+
+  return modal ? createProcess : redirect(path.to.processes);
 }
 
 export default function ProcessRoute() {
   const { process } = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
-  const onClose = () => navigate(-1);
+  const closeRoute = useCloseRoute();
+  const onClose = () => closeRoute();
 
   const initialValues = {
     id: process.id!,
@@ -97,10 +157,14 @@ export default function ProcessRoute() {
     processType: process.processType ?? "Process",
     defaultStandardFactor: process.defaultStandardFactor ?? "Minutes/Piece",
     workCenters: process.workCenters ?? [],
-    // @ts-ignore
+    // @ts-expect-error
     suppliers: (process.suppliers ?? []).map((s) => s.id) ?? [],
     ...getCustomFields(process.customFields),
-    completeAllOnScan: process.completeAllOnScan ?? false
+    completeAllOnScan: process.completeAllOnScan ?? false,
+    batchable: process.batchable ?? false,
+    batchType: process.batchType ?? ("Sequential" as const),
+    requiresAbility: process.requiresAbility ?? false,
+    ...batchRuleInitialValues(process.batchRules as BatchRules | null)
   };
 
   return <ProcessForm initialValues={initialValues} onClose={onClose} />;

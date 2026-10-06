@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import type {
   SnapshotFieldEntry,
@@ -33,13 +37,13 @@ const AuditRecordSchema = z.object({
     table: z.string(),
     operation: z.enum(["INSERT", "UPDATE", "DELETE", "TRUNCATE"]),
     recordId: z.string(),
-    new: z.record(z.any()).nullable(),
-    old: z.record(z.any()).nullable(),
+    new: z.record(z.string(), z.any()).nullable(),
+    old: z.record(z.string(), z.any()).nullable(),
     timestamp: z.string()
   }),
   companyId: z.string(),
   actorId: z.string().nullish(),
-  handlerConfig: z.record(z.any())
+  handlerConfig: z.record(z.string(), z.any())
 });
 
 const AuditPayloadSchema = z.object({
@@ -464,7 +468,8 @@ async function applyFkSnapshots(
         // A rejected query (e.g. a tenancy filter on a table without
         // companyId) silently degrades the affected diffs to raw ids —
         // make that visible.
-        log.error(`FK snapshot lookup failed for table "${table}"`, {
+        log.error('FK snapshot lookup failed for table "{table}"', {
+          table,
           error,
           tenantScoped
         });
@@ -472,7 +477,8 @@ async function applyFkSnapshots(
       }
       return data as Array<Record<string, unknown>>;
     } catch (err) {
-      log.error(`FK snapshot lookup failed for table "${table}"`, {
+      log.error('FK snapshot lookup failed for table "{table}"', {
+        table,
         error: err
       });
       return null;

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database } from "@carbon/database";
 import type { ChangeNoticeStatus } from "~/modules/items";
 import type { nonConformanceAssociationType } from "./quality.models";
@@ -10,6 +14,7 @@ import type {
   getInspectionDocument,
   getInspectionDocuments,
   getInspectionFeatures,
+  getInspectionGauges,
   getInspectionMeasurements,
   getInspectionPlan,
   getInspectionSamplingPlans,
@@ -227,6 +232,9 @@ export type InboundInspectionSampleRow = InspectionSampleRow & {
   inboundInspectionId: string;
 };
 
+export type InboundInspection = InboundInspectionRow;
+export type InboundInspectionSample = InboundInspectionSampleRow;
+
 export type InspectionTrackedEntity = Pick<
   Database["public"]["Tables"]["trackedEntity"]["Row"],
   | "id"
@@ -252,6 +260,10 @@ export type InspectionMeasurementRow =
 
 export type InspectionSamplingPlan = NonNullable<
   Awaited<ReturnType<typeof getInspectionSamplingPlans>>["data"]
+>[number];
+
+export type InspectionGauge = NonNullable<
+  Awaited<ReturnType<typeof getInspectionGauges>>["data"]
 >[number];
 
 export type InspectionMeasurement = NonNullable<

@@ -1,4 +1,4 @@
-import { assertIsPost, error } from "@carbon/auth";
+import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
@@ -75,9 +75,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
 
   throw redirect(
     path.to.quoteLine(quoteId, quoteLineId),
-    await flash(request, {
-      type: "success",
-      message: "Quote part promoted to internal part"
-    })
+    await flash(request, success("Quote part promoted to internal part"))
   );
 }

@@ -1,6 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { getQuoteDisplayId } from "@carbon/documents/utils";
 import {
   BarProgress,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   useDisclosure
@@ -27,6 +33,7 @@ import {
   Hyperlink,
   ItemThumbnail,
   New,
+  RevisionSuffix,
   Table
 } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
@@ -72,17 +79,13 @@ const QuotesTable = memo(({ data, count }: QuotesTableProps) => {
             <ItemThumbnail
               size="md"
               thumbnailPath={row.original.thumbnailPath}
-              // @ts-ignore
+              // @ts-expect-error
               type={row.original.itemType}
             />
             <Hyperlink to={path.to.quoteDetails(row.original.id!)}>
               <div className="flex justify-start items-center gap-0">
                 <span>{row.original.quoteId}</span>
-                {(row.original.revisionId ?? 0) > 0 && (
-                  <span className="text-muted-foreground">
-                    -{row.original.revisionId}
-                  </span>
-                )}
+                <RevisionSuffix revisionId={row.original.revisionId} />
               </div>
             </Hyperlink>
           </HStack>
@@ -286,11 +289,15 @@ const QuotesTable = memo(({ data, count }: QuotesTableProps) => {
   const renderContextMenu = useMemo(() => {
     return (row: QuotationListItem) => (
       <>
-        <MenuItem onClick={() => navigate(path.to.quoteDetails(row.id!))}>
+        <MenuItem
+          shortcut={MENU_ITEM_SHORTCUTS.edit}
+          onClick={() => navigate(path.to.quoteDetails(row.id!))}
+        >
           <MenuIcon icon={<LuPencil />} />
           <Trans>Edit</Trans>
         </MenuItem>
         <MenuItem
+          shortcut={MENU_ITEM_SHORTCUTS.delete}
           disabled={!permissions.can("delete", "sales")}
           destructive
           onClick={() => {
@@ -320,6 +327,20 @@ const QuotesTable = memo(({ data, count }: QuotesTableProps) => {
           updatedAt: false,
           updatedBy: false
         }}
+        importCSV={
+          // The import action gates on `sales_update` (see import.$tableId.tsx),
+          // so match that here rather than `create`.
+          permissions.can("update", "sales")
+            ? [
+                {
+                  table: "quoteWithLines" as const,
+                  label: t`Quotes with Lines`
+                },
+                { table: "quote" as const, label: t`Quotes` },
+                { table: "quoteLine" as const, label: t`Quote Lines` }
+              ]
+            : undefined
+        }
         primaryAction={
           permissions.can("create", "sales") && (
             <New label={t`Quote`} to={path.to.newQuote} />
@@ -334,8 +355,10 @@ const QuotesTable = memo(({ data, count }: QuotesTableProps) => {
         <ConfirmDelete
           action={path.to.deleteQuote(selectedQuotation.id)}
           isOpen={deleteQuotationModal.isOpen}
-          name={selectedQuotation.quoteId!}
-          text={t`Are you sure you want to delete ${selectedQuotation.quoteId!}? This cannot be undone.`}
+          name={getQuoteDisplayId(selectedQuotation)}
+          text={t`Are you sure you want to delete ${getQuoteDisplayId(
+            selectedQuotation
+          )}? This cannot be undone.`}
           onCancel={() => {
             deleteQuotationModal.onClose();
             setSelectedQuotation(null);

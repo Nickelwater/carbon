@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { ReactElement, ReactNode } from "react";
 
 export type ColumnFilter = {
@@ -25,6 +29,8 @@ export type ColumnFilterData =
       type: "static";
       options: Option[];
       isArray?: boolean;
+      /** Radio semantics: applying an option replaces the previous one */
+      isExclusive?: boolean;
     }
   | {
       type: "fetcher";

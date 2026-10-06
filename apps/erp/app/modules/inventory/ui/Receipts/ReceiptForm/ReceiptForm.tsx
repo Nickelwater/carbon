@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { DefaultDisabledSubmit, ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -11,6 +15,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   useDisclosure,
   VStack
 } from "@carbon/react";
@@ -23,7 +28,8 @@ import {
   LuShoppingCart,
   LuTicketX,
   LuTrash,
-  LuTruck
+  LuTruck,
+  LuUndo2
 } from "react-icons/lu";
 import { Link, useNavigation, useParams } from "react-router";
 import type { z } from "zod";
@@ -164,6 +170,7 @@ const ReceiptForm = ({
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   disabled={
                     !permissions.can("delete", "inventory") ||
                     !permissions.is("employee")
@@ -362,6 +369,15 @@ function SourceDocumentLink({
         <Button variant="secondary" leftIcon={<LuTruck />} asChild>
           <Link to={path.to.warehouseTransferDetails(sourceDocumentId!)}>
             <Trans>Warehouse Transfer</Trans>
+          </Link>
+        </Button>
+      );
+    case "Sales Return Order":
+      if (!permissions.can("view", "sales")) return null;
+      return (
+        <Button variant="secondary" leftIcon={<LuUndo2 />} asChild>
+          <Link to={path.to.salesReturnOrderDetails(sourceDocumentId!)}>
+            <Trans>Sales Return</Trans>
           </Link>
         </Button>
       );

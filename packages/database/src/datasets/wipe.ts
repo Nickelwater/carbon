@@ -1,0 +1,509 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { PoolClient } from "pg";
+import { getGroupId, groups } from "../seed-data.ts";
+import { resolveDate } from "./dates.ts";
+import { insertId, nextJournalEntryId, quote, resetSequences } from "./sql.ts";
+import type { Ctx } from "./types.ts";
+
+/**
+ * Tables the seed never touches: identity/access, accounting reference, the
+ * list tables bootstrap creates, and infrastructure the developer owns.
+ * Everything else with a `companyId` is business data this seed owns, so it is
+ * discovered from information_schema and wiped — a business table added to the
+ * schema later is cleaned automatically instead of leaking across re-runs.
+ */
+const PRESERVED_TABLES = new Set([
+  // Created by bootstrap()
+  "accountDefault",
+  "changeOrderRequiredAction",
+  "changeOrderType",
+  "customerStatus",
+  "employee",
+  "employeeJob",
+  // Console PIN hashes belong to the employees above, not to the story
+  "employeePin",
+  "employeeType",
+  "fiscalYearSettings",
+  "fixedAssetClass",
+  "gaugeType",
+  "group",
+  "location",
+  "maintenanceFailureMode",
+  "nonConformanceRequiredAction",
+  "nonConformanceType",
+  "paymentTerm",
+  "periodCloseTaskDefinition",
+  "returnReason",
+  "scrapReason",
+  "sequence",
+  "unitOfMeasure",
+  "userToCompany",
+  // Accounting records with trigger-enforced immutability (Posted journals
+  // cannot be deleted or updated — so neither can the periods they point at)
+  "accountingPeriod",
+  "journal",
+  "journalLine",
+  // Infrastructure owned by the developer or the platform
+  "apiKey",
+  "auditLogArchive",
+  "companyIntegration",
+  "companyUsage",
+  "customField",
+  "eventSystemSubscription",
+  // Integration mappings, and the job markers that ride on them — including the
+  // marker of the very job that runs this wipe, whose snapshot path it holds.
+  "externalIntegrationMapping",
+  "invite",
+  "notificationPreference",
+  "oauthClient",
+  "oauthCode",
+  "oauthToken",
+  "searchIndexRegistry",
+  // The change log open clients read to learn what the wipe just deleted: every
+  // delete below writes to it, so it can never be empty afterwards. It prunes
+  // itself by age, and backups already leave it alone (STRUCTURAL_TABLES).
+  "tableChange",
+  "tableView",
+  "userAttributeCategory",
+  "userModulePreference",
+  "webhook"
+]);
+
+/**
+ * MRP planning output — regenerated wholesale on the next run, and deleted
+ * before the FK-nulling pass because their discriminator CHECKs cannot survive
+ * it. Mirrors TRANSIENT_TABLES in packages/jobs/src/backups/schema.ts.
+ */
+const TRANSIENT_MRP_TABLES = [
+  "demandForecastSource",
+  "demandActual",
+  "supplyForecast",
+  "supplyActual"
+];
+
+// Their content CHECK (imagePath OR modelUploadId) cannot survive the FK-nulling
+// pass, which nulls modelUploadId on a slide that shows a 3D model.
+const MODEL_SLIDE_TABLES = [
+  "assemblyInstructionStepSlide",
+  "methodOperationStepSlide",
+  "jobOperationStepSlide",
+  "quoteOperationStepSlide"
+];
+
+type ForeignKey = {
+  child: string;
+  parent: string;
+  columns: string[];
+  notNull: string[];
+};
+
+async function companyScopedTables(client: PoolClient): Promise<string[]> {
+  const res = await client.query<{ table_name: string }>(
+    `SELECT t.table_name
+     FROM information_schema.tables t
+     WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE'
+       AND EXISTS (
+         SELECT 1 FROM information_schema.columns c
+         WHERE c.table_schema = 'public' AND c.table_name = t.table_name
+           AND c.column_name = 'companyId'
+       )
+     ORDER BY t.table_name`
+  );
+  return res.rows.map((r) => r.table_name);
+}
+
+async function foreignKeys(client: PoolClient): Promise<ForeignKey[]> {
+  const res = await client.query<{
+    child: string;
+    parent: string;
+    columns: string[];
+    notnull: string[] | null;
+  }>(
+    `SELECT
+       con.conrelid::regclass::text AS child,
+       con.confrelid::regclass::text AS parent,
+       (SELECT array_agg(a.attname::text ORDER BY k.ord)
+          FROM unnest(con.conkey) WITH ORDINALITY k(attnum, ord)
+          JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.attnum) AS columns,
+       (SELECT array_agg(a.attname::text)
+          FROM unnest(con.conkey) k(attnum)
+          JOIN pg_attribute a ON a.attrelid = con.conrelid AND a.attnum = k.attnum
+         WHERE a.attnotnull) AS notnull
+     FROM pg_constraint con
+     JOIN pg_class rel ON rel.oid = con.conrelid
+     JOIN pg_namespace ns ON ns.oid = rel.relnamespace
+     WHERE con.contype = 'f' AND ns.nspname = 'public'`
+  );
+  const unquote = (s: string) => s.replace(/"/g, "");
+  return res.rows.map((r) => ({
+    child: unquote(r.child),
+    parent: unquote(r.parent),
+    columns: r.columns,
+    notNull: r.notnull ?? []
+  }));
+}
+
+// companyId is part of most composite FKs but is never the discriminator —
+// a MATCH SIMPLE constraint is satisfied as soon as any column is NULL.
+function payloadColumns(fk: ForeignKey): string[] {
+  return fk.columns.filter((c) => c !== "companyId");
+}
+
+function isNullable(fk: ForeignKey): boolean {
+  const payload = payloadColumns(fk);
+  return payload.length > 0 && payload.every((c) => !fk.notNull.includes(c));
+}
+
+// Children before parents. Only NOT NULL edges constrain the order, because
+// every nullable edge has already been broken by nullNullableReferences().
+// That subgraph is acyclic by construction: a NOT NULL cycle is uninsertable.
+function deletionOrder(tables: string[], hardEdges: ForeignKey[]): string[] {
+  const set = new Set(tables);
+  const parentsOf = new Map(tables.map((t) => [t, new Set<string>()]));
+  for (const fk of hardEdges) {
+    if (fk.child === fk.parent) continue;
+    parentsOf.get(fk.child)?.add(fk.parent);
+  }
+
+  const remaining = new Set(set);
+  const order: string[] = [];
+  while (remaining.size > 0) {
+    const inbound = new Map([...remaining].map((t) => [t, 0]));
+    for (const child of remaining) {
+      for (const parent of parentsOf.get(child) ?? []) {
+        if (remaining.has(parent)) {
+          inbound.set(parent, (inbound.get(parent) ?? 0) + 1);
+        }
+      }
+    }
+    const ready = [...remaining].filter((t) => inbound.get(t) === 0);
+    if (ready.length === 0) {
+      throw new Error(
+        `Seed: cycle in NOT NULL foreign keys among ${[...remaining].join(", ")}`
+      );
+    }
+    for (const t of ready) {
+      order.push(t);
+      remaining.delete(t);
+    }
+  }
+  return order;
+}
+
+// Breaks every optional reference into the delete set — including the traps:
+// makeMethod.changeOrderId (ON DELETE SET NULL), item.changeOrderId,
+// job.salesOrderId, kanban.jobId, itemLedger.correctionOfItemLedgerId, and the
+// customer/supplier/quote/job reference cycles.
+async function nullNullableReferences(
+  client: PoolClient,
+  companyId: string,
+  fks: ForeignKey[],
+  deleteSet: Set<string>
+): Promise<number> {
+  let count = 0;
+  for (const fk of fks) {
+    if (!deleteSet.has(fk.parent)) continue;
+    if (!isNullable(fk)) continue;
+    const payload = payloadColumns(fk);
+    const assignments = payload.map((c) => `${quote(c)} = NULL`).join(", ");
+    const anySet = payload.map((c) => `${quote(c)} IS NOT NULL`).join(" OR ");
+    await client.query(
+      `UPDATE ${quote(fk.child)} SET ${assignments}
+       WHERE "companyId" = $1 AND (${anySet})`,
+      [companyId]
+    );
+    count += 1;
+  }
+  return count;
+}
+
+// Rows a trigger forbids deleting, which the wipe would otherwise hit halfway
+// through. Refusing before any write keeps the failure readable.
+async function assertWipeable(ctx: Ctx): Promise<void> {
+  const { client, companyId } = ctx;
+  const partners = await client.query<{ count: number }>(
+    `SELECT (SELECT count(*) FROM customer
+              WHERE "companyId" = $1 AND "intercompanyCompanyId" IS NOT NULL)
+          + (SELECT count(*) FROM supplier
+              WHERE "companyId" = $1 AND "intercompanyCompanyId" IS NOT NULL)
+            AS count`,
+    [companyId]
+  );
+  const partnerCount = Number(partners.rows[0]?.count ?? 0);
+  if (partnerCount > 0) {
+    throw new Error(
+      `Seed: this company trades with other companies in its group (${partnerCount} intercompany customer/supplier record(s)). Demo data can only be applied to a company without intercompany partners.`
+    );
+  }
+  const charges = await client.query<{ count: number }>(
+    `SELECT count(*) AS count FROM "charge"
+     WHERE "companyId" = $1 AND status <> 'Draft'`,
+    [companyId]
+  );
+  const chargeCount = Number(charges.rows[0]?.count ?? 0);
+  if (chargeCount > 0) {
+    throw new Error(
+      `Seed: this company has ${chargeCount} posted or voided charge(s), which cannot be deleted. Demo data can only be applied to a company without posted charges.`
+    );
+  }
+  // Same shape as the charge guard, and for the same reason:
+  // `check_reimbursement_draft_mutation` (migration 20260923231244) refuses to
+  // DELETE any row that is not Draft and does NOT honour app.sync_in_progress,
+  // so without this the apply aborted mid-wipe on a raw trigger error. The row
+  // cannot be walked back to Draft either — unlike an invoice, Posted -> Draft
+  // is not an allowed transition.
+  const reimbursements = await client.query<{ count: number }>(
+    `SELECT count(*) AS count FROM "reimbursement"
+     WHERE "companyId" = $1 AND status <> 'Draft'`,
+    [companyId]
+  );
+  const reimbursementCount = Number(reimbursements.rows[0]?.count ?? 0);
+  if (reimbursementCount > 0) {
+    throw new Error(
+      `Seed: this company has ${reimbursementCount} posted or voided reimbursement(s), which cannot be deleted. Demo data can only be applied to a company without posted reimbursements.`
+    );
+  }
+}
+
+/**
+ * `Reimbursement` is here for the same reason every other document source is:
+ * its journal credits an employee payable against documents this wipe deletes.
+ * In practice `assertWipeable` refuses a non-Draft reimbursement before the
+ * wipe starts, so today this is the second line of defence — but the two lists
+ * must stay in step, or relaxing that guard would silently leave a live journal
+ * behind for a document that no longer exists.
+ */
+const DOCUMENT_JOURNAL_SOURCES = [
+  "Sales Invoice",
+  "Purchase Invoice",
+  "Payment",
+  "Credit Memo",
+  "Debit Memo",
+  "Purchase Receipt",
+  "Sales Shipment",
+  "Inventory Adjustment",
+  "Reimbursement"
+];
+
+/**
+ * Posted journals cannot be deleted (journal_posted_immutable), but their
+ * documents are about to be: void each as the posting functions do, so the GL
+ * carries no balances for documents that no longer exist.
+ */
+async function reverseDocumentJournals(ctx: Ctx): Promise<void> {
+  const { client, companyId } = ctx;
+  const journals = await client.query<{
+    id: string;
+    journalEntryId: string;
+    description: string | null;
+    sourceType: string;
+  }>(
+    `SELECT j.id, j."journalEntryId", j.description, j."sourceType"
+     FROM journal j
+     WHERE j."companyId" = $1 AND j.status = 'Posted'
+       AND j."sourceType"::text = ANY($2::text[])
+       AND (
+         EXISTS (
+           SELECT 1 FROM "journalLine" l
+           WHERE l."journalId" = j.id AND l."companyId" = $1 AND l."documentId" IN (
+             SELECT id FROM "salesInvoice" WHERE "companyId" = $1
+             UNION ALL SELECT id FROM "purchaseInvoice" WHERE "companyId" = $1
+             UNION ALL SELECT id FROM payment WHERE "companyId" = $1
+             UNION ALL SELECT id FROM memo WHERE "companyId" = $1
+             UNION ALL SELECT id FROM receipt WHERE "companyId" = $1
+             UNION ALL SELECT id FROM shipment WHERE "companyId" = $1
+             UNION ALL SELECT id FROM "reimbursement" WHERE "companyId" = $1
+             UNION ALL SELECT id FROM "itemLedger" WHERE "companyId" = $1))
+         -- a zero-cash payment's journal has no lines to match on
+         OR j.id IN (SELECT "journalId" FROM payment WHERE "companyId" = $1)
+         OR j.id IN (SELECT "journalId" FROM memo WHERE "companyId" = $1)
+         OR j.id IN (
+              SELECT "journalId" FROM "reimbursement" WHERE "companyId" = $1))
+     ORDER BY j."postingDate", j."journalEntryId"`,
+    [companyId, DOCUMENT_JOURNAL_SOURCES]
+  );
+  if (journals.rows.length === 0) return;
+  const today = resolveDate(ctx.anchor, 0);
+  const period = await client.query<{ id: string }>(
+    `SELECT id FROM "accountingPeriod"
+     WHERE "companyId" = $1 AND "startDate" <= $2 AND "endDate" >= $2
+     ORDER BY id LIMIT 1`,
+    [companyId, today]
+  );
+  for (const journal of journals.rows) {
+    const voidId = await insertId(ctx, "journal", {
+      journalEntryId: await nextJournalEntryId(ctx),
+      accountingPeriodId: period.rows[0]?.id,
+      description: `VOID ${journal.description ?? journal.journalEntryId}`,
+      postingDate: today,
+      sourceType: journal.sourceType,
+      status: "Posted",
+      postedAt: `${today}T12:00:00Z`,
+      postedBy: ctx.userId
+    });
+    // As the invoice voids: negated amount and quantity, same references (a
+    // payment or memo void keeps the quantity).
+    await client.query(
+      `INSERT INTO "journalLine"
+         ("journalId", "accountId", description, amount, quantity, "documentType",
+          "documentId", "documentLineReference", "journalLineReference", accrual,
+          "companyId", "createdBy")
+       SELECT $1, "accountId", 'VOID: ' || COALESCE(description, ''), -amount,
+              CASE WHEN "documentType" IN ('Payment', 'Memo') THEN quantity ELSE -quantity END,
+              "documentType", "documentId", "documentLineReference",
+              "journalLineReference", accrual, "companyId", $2
+       FROM "journalLine" WHERE "journalId" = $3 AND "companyId" = $4`,
+      [voidId, ctx.userId, journal.id, companyId]
+    );
+  }
+}
+
+export async function wipeCompanyBusinessData(ctx: Ctx): Promise<void> {
+  const { client, companyId } = ctx;
+
+  await assertWipeable(ctx);
+  await reverseDocumentJournals(ctx);
+
+  const tables = await companyScopedTables(client);
+  const deleteSet = new Set(tables.filter((t) => !PRESERVED_TABLES.has(t)));
+
+  // Clear MRP output before anything nulls FKs into it. These tables carry a
+  // discriminator CHECK ("Sales Order" requires salesOrderLineId NOT NULL, and
+  // so on for jobId / demandProjectionId) over columns that are all nullable,
+  // so nullNullableReferences below — which nulls every nullable FK whose
+  // parent is being deleted — would violate the CHECK and abort the wipe.
+  // Deleting outright is safe and loses nothing: MRP regenerates these wholesale
+  // on its next run, which is why the backup catalog also treats them as
+  // transient (see TRANSIENT_TABLES in packages/jobs/src/backups/schema.ts).
+  for (const t of [...TRANSIENT_MRP_TABLES, ...MODEL_SLIDE_TABLES]) {
+    if (deleteSet.has(t)) {
+      await client.query(`DELETE FROM ${quote(t)} WHERE "companyId" = $1`, [
+        companyId
+      ]);
+    }
+  }
+  const fks = (await foreignKeys(client)).filter(
+    (fk) =>
+      deleteSet.has(fk.parent) &&
+      (deleteSet.has(fk.child) || PRESERVED_TABLES.has(fk.child))
+  );
+
+  // The prevent_posted_{sales,purchase}_invoice_deletion interceptors refuse
+  // DELETE for any status but Draft, even under app.sync_in_progress. This is a
+  // re-seed wipe, not an app delete of a posted document, so reset them to
+  // Draft first — otherwise re-applying over Paid / Voided invoices fails.
+  for (const t of ["salesInvoice", "purchaseInvoice"]) {
+    if (deleteSet.has(t)) {
+      await client.query(
+        `UPDATE ${quote(t)} SET status = 'Draft'
+         WHERE "companyId" = $1 AND status <> 'Draft'`,
+        [companyId]
+      );
+    }
+  }
+
+  // Settlements point at their target invoice/memo through ON DELETE RESTRICT
+  // foreign keys, so they must go before the invoice headers below. Payments
+  // and memos go with them: both carry a customer-XOR-supplier CHECK that the
+  // FK-nulling pass would violate when it nulls the party they point at.
+  for (const t of ["invoiceSettlement", "payment", "memo"]) {
+    if (deleteSet.has(t)) {
+      await client.query(`DELETE FROM ${quote(t)} WHERE "companyId" = $1`, [
+        companyId
+      ]);
+    }
+  }
+
+  // Delete lines with check constraints that would block nulling their item FKs.
+  // salesOrderLine.itemId can't be set NULL (check requires it for Part/Material/Tool/etc).
+  // Cascade via the parent headers — the headers are in deleteSet and will be deleted again
+  // (harmlessly) in the topo pass.
+  for (const t of [
+    "purchaseInvoice",
+    "salesInvoice",
+    "salesOrder",
+    "purchaseOrder",
+    "quote",
+    "salesRfq",
+    "supplierQuote",
+    "purchasingRfq"
+  ]) {
+    if (deleteSet.has(t)) {
+      await client.query(`DELETE FROM ${quote(t)} WHERE "companyId" = $1`, [
+        companyId
+      ]);
+    }
+  }
+
+  await nullNullableReferences(client, companyId, fks, deleteSet);
+
+  const hardEdges = fks.filter(
+    (fk) => deleteSet.has(fk.child) && !isNullable(fk)
+  );
+  for (const table of deletionOrder([...deleteSet], hardEdges)) {
+    await client.query(`DELETE FROM ${quote(table)} WHERE "companyId" = $1`, [
+      companyId
+    ]);
+  }
+
+  // Customer/supplier interceptors mint an org group per partner (id = the
+  // partner's id) and per type, and nothing deletes them with the owner, so the
+  // previous story's partners linger in group pickers. Drop the orphans;
+  // bootstrap's roots are kept by id and employee-type groups are untouched.
+  await client.query(
+    `DELETE FROM "group" g
+     WHERE g."companyId" = $1 AND g.id <> ALL($2::text[]) AND (
+          (g."isCustomerOrgGroup" AND NOT EXISTS (
+            SELECT 1 FROM customer o WHERE o.id = g.id AND o."companyId" = $1))
+       OR (g."isSupplierOrgGroup" AND NOT EXISTS (
+            SELECT 1 FROM supplier o WHERE o.id = g.id AND o."companyId" = $1))
+       OR (g."isCustomerTypeGroup" AND NOT EXISTS (
+            SELECT 1 FROM "customerType" o WHERE o.id = g.id AND o."companyId" = $1))
+       OR (g."isSupplierTypeGroup" AND NOT EXISTS (
+            SELECT 1 FROM "supplierType" o WHERE o.id = g.id AND o."companyId" = $1)))`,
+    [companyId, groups.map((g) => getGroupId(g.idPrefix, companyId))]
+  );
+
+  // location is preserved, but only the bootstrap one — the rest are seed data.
+  // Re-point the employee at it first; employeeJob is preserved and NOT NULL.
+  await client.query(
+    `UPDATE "employeeJob" SET "locationId" = $2
+     WHERE "companyId" = $1 AND "locationId" IS DISTINCT FROM $2`,
+    [companyId, ctx.locationId]
+  );
+  await client.query(
+    `DELETE FROM location WHERE "companyId" = $1 AND id <> $2`,
+    [companyId, ctx.locationId]
+  );
+
+  // Run N and run N+1 must produce identical readable ids.
+  await resetSequences(client, companyId);
+
+  await assertWipeClean(ctx, deleteSet);
+}
+
+// Fails loudly if anything survived, so a table the wipe can't reach shows up
+// as a seed error rather than as data quietly accumulating across re-runs.
+export async function assertWipeClean(
+  ctx: Ctx,
+  deleteSet: Set<string>
+): Promise<void> {
+  const tables = [...deleteSet];
+  const union = tables
+    .map(
+      (t) =>
+        `SELECT '${t}' AS table_name, count(*)::int AS count FROM ${quote(t)} WHERE "companyId" = $1`
+    )
+    .join(" UNION ALL ");
+  const res = await ctx.client.query<{ table_name: string; count: number }>(
+    `SELECT * FROM (${union}) s WHERE count > 0 ORDER BY table_name`,
+    [ctx.companyId]
+  );
+  if (res.rows.length > 0) {
+    const detail = res.rows.map((r) => `${r.table_name}=${r.count}`).join(", ");
+    throw new Error(`Seed: wipe left rows behind — ${detail}`);
+  }
+}

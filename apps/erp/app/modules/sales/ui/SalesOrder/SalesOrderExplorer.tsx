@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Button,
   Count,
@@ -12,14 +16,14 @@ import {
   Input,
   InputGroup,
   InputLeftElement,
-  Kbd,
+  MENU_ITEM_SHORTCUTS,
+  ShortcutKey,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
   useDisclosure,
-  useKeyboardShortcuts,
   useMount,
-  usePrettifyShortcut,
+  useShortcutKeyMap,
   VStack
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
@@ -61,6 +65,7 @@ import {
 import { getLinkToItemDetails } from "~/modules/items/ui/Item/ItemForm";
 import type { ItemType } from "~/modules/shared";
 import { itemType } from "~/modules/shared";
+import { EXPLORER_SHORTCUTS } from "~/shortcuts";
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";
 import {
@@ -130,7 +135,6 @@ function getRelatedItems(
 }
 
 export default function SalesOrderExplorer() {
-  const prettifyShortcut = usePrettifyShortcut();
   const { defaults } = useUser();
   const { orderId } = useParams();
   if (!orderId) throw new Error("Could not find orderId");
@@ -167,9 +171,12 @@ export default function SalesOrderExplorer() {
     ? true
     : salesOrderData?.salesOrder?.status !== "Draft";
 
+  const modelPaths = (salesOrderData?.lines ?? [])
+    .map((d) => d.modelPath)
+    .filter(Boolean);
   useRealtime(
     "modelUpload",
-    `modelPath=in.(${salesOrderData?.lines.map((d) => d.modelPath).join(",")})`
+    modelPaths.length ? `modelPath=in.(${modelPaths.join(",")})` : undefined
   );
 
   const onDeleteLine = (line: SalesOrderLine) => {
@@ -183,12 +190,15 @@ export default function SalesOrderExplorer() {
   };
 
   const newButtonRef = useRef<HTMLButtonElement>(null);
-  useKeyboardShortcuts({
-    "Command+Shift+l": (event: KeyboardEvent) => {
-      event.stopPropagation();
-      newButtonRef.current?.click();
+  useShortcutKeyMap([
+    {
+      shortcut: EXPLORER_SHORTCUTS.addLine,
+      action: (event: KeyboardEvent) => {
+        event.stopPropagation();
+        newButtonRef.current?.click();
+      }
     }
-  });
+  ]);
 
   const lines = salesOrderData?.lines ?? [];
   const canReorder =
@@ -201,7 +211,7 @@ export default function SalesOrderExplorer() {
 
   return (
     <>
-      <VStack className="w-full h-[calc(100dvh-99px)] justify-between">
+      <VStack className="w-full h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] justify-between">
         <VStack
           className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent"
           spacing={0}
@@ -300,7 +310,10 @@ export default function SalesOrderExplorer() {
                     <span>
                       <Trans>New Line Item</Trans>
                     </span>
-                    <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
+                    <ShortcutKey
+                      shortcut={EXPLORER_SHORTCUTS.addLine}
+                      variant="small"
+                    />
                   </HStack>
                 </TooltipContent>
               </Tooltip>
@@ -509,6 +522,7 @@ function SalesOrderLineItem({
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   destructive
                   disabled={isDisabled || !permissions.can("update", "sales")}
                   onClick={(e) => {
@@ -522,6 +536,7 @@ function SalesOrderLineItem({
                 {/* @ts-expect-error */}
                 {itemType.includes(line?.salesOrderLineType ?? "") && (
                   <DropdownMenuItem
+                    shortcut={MENU_ITEM_SHORTCUTS.view}
                     asChild
                     onClick={(e) => e.stopPropagation()}
                   >
@@ -584,7 +599,7 @@ function RelatedItems({
       <Await resolve={salesOrderData?.relatedItems}>
         {(relatedItemsData) => {
           // Process the related items for this specific line
-          // @ts-ignore
+          // @ts-expect-error
           const relatedItems = getRelatedItems(relatedItemsData, lineId);
 
           return (

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   getLocalTimeZone,
   parseAbsolute,
@@ -48,6 +52,10 @@ function getRelativeFormatter(locale: string): Intl.RelativeTimeFormat {
   }
   return f;
 }
+
+/** Milliseconds per hour/day — for arithmetic on absolute epoch instants. */
+export const HOUR_MS = 3_600_000;
+export const DAY_MS = 24 * HOUR_MS;
 
 export function convertDateStringToIsoString(dateString: string) {
   return new Date(dateString).toISOString();

@@ -1,4 +1,8 @@
-import { cn } from "@carbon/react";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { cn, Subheading } from "@carbon/react";
 import type { ReactNode } from "react";
 
 type Props = {
@@ -10,16 +14,14 @@ type Props = {
  * Small uppercase label that groups related settings cards into a section.
  * Use it above a run of `<Card>`s on a settings page so related settings read
  * as one group (see the purchasing settings page for the reference layout).
+ *
+ * Thin wrapper around the standardized `Subheading` (light) that keeps the
+ * settings-specific top margin.
  */
 export default function SettingsSectionHeader({ children, className }: Props) {
   return (
-    <p
-      className={cn(
-        "mt-4 text-foreground/70 uppercase font-light tracking-wide font-mono text-xs",
-        className
-      )}
-    >
+    <Subheading variant="light" className={cn("mt-4", className)}>
       {children}
-    </p>
+    </Subheading>
   );
 }

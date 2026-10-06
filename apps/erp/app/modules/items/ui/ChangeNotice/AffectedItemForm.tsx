@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
+import { useLoaderQuery } from "@carbon/query";
 import {
   Alert,
   AlertDescription,
@@ -28,7 +33,7 @@ import {
   Submit
 } from "~/components/Form";
 import { ReplenishmentSystemIcon } from "~/components/Icons";
-import { useNextItemId } from "~/hooks";
+import { useCompanySettings, useNextItemId } from "~/hooks";
 import { path } from "~/utils/path";
 import {
   type ChangeNoticeChangeType,
@@ -71,6 +76,8 @@ export default function AffectedItemForm({
   // A net-new affected item is always a Part (no Part/Tool choice) — mint under
   // the Part sequence.
   const { id: nextId, onIdChange, loading } = useNextItemId("Part");
+  const allowLowercaseItemIds =
+    useCompanySettings()?.allowLowercaseItemIds === true;
 
   const isNewPart = changeType === "New Part";
 
@@ -78,19 +85,15 @@ export default function AffectedItemForm({
   // current (draft) make method to Active. Fetch the item's method status on
   // selection; the warning shows only when it has a method but none is Active.
   const [selectedItemId, setSelectedItemId] = useState<string>("");
-  const methodStatusFetcher = useFetcher<{
+  const methodStatusFetcher = useLoaderQuery<{
     hasActiveMethod: boolean;
     hasAnyMethod: boolean;
-  }>();
+  }>(
+    changeType === "Version" && selectedItemId
+      ? path.to.api.itemMakeMethodStatus(selectedItemId)
+      : null
+  );
   // Only re-fetch when the item/type changes; the fetcher identity is stable.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: fetcher is stable
-  useEffect(() => {
-    if (changeType === "Version" && selectedItemId) {
-      methodStatusFetcher.load(
-        path.to.api.itemMakeMethodStatus(selectedItemId)
-      );
-    }
-  }, [changeType, selectedItemId]);
   const willActivateDraft =
     changeType === "Version" &&
     !!selectedItemId &&
@@ -224,7 +227,7 @@ export default function AffectedItemForm({
                     value={nextId}
                     onChange={onIdChange}
                     isDisabled={loading}
-                    isUppercase
+                    isUppercase={!allowLowercaseItemIds}
                   />
                   <Input name="name" label={t`Name`} characterLimit={40} />
                   <Select

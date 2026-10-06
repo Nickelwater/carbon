@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database, Json } from "@carbon/database";
 import { getLogger } from "@carbon/logger";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -18,13 +22,28 @@ export function getPermissionCacheKey(userId: string) {
   return `permissions:${userId}`;
 }
 
+/**
+ * Does a resolved claims permission set grant `<module>_<action>` for the company?
+ * Honors the `"0"` all-companies wildcard, matching `requirePermissions`. `permissions`
+ * is the `permissions` field from `makePermissionsFromClaims` / `getUserClaims`.
+ */
+export function hasPermission(
+  permissions: Record<string, Permission> | null | undefined,
+  module: string,
+  action: keyof Permission,
+  companyId: string
+): boolean {
+  const scoped = permissions?.[module]?.[action];
+  return scoped?.some((c) => c === companyId || c === "0") ?? false;
+}
+
 export async function getCompanies(
   client: SupabaseClient<Database>,
   userId: string
 ) {
   const companies = await client
     .from("companies")
-    .select("*, companyGroup(name)")
+    .select("*")
     .eq("userId", userId)
     .order("name");
 
@@ -33,9 +52,8 @@ export async function getCompanies(
   }
 
   return {
-    data: companies.data.map(({ companyGroup, ...company }) => ({
+    data: companies.data.map((company) => ({
       ...company,
-      companyGroupName: (companyGroup as { name: string } | null)?.name ?? null,
       logoLightIcon: company.logoLightIcon
         ? `${SUPABASE_URL}/storage/v1/object/public/public/${company.logoLightIcon}`
         : null,

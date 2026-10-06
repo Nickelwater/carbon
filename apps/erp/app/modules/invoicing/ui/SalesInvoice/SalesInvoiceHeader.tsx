@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
+import { useRuleViolations } from "@carbon/ee/rules";
 import {
   Button,
   Copy,
@@ -11,6 +16,8 @@ import {
   Heading,
   HStack,
   IconButton,
+  MENU_ITEM_SHORTCUTS,
+  Status,
   useDisclosure
 } from "@carbon/react";
 import { getItemReadableId } from "@carbon/utils";
@@ -33,6 +40,7 @@ import {
   LuTruck
 } from "react-icons/lu";
 import { RiProgress8Line } from "react-icons/ri";
+import type { FetcherWithComponents } from "react-router";
 import { Link, useFetcher, useParams } from "react-router";
 import { useAuditLog } from "~/components/AuditLog";
 import { usePanels } from "~/components/Layout/Panels";
@@ -42,7 +50,6 @@ import { ShipmentStatus } from "~/modules/inventory/ui/Shipments";
 import type { SalesInvoice, SalesInvoiceLine } from "~/modules/invoicing";
 import { isInvoicePayable } from "~/modules/invoicing";
 import { getPayInvoiceHref } from "~/modules/invoicing/ui/Payment/PaymentForm";
-import type { action } from "~/routes/x+/sales-invoice+/$invoiceId.post";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
 import SalesInvoicePostModal from "./SalesInvoicePostModal";
@@ -65,7 +72,17 @@ const SalesInvoiceHeader = () => {
     variant: "dropdown"
   });
 
-  const postFetcher = useFetcher<typeof action>();
+  // Post submissions run through the violation hook's fetcher so a blocked
+  // post opens the shared violation modal, with acknowledge-and-resubmit for
+  // warns. The post modal closes itself on success.
+  const postRules = useRuleViolations({
+    action: path.to.salesInvoicePost(invoiceId ?? "")
+  });
+  const postFetcher = postRules.fetcher as FetcherWithComponents<{
+    success?: boolean;
+    message?: string;
+    violations?: unknown[];
+  }>;
 
   const { carbon } = useCarbon();
   const [linesNotAssociatedWithSO, setLinesNotAssociatedWithSO] = useState<
@@ -85,6 +102,7 @@ const SalesInvoiceHeader = () => {
     salesInvoiceLines: SalesInvoiceLine[];
     defaultCc: string[];
     orgHasCredits: boolean;
+    stripeInvoiceUrl: string | null;
   }>(path.to.salesInvoice(invoiceId));
 
   if (!routeData?.salesInvoice) throw new Error("salesInvoice not found");
@@ -249,7 +267,7 @@ const SalesInvoiceHeader = () => {
   });
   return (
     <>
-      <div className="flex flex-shrink-0 items-center justify-between p-2 bg-background border-b h-[50px] overflow-x-auto scrollbar-hide">
+      <div className="flex flex-shrink-0 items-center justify-between gap-x-4 p-2 bg-card border-b h-[var(--header-height)] overflow-x-auto scrollbar-hide">
         <HStack className="w-full justify-between">
           <HStack>
             <IconButton
@@ -332,6 +350,7 @@ const SalesInvoiceHeader = () => {
                 )}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   disabled={
                     salesInvoice.status !== "Draft" ||
                     !permissions.can("delete", "invoicing") ||
@@ -346,6 +365,18 @@ const SalesInvoiceHeader = () => {
               </DropdownMenuContent>
             </DropdownMenu>
             <SalesInvoiceStatus status={salesInvoice.status} />
+            {routeData?.stripeInvoiceUrl && isPosted && (
+              <a
+                href={routeData.stripeInvoiceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="no-underline"
+              >
+                <Status color="purple">
+                  <Trans>Stripe</Trans>
+                </Status>
+              </a>
+            )}
           </HStack>
           <HStack>
             {relatedDocs.salesOrders.length === 1 && (
@@ -484,6 +515,7 @@ const SalesInvoiceHeader = () => {
           invoiceId={invoiceId}
           customerId={salesInvoice.invoiceCustomerId}
           customerContactId={salesInvoice.invoiceCustomerContactId}
+          dateDue={salesInvoice.dateDue}
           isOpen={postingModal.isOpen}
           onClose={postingModal.onClose}
           linesToShip={linesNotAssociatedWithSO}
@@ -491,6 +523,7 @@ const SalesInvoiceHeader = () => {
           defaultCc={routeData?.defaultCc ?? []}
         />
       )}
+      <postRules.ViolationModal />
       {voidModal.isOpen && (
         <SalesInvoiceVoidModal onClose={voidModal.onClose} />
       )}

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   getSortedLanguageSelectOptions,
@@ -6,7 +10,6 @@ import {
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle
@@ -40,9 +43,6 @@ const ProfileLanguageForm = ({ locale }: { locale: string }) => {
           <CardTitle>
             <Trans>Language</Trans>
           </CardTitle>
-          <CardDescription>
-            <Trans>Choose your preferred language for the interface.</Trans>
-          </CardDescription>
         </CardHeader>
         <CardContent>
           <Select name="locale" label={t`Language`} options={options} />

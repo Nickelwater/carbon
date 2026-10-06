@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { ApprovalDecision } from "@carbon/ee/approvals";
 import { ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -10,6 +15,7 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
+  Copy,
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuIcon,
@@ -18,6 +24,7 @@ import {
   DropdownMenuTrigger,
   HStack,
   IconButton,
+  MENU_ITEM_SHORTCUTS,
   Modal,
   ModalBody,
   ModalContent,
@@ -35,6 +42,7 @@ import {
   LuCheckCheck,
   LuClipboardCheck,
   LuEllipsisVertical,
+  LuKeySquare,
   LuTrash,
   LuX
 } from "react-icons/lu";
@@ -54,7 +62,6 @@ import {
 } from "~/hooks";
 import type { SupplierDetail } from "~/modules/purchasing";
 import { SupplierStatusIndicator } from "~/modules/purchasing/ui/Supplier/SupplierStatusIndicator";
-import type { ApprovalDecision } from "~/modules/shared/types";
 import type { action } from "~/routes/x+/settings+/tags";
 import { path } from "~/utils/path";
 import SupplierApprovalModal from "./SupplierApprovalModal";
@@ -165,6 +172,7 @@ const SupplierHeader = () => {
                     {auditLogTrigger}
                     <DropdownMenuSeparator />
                     <DropdownMenuItem
+                      shortcut={MENU_ITEM_SHORTCUTS.delete}
                       disabled={!permissions.can("delete", "purchasing")}
                       destructive
                       onClick={deleteModal.onOpen}
@@ -174,6 +182,11 @@ const SupplierHeader = () => {
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
+                <Copy
+                  text={supplierId}
+                  label={t`Copy supplier unique identifier`}
+                  icon={<LuKeySquare />}
+                />
               </CardTitle>
             </CardHeader>
             <CardAction className="flex h-full flex-row items-center gap-2">

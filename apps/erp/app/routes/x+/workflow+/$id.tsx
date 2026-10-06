@@ -1,5 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { requirePlan } from "@carbon/ee/plan.server";
+import { requireFeature } from "@carbon/ee/plan.server";
+import { readWorkflowVersion } from "@carbon/ee/workflows";
 import {
   Alert,
   AlertDescription,
@@ -7,7 +12,7 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
-import { readWorkflowVersion } from "@carbon/workflows";
+import { redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import { Trans } from "@lingui/react/macro";
 import { ReactFlowProvider } from "@xyflow/react";
@@ -18,7 +23,7 @@ import type {
   LoaderFunctionArgs,
   ShouldRevalidateFunctionArgs
 } from "react-router";
-import { redirect, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { usePermissions } from "~/hooks";
 import {
   getWorkflow,
@@ -35,6 +40,7 @@ import { IssuesPanel } from "~/modules/workflows/ui/Builder/IssuesPanel";
 import { LiveValidation } from "~/modules/workflows/ui/Builder/LiveValidation";
 import { TestRunDialog } from "~/modules/workflows/ui/Builder/TestRun/TestRunDialog";
 import { WorkflowBuilder } from "~/modules/workflows/ui/Builder/WorkflowBuilder";
+import WorkflowLockModal from "~/modules/workflows/ui/WorkflowLockModal";
 import type { Handle } from "~/utils/handle";
 import { detailBreadcrumb } from "~/utils/handle";
 import { path } from "~/utils/path";
@@ -55,7 +61,11 @@ export const handle: Handle = {
 // Neither write may revalidate the loader: a save would re-seed the canvas mid-edit
 // and lose the selection, a canvas write would snap the viewport back.
 export function shouldRevalidate({ formAction }: ShouldRevalidateFunctionArgs) {
-  return !formAction?.includes("/save") && !formAction?.includes("/canvas");
+  return (
+    !formAction?.includes("/save") &&
+    !formAction?.includes("/canvas") &&
+    !formAction?.includes("/positions")
+  );
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
@@ -63,7 +73,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     view: "workflows",
     role: "employee"
   });
-  await requirePlan({
+  await requireFeature({
     request,
     client,
     companyId,
@@ -107,7 +117,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       definition: null,
       failure: "no-versions" as const,
       message: "This workflow has no versions.",
-      isReadOnly: true
+      isVersionLocked: true
     };
   }
 
@@ -128,7 +138,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       definition: null,
       failure: read.failure,
       message: read.message,
-      isReadOnly: true
+      isVersionLocked: true
     };
   }
 
@@ -141,7 +151,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     definition: read.definition,
     failure: null,
     message: null,
-    isReadOnly: versionId === workflow.activeVersionId
+    isVersionLocked: versionId === workflow.publishedVersionId
   };
 }
 
@@ -156,10 +166,12 @@ export default function WorkflowBuilderRoute() {
     versionId,
     definition,
     message,
-    isReadOnly: isLiveVersion
+    isVersionLocked
   } = useLoaderData<typeof loader>();
 
-  const isReadOnly = isLiveVersion || !permissions.can("update", "workflows");
+  // Two reasons, two behaviours: a locked version still allows dragging to tidy the
+  // layout, a missing permission does not.
+  const canEdit = permissions.can("update", "workflows");
   const isOwner = workflow.ownerId === userId;
 
   if (!definition || !versionId) {
@@ -181,19 +193,23 @@ export default function WorkflowBuilderRoute() {
   return (
     <ReactFlowProvider>
       <WorkflowBuilderProvider
-        key={`${versionId}:${isReadOnly}:${isOwner}`}
+        key={`${versionId}:${isVersionLocked}:${canEdit}:${isOwner}`}
         nodes={nodes}
         edges={edges}
-        isReadOnly={isReadOnly}
+        isVersionLocked={isVersionLocked}
+        canEdit={canEdit}
         isOwner={isOwner}
       >
-        <div className="flex h-[calc(100dvh-49px)] w-full flex-col">
+        <div className="flex h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] w-full flex-col">
           <BuilderHeader
             workflow={workflow}
             versions={versions}
             versionId={versionId}
             onIssues={issuesDisclosure.onOpen}
           />
+          {isVersionLocked && permissions.can("create", "workflows") && (
+            <WorkflowLockModal workflowId={workflow.id} versionId={versionId} />
+          )}
           <div className="relative flex flex-1 overflow-hidden">
             <WorkflowBuilder
               workflowId={workflow.id}

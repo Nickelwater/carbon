@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useLingui } from "@lingui/react/macro";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import type { ComponentPropsWithoutRef, ReactNode } from "react";
@@ -51,7 +55,8 @@ const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(
       size,
       value,
       options,
-      isReadOnly,
+      isReadOnly: isReadOnlyProp,
+      disabled,
       isClearable,
       placeholder,
       emptyMessage,
@@ -66,6 +71,9 @@ const MultiSelect = forwardRef<HTMLButtonElement, MultiSelectProps>(
     ref
   ) => {
     const { t } = useLingui();
+    // Treat the native `disabled` prop as equivalent to `isReadOnly` — the type
+    // accepts it (extends button props), so honor it rather than swallow it.
+    const isReadOnly = isReadOnlyProp || disabled;
     const [open, setOpen] = useState(false);
     const [search, setSearch] = useState("");
 

@@ -15,7 +15,9 @@ function parseSalesOrderLineIds(formData: FormData): string[] {
     if (!Array.isArray(parsed)) {
       throw new Error("salesOrderLineIds must be a JSON array");
     }
-    return parsed.filter((id): id is string => typeof id === "string" && id);
+    return parsed.filter(
+      (id): id is string => typeof id === "string" && id.length > 0
+    );
   }
 
   const single = formData.get("salesOrderLineId");
@@ -80,7 +82,7 @@ export async function action({ request }: ActionFunctionArgs) {
     throw redirect(path.to.shipmentDetails(shipmentId));
   }
 
-  if (shipment.data.postedAt) {
+  if (shipment.data.status === "Posted") {
     throw redirect(
       path.to.shipmentDetails(shipmentId),
       await flash(

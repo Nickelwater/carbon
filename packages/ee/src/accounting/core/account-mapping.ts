@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: LicenseRef-Carbon-Commercial
+// Carbon Enterprise file, licensed only under the Carbon Commercial License
+// (packages/ee/LICENSE). Not AGPL. Running, modifying, or copying it beyond those terms requires a commercial license.
+
 import type { Database } from "@carbon/database";
 import type { Kysely, KyselyDatabase, KyselyTx } from "@carbon/database/client";
 import type z from "zod";
@@ -59,6 +63,21 @@ export interface UnmappedPostingAccount {
 }
 
 /**
+ * A leaf Carbon account offered for mapping in the full chart-of-accounts
+ * view — every postable account, not just the accountDefault (required) set,
+ * so a user can map an arbitrary account (e.g. an Expense account charged on a
+ * PO G/L-account line) before or after it blocks a sync. class/accountType are
+ * carried for grouping the list in the UI.
+ */
+export interface MappableChartAccount {
+  id: string;
+  number: string | null;
+  name: string;
+  class: string | null;
+  accountType: string | null;
+}
+
+/**
  * A proposed (not written) match between a Carbon account and a provider
  * account. The UI confirms proposals and calls upsertAccountMapping.
  */
@@ -75,7 +94,7 @@ function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-async function getCompanyGroupId(
+export async function getCompanyGroupId(
   db: Db,
   companyId: string
 ): Promise<string | null> {
@@ -315,6 +334,23 @@ export async function upsertAccountMapping(
   args: UpsertAccountMappingInput
 ): Promise<{ data: ExternalIntegrationMapping | null; error: string | null }> {
   try {
+    // The account id comes from the caller (a form field on the mapping tab),
+    // and this Kysely client bypasses RLS. Accounts are company-group scoped:
+    // refuse one from outside the caller's group, whose number and name the
+    // mapping list would otherwise display.
+    const companyGroupId = await getCompanyGroupId(db, args.companyId);
+    const account = companyGroupId
+      ? await db
+          .selectFrom("account")
+          .select("id")
+          .where("id", "=", args.accountId)
+          .where("companyGroupId", "=", companyGroupId)
+          .executeTakeFirst()
+      : undefined;
+    if (!account) {
+      return { data: null, error: `Account ${args.accountId} not found` };
+    }
+
     const mappingService = createMappingService(db, args.companyId);
 
     await mappingService.link(
@@ -418,12 +454,130 @@ export async function getUnmappedPostingAccounts(
 }
 
 /**
+ * Every postable (leaf) Carbon account in the company's chart of accounts —
+ * the full mappable set for the account-mapping UI's "All accounts" view.
+ * Unlike getUnmappedPostingAccounts this is NOT scoped to accountDefault: any
+ * account a transaction can hit (e.g. an Expense account on a PO G/L-account
+ * line) must be mappable. Group headers are excluded.
+ */
+export async function getFullChartMappableAccounts(
+  db: Db,
+  args: { companyId: string }
+): Promise<{ data: MappableChartAccount[] | null; error: string | null }> {
+  try {
+    const companyGroupId = await getCompanyGroupId(db, args.companyId);
+    if (!companyGroupId) {
+      return {
+        data: null,
+        error: `No company group found for company ${args.companyId}`
+      };
+    }
+
+    const accounts = await db
+      .selectFrom("account")
+      .select(["id", "number", "name", "class", "accountType"])
+      .where("companyGroupId", "=", companyGroupId)
+      .where("isGroup", "=", false)
+      .where("active", "=", true)
+      .orderBy("number", "asc")
+      .execute();
+
+    return {
+      data: accounts.map((account) => ({
+        id: account.id,
+        number: account.number ?? null,
+        name: account.name,
+        class: (account.class as string | null) ?? null,
+        accountType: (account.accountType as string | null) ?? null
+      })),
+      error: null
+    };
+  } catch (err) {
+    return { data: null, error: toErrorMessage(err) };
+  }
+}
+
+/**
+ * The accounts a company must map before an accounting integration may sync:
+ * every accountDefault posting account plus every Expense account (any
+ * Expense account can be charged directly on a PO G/L-account line). The
+ * Account Mapping tab badges exactly this set as Required.
+ */
+export function selectRequiredMappingAccountIds(
+  accountDefaultIds: string[],
+  chart: Pick<MappableChartAccount, "id" | "class">[]
+): string[] {
+  return [
+    ...new Set([
+      ...accountDefaultIds,
+      ...chart
+        .filter((account) => account.class === "Expense")
+        .map((account) => account.id)
+    ])
+  ];
+}
+
+/**
+ * Required accounts (selectRequiredMappingAccountIds) in the active chart that
+ * have no provider account yet. Turning sync on is refused while any remain.
+ */
+export function selectUnmappedRequiredAccounts(args: {
+  accountDefaultIds: string[];
+  chart: MappableChartAccount[];
+  mappedAccountIds: Set<string>;
+}): UnmappedPostingAccount[] {
+  const required = new Set(
+    selectRequiredMappingAccountIds(args.accountDefaultIds, args.chart)
+  );
+  return args.chart
+    .filter(
+      (account) =>
+        required.has(account.id) && !args.mappedAccountIds.has(account.id)
+    )
+    .map(({ id, number, name }) => ({ id, number, name }));
+}
+
+export async function getUnmappedRequiredAccounts(
+  db: Db,
+  args: { companyId: string; integration: string }
+): Promise<{ data: UnmappedPostingAccount[] | null; error: string | null }> {
+  try {
+    const [accountDefaultIds, chart, mappedRows] = await Promise.all([
+      loadAccountDefaultAccountIds(db, args.companyId),
+      getFullChartMappableAccounts(db, { companyId: args.companyId }),
+      db
+        .selectFrom("externalIntegrationMapping")
+        .select("entityId")
+        .where("entityType", "=", ACCOUNT_MAPPING_ENTITY_TYPE)
+        .where("integration", "=", args.integration)
+        .where("companyId", "=", args.companyId)
+        .where("externalId", "is not", null)
+        .execute()
+    ]);
+    if (chart.error || !chart.data) {
+      return { data: null, error: chart.error ?? "Failed to load accounts" };
+    }
+
+    return {
+      data: selectUnmappedRequiredAccounts({
+        accountDefaultIds,
+        chart: chart.data,
+        mappedAccountIds: new Set(mappedRows.map((row) => row.entityId))
+      }),
+      error: null
+    };
+  } catch (err) {
+    return { data: null, error: toErrorMessage(err) };
+  }
+}
+
+/**
  * Propose (not write) exact matches between Carbon account numbers and the
- * provider's chart-of-accounts codes. Only active, non-group, numbered
- * accountDefault accounts without an existing mapping are considered — the
- * same set getUnmappedPostingAccounts surfaces — so proposals never suggest
- * an account outside the mappable set; the UI confirms each proposal and
- * calls upsertAccountMapping.
+ * provider's chart-of-accounts codes across the FULL chart of accounts — every
+ * active, non-group, numbered account without an existing mapping (widened from
+ * the accountDefault-only set so an arbitrary account can be matched too). The
+ * proposer already excludes already-mapped Carbon ids and already-used external
+ * ids; the UI confirms each proposal and calls upsertAccountMapping.
  */
 export async function matchAccountsByCode(
   db: Db,
@@ -442,16 +596,8 @@ export async function matchAccountsByCode(
       };
     }
 
-    // Only accountDefault accounts are mappable (automated postings run
-    // through them), so an account outside that set is never proposed.
-    const accountDefaultIds = await loadAccountDefaultAccountIds(
-      db,
-      args.companyId
-    );
-    if (accountDefaultIds.length === 0) {
-      return { data: [], error: null };
-    }
-
+    // The full chart of accounts is matchable by code, not just the
+    // accountDefault set — so an arbitrary account can be proposed a match too.
     const accounts = await db
       .selectFrom("account")
       .select(["id", "number", "name"])
@@ -459,7 +605,6 @@ export async function matchAccountsByCode(
       .where("isGroup", "=", false)
       .where("active", "=", true)
       .where("number", "is not", null)
-      .where("id", "in", accountDefaultIds)
       .execute();
 
     const mappings = await db

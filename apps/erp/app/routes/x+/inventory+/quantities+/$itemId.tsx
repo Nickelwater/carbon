@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error, notFound } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
@@ -7,12 +11,21 @@ import {
   ScrollArea,
   VStack
 } from "@carbon/react";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useLoaderData } from "react-router";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useLoaderData } from "react-router";
 import InventoryItemHeader from "~/modules/inventory/ui/Inventory/InventoryItemHeader";
 import { getItem, getPickMethod, upsertPickMethod } from "~/modules/items";
 import { resolveLocationId } from "~/modules/shared/location.server";
 import { path } from "~/utils/path";
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["itemId"], search: "all" })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId, userId } = await requirePermissions(request, {
@@ -89,10 +102,10 @@ export default function ItemInventoryRoute() {
         minSize={25}
         className="bg-muted"
       >
-        <ScrollArea className="h-[calc(100dvh-49px)]">
+        <ScrollArea className="h-[calc(100dvh-var(--topbar-height)-var(--content-inset))]">
           <InventoryItemHeader
             itemReadableId={item.readableIdWithRevision ?? item.readableId}
-            // @ts-ignore
+            // @ts-expect-error
             itemType={item.type}
           />
           <VStack className="p-2">

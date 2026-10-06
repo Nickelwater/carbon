@@ -1,10 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
-import { ScrollArea } from "@carbon/react";
+import { ScrollArea, useCloseRoute } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { data, redirect, useLoaderData, useNavigate } from "react-router";
+import { data, useLoaderData } from "react-router";
 import { issueWorkflowValidator } from "~/modules/quality/quality.models";
 import {
   getRequiredActionsList,
@@ -64,7 +69,7 @@ export async function action({ request }: ActionFunctionArgs) {
 
 export default function NewIssueWorkflowRoute() {
   const { requiredActions } = useLoaderData<typeof loader>();
-  const navigate = useNavigate();
+  const closeRoute = useCloseRoute();
   const initialValues = {
     name: "",
     content: "{}",
@@ -75,11 +80,11 @@ export default function NewIssueWorkflowRoute() {
   };
 
   return (
-    <ScrollArea className="w-full h-[calc(100dvh-49px)] bg-card">
+    <ScrollArea className="w-full h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] bg-card">
       <IssueWorkflowForm
         initialValues={initialValues}
         requiredActions={requiredActions}
-        onClose={() => navigate(-1)}
+        onClose={() => closeRoute()}
       />
     </ScrollArea>
   );

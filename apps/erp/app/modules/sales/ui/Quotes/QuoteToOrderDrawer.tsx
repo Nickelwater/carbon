@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
+import { useRuleViolations } from "@carbon/ee/rules";
 import { SelectControlled, ValidatedForm } from "@carbon/form";
 import { getLogger } from "@carbon/logger";
 import {
@@ -29,6 +34,7 @@ import {
   Th,
   Thead,
   Tr,
+  TruncatedTooltipText,
   toast,
   VStack
 } from "@carbon/react";
@@ -49,7 +55,7 @@ import {
   LuTruck,
   LuUpload
 } from "react-icons/lu";
-import { useNavigation, useParams } from "react-router";
+import { useParams } from "react-router";
 import type { z } from "zod";
 import { CustomerAvatar, DateTime } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
@@ -328,8 +334,15 @@ const QuoteToOrderDrawer = ({
     }
   };
 
-  const navigation = useNavigation();
-  const isSubmitting = navigation.state !== "idle";
+  // Converting re-evaluates sales rules across every quote line (the terminal
+  // gate in the action) before the server function writes sales order lines.
+  // Submitting through the violations hook — rather than a plain navigation —
+  // is what lets a blocked convert surface the shared modal.
+  const ruleViolations = useRuleViolations({
+    action: path.to.convertQuoteToOrder(quote.id!),
+    onSuccess: onClose
+  });
+  const isSubmitting = ruleViolations.fetcher.state !== "idle";
 
   const isNextButtonDisabled =
     step === 1 && Object.keys(selectedLines).length === 0;
@@ -354,6 +367,7 @@ const QuoteToOrderDrawer = ({
             method="post"
             action={path.to.convertQuoteToOrder(quote.id!)}
             validator={salesConfirmValidator}
+            fetcher={ruleViolations.fetcher}
             defaultValues={{
               notification: "None",
               customerContact: quote.customerContactId ?? undefined,
@@ -399,6 +413,7 @@ const QuoteToOrderDrawer = ({
           </>
         )}
       </DrawerContent>
+      <ruleViolations.ViolationModal />
     </Drawer>
   );
 };
@@ -451,20 +466,27 @@ const LinePricingForm = ({
             {line.thumbnailPath ? (
               <img
                 alt={line.itemReadableId!}
-                className="w-24 h-24 bg-gradient-to-bl from-muted to-muted/40 rounded-lg"
+                className="w-24 h-24 shrink-0 bg-gradient-to-bl from-muted to-muted/40 rounded-lg"
                 src={getPrivateUrl(line.thumbnailPath)}
               />
             ) : (
-              <div className="w-24 h-24 bg-gradient-to-bl from-muted to-muted/40 rounded-lg p-4">
+              <div className="w-24 h-24 shrink-0 bg-gradient-to-bl from-muted to-muted/40 rounded-lg p-4">
                 <LuImage className="w-16 h-16 text-muted-foreground" />
               </div>
             )}
 
-            <VStack spacing={0}>
-              <Heading>{line.itemReadableId}</Heading>
-              <span className="text-muted-foreground text-base truncate">
+            {/* flex-1 + min-w-0, not VStack's default w-full: `width: 100%`
+                on a flex item resolves against the row's full width and
+                ignores the thumbnail beside it, pushing the description past
+                the card edge. min-w-0 is what lets truncate bite. */}
+            <VStack spacing={0} className="flex-1 min-w-0">
+              <Heading className="min-w-0">{line.itemReadableId}</Heading>
+              <TruncatedTooltipText
+                className="text-muted-foreground text-base truncate"
+                tooltip={line.description}
+              >
                 {line.description}
-              </span>
+              </TruncatedTooltipText>
             </VStack>
           </HStack>
           <LinePricingOptions

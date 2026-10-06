@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Button,
   Card,
@@ -15,16 +19,22 @@ import {
   Th,
   Thead,
   Tr,
+  TruncatedTooltipText,
   VStack
 } from "@carbon/react";
 import { Trans } from "@lingui/react/macro";
 import { useLocale } from "@react-aria/i18n";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { LuChevronRight, LuImage } from "react-icons/lu";
 import { Link, useParams } from "react-router";
-import { CustomerAvatar, DateTime, MotionMoney } from "~/components";
+import {
+  CustomerAvatar,
+  DateTime,
+  MotionMoney,
+  RevisionSuffix
+} from "~/components";
 import {
   useCurrencyDecimals,
   useCurrencyFormatter,
@@ -159,25 +169,25 @@ const LineItems = ({
         return (
           <motion.div
             key={line.id}
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="border-b border-input py-6 w-full"
           >
             <HStack spacing={4} className="items-start">
               {line.thumbnailPath ? (
                 <img
                   alt={line.itemReadableId!}
-                  className="w-24 h-24 bg-gradient-to-bl from-muted to-muted/40 rounded-lg"
+                  className="w-24 h-24 shrink-0 bg-gradient-to-bl from-muted to-muted/40 rounded-lg"
                   src={getPrivateUrl(line.thumbnailPath)}
                 />
               ) : (
-                <div className="w-24 h-24 bg-gradient-to-bl from-muted to-muted/40 rounded-lg p-4">
+                <div className="w-24 h-24 shrink-0 bg-gradient-to-bl from-muted to-muted/40 rounded-lg p-4">
                   <LuImage className="w-16 h-16 text-muted-foreground" />
                 </div>
               )}
 
-              <VStack spacing={0} className="w-full">
+              <VStack spacing={0} className="flex-1 min-w-0">
                 <div
                   className="flex flex-col cursor-pointer w-full"
                   onClick={() => toggleOpen(line.id!)}
@@ -224,9 +234,12 @@ const LineItems = ({
                       </motion.div>
                     </HStack>
                   </div>
-                  <span className="text-muted-foreground text-sm truncate">
+                  <TruncatedTooltipText
+                    className="text-muted-foreground text-sm truncate"
+                    tooltip={line.description}
+                  >
                     {line.description}
-                  </span>
+                  </TruncatedTooltipText>
                 </div>
               </VStack>
             </HStack>
@@ -842,11 +855,7 @@ const QuoteSummary = ({
           <div className="flex flex-col gap-1">
             <CardTitle className="flex items-center gap-0">
               <span>{routeData?.quote.quoteId}</span>
-              {(routeData?.quote.revisionId ?? 0) > 0 && (
-                <span className="text-muted-foreground">
-                  -{routeData?.quote.revisionId}
-                </span>
-              )}
+              <RevisionSuffix revisionId={routeData?.quote.revisionId} />
             </CardTitle>
 
             <CardDescription>

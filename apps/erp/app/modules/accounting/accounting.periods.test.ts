@@ -1,17 +1,21 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { describe, expect, it, vi } from "vitest";
 
 // The settings barrel re-exports its UI, which transitively pulls Lingui `msg`
-// macros that vitest does not transform. accounting.ee.service only needs
+// macros that vitest does not transform. accounting.service only needs
 // getNextSequence from it, which these tests never exercise — stub it to keep
 // the import graph light and macro-free.
 vi.mock("~/modules/settings", () => ({
   getNextSequence: vi.fn()
 }));
 
-// @carbon/glossary's terms.ts evaluates Lingui `msg` macros at module load,
+// @carbon/content/glossary's terms.ts evaluates Lingui `msg` macros at module load,
 // which vitest doesn't transform. Nothing under test touches the glossary, so
 // stub the whole package.
-vi.mock("@carbon/glossary", () => ({
+vi.mock("@carbon/content/glossary", () => ({
   getDefinitionText: () => "",
   getEntry: () => undefined,
   getTermText: () => "",
@@ -26,7 +30,7 @@ vi.mock("@carbon/glossary", () => ({
 import type {
   PeriodCloseTaskRow,
   PeriodReadinessCheck
-} from "./accounting.ee.service";
+} from "./accounting.service";
 import {
   checklistTasksToCreate,
   closeAccountingPeriod,
@@ -40,7 +44,7 @@ import {
   postJournalEntry,
   reopenAccountingPeriod,
   skipCloseTask
-} from "./accounting.ee.service";
+} from "./accounting.service";
 
 // ---------------------------------------------------------------------------
 // Sequential close / reverse-sequential reopen gates (acceptance criteria 4/5)
@@ -73,6 +77,7 @@ function makeClient(responses: Scripted[]) {
     order: () => builder,
     limit: () => builder,
     single: () => Promise.resolve(next()),
+    maybeSingle: () => Promise.resolve(next()),
     then: (resolve: (v: Scripted) => unknown) => resolve(next())
   };
   return { from: () => builder } as any;
@@ -106,6 +111,7 @@ function makeRecordingClient(responses: Scripted[]) {
       order: () => builder,
       limit: () => builder,
       single: () => Promise.resolve(next()),
+      maybeSingle: () => Promise.resolve(next()),
       then: (resolve: (v: Scripted) => unknown) => resolve(next())
     };
     return builder;
@@ -221,6 +227,8 @@ describe("closeAccountingPeriod — sequential close", () => {
       },
       { data: [] }, // active definitions (none configured)
       { data: [] }, // existing tasks (none)
+      { data: { timezone: "America/New_York" } }, // company business calendar
+      { data: [] }, // external GL readiness: no active integrations
       { count: 0 }, // readiness: draft journals
       { data: [] }, // readiness: posted journals in period
       { count: 0 }, // readiness: draft depreciation
@@ -296,6 +304,8 @@ describe("closePeriodWithChecklist — Blocker gate + Auto-task persistence", ()
           }
         ]
       }, // existing tasks — no instantiation needed
+      { data: { timezone: "America/New_York" } }, // company business calendar
+      { data: [] }, // external GL readiness: no active integrations
       { count: 2 }, // readiness: draft journals present -> Blocker failing
       { data: [] }, // readiness: posted journals in period
       { count: 0 }, // readiness: draft depreciation
@@ -352,6 +362,8 @@ describe("closePeriodWithChecklist — Blocker gate + Auto-task persistence", ()
           }
         ]
       },
+      { data: { timezone: "America/New_York" } }, // company business calendar
+      { data: [] }, // external GL readiness: no active integrations
       { count: 0 }, // readiness: no draft journals -> Blocker passing
       { data: [] }, // readiness: posted journals in period
       { count: 0 }, // readiness: draft depreciation

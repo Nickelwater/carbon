@@ -1,9 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
+import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
+import { redirect } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
-import { redirect, useParams } from "react-router";
+import { useParams } from "react-router";
+import { getUnreleasedChangeOrderIssue } from "~/modules/items/items.server";
 import {
   getPurchaseOrder,
   isPurchaseOrderLocked,
@@ -61,6 +68,21 @@ export async function action({ request, params }: ActionFunctionArgs) {
   // biome-ignore lint/correctness/noUnusedVariables: suppressed due to migration
   const { id, ...d } = validation.data;
 
+  // An item a change notice is still holding is not purchasable — it is a draft
+  // revision the supplier has never been shown. Checked here rather than only in
+  // the picker because this action is also reached by the API and the MCP tools.
+  if (d.itemId) {
+    const unreleasedIssue = await getUnreleasedChangeOrderIssue(
+      getCarbonServiceRole(),
+      { itemId: d.itemId, companyId }
+    );
+    if (unreleasedIssue) {
+      return validationError({
+        fieldErrors: { itemId: `${unreleasedIssue} It cannot be purchased.` }
+      });
+    }
+  }
+
   const createPurchaseOrderLine = await upsertPurchaseOrderLine(client, {
     ...d,
     companyId,
@@ -95,7 +117,9 @@ export default function NewPurchaseOrderLineRoute() {
     inventoryUnitOfMeasureCode: "",
     itemId: "",
     purchaseOrderId: orderId,
-    purchaseOrderLineType: "Item" as MethodItemType,
+    // See PurchaseOrderExplorer — "Item" is the picker's generic mode and is
+    // not a valid line type.
+    purchaseOrderLineType: "Part" as MethodItemType,
     purchaseQuantity: 1,
     purchaseUnitOfMeasureCode: "",
     requiredDate: undefined,

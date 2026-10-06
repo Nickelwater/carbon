@@ -1,4 +1,8 @@
-import type { TermId } from "@carbon/glossary";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { TermId } from "@carbon/content/glossary";
 import {
   Checkbox,
   LabelWithHelp,
@@ -19,9 +23,16 @@ type PermissionMatrixProps = {
   /** Optional section label (default: "Permissions") */
   label?: string;
   termId?: TermId;
+  /** Whether to disable all permission checkboxes (e.g., when user lacks edit permission) */
+  isDisabled?: boolean;
 };
 
-const PermissionMatrix = ({ matrix, label, termId }: PermissionMatrixProps) => {
+const PermissionMatrix = ({
+  matrix,
+  label,
+  termId,
+  isDisabled
+}: PermissionMatrixProps) => {
   const { t } = useLingui();
   const resolvedLabel = label ?? t`Permissions`;
   const {
@@ -54,6 +65,7 @@ const PermissionMatrix = ({ matrix, label, termId }: PermissionMatrixProps) => {
                   <Checkbox
                     isChecked={allChecked}
                     isIndeterminate={someChecked && !allChecked}
+                    disabled={isDisabled}
                     onCheckedChange={() => toggleAll()}
                   />
                   <span>
@@ -78,6 +90,7 @@ const PermissionMatrix = ({ matrix, label, termId }: PermissionMatrixProps) => {
                     <Checkbox
                       isChecked={isRowAllChecked(mod)}
                       isIndeterminate={isRowIndeterminate(mod)}
+                      disabled={isDisabled}
                       onCheckedChange={() => toggleRow(mod)}
                     />
                     <span className="text-sm font-medium">
@@ -90,6 +103,7 @@ const PermissionMatrix = ({ matrix, label, termId }: PermissionMatrixProps) => {
                     {hasAction(mod, action) ? (
                       <Checkbox
                         isChecked={isChecked(mod, action)}
+                        disabled={isDisabled}
                         onCheckedChange={() => toggleCell(mod, action)}
                       />
                     ) : (

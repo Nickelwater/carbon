@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import {
   Combobox,
@@ -5,6 +9,7 @@ import {
   InputControlled,
   ValidatedForm
 } from "@carbon/form";
+import { useLoaderQuery } from "@carbon/query";
 import {
   Badge,
   Button,
@@ -35,7 +40,7 @@ import { getItemReadableId, INPUT_FORMAT } from "@carbon/utils";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { LuBox, LuChevronRight, LuLandmark, LuReceipt } from "react-icons/lu";
 import { useFetcher, useParams } from "react-router";
 import type { z } from "zod";
@@ -150,7 +155,11 @@ const PurchaseOrderLineForm = ({
     itemId: initialValues.itemId ?? "",
     conversionFactor: initialValues.conversionFactor ?? 1,
     description: initialValues.description ?? "",
-    fallbackUnitPrice: initialValues.supplierUnitPrice ?? 0,
+    // fallbackUnitPrice is BASE currency, matching what resolveSupplierPrice
+    // expects. initialValues.supplierUnitPrice is the SUPPLIER's, so divide.
+    fallbackUnitPrice:
+      (initialValues.supplierUnitPrice ?? 0) /
+      (routeData?.purchaseOrder?.exchangeRate || 1),
     inventoryUom: initialValues.inventoryUnitOfMeasureCode ?? "",
     minimumOrderQuantity: undefined,
     purchaseQuantity: initialValues.purchaseQuantity ?? 1,
@@ -378,10 +387,12 @@ const PurchaseOrderLineForm = ({
         const exchangeRate = routeData?.purchaseOrder?.exchangeRate ?? 1;
         const initialQty = supplierPart?.data?.minimumOrderQuantity ?? 1;
         const leadTime = item?.data?.itemReplenishment?.leadTime ?? 0;
+        // BASE currency: supplierPart.unitPrice and itemCost.unitCost are both
+        // stored in base. resolveSupplierPrice converts to the supplier's.
         const baseFallback =
           supplierPart?.data?.unitPrice !== null &&
           supplierPart?.data?.unitPrice !== undefined
-            ? supplierPart.data.unitPrice / exchangeRate
+            ? supplierPart.data.unitPrice
             : (itemCost?.unitCost ?? 0);
 
         const breaks = supplierPart?.data?.id
@@ -599,6 +610,7 @@ const PurchaseOrderLineForm = ({
                     <VStack>
                       <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3">
                         <Item
+                          autoFocus={!isEditing}
                           name="itemId"
                           label={i18n._(itemTypeLabel(lineType))}
                           type={lineType}
@@ -607,6 +619,10 @@ const PurchaseOrderLineForm = ({
                           replenishmentSystem={
                             isOutsideProcessing ? undefined : "Buy"
                           }
+                          // itemId is optional on the schema object and made
+                          // required by a refine, so the field can't infer its
+                          // own requiredness — every item-typed line needs one.
+                          isOptional={false}
                           onChange={(value) => {
                             onItemChange(value?.value as string);
                           }}
@@ -617,7 +633,6 @@ const PurchaseOrderLineForm = ({
                           label={t`Description`}
                           name="description"
                           value={itemData.description}
-                          isOptional={false}
                         />
 
                         <InputControlled
@@ -1083,12 +1098,9 @@ function JobOperationSelect(initialValues: { jobId?: string }) {
     initialValues.jobId ?? null
   );
 
-  const jobsFetcher =
-    useFetcher<PostgrestResponse<{ id: string; jobId: string }>>();
-  useMount(() => {
-    jobsFetcher.load(path.to.api.jobs);
-  });
-
+  const jobsFetcher = useLoaderQuery<
+    PostgrestResponse<{ id: string; jobId: string }>
+  >(path.to.api.jobs);
   const jobOptions = useMemo(
     () =>
       jobsFetcher.data?.data
@@ -1100,15 +1112,9 @@ function JobOperationSelect(initialValues: { jobId?: string }) {
     [jobsFetcher.data]
   );
 
-  const jobOperationFetcher =
-    useFetcher<PostgrestResponse<{ id: string; description: string }>>();
-  // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
-  useEffect(() => {
-    if (jobId) {
-      jobOperationFetcher.load(path.to.api.outsideOperations(jobId));
-    }
-  }, [jobId]);
-
+  const jobOperationFetcher = useLoaderQuery<
+    PostgrestResponse<{ id: string; description: string }>
+  >(jobId ? path.to.api.outsideOperations(jobId) : null);
   const jobOperationOptions = useMemo(() => {
     return (
       jobOperationFetcher.data?.data?.map((c) => ({

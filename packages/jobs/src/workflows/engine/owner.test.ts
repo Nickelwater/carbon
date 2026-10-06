@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { describe, expect, it, vi } from "vitest";
 import { hasPermission, type OwnerPermissions } from "./owner";
 
@@ -27,9 +31,11 @@ function permissions(
 }
 
 describe("hasPermission", () => {
-  it("grants when the action holds the all-companies wildcard", () => {
+  it("no longer grants on the retired all-companies wildcard (NIST 3.1.5)", () => {
+    // "0" was the global-company wildcard; it was removed. It is now just a
+    // literal company id that never matches a real one.
     const perms = permissions({ purchasing: { view: ["0"] } });
-    expect(hasPermission(perms, "purchasing", "view", "cmp_1")).toBe(true);
+    expect(hasPermission(perms, "purchasing", "view", "cmp_1")).toBe(false);
   });
 
   it("grants when the action names the company exactly", () => {

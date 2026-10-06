@@ -1,12 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import type { FileObject } from "@supabase/storage-js";
 import { useRef } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useLoaderData, useParams } from "react-router";
+import { useLoaderData, useParams } from "react-router";
 import { DeferredFiles } from "~/components";
 import { useRouteData, useUser } from "~/hooks";
 import type {
@@ -96,7 +101,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const isLocked = isPurchaseOrderLocked(purchaseOrder.data?.status);
 
   // If locked, require delete permission; otherwise require update permission
-  const { client, companyGroupId, userId } = await requirePermissions(request, {
+  const { client, userId } = await requirePermissions(request, {
     ...(isLocked ? { delete: "purchasing" } : { update: "purchasing" })
   });
 
@@ -116,24 +121,20 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const result = await updatePurchaseOrder(
-    client,
-    {
-      id: orderId,
-      status: validation.data.status,
-      supplierId: validation.data.supplierId,
-      currencyCode: validation.data.currencyCode,
-      orderDate: validation.data.orderDate,
-      supplierContactId: validation.data.supplierContactId || null,
-      supplierLocationId: validation.data.supplierLocationId || null,
-      supplierReference: validation.data.supplierReference,
-      purchaseOrderType: validation.data.purchaseOrderType,
-      notes: validation.data.notes,
-      customFields: setCustomFields(formData),
-      updatedBy: userId
-    },
-    companyGroupId
-  );
+  const result = await updatePurchaseOrder(client, {
+    id: orderId,
+    status: validation.data.status,
+    supplierId: validation.data.supplierId,
+    currencyCode: validation.data.currencyCode,
+    orderDate: validation.data.orderDate,
+    supplierContactId: validation.data.supplierContactId || null,
+    supplierLocationId: validation.data.supplierLocationId || null,
+    supplierReference: validation.data.supplierReference,
+    purchaseOrderType: validation.data.purchaseOrderType,
+    notes: validation.data.notes,
+    customFields: setCustomFields(formData),
+    updatedBy: userId
+  });
   if (result.error) {
     throw redirect(
       path.to.purchaseOrder(orderId),

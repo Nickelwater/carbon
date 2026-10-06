@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Card,
   CardContent,
@@ -11,7 +15,7 @@ import {
   Thead,
   Tr
 } from "@carbon/react";
-import { SCALE_FORMAT } from "@carbon/utils";
+import { round, SCALE_FORMAT } from "@carbon/utils";
 import { Trans } from "@lingui/react/macro";
 import { useNumberFormatter } from "@react-aria/i18n";
 import { DateTime, Hyperlink } from "~/components";
@@ -24,13 +28,19 @@ type PaymentApplication = NonNullable<
 >[number];
 
 type PaymentApplicationsProps = {
+  isRefund?: boolean;
+  // An employee payee: every target is a reimbursement.
+  isReimbursement?: boolean;
   applications: PaymentApplication[];
   paymentTotal: number;
+  paymentCurrency: string;
+  baseCurrency: string;
 };
 
-// The applied invoice's human-readable id comes from the embedded
-// salesInvoice/purchaseInvoice relation (getInvoiceSettlements); fall back to
-// the raw FK id if the relation didn't resolve.
+// The applied document's human-readable id comes from the embedded
+// salesInvoice/purchaseInvoice/memo/reimbursement relation
+// (getInvoiceSettlements); fall back to the raw FK id if the relation didn't
+// resolve.
 function invoiceLabel(a: PaymentApplication) {
   const rec = a as unknown as {
     salesInvoice?:
@@ -43,22 +53,80 @@ function invoiceLabel(a: PaymentApplication) {
       | null;
     targetSalesInvoiceId?: string | null;
     targetPurchaseInvoiceId?: string | null;
+    targetMemoId?: string | null;
+    targetMemo?:
+      | { memoId?: string | null }
+      | { memoId?: string | null }[]
+      | null;
+    targetReimbursementId?: string | null;
+    targetReimbursement?:
+      | { reimbursementId?: string | null }
+      | { reimbursementId?: string | null }[]
+      | null;
   };
   const pick = (x: typeof rec.salesInvoice) =>
     Array.isArray(x) ? x[0]?.invoiceId : x?.invoiceId;
   return (
     pick(rec.salesInvoice) ??
     pick(rec.purchaseInvoice) ??
+    (Array.isArray(rec.targetMemo)
+      ? rec.targetMemo[0]?.memoId
+      : rec.targetMemo?.memoId) ??
+    (Array.isArray(rec.targetReimbursement)
+      ? rec.targetReimbursement[0]?.reimbursementId
+      : rec.targetReimbursement?.reimbursementId) ??
     rec.targetSalesInvoiceId ??
-    rec.targetPurchaseInvoiceId
+    rec.targetPurchaseInvoiceId ??
+    rec.targetMemoId ??
+    rec.targetReimbursementId
   );
 }
 
 const PaymentApplications = ({
-  applications,
+  isRefund = false,
+  isReimbursement = false,
+  applications: splits,
+  paymentCurrency,
+  baseCurrency,
   paymentTotal
 }: PaymentApplicationsProps) => {
-  const currencyFormatter = useCurrencyFormatter();
+  const currencyFormatter = useCurrencyFormatter({ currency: baseCurrency });
+  const documentFormatter = useCurrencyFormatter({ currency: paymentCurrency });
+  const byInvoice = new Map<
+    string,
+    PaymentApplication & { sourceRates: number[] }
+  >();
+  for (const a of splits) {
+    const id =
+      a.targetSalesInvoiceId ??
+      a.targetPurchaseInvoiceId ??
+      a.targetMemoId ??
+      a.targetReimbursementId ??
+      a.id;
+    const existing = byInvoice.get(id);
+    if (!existing) {
+      byInvoice.set(id, { ...a, sourceRates: [Number(a.sourceExchangeRate)] });
+      continue;
+    }
+    existing.appliedAmount = round(
+      existing.appliedAmount + Number(a.appliedAmount)
+    );
+    existing.discountAmount = round(
+      existing.discountAmount + Number(a.discountAmount)
+    );
+    existing.writeOffAmount = round(
+      existing.writeOffAmount + Number(a.writeOffAmount)
+    );
+    existing.sourceAmount =
+      (existing.sourceAmount ?? 0) + Number(a.sourceAmount ?? 0);
+    existing.fxGainLossAmount = round(
+      Number(existing.fxGainLossAmount ?? 0) + Number(a.fxGainLossAmount ?? 0)
+    );
+    existing.sourceRates = [
+      ...new Set([...existing.sourceRates, Number(a.sourceExchangeRate)])
+    ];
+  }
+  const applications = [...byInvoice.values()];
   const rateFormatter = useNumberFormatter(SCALE_FORMAT);
 
   const totalApplied = applications.reduce(
@@ -71,7 +139,10 @@ const PaymentApplications = ({
   );
   const unapplied =
     paymentTotal -
-    applications.reduce((s, a) => s + Number(a.appliedAmount), 0);
+    splits.reduce(
+      (s, a) => s + (a.sourcePaymentId ? 0 : Number(a.sourceAmount ?? 0)),
+      0
+    );
 
   return (
     <Card className="w-full">
@@ -85,7 +156,13 @@ const PaymentApplications = ({
           <Thead>
             <Tr>
               <Th>
-                <Trans>Invoice</Trans>
+                {isReimbursement ? (
+                  <Trans>Reimbursement</Trans>
+                ) : isRefund ? (
+                  <Trans>Memo</Trans>
+                ) : (
+                  <Trans>Invoice</Trans>
+                )}
               </Th>
               <Th className="text-right">
                 <Trans>Applied</Trans>
@@ -133,12 +210,25 @@ const PaymentApplications = ({
                       >
                         {invoiceLabel(a)}
                       </Hyperlink>
+                    ) : a.targetMemoId ? (
+                      <Hyperlink to={path.to.memo(a.targetMemoId)}>
+                        {invoiceLabel(a)}
+                      </Hyperlink>
+                    ) : a.targetReimbursementId ? (
+                      <Hyperlink
+                        to={path.to.reimbursement(a.targetReimbursementId)}
+                      >
+                        {invoiceLabel(a)}
+                      </Hyperlink>
                     ) : (
                       invoiceLabel(a)
                     )}
                   </Td>
                   <Td className="text-right tabular-nums">
                     {currencyFormatter.format(Number(a.appliedAmount))}
+                    <div className="text-xs text-muted-foreground">
+                      {documentFormatter.format(Number(a.sourceAmount ?? 0))}
+                    </div>
                   </Td>
                   <Td className="text-right tabular-nums">
                     {currencyFormatter.format(Number(a.discountAmount))}
@@ -150,7 +240,9 @@ const PaymentApplications = ({
                     {rateFormatter.format(Number(a.targetExchangeRate))}
                   </Td>
                   <Td className="text-right tabular-nums">
-                    {rateFormatter.format(Number(a.sourceExchangeRate))}
+                    {a.sourceRates
+                      .map((rate) => rateFormatter.format(rate))
+                      .join(" / ")}
                   </Td>
                   <Td className="text-right tabular-nums">
                     {currencyFormatter.format(Number(a.fxGainLossAmount ?? 0))}
@@ -174,7 +266,7 @@ const PaymentApplications = ({
                 <Td colSpan={5} />
                 <Td className="text-right tabular-nums">
                   <Trans>Unapplied:</Trans>{" "}
-                  {currencyFormatter.format(unapplied)}
+                  {documentFormatter.format(unapplied)}
                 </Td>
               </Tr>
             </Tfoot>

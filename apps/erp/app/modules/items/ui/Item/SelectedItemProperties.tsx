@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { Spinner } from "@carbon/react";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { useEffect, useMemo } from "react";
@@ -70,7 +74,7 @@ export function SelectedItemProperties({
   const ready = d && d.itemId === selectedItemId;
   if (!ready || fetcher.state === "loading") {
     return (
-      <div className="flex w-96 items-center justify-center bg-card h-full border-l border-border">
+      <div className="flex w-96 items-center justify-center bg-background/30 h-full border-l border-border">
         <Spinner className="h-6 w-6" />
       </div>
     );
@@ -82,7 +86,8 @@ export function SelectedItemProperties({
     files: filesPromise,
     supplierParts: d.supplierParts,
     pickMethods: d.pickMethods,
-    tags: d.tags
+    tags: d.tags,
+    unreleasedChangeOrder: d.unreleasedChangeOrder
   };
 
   switch (d.type) {

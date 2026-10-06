@@ -1,11 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
-import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
+import { serverFns } from "@carbon/server-functions";
+import { redirect } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
-import { data, redirect, useParams } from "react-router";
+import { data, useParams } from "react-router";
 import { useRouteData } from "~/hooks";
 import type { Receipt, ReceiptLine } from "~/modules/inventory";
 import {
@@ -17,6 +22,7 @@ import {
 } from "~/modules/inventory";
 import { SupplierInteractionNotes } from "~/modules/purchasing/ui/SupplierInteraction";
 import type { Note } from "~/modules/shared";
+import { getDatabaseClient } from "~/services/database.server";
 import { getCustomFields, setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
 
@@ -53,21 +59,20 @@ export async function action({ request }: ActionFunctionArgs) {
     currentReceipt.data.locationId !== d.locationId;
 
   if (receiptDataHasChanged) {
-    const serviceRole = getCarbonServiceRole();
     switch (d.sourceDocument) {
       case "Purchase Order":
-        const purchaseOrderReceipt = await serviceRole.functions.invoke<{
-          id: string;
-        }>("create", {
-          body: {
-            type: "receiptFromPurchaseOrder",
+        const purchaseOrderReceipt = await serverFns
+          .system({
+            db: getDatabaseClient(),
             companyId,
+            userId
+          })
+          .invoke("create", {
+            type: "receiptFromPurchaseOrder",
             locationId: d.locationId,
             purchaseOrderId: d.sourceDocumentId,
-            receiptId: id,
-            userId: userId
-          }
-        });
+            receiptId: id
+          });
         if (!purchaseOrderReceipt.data || purchaseOrderReceipt.error) {
           throw redirect(
             path.to.receipt(id),
@@ -79,18 +84,42 @@ export async function action({ request }: ActionFunctionArgs) {
         }
         break;
 
-      case "Inbound Transfer":
-        const warehouseTransferReceipt = await serviceRole.functions.invoke<{
-          id: string;
-        }>("create", {
-          body: {
-            type: "receiptFromInboundTransfer",
+      case "Sales Return Order":
+        const salesReturnOrderReceipt = await serverFns
+          .system({
+            db: getDatabaseClient(),
             companyId,
+            userId
+          })
+          .invoke("create", {
+            type: "receiptFromSalesReturnOrder",
+            locationId: d.locationId,
+            salesReturnOrderId: d.sourceDocumentId,
+            receiptId: id
+          });
+        if (!salesReturnOrderReceipt.data || salesReturnOrderReceipt.error) {
+          throw redirect(
+            path.to.receipt(id),
+            await flash(
+              request,
+              error(salesReturnOrderReceipt.error, "Failed to create receipt")
+            )
+          );
+        }
+        break;
+
+      case "Inbound Transfer":
+        const warehouseTransferReceipt = await serverFns
+          .system({
+            db: getDatabaseClient(),
+            companyId,
+            userId
+          })
+          .invoke("create", {
+            type: "receiptFromInboundTransfer",
             warehouseTransferId: d.sourceDocumentId,
-            receiptId: id,
-            userId: userId
-          }
-        });
+            receiptId: id
+          });
         if (!warehouseTransferReceipt.data || warehouseTransferReceipt.error) {
           throw redirect(
             path.to.receipt(id),
@@ -161,7 +190,7 @@ export default function ReceiptDetailsRoute() {
     <>
       <ReceiptForm
         key={initialValues.sourceDocumentId}
-        // @ts-ignore
+        // @ts-expect-error
         initialValues={initialValues}
         status={routeData.receipt.status}
         receiptLines={routeData.receiptLines}

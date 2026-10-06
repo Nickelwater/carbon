@@ -3,6 +3,8 @@
   "dependencies": {
     "@bwip-js/node": "4.9.0",
     "@carbon/env": "workspace:*",
+    "@carbon/files": "workspace:*",
+    "@carbon/notifications": "workspace:*",
     "@carbon/react": "workspace:*",
     "@carbon/utils": "workspace:*",
     "@hookform/resolvers": "3.10.0",
@@ -16,7 +18,8 @@
     "react-icons": "catalog:",
     "react-pdf-tailwind": "2.3.0",
     "sst": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@supabase/supabase-js": "catalog:"
   },
   "devDependencies": {
     "@carbon/config": "workspace:*",
@@ -34,7 +37,7 @@
     "@testing-library/dom": "8.20.1",
     "@types/dompurify": "2.4.0",
     "@types/react": "catalog:",
-    "postcss": "8.5.15",
+    "postcss": "8.5.18",
     "react": "catalog:",
     "react-email": "4.2.8",
     "tsup": "catalog:",
@@ -49,7 +52,8 @@
     "./zpl/server": "./src/zpl/server.ts",
     "./qr": "./src/qr/qr-code.ts",
     "./labels": "./src/labels/index.ts",
-    "./shipping-label": "./src/shipping-label/index.ts"
+    "./shipping-label": "./src/shipping-label/index.ts",
+    "./utils": "./src/utils/index.ts"
   },
   "private": true,
   "scripts": {

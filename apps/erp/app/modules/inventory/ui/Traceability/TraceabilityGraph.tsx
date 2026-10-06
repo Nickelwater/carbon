@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { cn } from "@carbon/react";
 import {
   Background,
@@ -193,11 +197,15 @@ function TraceabilityGraphInner({
           if (!isMeta) return;
         }
         e.preventDefault();
+        // Capture phase + stopPropagation so node search takes precedence
+        // over the global ⌘K search binding (a document-level listener)
+        // while the graph is mounted.
+        e.stopPropagation();
         setSearchOpen(true);
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
   }, []);
   const handleRelayout = useCallback(() => {
     setLayoutVersion((v) => v + 1);

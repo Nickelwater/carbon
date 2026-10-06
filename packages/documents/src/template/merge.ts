@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { JSONContent } from "@carbon/react";
 
 /**
@@ -102,8 +106,26 @@ const SALES_ORDER_MERGE_FIELDS: MergeField[] = [
   ...COMPANY_MERGE_FIELDS
 ];
 
+const SALES_RETURN_ORDER_MERGE_FIELDS: MergeField[] = [
+  { token: "order.number", label: "RMA Number", group: "Return" },
+  { token: "order.date", label: "Order Date", group: "Return" },
+  { token: "order.expirationDate", label: "Expiration Date", group: "Return" },
+  {
+    token: "order.customerReference",
+    label: "Customer Reference",
+    group: "Return"
+  },
+  { token: "order.currency", label: "Currency", group: "Return" },
+  { token: "customer.name", label: "Customer Name", group: "Customer" },
+  { token: "customer.addressLine1", label: "Address", group: "Customer" },
+  { token: "customer.city", label: "City", group: "Customer" },
+  { token: "customer.country", label: "Country", group: "Customer" },
+  ...COMPANY_MERGE_FIELDS
+];
+
 const PURCHASE_ORDER_MERGE_FIELDS: MergeField[] = [
   { token: "order.number", label: "PO Number", group: "Order" },
+  { token: "order.revision", label: "Revision", group: "Order" },
   { token: "order.date", label: "Order Date", group: "Order" },
   {
     token: "order.supplierReference",
@@ -118,8 +140,26 @@ const PURCHASE_ORDER_MERGE_FIELDS: MergeField[] = [
   ...COMPANY_MERGE_FIELDS
 ];
 
+const PURCHASE_RETURN_ORDER_MERGE_FIELDS: MergeField[] = [
+  { token: "order.number", label: "Return Number", group: "Return" },
+  { token: "order.date", label: "Order Date", group: "Return" },
+  { token: "order.expirationDate", label: "Expiration Date", group: "Return" },
+  {
+    token: "order.supplierReference",
+    label: "Supplier RMA Number",
+    group: "Return"
+  },
+  { token: "order.currency", label: "Currency", group: "Return" },
+  { token: "supplier.name", label: "Supplier Name", group: "Supplier" },
+  { token: "supplier.addressLine1", label: "Address", group: "Supplier" },
+  { token: "supplier.city", label: "City", group: "Supplier" },
+  { token: "supplier.country", label: "Country", group: "Supplier" },
+  ...COMPANY_MERGE_FIELDS
+];
+
 const QUOTE_MERGE_FIELDS: MergeField[] = [
   { token: "quote.number", label: "Quote Number", group: "Quote" },
+  { token: "quote.revision", label: "Revision", group: "Quote" },
   { token: "quote.expirationDate", label: "Expiration Date", group: "Quote" },
   {
     token: "quote.customerReference",
@@ -193,7 +233,9 @@ const TRACKING_LABEL_MERGE_FIELDS: MergeField[] = [
 export const MERGE_FIELDS: Record<string, MergeField[]> = {
   salesInvoice: SALES_INVOICE_MERGE_FIELDS,
   salesOrder: SALES_ORDER_MERGE_FIELDS,
+  salesReturnOrder: SALES_RETURN_ORDER_MERGE_FIELDS,
   purchaseOrder: PURCHASE_ORDER_MERGE_FIELDS,
+  purchaseReturnOrder: PURCHASE_RETURN_ORDER_MERGE_FIELDS,
   quote: QUOTE_MERGE_FIELDS,
   packingSlip: PACKING_SLIP_MERGE_FIELDS,
   stockTransfer: STOCK_TRANSFER_MERGE_FIELDS,

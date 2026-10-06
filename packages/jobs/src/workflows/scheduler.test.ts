@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { describe, expect, it } from "vitest";
 import type { PlannedRun } from "./matcher";
 import {
@@ -122,7 +126,7 @@ describe("planClaims", () => {
     id,
     companyId: "cmp_1",
     ownerId: "usr_1",
-    activeVersionId: "wfv_1",
+    publishedVersionId: "wfv_1",
     nextRunAt: new Date("2026-08-01T09:00:00Z"),
     nodes
   });

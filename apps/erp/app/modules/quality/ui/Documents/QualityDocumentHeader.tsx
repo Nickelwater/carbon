@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { ApprovalDecision } from "@carbon/ee/approvals";
 import {
   Badge,
   Button,
@@ -10,6 +15,7 @@ import {
   Heading,
   HStack,
   IconButton,
+  MENU_ITEM_SHORTCUTS,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -23,7 +29,6 @@ import {
   LuCheckCheck,
   LuClipboardCheck,
   LuEllipsisVertical,
-  LuPanelLeft,
   LuPanelRight,
   LuTrash,
   LuX
@@ -33,7 +38,7 @@ import { VersionMenu } from "~/components";
 import { usePanels } from "~/components/Layout";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
 import { usePermissions, useRouteData } from "~/hooks";
-import type { ApprovalDecision } from "~/modules/shared/types";
+import { useDocumentStore } from "~/stores";
 import { path } from "~/utils/path";
 import type { QualityDocument } from "../../types";
 import QualityDocumentApprovalModal from "./QualityDocumentApprovalModal";
@@ -56,7 +61,11 @@ const QualityDocumentHeader = () => {
 
   const { t } = useLingui();
   const permissions = usePermissions();
-  const { toggleExplorer, toggleProperties } = usePanels();
+  const { toggleProperties } = usePanels();
+  // Live title from the editor's locked title block, so the header updates as
+  // the user types (before the loader revalidates).
+  const liveTitle = useDocumentStore((s) => s.liveTitle);
+  const displayName = liveTitle ?? routeData?.document?.name ?? "";
   const newVersionDisclosure = useDisclosure();
   const deleteDisclosure = useDisclosure();
   const statusFetcher = useFetcher<{ error?: { message: string } }>();
@@ -113,17 +122,11 @@ const QualityDocumentHeader = () => {
   }, [id]);
 
   return (
-    <div className="flex flex-shrink-0 items-center justify-between px-4 py-2 bg-card border-b border-border h-[50px] overflow-x-auto scrollbar-hide dark:border-none dark:shadow-[inset_0_0_1px_rgb(255_255_255_/_0.24),_0_0_0_0.5px_rgb(0,0,0,1),0px_0px_4px_rgba(0,_0,_0,_0.08)]">
+    <div className="flex flex-shrink-0 items-center justify-between gap-x-4 px-4 py-2 bg-card border-b border-border h-[var(--header-height)] overflow-x-auto scrollbar-hide">
       <VStack spacing={0} className="flex-grow">
         <HStack>
-          <IconButton
-            aria-label={t`Toggle Explorer`}
-            icon={<LuPanelLeft />}
-            onClick={toggleExplorer}
-            variant="ghost"
-          />
           <Heading size="h4" className="flex items-center gap-2">
-            <span>{routeData?.document?.name}</span>
+            <span>{displayName}</span>
             <Badge variant="outline">V{routeData?.document?.version}</Badge>
             <QualityDocumentStatus status={routeData?.document?.status} />
           </Heading>
@@ -139,6 +142,7 @@ const QualityDocumentHeader = () => {
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               <DropdownMenuItem
+                shortcut={MENU_ITEM_SHORTCUTS.delete}
                 disabled={
                   !permissions.can("delete", "quality") ||
                   !permissions.is("employee") ||

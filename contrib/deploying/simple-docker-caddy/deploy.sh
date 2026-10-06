@@ -29,7 +29,7 @@ readonly ENV_EXAMPLE="$HERE/.env.example"
 # NOT in GENERATED_SECRETS. ALL_SECRETS is the full set the stack needs to deploy.
 readonly GENERATED_SECRETS="session_secret inngest_signing_key inngest_event_key"
 readonly TRIO_SECRETS="jwt_secret anon_key service_role_key"
-readonly SUPPLIED_SECRETS="resend_api_key smtp_password"
+readonly SUPPLIED_SECRETS="resend_api_key smtp_password saml_private_key"
 readonly ALL_SECRETS="postgres_password postgrest_db_uri $GENERATED_SECRETS $TRIO_SECRETS $SUPPLIED_SECRETS"
 
 log()   { printf '\033[0;36m[%s]\033[0m %s\n' "$(date '+%H:%M:%S')" "$*"; }
@@ -127,19 +127,25 @@ cmd_init() {
     fi
     
     # Operator-supplied secrets — placeholders so the stack deploys; replace later.
-    # ERP crashes on boot with an empty RESEND_API_KEY, so seed a non-empty value.
+    # resend_api_key is optional (marketing contacts / legacy fallback); app email
+    # sends over SMTP using the shared GOTRUE_SMTP_* config + smtp_password.
     for s in $SUPPLIED_SECRETS; do
         secret_exists "$s" && continue
         case "$s" in
-            resend_api_key) create_secret "$s" "re_placeholder_change_me" ;;
+            # Seeded EMPTY on purpose: a truthy placeholder would engage the
+            # legacy Resend SMTP fallback with junk credentials instead of
+            # letting email no-op.
+            resend_api_key) create_secret "$s" "" ;;
             smtp_password)  create_secret "$s" "change_me" ;;
+            # Ignored while SAML_ENABLED=false; replace before enabling SAML.
+            saml_private_key) create_secret "$s" "change_me" ;;
         esac
     done
     
     log "Secrets ready."
     warn "Next:"
     warn "  1. Edit $ENV_FILE — set CARBON_REPO, the *_HOST/*_URL, ACME_EMAIL, SMTP."
-    warn "  2. Set real secrets:  $SCRIPT_NAME secret resend_api_key re_xxx   (then smtp_password)"
+    warn "  2. Set real secrets:  $SCRIPT_NAME secret smtp_password xxx   (resend_api_key is optional)"
     warn "  3. $SCRIPT_NAME up"
 }
 
@@ -229,6 +235,29 @@ cmd_migrate() {
     fi
     docker service rm "$job" >/dev/null 2>&1 || true
     log "Migrations applied"
+    set_inngest_event_url
+}
+
+# Postgres posts its events (event queue, embeddings, notifications) to Inngest
+# at the Vault secret `inngest_event_url`; without it they are never delivered.
+# The event key is a Swarm secret the host cannot read back, so it is read from
+# the running erp task. Idempotent; re-run `migrate` after rotating the key.
+set_inngest_event_url() {
+    local erp pg key
+    erp="$(docker ps -qf "name=${STACK_NAME}_erp.1" | head -1)"
+    pg="$(docker ps -qf "name=${STACK_NAME}_postgres.1" | head -1)"
+    if [ -z "$erp" ] || [ -z "$pg" ]; then
+        warn "erp or postgres is not running — database events are not wired yet; re-run '$SCRIPT_NAME migrate' once the stack is up"
+        return 0
+    fi
+    key="$(docker exec "$erp" cat /run/secrets/inngest_event_key)" || {
+        warn "Could not read inngest_event_key from the erp task — database events will not be delivered"
+        return 0
+    }
+    printf "SELECT public.set_inngest_event_url('http://inngest:8288/e/%s');\n" "$key" \
+        | docker exec -i "$pg" psql -q -U postgres -d postgres -v ON_ERROR_STOP=1 >/dev/null \
+        && log "Database events wired to Inngest" \
+        || warn "Could not set the Inngest event URL — database events will not be delivered"
 }
 
 # ── up (build + deploy + migrate + roll apps) ───────────────────────────────────

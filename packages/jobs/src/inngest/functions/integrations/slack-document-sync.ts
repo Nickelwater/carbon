@@ -1,5 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import type { Database } from "@carbon/database";
+import { resolveIntegrationSecrets } from "@carbon/ee";
 import {
   type DocumentType,
   formatAssignmentUpdate,
@@ -48,7 +53,7 @@ export const slackDocumentCreatedFunction = inngest.createFunction(
 
       const { data: integration } = await serviceRole
         .from("companyIntegration")
-        .select("metadata")
+        .select("metadata, secretRef")
         .eq("id", "slack")
         .eq("companyId", companyId)
         .single();
@@ -57,7 +62,15 @@ export const slackDocumentCreatedFunction = inngest.createFunction(
         throw new Error("Slack integration not found");
       }
 
-      const slackToken = (integration.metadata as any)?.access_token as string;
+      const slackToken = (
+        (await resolveIntegrationSecrets(
+          serviceRole,
+          companyId,
+          "slack",
+          integration.metadata,
+          integration.secretRef
+        )) as any
+      ).access_token as string;
       const baseUrl = VERCEL_URL || "http://localhost:3000";
 
       await postToSlackThread({
@@ -69,7 +82,10 @@ export const slackDocumentCreatedFunction = inngest.createFunction(
 
       return { success: true };
     } catch (error) {
-      logger.error(`Error posting ${documentType} to Slack`, { error });
+      logger.error("Error posting {documentType} to Slack", {
+        documentType,
+        error
+      });
       throw error;
     }
   }
@@ -114,7 +130,7 @@ export const slackDocumentStatusUpdateFunction = inngest.createFunction(
 
       const { data: integration } = await serviceRole
         .from("companyIntegration")
-        .select("metadata")
+        .select("metadata, secretRef")
         .eq("id", "slack")
         .eq("companyId", companyId)
         .single();
@@ -123,7 +139,15 @@ export const slackDocumentStatusUpdateFunction = inngest.createFunction(
         throw new Error("Slack integration not found");
       }
 
-      const slackToken = (integration.metadata as any).access_token as string;
+      const slackToken = (
+        (await resolveIntegrationSecrets(
+          serviceRole,
+          companyId,
+          "slack",
+          integration.metadata,
+          integration.secretRef
+        )) as any
+      ).access_token as string;
 
       const documentData = await getDocumentData(
         serviceRole,
@@ -156,7 +180,8 @@ export const slackDocumentStatusUpdateFunction = inngest.createFunction(
 
       return { success: true };
     } catch (error) {
-      logger.error(`Error posting ${documentType} status update to Slack`, {
+      logger.error("Error posting {documentType} status update to Slack", {
+        documentType,
         error
       });
       throw error;
@@ -205,7 +230,7 @@ export const slackDocumentTaskUpdateFunction = inngest.createFunction(
 
       const { data: integration } = await serviceRole
         .from("companyIntegration")
-        .select("metadata")
+        .select("metadata, secretRef")
         .eq("id", "slack")
         .eq("companyId", companyId)
         .single();
@@ -214,7 +239,15 @@ export const slackDocumentTaskUpdateFunction = inngest.createFunction(
         throw new Error("Slack integration not found");
       }
 
-      const slackToken = (integration.metadata as any).access_token as string;
+      const slackToken = (
+        (await resolveIntegrationSecrets(
+          serviceRole,
+          companyId,
+          "slack",
+          integration.metadata,
+          integration.secretRef
+        )) as any
+      ).access_token as string;
 
       const documentData = await getDocumentData(
         serviceRole,
@@ -248,7 +281,8 @@ export const slackDocumentTaskUpdateFunction = inngest.createFunction(
 
       return { success: true };
     } catch (error) {
-      logger.error(`Error posting ${documentType} task update to Slack`, {
+      logger.error("Error posting {documentType} task update to Slack", {
+        documentType,
         error
       });
       throw error;
@@ -293,7 +327,7 @@ export const slackDocumentAssignmentUpdateFunction = inngest.createFunction(
 
       const { data: integration } = await serviceRole
         .from("companyIntegration")
-        .select("metadata")
+        .select("metadata, secretRef")
         .eq("id", "slack")
         .eq("companyId", companyId)
         .single();
@@ -302,7 +336,15 @@ export const slackDocumentAssignmentUpdateFunction = inngest.createFunction(
         throw new Error("Slack integration not found");
       }
 
-      const slackToken = (integration.metadata as any).access_token as string;
+      const slackToken = (
+        (await resolveIntegrationSecrets(
+          serviceRole,
+          companyId,
+          "slack",
+          integration.metadata,
+          integration.secretRef
+        )) as any
+      ).access_token as string;
 
       const documentData = await getDocumentData(
         serviceRole,
@@ -334,7 +376,8 @@ export const slackDocumentAssignmentUpdateFunction = inngest.createFunction(
 
       return { success: true };
     } catch (error) {
-      logger.error(`Error posting ${documentType} assignment update to Slack`, {
+      logger.error("Error posting {documentType} assignment update to Slack", {
+        documentType,
         error
       });
       throw error;

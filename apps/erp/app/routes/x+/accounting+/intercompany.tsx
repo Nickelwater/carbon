@@ -1,7 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { Button, VStack } from "@carbon/react";
+import { isUnaffectedByNavigation } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
-import type { LoaderFunctionArgs } from "react-router";
+import { useLingui } from "@lingui/react/macro";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
 import { Outlet, useFetcher, useLoaderData } from "react-router";
 import { New } from "~/components";
 import { usePermissions, useUrlParams } from "~/hooks";
@@ -15,6 +24,11 @@ export const handle: Handle = {
   breadcrumb: msg`Intercompany`,
   to: path.to.intercompany
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { search: "all" })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { client, companyGroupId } = await requirePermissions(request, {
@@ -47,6 +61,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function IntercompanyRoute() {
+  const { t } = useLingui();
   const { data, count } = useLoaderData<typeof loader>();
   const [params] = useUrlParams();
   const permissions = usePermissions();
@@ -90,7 +105,7 @@ export default function IntercompanyRoute() {
                   Regenerate
                 </Button>
               </regenerateFetcher.Form>
-              <New label="IC Transaction" to={`new?${params.toString()}`} />
+              <New label={t`IC Transaction`} to={`new?${params.toString()}`} />
             </div>
           )
         }

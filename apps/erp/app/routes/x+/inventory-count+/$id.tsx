@@ -1,10 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import { pluckUnique } from "@carbon/utils";
+import { isUnaffectedByNavigation, pluckUnique, redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useLoaderData } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useLoaderData } from "react-router";
 import {
   getInventoryCount,
   getInventoryCountLineSummary,
@@ -24,11 +31,21 @@ import { path } from "~/utils/path";
 import { getGenericQueryFilters } from "~/utils/query";
 
 export const handle: Handle = {
+  realtime: [
+    { table: "inventoryCount", column: "id", param: "id" },
+    { table: "inventoryCountLine", column: "inventoryCountId", param: "id" }
+  ],
   breadcrumb: detailBreadcrumb(
     { breadcrumb: msg`Inventory Count`, to: path.to.inventoryCounts },
     (data) => data?.inventoryCount?.inventoryCountId
-  )
+  ),
+  module: "inventory"
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["id"], search: "all" })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -140,7 +157,7 @@ export default function InventoryCountDetailRoute() {
 
   return (
     <>
-      <div className="flex flex-col h-[calc(100dvh-49px)] w-full overflow-hidden">
+      <div className="flex flex-col h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] w-full overflow-hidden">
         <InventoryCountDetails
           inventoryCount={inventoryCount}
           lines={lines}

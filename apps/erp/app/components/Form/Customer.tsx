@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { CreatableComboboxProps } from "@carbon/form";
 import { CreatableCombobox } from "@carbon/form";
 import { useDisclosure } from "@carbon/react";
@@ -70,7 +74,8 @@ const Customer = (props: CustomerSelectProps) => {
           initialValues={{
             name: created,
             currencyCode: company.baseCurrencyCode,
-            taxPercent: 0
+            taxPercent: 0,
+            contractCustomer: false
           }}
         />
       )}

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 /** Sample data for previewing the Purchase Order template. Cast `any`. */
 export const SAMPLE_PURCHASE_ORDER = {
   company: {
@@ -18,6 +22,7 @@ export const SAMPLE_PURCHASE_ORDER = {
   },
   purchaseOrder: {
     purchaseOrderId: "PO-001042",
+    revisionId: 0,
     currencyCode: "USD",
     orderDate: "2026-06-01",
     supplierReference: "Q-55120",

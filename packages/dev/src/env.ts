@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { existsSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "pathe";
 import { APP_CHOICES } from "./constants.js";
@@ -10,6 +14,8 @@ export function renderEnv(opts: {
   jwt: JwtCreds;
   /** When true, write portless hostnames; when false, write http://localhost:PORT URLs. */
   portless: boolean;
+  /** Required when portless is true. e.g. "dev" for branch "dev". */
+  branchPrefix?: string;
   /** When set, write http://{lanHost}:PORT URLs for LAN devices (implies not portless). */
   lanHost?: string;
   /**
@@ -21,10 +27,7 @@ export function renderEnv(opts: {
    * pinned in `.env` via `#force` wins regardless.
    */
   includeAssembler?: boolean;
-  /**
-   * When true (`crbn up --thumbnails`), let the model-thumbnail job render
-   * locally against the `chrome` compose service instead of skipping on local.
-   */
+  /** When true (`crbn up --thumbnails`), render model thumbnails locally. */
   thumbnails?: boolean;
 }): string {
   const {
@@ -158,15 +161,6 @@ export function renderEnv(opts: {
   } else {
     lines.push("# Assembler not selected this run — URL omitted so the CAD");
     lines.push("# pipeline skips cleanly (assemblerEnabled() gates on it).");
-  }
-  if (thumbnails && portless) {
-    lines.push("");
-    lines.push("# Local Chromium thumbnail rendering (crbn up --thumbnails).");
-    lines.push("# The chrome container renders VERCEL_URL (the portless erp");
-    lines.push(
-      "# host) through the portless proxy, like the inngest container."
-    );
-    lines.push("THUMBNAIL_RENDER_LOCAL=true");
   }
   lines.push("");
   lines.push("# Dev auth bypass");

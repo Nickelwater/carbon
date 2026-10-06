@@ -1,7 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validator } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
@@ -17,6 +22,7 @@ import {
   HStack,
   IconButton,
   Input,
+  MENU_ITEM_SHORTCUTS,
   Select,
   SelectContent,
   SelectItem,
@@ -29,7 +35,7 @@ import {
   Thead,
   Tr
 } from "@carbon/react";
-import { datetime } from "@carbon/utils";
+import { datetime, redirect } from "@carbon/utils";
 import { parseDate } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useLocale } from "@react-aria/i18n";
@@ -44,14 +50,7 @@ import {
   LuTrash
 } from "react-icons/lu";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import {
-  data,
-  Link,
-  redirect,
-  useFetcher,
-  useLoaderData,
-  useParams
-} from "react-router";
+import { data, Link, useLoaderData, useParams } from "react-router";
 import { DateTime } from "~/components";
 import { ConfirmDelete } from "~/components/Modals";
 import { useDateFormatter } from "~/hooks";
@@ -349,7 +348,14 @@ export default function PersonTimecardRoute() {
   const { entries, openEntry, weekOffset, weekStart, weekEnd, shift } =
     useLoaderData<typeof loader>();
   const { personId } = useParams();
-  const fetcher = useFetcher<typeof action>();
+  const fetcher = useAction<typeof action>({
+    onSettled: (data) => {
+      if (data) {
+        setEditingId(null);
+        setShowAddForm(false);
+      }
+    }
+  });
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editClockIn, setEditClockIn] = useState("");
   const [editClockOut, setEditClockOut] = useState("");
@@ -371,13 +377,6 @@ export default function PersonTimecardRoute() {
   }, []);
 
   const isCurrentWeek = weekOffset === 0;
-
-  useEffect(() => {
-    if (fetcher.data && fetcher.state === "idle") {
-      setEditingId(null);
-      setShowAddForm(false);
-    }
-  }, [fetcher.data, fetcher.state]);
 
   // Auto-populate shift times when date is selected for new entry
   useEffect(() => {
@@ -598,6 +597,7 @@ export default function PersonTimecardRoute() {
                           />
                         )}
                       <Button
+                        isLoading={fetcher.state !== "idle"}
                         variant="secondary"
                         type="submit"
                         disabled={isNaN(new Date(addClockIn).getTime())}
@@ -680,6 +680,7 @@ export default function PersonTimecardRoute() {
                             )}
                           <input type="hidden" name="note" value={editNote} />
                           <Button
+                            isLoading={fetcher.state !== "idle"}
                             variant="secondary"
                             type="submit"
                             disabled={isNaN(new Date(editClockIn).getTime())}
@@ -726,11 +727,15 @@ export default function PersonTimecardRoute() {
                           />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => startEdit(entry)}>
+                          <DropdownMenuItem
+                            shortcut={MENU_ITEM_SHORTCUTS.edit}
+                            onClick={() => startEdit(entry)}
+                          >
                             <DropdownMenuIcon icon={<LuPencil />} />
                             <Trans>Edit</Trans>
                           </DropdownMenuItem>
                           <DropdownMenuItem
+                            shortcut={MENU_ITEM_SHORTCUTS.delete}
                             onClick={() =>
                               setDeletingEntry({
                                 id: entry.id,

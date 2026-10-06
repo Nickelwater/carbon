@@ -75,12 +75,12 @@ enum value (CHECK: only Fixed Asset lines have non-NULL `assetId`). The
   (acquisitionCost/Date, accumulatedDepreciation, depreciationStartDate),
   `depreciationRunValidator` (periodEnd only), `fixedAssetDisposalValidator`
   (disposalDate only), `fixedAssetUsageLogValidator`.
-- Service: `accounting.ee.service.ts` — `getFixedAsset(s)`, `insert/update/deleteFixedAsset`,
+- Service: `accounting.service.ts` — `getFixedAsset(s)`, `insert/update/deleteFixedAsset`,
   `getFixedAssetsListForSale` (status Active/Fully Depreciated), class CRUD,
   `insert/getDepreciationRun(s)`, `getDepreciationRunLines`,
   `getAssetDepreciationHistory`, `getFixedAssetDisposal`, usage-log helpers.
   Note `upsertFixedAsset` is deprecated — use insert/update.
-- Server transactions (Kysely): `accounting.ee.server.ts` — `postDisposal()` (L37)
+- Server transactions (Kysely): `accounting.server.ts` — `postDisposal()` (L37)
   and `postDepreciationRun()` (L225) build journals and update asset rows.
 - Calc utils: `accounting.utils.ts` — `buildDepreciationLines()` (L447),
   `getNextPeriodEnd()` (L252), MACRS data.
@@ -89,7 +89,7 @@ enum value (CHECK: only Fixed Asset lines have non-NULL `assetId`). The
 - Routes: `routes/x+/fixed-asset+/$fixedAssetId.{tsx,register,dispose,sell,purchase,details,delete}`;
   `routes/x+/depreciation-run+/$depreciationRunId.{tsx,post,repeat,delete}`;
   list/new at `routes/x+/accounting+/{fixed-assets,asset-classes,depreciation-runs}*`.
-- Edge functions (`packages/database/supabase/functions/`): `post-receipt`,
+- Server functions (`packages/server-functions/src/`): `post-receipt`,
   `post-purchase-invoice` (acquisition), `post-shipment`, `post-sales-invoice`
   (disposal).
 

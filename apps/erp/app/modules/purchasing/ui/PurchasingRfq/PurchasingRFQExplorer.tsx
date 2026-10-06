@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Button,
   cn,
@@ -8,13 +12,14 @@ import {
   DropdownMenuTrigger,
   HStack,
   IconButton,
-  Kbd,
+  MENU_ITEM_SHORTCUTS,
+  PrefetchLink,
+  ShortcutKey,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
   useDisclosure,
-  useKeyboardShortcuts,
-  usePrettifyShortcut,
+  useShortcutKeyMap,
   VStack
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -26,7 +31,7 @@ import {
   LuTrash
 } from "react-icons/lu";
 import { Link, useParams } from "react-router";
-import { Empty, ItemThumbnail } from "~/components";
+import { Empty, ItemThumbnail, MethodItemTypeIcon } from "~/components";
 import type { DragHandleBindings } from "~/components/LineReorder";
 import {
   ReorderableLineList,
@@ -35,7 +40,10 @@ import {
   useLineOrderEditMode
 } from "~/components/LineReorder";
 import { usePermissions, useRouteData } from "~/hooks";
-import type { MethodItemType } from "~/modules/shared";
+import { getLinkToItemDetails } from "~/modules/items/ui/Item/ItemForm";
+import type { ItemType, MethodItemType } from "~/modules/shared";
+import { itemType } from "~/modules/shared";
+import { EXPLORER_SHORTCUTS } from "~/shortcuts";
 import { path } from "~/utils/path";
 import { isRfqLocked } from "../../purchasing.models";
 import type { PurchasingRFQ, PurchasingRFQLine } from "../../types";
@@ -43,7 +51,6 @@ import DeletePurchasingRFQLine from "./DeletePurchasingRFQLine";
 import PurchasingRFQLineForm from "./PurchasingRFQLineForm";
 
 export default function PurchasingRFQExplorer() {
-  const prettifyShortcut = usePrettifyShortcut();
   const { rfqId } = useParams();
   if (!rfqId) throw new Error("Could not find rfqId");
   const purchasingRfqData = useRouteData<{
@@ -67,12 +74,15 @@ export default function PurchasingRFQExplorer() {
   };
 
   const newButtonRef = useRef<HTMLButtonElement>(null);
-  useKeyboardShortcuts({
-    "Command+Shift+l": (event: KeyboardEvent) => {
-      event.stopPropagation();
-      newButtonRef.current?.click();
+  useShortcutKeyMap([
+    {
+      shortcut: EXPLORER_SHORTCUTS.addLine,
+      action: (event: KeyboardEvent) => {
+        event.stopPropagation();
+        newButtonRef.current?.click();
+      }
     }
-  });
+  ]);
 
   const purchasingRfqLineInitialValues = {
     purchasingRfqId: rfqId,
@@ -101,7 +111,7 @@ export default function PurchasingRFQExplorer() {
 
   return (
     <div data-purchasing-rfq-explorer>
-      <VStack className="w-full h-[calc(100dvh-99px)] justify-between">
+      <VStack className="w-full h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] justify-between">
         <VStack
           className="flex-1 overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent"
           spacing={0}
@@ -175,7 +185,10 @@ export default function PurchasingRFQExplorer() {
                     <span>
                       <Trans>New Line Item</Trans>
                     </span>
-                    <Kbd>{prettifyShortcut("Command+Shift+l")}</Kbd>
+                    <ShortcutKey
+                      shortcut={EXPLORER_SHORTCUTS.addLine}
+                      variant="small"
+                    />
                   </HStack>
                 </TooltipContent>
               </Tooltip>
@@ -255,9 +268,8 @@ function PurchasingRFQLineItem({
 
   return (
     <VStack spacing={0} className="border-b">
-      <Link
+      <PrefetchLink
         className="w-full"
-        prefetch="intent"
         to={path.to.purchasingRfqLine(rfqId, line.id!)}
       >
         <HStack
@@ -294,6 +306,7 @@ function PurchasingRFQLineItem({
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   destructive
                   disabled={
                     isDisabled || !permissions.can("update", "purchasing")
@@ -306,11 +319,35 @@ function PurchasingRFQLineItem({
                   <DropdownMenuIcon icon={<LuTrash />} />
                   <Trans>Delete Line</Trans>
                 </DropdownMenuItem>
+                {line.itemId &&
+                  itemType.includes(line.itemType as ItemType) && (
+                    <DropdownMenuItem
+                      shortcut={MENU_ITEM_SHORTCUTS.view}
+                      asChild
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <Link
+                        to={getLinkToItemDetails(
+                          line.itemType as ItemType,
+                          line.itemId
+                        )}
+                      >
+                        <DropdownMenuIcon
+                          icon={
+                            <MethodItemTypeIcon
+                              type={line.itemType as ItemType}
+                            />
+                          }
+                        />
+                        <Trans>View Item Master</Trans>
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
         </HStack>
-      </Link>
+      </PrefetchLink>
     </VStack>
   );
 }

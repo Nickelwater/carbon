@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { getQuoteDisplayId } from "../../../utils/quote";
 import type { QuoteData } from "./types";
 
 /** Merge-field variable map for a Quote. */
@@ -12,7 +17,8 @@ export function buildQuoteVars(
   const str = (v: unknown): string => (v == null ? "" : String(v));
 
   return {
-    "quote.number": str(q?.quoteId),
+    "quote.number": q ? getQuoteDisplayId(q) : "",
+    "quote.revision": str(q?.revisionId ?? 0),
     "quote.expirationDate": str(q?.expirationDate),
     "quote.customerReference": str(q?.customerReference),
     "quote.currency": str(data.currencyCode),

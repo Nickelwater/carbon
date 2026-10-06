@@ -1,18 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
-import { getStorageRulesDataForTarget } from "@carbon/ee/storage-rules.server";
+import { getStorageRulesDataForTarget } from "@carbon/ee/rules.server";
 import { validationError, validator } from "@carbon/form";
 import { VStack } from "@carbon/react";
-import { pluckUnique } from "@carbon/utils";
+import { pluckUnique, redirect } from "@carbon/utils";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useLoaderData } from "react-router";
+import { useLoaderData } from "react-router";
 import { useStorageUnits } from "~/components/Form/StorageUnit";
 import { useRouteData } from "~/hooks";
 import {
   getTrackedEntityExpirations,
   InventoryDetails
 } from "~/modules/inventory";
+import RuleAssignmentsList from "~/modules/inventory/ui/StorageRules/RuleAssignmentsList";
 import type { PartSummary, UnitOfMeasureListItem } from "~/modules/items";
 import {
   getBomHasShelfLifeManagedInput,
@@ -28,7 +33,6 @@ import {
 } from "~/modules/items";
 import { PickMethodForm } from "~/modules/items/ui/Item";
 import { getLocationsList } from "~/modules/resources";
-import RuleAssignmentsList from "~/modules/storage-rules/ui/RuleAssignmentsList";
 import { getUserDefaults } from "~/modules/users/users.server";
 import { getDatabaseClient } from "~/services/database.server";
 import { useItems } from "~/stores";
@@ -48,8 +52,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const searchParams = new URLSearchParams(url.search);
   let locationId = searchParams.get("location");
 
-  if (!locationId) {
-    const userDefaults = await getUserDefaults(client, userId, companyId);
+  const userDefaults = locationId
+    ? null
+    : await getUserDefaults(client, userId, companyId);
+
+  if (userDefaults) {
     if (userDefaults.error) {
       throw redirect(
         path.to.part(itemId),
@@ -77,9 +84,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     locationId = locations.data?.[0].id as string;
   }
 
-  let [partInventory] = await Promise.all([
-    getPickMethod(client, itemId, companyId, locationId)
-  ]);
+  let partInventory = await getPickMethod(
+    client,
+    itemId,
+    companyId,
+    locationId
+  );
 
   if (partInventory.error || !partInventory.data) {
     const insertPickMethod = await upsertPickMethod(client, {
@@ -174,7 +184,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { userId } = await requirePermissions(request, {
+  const { companyId, userId } = await requirePermissions(request, {
     update: "parts"
   });
 
@@ -209,6 +219,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
       defaultStorageUnitId: pickMethodFields.defaultStorageUnitId,
       sortMethod: pickMethodFields.sortMethod,
       customFields: setCustomFields(formData),
+      companyId,
       userId,
       shelfLife: {
         mode: shelfLifeMode,
@@ -286,7 +297,7 @@ export default function PartInventoryRoute() {
   const storageUnits = useStorageUnits(partInventory?.locationId);
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       <PickMethodForm
         key={`${initialValues.itemId}-${itemTrackingType ?? "Inventory"}`}
         initialValues={initialValues}

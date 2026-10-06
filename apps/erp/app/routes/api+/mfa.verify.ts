@@ -1,20 +1,27 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, RATE_LIMIT, success } from "@carbon/auth";
 import { makeAuthSession, requirePermissions } from "@carbon/auth/auth.server";
+import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { verifyTotpChallenge } from "@carbon/auth/mfa.server";
 import {
   requireAuthSession,
   setAuthSession
 } from "@carbon/auth/session.server";
 import { Ratelimit, redis } from "@carbon/kv";
+import { getClientIp } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
 import { data } from "react-router";
+import { sendMfaEnabledEmail } from "~/services/mfa-email.server";
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
   await requirePermissions(request, {});
   const authSession = await requireAuthSession(request);
 
-  const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  const ip = getClientIp(request) ?? "127.0.0.1";
   const ratelimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(RATE_LIMIT, "1 h"),
@@ -70,6 +77,15 @@ export async function action({ request }: ActionFunctionArgs) {
   const sessionCookie = await setAuthSession(request, {
     authSession: newAuthSession
   });
+
+  // This route only ever verifies an ENROLLMENT — a login challenge goes
+  // through completeMfaChallenge on /mfa — so reaching here means a factor was
+  // just added to this account. Send the receipt; it never throws.
+  await sendMfaEnabledEmail(
+    getCarbonServiceRole(),
+    authSession.companyId,
+    authSession.userId
+  );
 
   return data(success("Two-factor authentication enabled"), {
     headers: { "Set-Cookie": sessionCookie }

@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Hidden,
   NumberControlled,
   TextArea,
   ValidatedForm
 } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Alert,
   AlertDescription,
@@ -30,7 +35,6 @@ import {
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useEffect, useRef, useState } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
-import { useFetcher } from "react-router";
 import {
   finishValidator,
   nonScrapQuantityValidator,
@@ -82,7 +86,13 @@ export function QuantityModal({
   onClose: () => void;
 }) {
   const { t } = useLingui();
-  const fetcher = useFetcher<ProductionQuantity>();
+  const fetcher = useAction<ProductionQuantity>({
+    onSettled: () => {
+      if (submitted.current) {
+        onClose();
+      }
+    }
+  });
   const [quantity, setQuantity] = useState(parentIsSerial ? 1 : 0);
   const [confirmedUnissued, setConfirmedUnissued] = useState(false);
   const submitted = useRef(false);
@@ -106,15 +116,13 @@ export function QuantityModal({
   }, [fetcher.state, onClose]);
 
   const partsPerCycle = normalizePartsPerCycle(
-    // @ts-expect-error partsPerCycle added via migration
     operation.partsPerCycle
   );
   const trackCycles =
     (type === "complete" || type === "scrap") &&
     usesCycleQuantity(
       partsPerCycle,
-      // @ts-expect-error timeBasis added via migration
-      operation.timeBasis
+        operation.timeBasis
     ) &&
     !parentIsSerial;
 
@@ -187,13 +195,12 @@ export function QuantityModal({
         (material?.quantity ?? 0) * totalPartsAfterCompletion
   );
 
+  const includeRework = type === "rework";
   const totalAfterEntry = trackCycles
     ? completedCycleCount +
       quantity +
-      (type === "rework"
-        ? cyclesFromParts(baseline.reworked, partsPerCycle)
-        : 0)
-    : quantity + (type === "rework" ? baseline.reworked : baseline.complete);
+      (includeRework ? cyclesFromParts(baseline.reworked, partsPerCycle) : 0)
+    : quantity + (includeRework ? baseline.reworked : baseline.complete);
 
   return (
     <Modal
@@ -210,11 +217,10 @@ export function QuantityModal({
           method="post"
           validator={validatorMap[type]}
           defaultValues={{
-            // @ts-ignore
+            // @ts-expect-error
             trackedEntityId:
               parentIsSerial || parentIsBatch ? trackedEntityId : undefined,
             jobOperationId: operation.id,
-            // @ts-ignore
             quantity: type === "finish" ? undefined : 0,
             setupProductionEventId: setupProductionEvent?.id,
             laborProductionEventId: laborProductionEvent?.id,

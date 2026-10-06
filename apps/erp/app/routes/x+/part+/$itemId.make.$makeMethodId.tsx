@@ -1,12 +1,17 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import type { JSONContent } from "@carbon/react";
 import { Menubar, VStack } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
 import { Suspense } from "react";
 import type { LoaderFunctionArgs } from "react-router";
-import { Await, redirect, useLoaderData, useParams } from "react-router";
+import { Await, useLoaderData, useParams } from "react-router";
 import { CadModel } from "~/components";
 import { useRouteData } from "~/hooks";
 import { usePermissions } from "~/hooks/usePermissions";
@@ -85,18 +90,13 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }
 
   const configData = partManufacturing.data?.requiresConfiguration
-    ? {
-        configurationParametersAndGroups: await getConfigurationParameters(
-          client,
-          itemId,
-          companyId
-        ),
-        configurationRules: await getConfigurationRules(
-          client,
-          itemId,
-          companyId
-        )
-      }
+    ? await Promise.all([
+        getConfigurationParameters(client, itemId, companyId),
+        getConfigurationRules(client, itemId, companyId)
+      ]).then(([configurationParametersAndGroups, configurationRules]) => ({
+        configurationParametersAndGroups,
+        configurationRules
+      }))
     : {
         configurationParametersAndGroups: { groups: [], parameters: [] },
         configurationRules: []
@@ -164,7 +164,7 @@ export default function PartMakeMethodPage() {
   }>(path.to.part(itemId));
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       <Suspense fallback={<Menubar />}>
         <Await resolve={makeMethods}>
           {(makeMethods) => (
@@ -178,19 +178,6 @@ export default function PartMakeMethodPage() {
         </Await>
       </Suspense>
 
-      <BillOfMaterial
-        key={`bom:${makeMethodId}`}
-        makeMethod={makeMethod}
-        // @ts-expect-error TS2322 - TODO: fix type
-        materials={methodMaterials}
-        operations={methodOperations}
-        configurable={partManufacturing?.requiresConfiguration}
-        configurationRules={configurationRules}
-        parameters={configurationParametersAndGroups.parameters}
-        replenishmentSystem={partData?.partSummary?.replenishmentSystem}
-        revisionStatus={revisionStatus}
-        releaseControl={releaseControl}
-      />
       <BillOfProcess
         key={`bop:${makeMethodId}`}
         makeMethod={makeMethod}
@@ -204,6 +191,19 @@ export default function PartMakeMethodPage() {
         revisionStatus={revisionStatus}
         releaseControl={releaseControl}
       />
+      <BillOfMaterial
+        key={`bom:${makeMethodId}`}
+        makeMethod={makeMethod}
+        // @ts-expect-error TS2322 - TODO: fix type
+        materials={methodMaterials}
+        operations={methodOperations}
+        configurable={partManufacturing?.requiresConfiguration}
+        configurationRules={configurationRules}
+        parameters={configurationParametersAndGroups.parameters}
+        replenishmentSystem={partData?.partSummary?.replenishmentSystem}
+        revisionStatus={revisionStatus}
+        releaseControl={releaseControl}
+      />
       <Suspense fallback={null}>
         <Await resolve={loaderData.model}>
           {(model) => (
@@ -213,7 +213,7 @@ export default function PartMakeMethodPage() {
               metadata={{
                 itemId: model?.itemId ?? undefined
               }}
-              modelPath={model?.modelPath ?? null}
+              modelUpload={model ?? null}
               title={t`CAD Model`}
               uploadClassName="aspect-square min-h-[420px] max-h-[70vh]"
               viewerClassName="aspect-square min-h-[420px] max-h-[70vh]"

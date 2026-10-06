@@ -1,7 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { Clause, LookupMatch } from "@carbon/ee/workflows";
+import { REGISTRY_ENTRIES } from "@carbon/ee/workflows";
 import { Combobox, cn } from "@carbon/react";
 import type { Operator } from "@carbon/utils";
-import type { Clause, LookupMatch } from "@carbon/workflows";
-import { REGISTRY_ENTRIES } from "@carbon/workflows";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useMemo } from "react";
 import { LuPlus } from "react-icons/lu";
@@ -41,7 +45,11 @@ function clauseToMatch(c: Clause): WorkingMatch {
   };
 }
 
-export function LookupForm({ node, issues }: NodeFormProps<"lookup">) {
+export function LookupForm({
+  node,
+  issues,
+  isReadOnly
+}: NodeFormProps<"lookup">) {
   const updateNodeData = useBuilderStore((s) => s.updateNodeData);
   const label = useWorkflowLabel();
   const { t } = useLingui();
@@ -123,6 +131,7 @@ export function LookupForm({ node, issues }: NodeFormProps<"lookup">) {
           options={entityOptions}
           onChange={handleEntityChange}
           placeholder={t`Pick a record type…`}
+          isReadOnly={isReadOnly}
         />
       </div>
 
@@ -143,11 +152,13 @@ export function LookupForm({ node, issues }: NodeFormProps<"lookup">) {
                     : "bg-background text-foreground hover:bg-muted"
                 )}
                 onClick={() => handleReturnsChange("one")}
+                disabled={isReadOnly}
               >
                 <Trans>Just one</Trans>
               </button>
               <button
                 type="button"
+                disabled={isReadOnly}
                 className={cn(
                   "flex-1 border-l px-3 py-2 text-sm transition-colors",
                   returns === "list"
@@ -179,10 +190,12 @@ export function LookupForm({ node, issues }: NodeFormProps<"lookup">) {
                 entity={entity}
                 fieldPath={`match.${idx}`}
                 issues={issues}
+                isReadOnly={isReadOnly}
               />
             ))}
             <button
               type="button"
+              disabled={isReadOnly}
               className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
               onClick={handleAddMatch}
             >

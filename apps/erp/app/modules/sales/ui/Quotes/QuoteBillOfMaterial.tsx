@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 "use client";
 import { useCarbon } from "@carbon/auth";
 import type { Database } from "@carbon/database";
@@ -19,7 +23,6 @@ import {
   HStack,
   IconButton,
   Label,
-  ScrollArea,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -30,7 +33,7 @@ import {
 } from "@carbon/react";
 import { getItemReadableId, INPUT_FORMAT } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { nanoid } from "nanoid";
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -38,11 +41,11 @@ import {
   LuArrowLeft,
   LuChevronDown,
   LuChevronRight,
-  LuCog,
   LuExternalLink,
   LuGitPullRequest,
   LuGitPullRequestCreate,
-  LuGitPullRequestCreateArrow
+  LuGitPullRequestCreateArrow,
+  LuRedoDot
 } from "react-icons/lu";
 import { Link, useFetcher, useFetchers, useParams } from "react-router";
 import type { z } from "zod";
@@ -144,8 +147,8 @@ function makeItem(
     id: material.id!,
     title: (
       <VStack spacing={0} className="py-1 cursor-pointer">
-        <div className="flex items-center gap-2 group">
-          <h3 className="font-semibold truncate">{itemReadableId}</h3>
+        <div className="flex w-full min-w-0 items-center gap-2 group">
+          <h3 className="font-semibold min-w-0 truncate">{itemReadableId}</h3>
           {material.itemId && material.itemType && (
             <Link
               to={getLinkToItemDetails(material.itemType, material.itemId)}
@@ -239,7 +242,7 @@ const initialMethodMaterial: Omit<Material, "quoteMakeMethodId" | "order"> & {
 } = {
   itemId: "",
   itemReadableId: "",
-  // @ts-ignore
+  // @ts-expect-error
   itemType: "Item" as const,
   methodType: "Purchase to Order" as const,
   description: "",
@@ -548,15 +551,13 @@ const QuoteBillOfMaterial = ({
         </CardAction>
       </HStack>
       <CardContent>
-        <ScrollArea type="auto" className="max-h-[60dvh]">
-          <SortableList
-            items={items}
-            onReorder={onReorder}
-            onToggleItem={onToggleItem}
-            onRemoveItem={onRemoveItem}
-            renderItem={renderListItem}
-          />
-        </ScrollArea>
+        <SortableList
+          items={items}
+          onReorder={onReorder}
+          onToggleItem={onToggleItem}
+          onRemoveItem={onRemoveItem}
+          renderItem={renderListItem}
+        />
       </CardContent>
     </Card>
   );
@@ -627,6 +628,7 @@ function MaterialForm({
     methodType: MethodType;
     description: string;
     unitCost: number;
+    unitCostSource: "system" | "manual";
     unitOfMeasureCode: string;
     quantity: number;
     kit: boolean;
@@ -640,6 +642,7 @@ function MaterialForm({
     methodType: item.data.methodType ?? "Pull from Inventory",
     description: item.data.description ?? "",
     unitCost: item.data.unitCost ?? 0,
+    unitCostSource: item.data.unitCostSource === "manual" ? "manual" : "system",
     unitOfMeasureCode: item.data.unitOfMeasureCode ?? "EA",
     quantity: item.data.quantity ?? 1,
     kit: item.data.kit ?? false,
@@ -658,6 +661,7 @@ function MaterialForm({
       methodType: "Pull from Inventory",
       quantity: 1,
       unitCost: 0,
+      unitCostSource: "system",
       description: "",
       unitOfMeasureCode: "EA",
       kit: false,
@@ -715,6 +719,7 @@ function MaterialForm({
       itemId,
       description: item.data?.name ?? "",
       unitCost,
+      unitCostSource: "system",
       unitOfMeasureCode: item.data?.unitOfMeasureCode ?? "EA",
       methodType: item.data?.defaultMethodType ?? "Pull from Inventory",
       requiresBatchTracking: item.data?.itemTrackingType === "Batch",
@@ -733,6 +738,8 @@ function MaterialForm({
 
       if (itemData.methodType !== "Purchase to Order" || !itemData.itemId)
         return;
+      // A typed cost survives a quantity change.
+      if (itemData.unitCostSource === "manual") return;
       if (!carbon) return;
 
       const itemCost = await carbon
@@ -748,9 +755,19 @@ function MaterialForm({
         fallbackCost
       );
 
-      setItemData((d) => ({ ...d, unitCost }));
+      // Re-checked here because the guard above reads a captured value, and a
+      // cost can be typed while the awaits are in flight.
+      setItemData((d) =>
+        d.unitCostSource === "manual" ? d : { ...d, unitCost }
+      );
     },
-    [carbon, itemData.methodType, itemData.itemId, lookupBuyPriceFn]
+    [
+      carbon,
+      itemData.methodType,
+      itemData.itemId,
+      itemData.unitCostSource,
+      lookupBuyPriceFn
+    ]
   );
 
   const sourceDisclosure = useDisclosure();
@@ -779,6 +796,7 @@ function MaterialForm({
         <Hidden name="quoteMakeMethodId" />
         <Hidden name="kit" value={itemData.kit.toString()} />
         <Hidden name="order" />
+        <Hidden name="unitCostSource" value={itemData.unitCostSource} />
 
         {itemData.methodType === "Make to Order" && (
           <Hidden name="unitCost" value={itemData.unitCost} />
@@ -832,6 +850,13 @@ function MaterialForm({
             value={itemData.unitCost}
             minValue={0}
             formatOptions={INPUT_FORMAT.rate(baseCurrency, currencyDecimals)}
+            onChange={(newValue) =>
+              setItemData((d) => ({
+                ...d,
+                unitCost: newValue,
+                unitCostSource: "manual"
+              }))
+            }
           />
         )}
       </div>
@@ -940,7 +965,7 @@ function MaterialForm({
             <Badge
               variant={quoteOperations.length > 0 ? "secondary" : "destructive"}
             >
-              <LuCog className="size-3 mr-1" />
+              <LuRedoDot className="size-3 mr-1" />
               {itemData.quoteOperationId
                 ? quoteOperations.find(
                     (o) => o.id === itemData.quoteOperationId
@@ -996,7 +1021,7 @@ function MaterialForm({
         transition={{
           type: "spring",
           bounce: 0,
-          duration: 0.55
+          duration: 0.25
         }}
       >
         <motion.div

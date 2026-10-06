@@ -1,10 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCompanyId, setCompanyId } from "@carbon/auth/company.server";
 import { updateCompanySession } from "@carbon/auth/session.server";
 import type { Database } from "@carbon/database";
 import { NotificationEvent } from "@carbon/notifications";
+import { redirect } from "@carbon/utils";
 import type { LoaderFunctionArgs } from "react-router";
-import { redirect } from "react-router";
 import { getCompanies } from "~/modules/settings";
 import { getRecordPath } from "~/utils/entity";
 import { path } from "~/utils/path";
@@ -30,6 +34,7 @@ function resolve(
     }
     case NotificationEvent.JobAssignment:
     case NotificationEvent.JobCompleted:
+    case NotificationEvent.JobsProjectedLate:
       return path.to.job(documentId);
     case NotificationEvent.JobOperationAssignment:
     case NotificationEvent.JobOperationMessage: {
@@ -59,6 +64,16 @@ function resolve(
     case NotificationEvent.SalesRfqAssignment:
     case NotificationEvent.SalesRfqReady:
       return path.to.salesRfq(documentId);
+    case NotificationEvent.SalesRuleViolation: {
+      // Compound documentId: "<quote|salesOrder|salesInvoice>:<documentId>:<outcome>"
+      const [docType, docId] = documentId.split(":");
+      if (!docId) return null;
+      return docType === "salesInvoice"
+        ? path.to.salesInvoice(docId)
+        : docType === "salesOrder"
+          ? path.to.salesOrder(docId)
+          : path.to.quote(docId);
+    }
     case NotificationEvent.MaintenanceDispatchAssignment:
     case NotificationEvent.MaintenanceDispatchCreated:
       return path.to.maintenanceDispatch(documentId);
@@ -102,7 +117,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
     client,
     companyId: sessionCompanyId,
     userId
-  } = await requirePermissions(request, {});
+  } = await requirePermissions(request, {
+    // Notification links switch to the linked company, which must work from a
+    // portal company session too.
+    allowPortalAccounts: true
+  });
 
   const url = new URL(request.url);
   const event = url.searchParams.get("event") as NotificationEvent | null;

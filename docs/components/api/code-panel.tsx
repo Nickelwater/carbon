@@ -1,8 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 "use client";
 
 import { useState } from "react";
 import type { ApiSamples } from "@/lib/api-types";
-import { applyBase, applyConfig, useApiConfig } from "./config-context";
+import { DEFAULT_API_BASE, applyBase, applyConfig, useApiConfig } from "./config-context";
+import { HostPlaceholder } from "./host-placeholder";
 import { MethodBadge } from "./method-badge";
 
 const LANGS: { key: keyof ApiSamples; label: string }[] = [
@@ -96,7 +101,7 @@ export function CodePanel({
   responseHtml: string;
 }) {
   const [lang, setLang] = useState<keyof ApiSamples>("curl");
-  const { base, apiKey } = useApiConfig();
+  const { base, apiKey, appBase } = useApiConfig();
 
   return (
     <div className="sticky top-22 flex flex-col gap-4">
@@ -105,18 +110,27 @@ export function CodePanel({
           <div className="flex min-w-0 items-center gap-2">
             <MethodBadge method={method} />
             <span className="truncate font-mono text-ed-12 text-ed-text-muted">
-              {applyBase(fullPath, base)}
+              {base === null ? (
+                <>
+                  <HostPlaceholder />
+                  {fullPath.startsWith(DEFAULT_API_BASE)
+                    ? fullPath.slice(DEFAULT_API_BASE.length)
+                    : fullPath}
+                </>
+              ) : (
+                applyBase(fullPath, base)
+              )}
             </span>
           </div>
           <LangSelect value={lang} onChange={setLang} />
         </div>
         <div className="relative">
-          <CopyButton text={applyConfig(samples[lang], base, apiKey)} />
+          <CopyButton text={applyConfig(samples[lang], base, apiKey, false, appBase)} />
           {/* biome-ignore lint/security/noDangerouslySetInnerHtml: build-time shiki HTML */}
           <div
             className="api-shiki"
             dangerouslySetInnerHTML={{
-              __html: applyConfig(highlighted[lang], base, apiKey, true),
+              __html: applyConfig(highlighted[lang], base, apiKey, true, appBase),
             }}
           />
         </div>

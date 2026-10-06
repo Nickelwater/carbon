@@ -1,13 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, notFound, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
-import type {
-  ActionFunctionArgs,
-  ClientActionFunctionArgs,
-  LoaderFunctionArgs
-} from "react-router";
-import { redirect, useLoaderData, useNavigate } from "react-router";
+import { redirect } from "@carbon/utils";
+import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
+import { useLoaderData, useNavigate } from "react-router";
+import { notifyScheduleInputsChanged } from "~/modules/production";
 import {
   getWorkCenter,
   upsertWorkCenter,
@@ -16,7 +18,6 @@ import {
 } from "~/modules/resources";
 import { getCustomFields, setCustomFields } from "~/utils/form";
 import { path } from "~/utils/path";
-import { getCompanyId, workCentersQuery } from "~/utils/react-query";
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client } = await requirePermissions(request, {
@@ -74,18 +75,17 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
+  await notifyScheduleInputsChanged(
+    companyId,
+    "work-center",
+    "Work center hours changed",
+    id
+  );
+
   throw redirect(
     path.to.workCenters,
     await flash(request, success("Updated work center "))
   );
-}
-
-export async function clientAction({ serverAction }: ClientActionFunctionArgs) {
-  window.clientCache?.setQueryData(
-    workCentersQuery(getCompanyId()).queryKey,
-    null
-  );
-  return await serverAction();
 }
 
 export default function WorkCenterRoute() {
@@ -95,16 +95,20 @@ export default function WorkCenterRoute() {
 
   const initialValues = {
     id: workCenter?.id ?? undefined,
+    alwaysOn: workCenter?.alwaysOn ?? false,
     defaultStandardFactor: workCenter?.defaultStandardFactor ?? "Minutes/Piece",
     departmentId: workCenter?.departmentId ?? undefined,
     description: workCenter?.description ?? "",
+    setupRate: workCenter?.setupRate ?? 0,
     laborRate: workCenter?.laborRate ?? 0,
     locationId: workCenter?.locationId ?? "",
     machineRate: workCenter?.machineRate ?? 0,
     name: workCenter?.name ?? "",
     overheadRate: workCenter?.overheadRate ?? 0,
     processes: workCenter?.processes ?? [],
-    requiredAbilityId: workCenter?.requiredAbilityId ?? undefined,
+    shifts: workCenter?.shifts ?? [],
+    batchCapacity: workCenter?.batchCapacity ?? undefined,
+    minimumBatchQuantity: workCenter?.minimumBatchQuantity ?? undefined,
     ...getCustomFields(workCenter?.customFields)
   };
 

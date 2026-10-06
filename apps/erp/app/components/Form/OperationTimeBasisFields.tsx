@@ -8,7 +8,7 @@ import {
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { Dispatch, SetStateAction } from "react";
 
-type TimeFields = {
+export type TimeFields = {
   timeBasis: string;
   partsPerCycle: number;
   setupUnit: string;
@@ -19,15 +19,15 @@ type TimeFields = {
   machineUnitHint: string;
 };
 
-type OperationTimeBasisFieldsProps = {
-  processData: TimeFields;
-  setProcessData: Dispatch<SetStateAction<TimeFields>>;
+type OperationTimeBasisFieldsProps<T extends TimeFields> = {
+  processData: T;
+  setProcessData: Dispatch<SetStateAction<T>>;
 };
 
-export function OperationTimeBasisFields({
+export function OperationTimeBasisFields<T extends TimeFields>({
   processData,
   setProcessData
-}: OperationTimeBasisFieldsProps) {
+}: OperationTimeBasisFieldsProps<T>) {
   const { t } = useLingui();
   const cycleMode = isCycleTimeBasis(processData.timeBasis);
 
@@ -64,7 +64,7 @@ export function OperationTimeBasisFields({
             <Trans>Per piece</Trans>
           </Label>
           <Switch
-            isChecked={cycleMode}
+            checked={cycleMode}
             onCheckedChange={(checked) => setTimeBasis(checked === true)}
             aria-label={t`Toggle per cycle timing`}
           />

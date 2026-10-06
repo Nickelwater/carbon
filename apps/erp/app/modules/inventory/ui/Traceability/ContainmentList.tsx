@@ -1,4 +1,8 @@
-import { cn } from "@carbon/react";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { cn, Subheading } from "@carbon/react";
 import { LuExternalLink } from "react-icons/lu";
 import { Link } from "react-router";
 import { path } from "~/utils/path";
@@ -42,9 +46,7 @@ export function ContainmentList({ items }: Props) {
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
               {item.priority && (
-                <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                  {item.priority}
-                </span>
+                <Subheading variant="heavy">{item.priority}</Subheading>
               )}
               <LuExternalLink className="size-3 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
             </div>

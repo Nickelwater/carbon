@@ -1,10 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { getPurchaseOrderDisplayId } from "@carbon/documents/utils";
 import { ValidatedForm } from "@carbon/form";
 import {
   Button,
   Modal,
   ModalBody,
   ModalContent,
-  ModalDescription,
   ModalFooter,
   ModalHeader,
   ModalTitle,
@@ -76,15 +80,17 @@ const PurchaseOrderFinalizeModal = ({
           fetcher={fetcher}
         >
           <ModalHeader>
-            <ModalTitle>{`Finalize ${purchaseOrder?.purchaseOrderId}`}</ModalTitle>
-            <ModalDescription>
-              Are you sure you want to finalize the purchase order? Finalizing
-              the order will affect on order quantities used to calculate supply
-              and demand.
-            </ModalDescription>
+            <ModalTitle>{`Finalize ${getPurchaseOrderDisplayId(
+              purchaseOrder
+            )}`}</ModalTitle>
           </ModalHeader>
           <ModalBody>
             <VStack spacing={4}>
+              <p className="text-sm text-muted-foreground">
+                Are you sure you want to finalize the purchase order? Finalizing
+                the order will affect on order quantities used to calculate
+                supply and demand.
+              </p>
               {canEmail && (
                 <SelectControlled
                   label={t`Send Via`}

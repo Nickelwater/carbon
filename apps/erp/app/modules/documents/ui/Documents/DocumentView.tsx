@@ -1,10 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { convertKbToString } from "@carbon/files";
 import {
   Button,
   ResizableHandle,
   ResizablePanel,
   Skeleton
 } from "@carbon/react";
-import { convertKbToString } from "@carbon/utils";
 import { Trans } from "@lingui/react/macro";
 import { lazy, Suspense } from "react";
 import { LuDownload, LuX } from "react-icons/lu";

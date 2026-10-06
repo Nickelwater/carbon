@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { LabelDownloadModal } from "@carbon/printing/ui";
 import {
   Button,
   Checkbox,
   Combobox,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   Modal,
@@ -532,6 +537,7 @@ const StorageUnitsTable = memo(
         return (
           <>
             <MenuItem
+              shortcut={MENU_ITEM_SHORTCUTS.edit}
               disabled={!permissions.can("update", "inventory")}
               onClick={() => {
                 navigate(`${path.to.storageUnit(row.id)}?${params.toString()}`);
@@ -553,6 +559,7 @@ const StorageUnitsTable = memo(
               <Trans>Add Child Storage Unit</Trans>
             </MenuItem>
             <MenuItem
+              shortcut={MENU_ITEM_SHORTCUTS.delete}
               disabled={!permissions.can("delete", "inventory")}
               destructive
               onClick={() => {
@@ -578,6 +585,12 @@ const StorageUnitsTable = memo(
           data={displayRows}
           defaultColumnVisibility={defaultColumnVisibility}
           defaultColumnPinning={defaultColumnPinning}
+          importCSV={[
+            {
+              table: "storageUnit" as const,
+              label: "Storage Units"
+            }
+          ]}
           primaryAction={actions}
           renderContextMenu={renderContextMenu}
           title={t`Storage Units`}

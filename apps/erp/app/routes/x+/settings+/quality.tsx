@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
@@ -24,11 +28,12 @@ import {
   toast,
   VStack
 } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useState } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useFetcher, useLoaderData } from "react-router";
+import { useFetcher, useLoaderData } from "react-router";
 import { z } from "zod";
 import { Users } from "~/components/Form";
 import SettingsSectionHeader from "~/components/SettingsSectionHeader";
@@ -106,7 +111,6 @@ export async function action({ request }: ActionFunctionArgs) {
     }
     const update = await client
       .from("companySettings")
-      // @ts-ignore - samplingStandard column added in migration 20260419100000
       .update({ samplingStandard: validation.data.samplingStandard })
       .eq("id", companyId);
     if (update.error) return { success: false, message: update.error.message };
@@ -198,7 +202,7 @@ export default function QualitySettingsRoute() {
   }, [toggleFetcher.data?.message, toggleFetcher.data?.success]);
 
   return (
-    <ScrollArea className="w-full h-[calc(100dvh-49px)]">
+    <ScrollArea className="w-full h-[calc(100dvh-var(--topbar-height)-var(--content-inset))]">
       <VStack
         spacing={4}
         className="py-12 px-4 max-w-[60rem] h-full mx-auto gap-4"
@@ -314,25 +318,45 @@ export default function QualitySettingsRoute() {
 
         <Card>
           <CardHeader>
+            <CardTitle>
+              <Trans>Inspections: Require Different Inspector</Trans>
+            </CardTitle>
+            <CardDescription>
+              <Trans>
+                Warn when the person inspecting an inbound item is the same
+                person who received it.
+              </Trans>
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
             <HStack className="justify-between items-center">
-              <div>
-                <CardTitle>
-                  <Trans>Inspections: Require Different Inspector</Trans>
-                </CardTitle>
-                <CardDescription>
-                  <Trans>
-                    Warn when the person inspecting an inbound item is the same
-                    person who received it.
-                  </Trans>
-                </CardDescription>
-              </div>
+              <VStack className="items-start" spacing={1}>
+                <span className="font-medium">
+                  {fourEyesEnabled ? (
+                    <Trans>A different inspector is required</Trans>
+                  ) : (
+                    <Trans>The same person may inspect</Trans>
+                  )}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {fourEyesEnabled ? (
+                    <Trans>
+                      Inspecting an item you received shows a warning.
+                    </Trans>
+                  ) : (
+                    <Trans>
+                      Enable to warn when the inspector also received the item.
+                    </Trans>
+                  )}
+                </span>
+              </VStack>
               <Switch
                 checked={fourEyesEnabled}
                 onCheckedChange={handleFourEyesToggle}
                 disabled={toggleFetcher.state !== "idle"}
               />
             </HStack>
-          </CardHeader>
+          </CardContent>
         </Card>
         <Card>
           <ValidatedForm

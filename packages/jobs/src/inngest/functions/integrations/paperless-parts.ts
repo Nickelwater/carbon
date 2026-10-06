@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import type { Database } from "@carbon/database";
 import {
@@ -318,13 +322,20 @@ export const paperlessPartsFunction = inngest.createFunction(
         } = quoteCustomerShipping.data;
 
         if (quote.currencyCode) {
-          const currency = await getCurrencyByCode(
-            carbon,
-            company.data.companyGroupId!,
-            quote.currencyCode
-          );
-          if (currency.data) {
-            quote.exchangeRate = currency.data.exchangeRate ?? undefined;
+          const exchangeRate = await carbon.rpc("get_exchange_rate", {
+            p_company_id: payload.companyId,
+            p_currency_code: quote.currencyCode
+          });
+          if (exchangeRate.error) {
+            logger.warn(
+              "Failed to resolve exchange rate for imported quote, keeping default",
+              {
+                currencyCode: quote.currencyCode,
+                error: exchangeRate.error
+              }
+            );
+          } else if (exchangeRate.data !== null) {
+            quote.exchangeRate = exchangeRate.data;
             quote.exchangeRateUpdatedAt = new Date().toISOString();
           }
         } else {
@@ -753,7 +764,9 @@ export const paperlessPartsFunction = inngest.createFunction(
         };
         break;
       default:
-        logger.error(`Unsupported event type: ${payload.payload}`);
+        logger.error("Unsupported event type: {payload}", {
+          payload: payload.payload
+        });
         result = {
           success: false,
           message: `Unsupported event type`
@@ -764,9 +777,10 @@ export const paperlessPartsFunction = inngest.createFunction(
     if (result.success) {
       logger.info(`Successfully processed ${payload.payload.type} event`);
     } else {
-      logger.error(
-        `Failed to process ${payload.payload.type} event: ${result.message}`
-      );
+      logger.error("Failed to process {payloadType} event: {resultMessage}", {
+        payloadType: payload.payload.type,
+        resultMessage: result.message
+      });
     }
 
     return result;
@@ -803,19 +817,6 @@ async function getCustomerShipping(
     .from("customerShipping")
     .select("*")
     .eq("customerId", customerId)
-    .single();
-}
-
-async function getCurrencyByCode(
-  client: SupabaseClient<Database>,
-  companyGroupId: string,
-  currencyCode: string
-) {
-  return client
-    .from("currency")
-    .select("exchangeRate")
-    .eq("companyGroupId", companyGroupId)
-    .eq("code", currencyCode)
     .single();
 }
 

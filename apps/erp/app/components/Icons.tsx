@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database } from "@carbon/database";
 import type { LinearIssue } from "@carbon/ee/linear";
 import { mapLinearStatusToCarbonStatus } from "@carbon/ee/linear";
 import {
   Badge,
   cn,
+  PrefetchLink,
   Status,
   Tooltip,
   TooltipContent,
@@ -15,6 +20,7 @@ import type { ReactNode } from "react";
 import { AiOutlinePartition } from "react-icons/ai";
 import { FaCodePullRequest } from "react-icons/fa6";
 import {
+  LuArrowDownToDot,
   LuArrowLeftRight,
   LuAtom,
   LuBanknote,
@@ -33,12 +39,12 @@ import {
   LuClipboardCheck,
   LuClock,
   LuClock3,
-  LuCog,
   LuContainer,
   LuCreditCard,
   LuExternalLink,
   LuEye,
   LuFlaskConical,
+  LuFolderKanban,
   LuGroup,
   LuHammer,
   LuHandCoins,
@@ -48,9 +54,11 @@ import {
   LuLandmark,
   LuList,
   LuListChecks,
+  LuLocateFixed,
   LuMapPin,
   LuPizza,
   LuQrCode,
+  LuRedoDot,
   LuRotateCcw,
   LuShoppingCart,
   LuSquare,
@@ -67,7 +75,6 @@ import {
 } from "react-icons/lu";
 import { RxCodesandboxLogo } from "react-icons/rx";
 import { TbTargetOff } from "react-icons/tb";
-import { Link } from "react-router";
 import { AlmostDoneIcon } from "~/assets/icons/AlmostDoneIcon";
 import { InProgressStatusIcon } from "~/assets/icons/InProgressStatusIcon";
 import { TodoStatusIcon } from "~/assets/icons/TodoStatusIcon";
@@ -167,7 +174,7 @@ export function MethodBadge({ type, text, to, className }: MethodBadgeProps) {
   const mode = useMode();
   const style = getReplenishmentBadgeColor(type, mode);
   return (
-    <Link to={to} prefetch="intent" className="group flex items-center gap-1">
+    <PrefetchLink to={to} className="group flex items-center gap-1">
       <Badge style={style} className={className}>
         <MethodIcon type={type} className="w-3 h-3 mr-1 " />
         {text}
@@ -175,7 +182,7 @@ export function MethodBadge({ type, text, to, className }: MethodBadgeProps) {
       <span className="group-hover:opacity-100 opacity-0 transition-opacity duration-200 w-4 h-4 text-foreground">
         <LuExternalLink />
       </span>
-    </Link>
+    </PrefetchLink>
   );
 }
 
@@ -599,6 +606,8 @@ export const JournalEntrySourceTypeIcon = ({
   switch (sourceType) {
     case "Manual":
       return <LuBookOpen className={className} />;
+    case "Opening Balance":
+      return <LuArrowDownToDot className={className} />;
     case "Purchase Receipt":
       return <LuHandCoins className={className} />;
     case "Purchase Invoice":
@@ -610,6 +619,10 @@ export const JournalEntrySourceTypeIcon = ({
     case "Sales Shipment":
       return <LuTruck className={className} />;
     case "Sales Return":
+      return <LuRotateCcw className={className} />;
+    case "Sales Return Receipt":
+      return <LuRotateCcw className={className} />;
+    case "Purchase Return Shipment":
       return <LuRotateCcw className={className} />;
     case "Transfer Receipt":
       return <LuArrowLeftRight className={className} />;
@@ -625,11 +638,18 @@ export const JournalEntrySourceTypeIcon = ({
       return <LuHardHat className={className} />;
     case "Job Close":
       return <LuCircleCheck className={className} />;
+    case "Maintenance Event":
+      return <LuWrench className={className} />;
     case "Asset Depreciation":
       return <LuClock className={className} />;
     case "Asset Disposal":
       return <LuBuilding2 className={className} />;
     case "Payment":
+      return <LuBanknote className={className} />;
+    case "Charge":
+      return <LuCreditCard className={className} />;
+    case "Reimbursement":
+      // An employee payable, not a card charge — pair it with Payment's icon.
       return <LuBanknote className={className} />;
     case "Credit Memo":
       return <LuCreditCard className={className} />;
@@ -677,9 +697,11 @@ export const DimensionEntityTypeIcon = ({
     case "CostCenter":
       return <LuCircleDollarSign className={className} />;
     case "WorkCenter":
-      return <LuWrench className={className} />;
+      return <LuLocateFixed className={className} />;
     case "Process":
-      return <LuCog className={className} />;
+      return <LuRedoDot className={className} />;
+    case "Project":
+      return <LuFolderKanban className={className} />;
     case "ScrapReason":
       return <LuTriangleAlert className={className} />;
   }

@@ -1,10 +1,18 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useParams } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useParams } from "react-router";
 import {
   getBatchProperties,
   getReceipt,
@@ -19,11 +27,21 @@ import { detailBreadcrumb, type Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
 export const handle: Handle = {
+  realtime: [
+    { table: "receipt", column: "id", param: "receiptId" },
+    { table: "receiptLine", column: "receiptId", param: "receiptId" }
+  ],
   breadcrumb: detailBreadcrumb(
     { breadcrumb: msg`Receipts`, to: path.to.receipts },
     (data) => data?.receipt?.receiptId
-  )
+  ),
+  module: "inventory"
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["receiptId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { companyId } = await requirePermissions(request, {
@@ -91,7 +109,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
       .select(
         "id, purchaseOrderLineId, received, serialNumber, purchaseOrderLine:purchaseOrderLineId(assetId, description, fixedAsset:assetId(name, fixedAssetId, serialNumber))"
       )
-      .eq("receiptId", receiptId);
+      .eq("receiptId", receiptId)
+      .eq("companyId", companyId);
 
     fixedAssetLines = (faLineRecords.data ?? [])
       .filter((row) => {
@@ -134,9 +153,9 @@ export default function ReceiptRoute() {
   if (!receiptId) throw new Error("Could not find receiptId");
 
   return (
-    <div className="flex h-[calc(100dvh-49px)] overflow-y-auto scrollbar-hide w-full">
+    <div className="flex h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] overflow-y-auto scrollbar-hide w-full">
       <div className="h-full p-4 w-full max-w-5xl mx-auto">
-        <div className="flex flex-col gap-2 pb-16 w-full">
+        <div className="flex flex-col gap-4 pb-16 w-full">
           <Outlet />
         </div>
       </div>

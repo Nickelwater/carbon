@@ -1,5 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
+import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
 import {
   Alert,
@@ -47,11 +52,15 @@ import {
   useLoaderData,
   useSubmit
 } from "react-router";
+import { notifyScheduleInputsChanged } from "~/modules/production";
 import {
   getTrainingAssignmentForCompletion,
+  getTrainingGrantedAbilityId,
   insertTrainingCompletion
 } from "~/modules/resources";
 import type { TrainingQuestion } from "~/modules/resources/types";
+
+const logger = getLogger("erp", "share", "training");
 
 const PASSING_THRESHOLD = 0.8;
 
@@ -162,14 +171,29 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   const answersJson = formData.get("answers") as string;
-  const questionsJson = formData.get("questions") as string;
 
-  if (!answersJson || !questionsJson) {
+  if (!answersJson) {
     return data({ error: "Missing answers or questions" }, { status: 400 });
   }
 
   const userAnswers = JSON.parse(answersJson) as Record<string, UserAnswer>;
-  const questions = JSON.parse(questionsJson) as TrainingQuestion[];
+
+  // Grade against the training's stored questions, never the posted
+  // `questions` field — that carries its own answer key, so trusting it let
+  // anyone pass (and be granted the training's ability) with any answers.
+  const serviceRole = getCarbonServiceRole();
+  const assignment = await getAuthorizedAssignment(serviceRole, id, userId);
+
+  const training = assignment.training;
+  if (!training || Array.isArray(training)) {
+    logger.error("Training not found for assignment", {
+      companyId: assignment.companyId,
+      trainingAssignmentId: id
+    });
+    return data({ error: "Training not found" }, { status: 404 });
+  }
+
+  const questions = (training.trainingQuestion ?? []) as TrainingQuestion[];
 
   let correctAnswers = 0;
   const totalQuestions = questions.length;
@@ -245,14 +269,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const passed = score >= PASSING_THRESHOLD;
 
   if (passed) {
-    const serviceRole = getCarbonServiceRole();
-    const assignment = await getAuthorizedAssignment(serviceRole, id, userId);
-
-    const training = assignment.training;
-    if (!training || Array.isArray(training)) {
-      return data({ error: "Training not found" }, { status: 404 });
-    }
-
     const { data: period } = await serviceRole.rpc(
       "get_current_training_period",
       {
@@ -268,6 +284,22 @@ export async function action({ request, params }: ActionFunctionArgs) {
       completedBy: userId,
       createdBy: userId
     });
+
+    // Passing the training grants an ability (via the grant trigger) — restamp
+    // the scheduler for that ability's operator pool.
+    const grantedAbilityId = await getTrainingGrantedAbilityId(
+      serviceRole,
+      id,
+      assignment.companyId
+    );
+    if (grantedAbilityId) {
+      await notifyScheduleInputsChanged(
+        assignment.companyId,
+        "ability",
+        "Operator qualified via training",
+        grantedAbilityId
+      );
+    }
   }
 
   return {

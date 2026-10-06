@@ -1,22 +1,40 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   assertIsPost,
   CarbonEdition,
   CONTROLLED_ENVIRONMENT,
   carbonClient,
   error,
+  getMESUrl,
+  getRedirectTo,
   isAuthProviderEnabled,
   magicLinkValidator,
   RATE_LIMIT
 } from "@carbon/auth";
-import { sendMagicLink, verifyAuthSession } from "@carbon/auth/auth.server";
+import {
+  botProtection,
+  getMagicLinkErrorMessage,
+  logAuthEvent,
+  sendMagicLink,
+  signInWithBypassEmail,
+  verifyAuthSession,
+  verifyBotProtection
+} from "@carbon/auth/auth.server";
+import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import {
   clearAuthCookies,
   flash,
-  getAuthSession
+  getAuthSession,
+  setAuthSession
 } from "@carbon/auth/session.server";
 import { getUserByEmail } from "@carbon/auth/users.server";
+import { isSsoEnabled, isSsoRequiredForEmail } from "@carbon/ee/sso.server";
 import { Hidden, Input, Submit, ValidatedForm, validator } from "@carbon/form";
-import { Ratelimit, redis } from "@carbon/kv";
+import { AccountLockout, Ratelimit, redis } from "@carbon/kv";
+import { getLogger } from "@carbon/logger";
 import {
   Alert,
   AlertDescription,
@@ -26,29 +44,24 @@ import {
   ItarLoginDisclaimer,
   Separator,
   toast,
+  useBotProtection,
   useMount,
   VStack
 } from "@carbon/react";
-import { Edition } from "@carbon/utils";
+import { Edition, getClientIp, redirect } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   browserSupportsWebAuthn,
   startAuthentication
 } from "@simplewebauthn/browser";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LuCircleAlert, LuFingerprint } from "react-icons/lu";
 import type {
   ActionFunctionArgs,
   LoaderFunctionArgs,
   MetaFunction
 } from "react-router";
-import {
-  data,
-  redirect,
-  useFetcher,
-  useLoaderData,
-  useSearchParams
-} from "react-router";
+import { data, useFetcher, useLoaderData, useSearchParams } from "react-router";
 
 import { path } from "~/utils/path";
 
@@ -60,25 +73,38 @@ export async function loader({ request }: LoaderFunctionArgs) {
   const hasOutlookAuth = isAuthProviderEnabled("azure");
   const hasGoogleAuth = isAuthProviderEnabled("google");
   const hasPasskeyAuth = isAuthProviderEnabled("passkey");
+  const hasSsoAuth = isSsoEnabled();
 
   const authSession = await getAuthSession(request);
   if (authSession) {
     if (await verifyAuthSession(authSession)) {
-      throw redirect(path.to.authenticatedRoot);
+      throw redirect(getRedirectTo(request));
     }
     const cookieHeaders = await clearAuthCookies(request);
     return data(
-      { hasOutlookAuth, hasGoogleAuth, hasPasskeyAuth },
+      {
+        hasOutlookAuth,
+        hasGoogleAuth,
+        hasPasskeyAuth,
+        hasSsoAuth,
+        botProtection
+      },
       { headers: cookieHeaders }
     );
   }
 
-  return { hasOutlookAuth, hasGoogleAuth, hasPasskeyAuth };
+  return {
+    hasOutlookAuth,
+    hasGoogleAuth,
+    hasPasskeyAuth,
+    hasSsoAuth,
+    botProtection
+  };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
-  const ip = request.headers.get("x-forwarded-for") ?? "127.0.0.1";
+  const ip = getClientIp(request) ?? "127.0.0.1";
   const ratelimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(RATE_LIMIT, "1 h"),
@@ -101,18 +127,107 @@ export async function action({ request }: ActionFunctionArgs) {
     return error(validation.error, "Invalid email address");
   }
 
-  const { email } = validation.data;
+  const { email, botToken, redirectTo } = validation.data;
+
+  const botError = await verifyBotProtection({
+    token: botToken,
+    ip,
+    actor: email
+  });
+  if (botError) {
+    return data(
+      error(null, botError),
+      await flash(request, error(null, botError))
+    );
+  }
+
+  // Per-account lockout (NIST 800-171 3.1.8) — layered ON TOP of the IP limit
+  // above, keyed by the normalized email. Rejects with a GENERIC message that
+  // never reveals whether the account exists (avoids user enumeration).
+  const lockout = new AccountLockout({ redis });
+  const LOCKED_MESSAGE =
+    "For your security, sign-in for this account is temporarily paused. Please try again later.";
+
+  const lockStatus = await lockout.status(email);
+  if (lockStatus.locked) {
+    logAuthEvent("login_locked", {
+      actor: email,
+      ip,
+      reason: "account temporarily locked",
+      retryAfterSeconds: lockStatus.retryAfterSeconds
+    });
+    return data(
+      { success: false, message: LOCKED_MESSAGE },
+      await flash(request, error(null, LOCKED_MESSAGE))
+    );
+  }
+
   const user = await getUserByEmail(email);
 
-  if (user.data && user.data.active) {
-    const magicLink = await sendMagicLink(email);
+  const devBypassEmail = process.env.DEV_BYPASS_EMAIL;
+  if (
+    devBypassEmail &&
+    email.toLowerCase() === devBypassEmail.toLowerCase() &&
+    user.data?.active
+  ) {
+    const authSession = await signInWithBypassEmail(email);
+    if (authSession) {
+      // Genuine completed login — clear any accumulated lockout state.
+      await lockout.reset(email);
+      logAuthEvent("login_success", { actor: email, ip, method: "bypass" });
+      const sessionCookie = await setAuthSession(request, { authSession });
+      return redirect(redirectTo || path.to.authenticatedRoot, {
+        headers: [["Set-Cookie", sessionCookie]]
+      });
+    }
+  }
 
-    if (!magicLink) {
+  const attempt = await lockout.recordFailure(email);
+  if (attempt.locked) {
+    logAuthEvent("login_locked", {
+      actor: email,
+      ip,
+      reason: "account temporarily locked",
+      retryAfterSeconds: attempt.retryAfterSeconds
+    });
+    return data(
+      { success: false, message: LOCKED_MESSAGE },
+      await flash(request, error(null, LOCKED_MESSAGE))
+    );
+  }
+
+  // Require-SSO gate: a covered + enforced domain may only authenticate via
+  // SSO — refuse the magic link here, server-side.
+  if (await isSsoRequiredForEmail(getCarbonServiceRole(), email)) {
+    const SSO_REQUIRED_MESSAGE =
+      "Your organization requires single sign-on. Sign in with your work email to continue.";
+    logAuthEvent("login_failed", {
+      actor: email,
+      ip,
+      reason: "sso required for domain"
+    });
+    return data(
+      { success: false, message: SSO_REQUIRED_MESSAGE },
+      await flash(request, error(null, SSO_REQUIRED_MESSAGE))
+    );
+  }
+
+  if (user.data && user.data.active) {
+    const magicLink = await sendMagicLink(email, getMESUrl(), redirectTo);
+
+    if (magicLink.error) {
+      logAuthEvent("login_failed", {
+        actor: email,
+        ip,
+        reason: "magic link send failed"
+      });
+      const message = getMagicLinkErrorMessage(magicLink.error);
       return data(
-        error(magicLink, "Failed to send magic link"),
-        await flash(request, error(magicLink, "Failed to send magic link"))
+        error(magicLink, message),
+        await flash(request, error(magicLink, message))
       );
     }
+    logAuthEvent("magic_link_sent", { actor: email, ip });
   } else {
     return data(
       { success: false, message: "Invalid email/password combination" },
@@ -124,19 +239,38 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function LoginRoute() {
+  // A signed-out user lands here however the session ended (sign out, expiry,
+  // a revoked account), so this is where the lists kept on the device go.
+  useEffect(() => {
+    import("localforage")
+      .then((storage) => storage.default.clear())
+      .catch((error) =>
+        getLogger("mes", "login").warn("stored lists not cleared", { error })
+      );
+  }, []);
+
   const { t } = useLingui();
-  const { hasOutlookAuth, hasGoogleAuth, hasPasskeyAuth } =
-    useLoaderData<typeof loader>();
+  const {
+    hasOutlookAuth,
+    hasGoogleAuth,
+    hasPasskeyAuth,
+    hasSsoAuth,
+    botProtection
+  } = useLoaderData<typeof loader>();
 
   const [searchParams] = useSearchParams();
   const redirectTo = searchParams.get("redirectTo") ?? undefined;
+  const emailParam = searchParams.get("email") ?? undefined;
 
   const fetcher = useFetcher<
     { success: true } | { success: false; message: string }
   >();
+  const bot = useBotProtection("/login", botProtection, fetcher.data);
 
   const [passkeySupported, setPasskeySupported] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [ssoLoading, setSsoLoading] = useState(false);
+  const [ssoError, setSsoError] = useState<string | null>(null);
   const conditionalAbortRef = useRef<AbortController | null>(null);
 
   // Detect passkey support and start conditional UI (autofill) on mount
@@ -243,7 +377,7 @@ export default function LoginRoute() {
       provider: "google",
       options: {
         redirectTo: `${window.location.origin}/callback${
-          redirectTo ? `?redirectTo=${redirectTo}` : ""
+          redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""
         }`
       }
     });
@@ -259,13 +393,84 @@ export default function LoginRoute() {
       options: {
         scopes: "email",
         redirectTo: `${window.location.origin}/callback${
-          redirectTo ? `?redirectTo=${redirectTo}` : ""
+          redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""
         }`
       }
     });
 
     if (error) {
       toast.error(error.message);
+    }
+  };
+
+  // Invisible SSO fork: runs as the email form's onSubmit (after validation).
+  // If the entered email's domain is an SSO-registered domain, suppress the
+  // magic-link POST and route the browser to the identity provider instead.
+  // Otherwise it returns and the form submits normally (magic link).
+  const onSubmitEmail = async (
+    formData: { email?: string },
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
+    // No SSO configured for this deployment — never pay a round-trip.
+    if (!hasSsoAuth) return;
+
+    setSsoError(null);
+    const email = String(formData.email ?? "")
+      .trim()
+      .toLowerCase();
+    const domain = email.split("@")[1];
+    if (!domain) return; // let the server validator handle a bad address
+
+    let enabled = false;
+    try {
+      const body = new FormData();
+      body.append("email", email);
+      const response = await fetch(path.to.api.ssoCheck, {
+        method: "POST",
+        body
+      });
+      enabled = response.ok ? Boolean((await response.json()).enabled) : false;
+    } catch {
+      // Fall through to the magic-link path; the server-side require-SSO gate
+      // is the defense-in-depth that still refuses an SSO-required domain.
+      enabled = false;
+    }
+
+    if (!enabled) return; // ordinary domain — magic-link submit proceeds
+
+    // SSO domain — stop the magic-link POST and hand off to the IdP.
+    event.preventDefault();
+    setSsoLoading(true);
+    const { data, error } = await carbonClient.auth.signInWithSSO({
+      domain,
+      options: {
+        redirectTo: `${window.location.origin}/callback${
+          redirectTo ? `?redirectTo=${encodeURIComponent(redirectTo)}` : ""
+        }`
+      }
+    });
+
+    if (error) {
+      setSsoError(error.message);
+      setSsoLoading(false);
+      return;
+    }
+
+    if (data?.url) {
+      // Prefill the user's email at the IdP so they don't retype it. The
+      // returned url is the IdP's SAML redirect-binding endpoint; login_hint is
+      // an extra query param (URL-encoded by URLSearchParams) that Okta/Entra
+      // honor and other IdPs safely ignore — it is not covered by the SAML
+      // request signature, so appending it never invalidates the request.
+      let target = data.url;
+      try {
+        const url = new URL(data.url);
+        url.searchParams.set("login_hint", email);
+        target = url.toString();
+      } catch {
+        // Non-absolute url — navigate to it unchanged.
+      }
+      window.location.href = target; // navigate away; keep the loading state
     }
   };
 
@@ -283,7 +488,7 @@ export default function LoginRoute() {
           className="w-24 hidden dark:block"
         />
       </div>
-      <div className="rounded-lg md:bg-card md:border md:border-border md:shadow-lg p-8 w-[380px]">
+      <div className="rounded-lg p-8 w-[380px]">
         {fetcher.data?.success === true ? (
           <>
             <VStack spacing={4} className="items-center justify-center">
@@ -301,18 +506,26 @@ export default function LoginRoute() {
           <ValidatedForm
             fetcher={fetcher}
             validator={magicLinkValidator}
-            defaultValues={{ redirectTo }}
+            defaultValues={{ redirectTo, email: emailParam }}
             method="post"
+            onSubmit={onSubmitEmail}
           >
             <Hidden name="redirectTo" value={redirectTo} type="hidden" />
+            <Hidden name="botToken" value={bot.token} />
             <VStack spacing={2}>
-              {fetcher.data?.success === false && fetcher.data?.message && (
+              {((fetcher.data?.success === false && fetcher.data?.message) ||
+                ssoError) && (
                 <Alert variant="destructive">
                   <LuCircleAlert className="w-4 h-4" />
                   <AlertTitle>
                     <Trans>Authentication Error</Trans>
                   </AlertTitle>
-                  <AlertDescription>{fetcher.data?.message}</AlertDescription>
+                  <AlertDescription>
+                    {ssoError ??
+                      (fetcher.data?.success === false
+                        ? fetcher.data.message
+                        : null)}
+                  </AlertDescription>
                 </Alert>
               )}
 
@@ -367,20 +580,25 @@ export default function LoginRoute() {
               <Input
                 name="email"
                 label=""
+                autoFocus
                 placeholder={t`Email Address`}
                 autoComplete={hasPasskeyAuth ? "email webauthn" : "email"}
               />
 
               <Submit
-                isDisabled={fetcher.state !== "idle"}
-                isLoading={fetcher.state === "submitting"}
+                isDisabled={
+                  fetcher.state !== "idle" || ssoLoading || !bot.ready
+                }
+                isLoading={fetcher.state === "submitting" || ssoLoading}
+                hideShortcutKey
                 size="lg"
                 className="w-full"
                 withBlocker={false}
                 variant="secondary"
               >
-                <Trans>Sign in with Email</Trans>
+                <Trans>Continue</Trans>
               </Submit>
+              {bot.challenge}
             </VStack>
           </ValidatedForm>
         )}

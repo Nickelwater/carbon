@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   cn,
   HoverCard,
@@ -7,6 +11,7 @@ import {
   Popover,
   PopoverContent,
   PopoverTrigger,
+  Subheading,
   VStack
 } from "@carbon/react";
 import { useReactFlow } from "@xyflow/react";
@@ -413,9 +418,7 @@ function SpacingSlider({
         className="w-auto p-3"
       >
         <VStack spacing={2} className="items-center">
-          <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
-            Spacing
-          </span>
+          <Subheading variant="heavy">Spacing</Subheading>
           <span className="text-base font-medium tabular-nums text-foreground">
             {value}
           </span>

@@ -69,7 +69,7 @@ export type InProcessDependencyRow = {
 
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";
-import { getReadableIdWithRevision } from "~/utils/string";
+import { getReadableIdWithRevision } from "@carbon/utils";
 import {
   batchSamplesRemaining,
   isBatchInspectionLot
@@ -461,7 +461,11 @@ export default function InboundInspectionLotView({
                       </tr>
                     )}
                     {samples.map((s, idx) => {
-                      const readable = s.trackedEntity?.readableId ?? null;
+                      const readable =
+                        (s as { trackedEntity?: { readableId?: string } })
+                          .trackedEntity?.readableId ??
+                        s.trackedEntityId ??
+                        null;
                       const sampleNum =
                         (s as { sampleIndex?: number }).sampleIndex ?? idx + 1;
                       const measurements = sampleMeasurements[s.id] ?? [];

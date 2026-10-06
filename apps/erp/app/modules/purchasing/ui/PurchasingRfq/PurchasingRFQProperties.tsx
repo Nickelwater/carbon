@@ -1,12 +1,19 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Json } from "@carbon/database";
 import { CreatableMultiSelect, DatePicker, ValidatedForm } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Avatar,
   AvatarGroup,
   AvatarGroupList,
   AvatarOverflowIndicator,
   Button,
+  Copy,
   HStack,
+  Subheading,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -15,9 +22,9 @@ import {
   VStack
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { LuCopy, LuLink } from "react-icons/lu";
-import { useFetcher, useParams } from "react-router";
+import { useCallback, useMemo, useState } from "react";
+import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
+import { useParams } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { Assignee, useOptimisticAssignment } from "~/components";
@@ -83,13 +90,13 @@ const PurchasingRFQProperties = () => {
     );
   }, [routeData?.suppliers]);
 
-  const fetcher = useFetcher<typeof action>();
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error(fetcher.data.error.message);
+  const fetcher = useAction<typeof action>({
+    onError: (data) => {
+      if (data?.error) {
+        toast.error(data.error.message);
+      }
     }
-  }, [fetcher.data]);
-
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   const onUpdate = useCallback(
     (field: keyof PurchasingRFQ, value: string | null) => {
@@ -166,13 +173,13 @@ const PurchasingRFQProperties = () => {
   return (
     <VStack
       spacing={4}
-      className="w-96 bg-card h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
+      className="w-96 bg-background/30 h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
     >
       <VStack spacing={4}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+          <Subheading as="h3" variant="light">
             <Trans>Properties</Trans>
-          </h3>
+          </Subheading>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -195,6 +202,13 @@ const PurchasingRFQProperties = () => {
                 <span>Copy link to RFQ</span>
               </TooltipContent>
             </Tooltip>
+            <Copy
+              text={rfqId}
+              label={t`Copy RFQ unique identifier`}
+              icon={<LuKeySquare className="size-3" />}
+              variant="ghost"
+              className="w-auto"
+            />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -242,7 +256,6 @@ const PurchasingRFQProperties = () => {
           value={currentSupplierIds}
           inline={renderSuppliersInlinePreview}
           isReadOnly={isDisabled}
-          disabled={isDisabled}
           onChange={(selected) => {
             onUpdateSuppliers(selected);
           }}

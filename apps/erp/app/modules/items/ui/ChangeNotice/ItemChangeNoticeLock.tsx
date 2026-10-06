@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { Tooltip, TooltipContent, TooltipTrigger } from "@carbon/react";
 import { useLingui } from "@lingui/react/macro";
 import type { ReactNode } from "react";
@@ -35,15 +39,19 @@ export function useItemOpenChangeNotices(
 }
 
 // Tooltip wrapper for disabled controls (the div anchors hover since disabled elements don't fire it).
+// `reason` overrides the default "release it to create new versions" wording for
+// callers locking something else — the Active toggle, say.
 export function ItemChangeNoticeLock({
   changeNotices,
   isLocked,
   className,
+  reason,
   children
 }: {
   changeNotices: ChangeNoticeForItem[];
   isLocked: boolean;
   className?: string;
+  reason?: ReactNode;
   children: ReactNode;
 }) {
   const { t } = useLingui();
@@ -62,11 +70,12 @@ export function ItemChangeNoticeLock({
         </div>
       </TooltipTrigger>
       <TooltipContent>
-        {changeNotices.length === 0
-          ? t`Change notices could not be loaded, so new versions and revisions are blocked. Reload to try again.`
-          : changeNotices.length === 1
-            ? t`Open in change notice ${ids}. Release it to create new versions or revisions.`
-            : t`Open in change notices ${ids}. Release them to create new versions or revisions.`}
+        {reason ??
+          (changeNotices.length === 0
+            ? t`Change notices could not be loaded, so new versions and revisions are blocked. Reload to try again.`
+            : changeNotices.length === 1
+              ? t`Open in change notice ${ids}. Release it to create new versions or revisions.`
+              : t`Open in change notices ${ids}. Release them to create new versions or revisions.`)}
       </TooltipContent>
     </Tooltip>
   );

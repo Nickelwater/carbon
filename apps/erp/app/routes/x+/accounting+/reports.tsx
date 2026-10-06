@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
@@ -5,10 +9,13 @@ import { validationError, validator } from "@carbon/form";
 import {
   Badge,
   cn,
+  Heading,
   IconButton,
   Input,
   InputGroup,
-  InputLeftElement
+  InputLeftElement,
+  PrefetchLink,
+  Subheading
 } from "@carbon/react";
 import { msg } from "@lingui/core/macro";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -37,7 +44,7 @@ import type {
   LoaderFunctionArgs,
   MetaFunction
 } from "react-router";
-import { data, Link, useFetcher, useLoaderData } from "react-router";
+import { data, useFetcher, useLoaderData } from "react-router";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
 import {
   getReportPins,
@@ -321,9 +328,9 @@ export default function ReportsIndexRoute() {
     <div className="h-[calc(100dvh-var(--header-height))] w-full overflow-y-auto bg-card">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 p-8">
         <div className="flex items-center justify-between gap-4">
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <Heading as="h1" size="h1">
             <Trans>Reporting</Trans>
-          </h1>
+          </Heading>
           <InputGroup size="sm" className="w-64">
             <InputLeftElement>
               <LuSearch className="h-4 w-4 text-muted-foreground" />
@@ -383,10 +390,9 @@ export default function ReportsIndexRoute() {
                 <SectionHeading>{category}</SectionHeading>
                 <div className="overflow-hidden rounded-lg border border-border">
                   {categoryReports.map((report, index) => (
-                    <Link
+                    <PrefetchLink
                       key={report.key}
                       to={report.to}
-                      prefetch="intent"
                       className={
                         "flex cursor-pointer items-center gap-3 bg-card/70 px-4 py-2.5 transition-colors hover:bg-accent/40" +
                         (index > 0 ? " border-t border-border" : "")
@@ -405,7 +411,7 @@ export default function ReportsIndexRoute() {
                           pinLabel={t`Pin ${report.name}`}
                         />
                       </span>
-                    </Link>
+                    </PrefetchLink>
                   ))}
                 </div>
               </div>
@@ -417,10 +423,9 @@ export default function ReportsIndexRoute() {
                   </SectionHeading>
                   <div className="overflow-hidden rounded-lg border border-border">
                     {categoryViews.map((view, index) => (
-                      <Link
+                      <PrefetchLink
                         key={view.id}
                         to={`${path.to.analyticsReport(view.reportKey)}?view=${view.id}`}
-                        prefetch="intent"
                         className={
                           "flex cursor-pointer items-center gap-3 bg-card/70 px-4 py-2.5 transition-colors hover:bg-accent/40" +
                           (index > 0 ? " border-t border-border" : "")
@@ -462,7 +467,7 @@ export default function ReportsIndexRoute() {
                             />
                           )}
                         </span>
-                      </Link>
+                      </PrefetchLink>
                     ))}
                   </div>
                 </div>
@@ -508,9 +513,8 @@ const PinnedCard = ({
   pinLabel: string;
   unpinLabel: string;
 }) => (
-  <Link
+  <PrefetchLink
     to={to}
-    prefetch="intent"
     className="group flex cursor-pointer items-center justify-between gap-4 rounded-lg border border-border bg-card/70 p-4 backdrop-blur-md transition-colors duration-200 hover:border-foreground/20 hover:bg-accent/40"
   >
     <span className="flex items-center gap-3 overflow-hidden">
@@ -527,7 +531,7 @@ const PinnedCard = ({
       pinLabel={pinLabel}
       unpinLabel={unpinLabel}
     />
-  </Link>
+  </PrefetchLink>
 );
 
 // Sits inside the card/row Link, so it must not trigger navigation. Pinned
@@ -562,7 +566,5 @@ const PinToggle = ({
 );
 
 const SectionHeading = ({ children }: { children: ReactNode }) => (
-  <div className="mb-3 flex items-center gap-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-    {children}
-  </div>
+  <Subheading className="mb-3 flex items-center gap-1.5">{children}</Subheading>
 );

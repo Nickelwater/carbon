@@ -1,5 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { Input, TextArea, ValidatedForm } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import type { JSONContent } from "@carbon/react";
 import {
   Badge,
@@ -30,6 +35,7 @@ import {
   Th,
   Thead,
   Tr,
+  TruncatedTooltipText,
   useDisclosure,
   useMode,
   VStack
@@ -37,9 +43,9 @@ import {
 import { Editor } from "@carbon/react/Editor";
 import { useLingui } from "@lingui/react/macro";
 import { useLocale } from "@react-aria/i18n";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import type { Dispatch, SetStateAction } from "react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import {
   LuChevronRight,
   LuCirclePlus,
@@ -47,7 +53,7 @@ import {
   LuPencil
 } from "react-icons/lu";
 import type { LoaderFunctionArgs } from "react-router";
-import { useFetcher, useLoaderData, useParams } from "react-router";
+import { useLoaderData, useParams } from "react-router";
 import { DateTime } from "~/components";
 import { externalSupplierQuoteValidator } from "~/modules/purchasing/purchasing.models";
 import {
@@ -61,7 +67,7 @@ import type {
   SupplierQuoteLinePrice
 } from "~/modules/purchasing/types";
 import type { Company } from "~/modules/settings";
-import { getCompany, getCompanySettings } from "~/modules/settings";
+import { getCompany } from "~/modules/settings";
 import { getBase64ImageFromSupabase } from "~/modules/shared";
 import type { action } from "~/routes/api+/purchasing.digital-quote.$id";
 import { path } from "~/utils/path";
@@ -126,13 +132,14 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     };
   }
 
-  const [company, companySettings, quoteLines, quoteLinePrices] =
-    await Promise.all([
-      getCompany(serviceRole, quote.data.companyId),
-      getCompanySettings(serviceRole, quote.data.companyId),
-      getSupplierQuoteLines(serviceRole, quote.data.id),
-      getSupplierQuoteLinePricesByQuoteId(serviceRole, quote.data.id)
-    ]);
+  // No companySettings here: the page never reads it, and the row carries
+  // internal config (markups, notification groups, printing) that must not
+  // reach an unauthenticated supplier.
+  const [company, quoteLines, quoteLinePrices] = await Promise.all([
+    getCompany(serviceRole, quote.data.companyId),
+    getSupplierQuoteLines(serviceRole, quote.data.id),
+    getSupplierQuoteLinePricesByQuoteId(serviceRole, quote.data.id)
+  ]);
 
   const thumbnailPaths = quoteLines.data?.reduce<Record<string, string | null>>(
     (acc, line) => {
@@ -172,7 +179,6 @@ export async function loader({ params, request }: LoaderFunctionArgs) {
     data: {
       quote: quote.data,
       company: company.data,
-      companySettings: companySettings.data,
       quoteLines:
         quoteLines.data?.map(({ internalNotes, ...line }) => ({
           ...line
@@ -373,36 +379,45 @@ const LineItems = ({
         const lineHeading = isGlAccount
           ? line.description || "Indirect Expense"
           : line.itemReadableId;
+        const lineDescription = isGlAccount
+          ? "Indirect Expense"
+          : line.description;
 
         return (
           <motion.div
             key={line.id}
-            initial={{ opacity: 0, y: 50 }}
+            initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
             className="border-b border-input py-6 w-full"
           >
             <HStack spacing={4} className="items-start">
               {thumbnails[line.id] ? (
                 <img
                   alt={lineHeading!}
-                  className="w-24 h-24 bg-gradient-to-bl from-muted to-muted/40 rounded-lg"
+                  className="w-24 h-24 shrink-0 bg-gradient-to-bl from-muted to-muted/40 rounded-lg"
                   src={thumbnails[line.id] ?? undefined}
                 />
               ) : (
-                <div className="w-24 h-24 bg-gradient-to-bl from-muted to-muted/40 rounded-lg p-4">
+                <div className="w-24 h-24 shrink-0 bg-gradient-to-bl from-muted to-muted/40 rounded-lg p-4">
                   <LuImage className="w-16 h-16 text-muted-foreground" />
                 </div>
               )}
 
-              <VStack spacing={0} className="w-full">
+              {/* flex-1 + min-w-0, not w-full: `width: 100%` on a flex item
+                  resolves against the row's full width and ignores the
+                  thumbnail beside it, pushing the description past the card
+                  edge. min-w-0 is what lets truncate bite. */}
+              <VStack spacing={0} className="flex-1 min-w-0">
                 <div
-                  className="flex flex-col cursor-pointer w-full"
+                  className="flex flex-col cursor-pointer w-full min-w-0"
                   onClick={() => toggleOpen(line.id!)}
                 >
-                  <div className="flex items-center gap-x-4 justify-between flex-grow">
-                    <Heading>{lineHeading}</Heading>
-                    <HStack spacing={4}>
+                  <div className="flex items-center gap-x-4 justify-between flex-grow min-w-0">
+                    {/* min-w-0 so a long item id wraps inside the card
+                        instead of shoving the chevron out of it. */}
+                    <Heading className="min-w-0">{lineHeading}</Heading>
+                    <HStack spacing={4} className="shrink-0">
                       <motion.div
                         animate={{
                           rotate: openItems.includes(line.id!) ? 90 : 0
@@ -413,9 +428,12 @@ const LineItems = ({
                       </motion.div>
                     </HStack>
                   </div>
-                  <span className="text-muted-foreground text-base truncate">
-                    {isGlAccount ? "Indirect Expense" : line.description}
-                  </span>
+                  <TruncatedTooltipText
+                    className="text-muted-foreground text-base truncate"
+                    tooltip={lineDescription}
+                  >
+                    {lineDescription}
+                  </TruncatedTooltipText>
                 </div>
               </VStack>
             </HStack>
@@ -817,18 +835,18 @@ const Quote = ({
 
   const submitModal = useDisclosure();
   const declineModal = useDisclosure();
-  const fetcher = useFetcher<typeof action>();
+  const fetcher = useAction<typeof action>({
+    onSettled: () => {
+      if (submitted.current) {
+        submitModal.onClose();
+        declineModal.onClose();
+        submitted.current = false;
+      }
+    }
+  });
   const submitted = useRef<boolean>(false);
   const mode = useMode();
   const logo = mode === "dark" ? company?.logoDark : company?.logoLight;
-
-  useEffect(() => {
-    if (fetcher.state === "idle" && submitted.current) {
-      submitModal.onClose();
-      declineModal.onClose();
-      submitted.current = false;
-    }
-  }, [fetcher.state, submitModal, declineModal]);
 
   // Initialize selected lines from existing pricing data
   const [selectedLines, setSelectedLines] = useState<

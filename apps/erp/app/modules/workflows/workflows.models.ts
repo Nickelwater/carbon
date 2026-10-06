@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 
@@ -12,6 +16,12 @@ export const workflowDefinitionSaveValidator = z.object({
   nodes: z.string().min(1),
   edges: z.string().min(1),
   formatVersion: zfd.numeric(z.number().int())
+});
+
+/** Layout only. The one payload a published version accepts — see `$id.positions.tsx`. */
+export const workflowNodePositionsValidator = z.object({
+  versionId: z.string().min(1, { message: "Version is required" }),
+  positions: z.string().min(1)
 });
 
 export const workflowTestRunValidator = z.object({
@@ -34,7 +44,7 @@ export const workflowTestRunValidator = z.object({
 /** Parsed out of `triggerInput` after the form validator passes. */
 export const workflowTestRunInputSchema = z.union([
   z.object({ recordId: z.string().min(1) }),
-  z.object({ outputs: z.record(z.string().min(1)) }),
+  z.object({ outputs: z.record(z.string(), z.string().min(1)) }),
   z.object({})
 ]);
 
@@ -58,10 +68,6 @@ export const workflowCanvasStateValidator = z.object({
 
 export const workflowPublishValidator = z.object({
   versionId: z.string().min(1, { message: "Version is required" })
-});
-
-export const workflowToggleValidator = z.object({
-  active: zfd.checkbox()
 });
 
 export const workflowVersionValidator = z.object({

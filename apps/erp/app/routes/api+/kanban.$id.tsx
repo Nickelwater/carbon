@@ -1,10 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { notFound } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
+import { rejectCrossSiteNavigation } from "@carbon/auth/middleware/security.server";
 import type { Database } from "@carbon/database";
 import { trigger } from "@carbon/jobs";
 import { trackWorkEvent } from "@carbon/lib/telemetry";
 import { getLogger } from "@carbon/logger";
+import { runLocationSchedule } from "@carbon/planning";
 import { Loading } from "@carbon/react";
 import { datetime } from "@carbon/utils";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -12,8 +18,11 @@ import { Suspense } from "react";
 import type { LoaderFunctionArgs } from "react-router";
 import { Await, useLoaderData } from "react-router";
 import { Redirect } from "~/components/Redirect";
-
-import { getDefaultStorageUnitForJob, getKanban } from "~/modules/inventory";
+import {
+  getDefaultStorageUnitForJob,
+  getKanban,
+  insertStockTransfer
+} from "~/modules/inventory";
 import { getItemReplenishment } from "~/modules/items";
 import {
   getActiveJobOperationByJobId,
@@ -30,6 +39,7 @@ import {
   getCompanyTimeZone,
   getLocationTimeZone
 } from "~/modules/shared/timezone.server";
+import { getDatabaseClient } from "~/services/database.server";
 import { path } from "~/utils/path";
 
 const logger = getLogger("erp", "kanban");
@@ -47,16 +57,7 @@ async function handleKanban({
   userId: string;
   id: string;
 }): Promise<{ data: string; error: null } | { data: null; error: string }> {
-  const kanban = await getKanban(client, id);
-  if (
-    kanban.data?.replenishmentSystem === "Make" &&
-    kanban.data?.jobReadableId
-  ) {
-    return {
-      data: path.to.api.kanbanCollision(id),
-      error: null
-    };
-  }
+  const kanban = await getKanban(client, id, companyId);
 
   if (kanban.error || !kanban.data) {
     return {
@@ -65,10 +66,10 @@ async function handleKanban({
     };
   }
 
-  if (kanban.data.companyId !== companyId) {
+  if (kanban.data.replenishmentSystem === "Make" && kanban.data.jobReadableId) {
     return {
-      data: null,
-      error: "Kanban is not active"
+      data: path.to.api.kanbanCollision(id),
+      error: null
     };
   }
 
@@ -107,6 +108,7 @@ async function handleKanban({
 
     const createdJob = await insertJob(
       serviceRole,
+      getDatabaseClient(),
       {
         itemId: kanban.data.itemId!,
         quantity: kanban.data.quantity!,
@@ -132,7 +134,7 @@ async function handleKanban({
     }
 
     const [upsertMethod, associateKanban] = await Promise.all([
-      upsertJobMethod(serviceRole, "itemToJob", {
+      upsertJobMethod(serviceRole, getDatabaseClient(), "itemToJob", {
         sourceId: kanban.data.itemId!,
         targetId: id,
         companyId,
@@ -163,20 +165,18 @@ async function handleKanban({
           companyId,
           userId
         }),
-        runMRP(serviceRole, {
+        runMRP(serviceRole, getDatabaseClient(), {
           type: "job",
           id,
           companyId,
           userId
         }),
-        serviceRole.functions.invoke("schedule", {
-          body: {
-            jobId: id,
-            companyId,
-            userId,
-            mode: "initial",
-            direction: "backward"
-          }
+        runLocationSchedule({
+          db: getDatabaseClient(),
+          client: serviceRole,
+          locationId: kanban.data.locationId!,
+          companyId,
+          userId
         }),
         serviceRole
           .from("job")
@@ -348,6 +348,84 @@ async function handleKanban({
       data: path.to.purchaseOrder(purchaseOrderId!),
       error: null
     };
+  } else if (kanban.data.replenishmentSystem === "Transfer") {
+    if (!kanban.data.itemId) {
+      return { data: null, error: "Failed to create stock transfer" };
+    }
+
+    if (!kanban.data.fromStorageUnitId || !kanban.data.storageUnitId) {
+      return {
+        data: null,
+        error: "Kanban is missing a from or to storage unit"
+      };
+    }
+
+    // Defense in depth: confirm BOTH storage units belong to this company and
+    // this kanban's location before moving stock. A stock transfer is
+    // intra-location, and the ids could have been set to another location's (or
+    // company's) bin — validate rather than trust the stored ids (CWE-639).
+    const storageUnits = await client
+      .from("storageUnit")
+      .select("id")
+      .in("id", [kanban.data.fromStorageUnitId, kanban.data.storageUnitId])
+      .eq("companyId", companyId)
+      .eq("locationId", kanban.data.locationId!);
+
+    const validIds = new Set((storageUnits.data ?? []).map((s) => s.id));
+    if (
+      !validIds.has(kanban.data.fromStorageUnitId) ||
+      !validIds.has(kanban.data.storageUnitId)
+    ) {
+      return {
+        data: null,
+        error: "Storage unit does not belong to the kanban location"
+      };
+    }
+
+    // Derive tracking from the item so the transfer line demands the right
+    // serial/batch handling at pick time. insertStockTransfer expands a
+    // serial-tracked line of qty > 1 into individual qty-1 lines.
+    const item = await client
+      .from("item")
+      .select("itemTrackingType")
+      .eq("id", kanban.data.itemId)
+      .eq("companyId", companyId)
+      .single();
+
+    if (item.error) {
+      logger.error("Kanban operation failed", { error: item.error });
+      return { data: null, error: "Failed to get item" };
+    }
+
+    const trackingType = item.data?.itemTrackingType;
+
+    const createStockTransfer = await insertStockTransfer(client, {
+      locationId: kanban.data.locationId!,
+      lines: [
+        {
+          itemId: kanban.data.itemId,
+          fromStorageUnitId: kanban.data.fromStorageUnitId,
+          toStorageUnitId: kanban.data.storageUnitId,
+          quantity: kanban.data.quantity!,
+          requiresSerialTracking: trackingType === "Serial",
+          requiresBatchTracking: trackingType === "Batch"
+        }
+      ],
+      companyId,
+      createdBy: userId
+    });
+
+    if (createStockTransfer.error || !createStockTransfer.data) {
+      logger.error("Kanban operation failed", {
+        error: createStockTransfer.error
+      });
+      return { data: null, error: "Failed to create stock transfer" };
+    }
+
+    return {
+      data: path.to.stockTransfer(createStockTransfer.data.id),
+      error: null
+    };
   } else {
     return {
       data: null,
@@ -357,8 +435,12 @@ async function handleKanban({
 }
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
+  // Writes on GET: a link on another site must not trigger it.
+  rejectCrossSiteNavigation(request);
   const { client, companyId, companyGroupId, userId } =
-    await requirePermissions(request, {});
+    await requirePermissions(request, {
+      role: "employee"
+    });
 
   const { id } = params;
   if (!id) throw notFound("id not found");

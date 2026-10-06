@@ -1,16 +1,21 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, notFound, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
+import { useCloseRoute } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useNavigate } from "react-router";
 import {
   fixedAssetRegisterValidator,
   getDefaultAccounts,
   getFixedAsset,
   getOrCreateAccountingPeriod
 } from "~/modules/accounting";
-import { postAssetRegistration } from "~/modules/accounting/accounting.ee.server";
+import { postAssetRegistration } from "~/modules/accounting/accounting.server";
 import { FixedAssetRegisterForm } from "~/modules/accounting/ui/FixedAssets";
 import { getCompanySettings } from "~/modules/settings";
 import { getDatabaseClient } from "~/services/database.server";
@@ -238,7 +243,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function RegisterFixedAssetRoute() {
-  const navigate = useNavigate();
+  const closeRoute = useCloseRoute();
 
-  return <FixedAssetRegisterForm onClose={() => navigate(-1)} />;
+  return <FixedAssetRegisterForm onClose={() => closeRoute()} />;
 }

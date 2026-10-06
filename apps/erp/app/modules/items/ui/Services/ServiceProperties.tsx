@@ -1,9 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Json } from "@carbon/database";
 import { InputControlled, Select, ValidatedForm } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
+  Copy,
   HStack,
+  Subheading,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -12,9 +19,9 @@ import {
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { PostgrestResponse } from "@supabase/supabase-js";
-import { Suspense, useCallback, useEffect } from "react";
+import { Suspense, useCallback } from "react";
 import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
-import { Await, Link, useFetcher, useParams } from "react-router";
+import { Await, Link, useParams } from "react-router";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 import { MethodBadge, MethodIcon } from "~/components";
@@ -23,6 +30,7 @@ import CustomFormInlineFields from "~/components/Form/CustomFormInlineFields";
 import { ReplenishmentSystemIcon } from "~/components/Icons";
 import { ItemThumbnailUpload } from "~/components/ItemThumnailUpload";
 import { useRouteData } from "~/hooks";
+import { useResolved } from "~/hooks/useResolved";
 import { methodType } from "~/modules/shared";
 import type { action } from "~/routes/x+/items+/update";
 import { useSuppliers } from "~/stores";
@@ -57,7 +65,7 @@ const ServiceProperties = ({ data }: ServicePropertiesProps) => {
     supplierParts: SupplierPart[];
     makeMethods: Promise<PostgrestResponse<MakeMethod>>;
     tags: { name: string }[];
-    supersession?: {
+    supersession?: Promise<{
       successorItemId: string | null;
       successorEffectivityDate: string | null;
       successor: {
@@ -65,26 +73,38 @@ const ServiceProperties = ({ data }: ServicePropertiesProps) => {
         readableIdWithRevision: string;
         name: string;
       } | null;
-    } | null;
-    supersededBy?: Array<{
-      predecessor: {
-        id: string;
-        readableIdWithRevision: string;
-        name: string;
-      } | null;
-    }>;
+    } | null>;
+    supersededBy?: Promise<
+      Array<{
+        predecessor: {
+          id: string;
+          readableIdWithRevision: string;
+          name: string;
+        } | null;
+      }>
+    >;
   }>(path.to.service(itemId));
+  const supersession = useResolved(
+    routeDataFromRoute?.supersession,
+    null,
+    itemId
+  );
+  const supersededBy = useResolved(
+    routeDataFromRoute?.supersededBy,
+    null,
+    itemId
+  );
   const routeData = data ?? routeDataFromRoute;
 
   const supplierParts = routeData?.supplierParts ?? [];
 
-  const fetcher = useFetcher<typeof action>();
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error(fetcher.data.error.message);
+  const fetcher = useAction<typeof action>({
+    onError: (data) => {
+      if (data?.error) {
+        toast.error(data.error.message);
+      }
     }
-  }, [fetcher.data]);
-
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   const onUpdate = useCallback(
     (
@@ -155,13 +175,13 @@ const ServiceProperties = ({ data }: ServicePropertiesProps) => {
   return (
     <VStack
       spacing={4}
-      className="w-96 bg-card h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
+      className="w-96 bg-background/30 h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
     >
       <VStack spacing={2}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+          <Subheading as="h3" variant="light">
             <Trans>Properties</Trans>
-          </h3>
+          </Subheading>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -185,26 +205,13 @@ const ServiceProperties = ({ data }: ServicePropertiesProps) => {
                 </span>
               </TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  aria-label={t`Copy`}
-                  size="sm"
-                  className="p-1"
-                  onClick={() =>
-                    copyToClipboard(routeData?.serviceSummary?.id ?? "")
-                  }
-                >
-                  <LuKeySquare className="w-3 h-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span>
-                  <Trans>Copy service unique identifier</Trans>
-                </span>
-              </TooltipContent>
-            </Tooltip>
+            <Copy
+              text={routeData?.serviceSummary?.id ?? ""}
+              label={t`Copy service unique identifier`}
+              icon={<LuKeySquare className="size-3" />}
+              variant="ghost"
+              className="w-auto"
+            />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -462,32 +469,30 @@ const ServiceProperties = ({ data }: ServicePropertiesProps) => {
           }}
         />
       </ValidatedForm>
-      {routeDataFromRoute?.supersession?.successor && (
+      {supersession?.successor && (
         <div className="w-full">
           <h3 className="text-xs text-muted-foreground mb-1">
             <Trans>Superseded By</Trans>
           </h3>
           <Link
-            to={path.to.service(routeDataFromRoute.supersession.successor.id)}
+            to={path.to.service(supersession.successor.id)}
             className="text-sm text-primary hover:underline"
           >
-            {routeDataFromRoute.supersession.successor.readableIdWithRevision}
+            {supersession.successor.readableIdWithRevision}
           </Link>
-          {routeDataFromRoute.supersession.successorEffectivityDate && (
+          {supersession.successorEffectivityDate && (
             <p className="text-xs text-muted-foreground">
-              <Trans>
-                From {routeDataFromRoute.supersession.successorEffectivityDate}
-              </Trans>
+              <Trans>From {supersession.successorEffectivityDate}</Trans>
             </p>
           )}
         </div>
       )}
-      {(routeDataFromRoute?.supersededBy?.length ?? 0) > 0 && (
+      {(supersededBy?.length ?? 0) > 0 && (
         <div className="w-full">
           <h3 className="text-xs text-muted-foreground mb-1">
             <Trans>Supersedes</Trans>
           </h3>
-          {routeDataFromRoute?.supersededBy?.map(
+          {supersededBy?.map(
             (ref) =>
               ref.predecessor && (
                 <Link

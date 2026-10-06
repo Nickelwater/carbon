@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { getQuoteDisplayId } from "@carbon/documents/utils";
 import {
   Button,
   Copy,
@@ -13,6 +18,7 @@ import {
   Input,
   InputGroup,
   InputRightElement,
+  MENU_ITEM_SHORTCUTS,
   Modal,
   ModalBody,
   ModalContent,
@@ -45,6 +51,7 @@ import {
   LuTrophy
 } from "react-icons/lu";
 import { Link, useFetcher, useParams } from "react-router";
+import { RevisionSuffix } from "~/components";
 import { useAuditLog } from "~/components/AuditLog";
 import { usePanels } from "~/components/Layout";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
@@ -90,7 +97,6 @@ const QuoteHeader = () => {
   const deleteQuoteModal = useDisclosure();
   const [asRevision, setAsRevision] = useState(false);
 
-  const finalizeFetcher = useFetcher<{}>();
   const statusFetcher = useFetcher<{}>();
 
   const { trigger: auditLogTrigger, drawer: auditLogDrawer } = useAuditLog({
@@ -102,7 +108,7 @@ const QuoteHeader = () => {
 
   return (
     <>
-      <div className="flex flex-shrink-0 items-center justify-between p-2 bg-background border-b h-[50px] overflow-x-auto scrollbar-hide">
+      <div className="flex flex-shrink-0 items-center justify-between gap-x-4 p-2 bg-card border-b h-[var(--header-height)] overflow-x-auto scrollbar-hide">
         <HStack className="w-full justify-between">
           <HStack>
             <IconButton
@@ -117,14 +123,10 @@ const QuoteHeader = () => {
                 className="flex items-center justify-start gap-0"
               >
                 <span>{routeData?.quote?.quoteId}</span>
-                {(routeData?.quote?.revisionId ?? 0) > 0 && (
-                  <span className="text-muted-foreground">
-                    -{routeData?.quote?.revisionId}
-                  </span>
-                )}
+                <RevisionSuffix revisionId={routeData?.quote?.revisionId} />
               </Heading>
             </Link>
-            <Copy text={routeData?.quote?.quoteId ?? ""} />
+            <Copy text={getQuoteDisplayId(routeData?.quote)} />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <IconButton
@@ -138,6 +140,7 @@ const QuoteHeader = () => {
                 {auditLogTrigger}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.copy}
                   onClick={() => {
                     setAsRevision(false);
                     createRevisionModal.onOpen();
@@ -176,6 +179,7 @@ const QuoteHeader = () => {
                   <Trans>Reopen</Trans>
                 </DropdownMenuItem>
                 <DropdownMenuItem
+                  shortcut={MENU_ITEM_SHORTCUTS.delete}
                   disabled={
                     !permissions.can("delete", "sales") ||
                     !permissions.is("employee") ||
@@ -243,10 +247,8 @@ const QuoteHeader = () => {
 
             <Button
               onClick={finalizeModal.onOpen}
-              isLoading={finalizeFetcher.state !== "idle"}
               isDisabled={
                 routeData?.quote?.status !== "Draft" ||
-                finalizeFetcher.state !== "idle" ||
                 !permissions.can("update", "sales") ||
                 !eligibleLines?.length
               }
@@ -341,7 +343,6 @@ const QuoteHeader = () => {
           quote={routeData?.quote}
           shipment={routeData?.shipment ?? null}
           onClose={finalizeModal.onClose}
-          fetcher={finalizeFetcher}
           // @ts-expect-error TS2339 - TODO: fix type
           defaultCc={routeData?.defaultCc ?? []}
         />
@@ -372,9 +373,10 @@ const QuoteHeader = () => {
         <ConfirmDelete
           action={path.to.deleteQuote(quoteId)}
           isOpen={deleteQuoteModal.isOpen}
-          name={routeData?.quote?.quoteId!}
-          text={t`Are you sure you want to delete ${routeData?.quote
-            ?.quoteId!}? This cannot be undone.`}
+          name={getQuoteDisplayId(routeData?.quote)}
+          text={t`Are you sure you want to delete ${getQuoteDisplayId(
+            routeData?.quote
+          )}? This cannot be undone.`}
           onCancel={() => {
             deleteQuoteModal.onClose();
           }}

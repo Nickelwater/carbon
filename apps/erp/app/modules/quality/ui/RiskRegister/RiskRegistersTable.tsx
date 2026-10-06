@@ -1,4 +1,13 @@
-import { MenuIcon, MenuItem, useDisclosure } from "@carbon/react";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import {
+  MENU_ITEM_SHORTCUTS,
+  MenuIcon,
+  MenuItem,
+  useDisclosure
+} from "@carbon/react";
 import { getItemById, getItemReadableId } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
@@ -7,13 +16,13 @@ import {
   LuBlocks,
   LuDice5,
   LuDna,
+  LuLocateFixed,
   LuPencil,
   LuShapes,
   LuStar,
   LuTrash,
   LuTriangleAlert,
-  LuUser,
-  LuWrench
+  LuUser
 } from "react-icons/lu";
 import { useNavigate } from "react-router";
 import {
@@ -202,7 +211,7 @@ const RiskRegistersTable = memo(({ data, count }: RiskRegistersTableProps) => {
         header: t`Work Center`,
         cell: ({ row }) => <Enumerable value={row.original.workCenterName} />,
         meta: {
-          icon: <LuWrench />,
+          icon: <LuLocateFixed />,
           exportValue: (row) => row.workCenterName,
           filter: {
             type: "static",
@@ -239,6 +248,7 @@ const RiskRegistersTable = memo(({ data, count }: RiskRegistersTableProps) => {
     (row) => (
       <>
         <MenuItem
+          shortcut={MENU_ITEM_SHORTCUTS.edit}
           onClick={() => {
             navigate(`${path.to.risk(row.id!)}?${params?.toString()}`);
           }}
@@ -247,6 +257,7 @@ const RiskRegistersTable = memo(({ data, count }: RiskRegistersTableProps) => {
           Edit Risk
         </MenuItem>
         <MenuItem
+          shortcut={MENU_ITEM_SHORTCUTS.delete}
           destructive
           disabled={!permissions.can("delete", "quality")}
           onClick={() => onDelete(row)}

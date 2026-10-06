@@ -1,35 +1,24 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { devServerLanOptions, devServerLanServerConfig } from "../vite.js";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
 
-describe("devServerLanServerConfig", () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
+import { describe, expect, it } from "vitest";
+import { clientOnlyAlias } from "../vite.js";
+
+describe("clientOnlyAlias", () => {
+  const plugin = clientOnlyAlias("unpdf/pdfjs", "/stub.mjs") as unknown as {
+    applyToEnvironment: (environment: { name: string }) => boolean;
+    resolveId: (source: string) => string | undefined;
+  };
+
+  it("applies to the client environment only", () => {
+    expect(plugin.applyToEnvironment({ name: "client" })).toBe(true);
+    expect(plugin.applyToEnvironment({ name: "ssr" })).toBe(false);
+    expect(plugin.applyToEnvironment({ name: "ssr_bundle_x" })).toBe(false);
   });
 
-  it("returns empty config outside LAN mode", () => {
-    expect(devServerLanServerConfig()).toEqual({});
-  });
-
-  it("enables allowedHosts and Supabase proxy without pinning HMR host", () => {
-    vi.stubEnv("CARBON_DEV_LAN", "1");
-    vi.stubEnv("CARBON_DEV_HOST", "192.168.218.1");
-    vi.stubEnv("PORT", "3000");
-    vi.stubEnv("PORT_API", "54321");
-
-    const config = devServerLanServerConfig();
-
-    expect(config.allowedHosts).toBe(true);
-    expect(config.hmr).toBeUndefined();
-    expect(config.proxy?.["/realtime"]).toMatchObject({
-      target: "http://127.0.0.1:54321",
-      ws: true
-    });
-  });
-
-  it("deprecated devServerLanOptions omits hmr", () => {
-    vi.stubEnv("CARBON_DEV_LAN", "1");
-    vi.stubEnv("CARBON_DEV_HOST", "10.66.77.77");
-
-    expect(devServerLanOptions()).toEqual({ allowedHosts: true });
+  it("resolves the exact specifier and nothing else", () => {
+    expect(plugin.resolveId("unpdf/pdfjs")).toBe("/stub.mjs");
+    expect(plugin.resolveId("unpdf")).toBeUndefined();
   });
 });

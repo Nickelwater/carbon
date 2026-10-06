@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { getUserClaims } from "@carbon/auth/users.server";
@@ -59,9 +63,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
       const permission = claims.permissions[permissionModule];
       if (!permission) return false;
       // Check if user has view permission for this company
-      return (
-        permission.view.includes("0") || permission.view.includes(companyId)
-      );
+      return permission.view.includes(companyId);
     })
     .map(([entityType]) => entityType);
 

@@ -4,8 +4,8 @@ import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
 import { notifyIssueCreated } from "@carbon/ee/notifications";
 import { getLogger } from "@carbon/logger";
+import { serverFns } from "@carbon/server-functions";
 import { datetime } from "@carbon/utils";
-import { FunctionRegion } from "@supabase/supabase-js";
 import type { ActionFunctionArgs } from "react-router";
 import { redirect } from "react-router";
 import invariant from "tiny-invariant";
@@ -21,6 +21,7 @@ import { dispositionInspection } from "~/modules/quality/quality.server";
 import { getCompanyIntegrations } from "~/modules/settings/settings.server";
 import { getLocationTimeZone } from "~/modules/shared/timezone.server";
 import { getUserDefaults } from "~/modules/users/users.server";
+import { getDatabaseClient } from "~/services/database.server";
 import { path } from "~/utils/path";
 
 const logger = getLogger("erp", "lot-inspections-id-reject");
@@ -69,10 +70,9 @@ export async function action({ request, params }: ActionFunctionArgs) {
   // it, so proceeding would leave the received quantity double-counted on hand.
   const writeOff = dispositionResult.data?.writeOff;
   if (writeOff) {
-    const post = await client.functions.invoke("post-nonconformance", {
-      body: {
-        companyId,
-        userId,
+    const post = await serverFns
+      .as({ client, db: getDatabaseClient(), companyId, userId })
+      .invoke("post-nonconformance", {
         documentType: "Inbound Inspection",
         documentId: id,
         description: "Inbound inspection lot rejected",
@@ -84,9 +84,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
             quantity: writeOff.quantity
           }
         ]
-      },
-      region: FunctionRegion.UsEast1
-    });
+      });
     if (post.error) {
       logger.error("Failed to post inspection reject write-off", {
         error: post.error,
@@ -118,7 +116,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const serviceRole = await getCarbonServiceRole();
 
   const [inspection, userDefaults, issueTypes] = await Promise.all([
-    getInspection(client, id),
+    getInspection(client, id, companyId),
     getUserDefaults(client, userId, companyId),
     getIssueTypesList(client, companyId)
   ]);
@@ -340,15 +338,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
     }
   }
 
-  const tasks = await serviceRole.functions.invoke("create", {
-    body: {
+  const tasks = await serverFns
+    .system({ db: getDatabaseClient(), companyId, userId })
+    .invoke("create", {
       type: "nonConformanceTasks",
-      id: ncrId,
-      companyId,
-      userId
-    },
-    region: FunctionRegion.UsEast1
-  });
+      id: ncrId
+    });
   if (tasks.error) {
     await deleteIssue(serviceRole, ncrId);
     throw redirect(

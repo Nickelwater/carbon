@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   cn,
   HStack,
@@ -56,6 +60,10 @@ type Operation = {
   quantityReworked: number | null;
   quantityScrapped: number | null;
   reworkId: string | null;
+  jobOperationBatch?: {
+    readableId: string | null;
+    status: string | null;
+  } | null;
   jobMakeMethod: {
     item: { readableIdWithRevision: string | null } | null;
   } | null;
@@ -115,6 +123,13 @@ function computeLayout(
         quantityReworked: Number(op.quantityReworked ?? 0),
         quantityScrapped: Number(op.quantityScrapped ?? 0),
         isRework: !!op.reworkId,
+        // Only a live batch is a working state worth labelling on the DAG.
+        batchReadableId:
+          op.jobOperationBatch &&
+          (op.jobOperationBatch.status === "Active" ||
+            op.jobOperationBatch.status === "Completing")
+            ? op.jobOperationBatch.readableId
+            : null,
         direction
       },
       sourcePosition: isHorizontal ? Position.Right : Position.Bottom,

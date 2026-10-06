@@ -1,5 +1,10 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { cn } from "@carbon/react";
 import { cva } from "class-variance-authority";
+import { useState } from "react";
 import { LuBlocks } from "react-icons/lu";
 import type { ItemType } from "~/modules/shared";
 import { getPrivateUrl } from "~/utils/path";
@@ -74,10 +79,18 @@ const ItemThumbnail = ({
   type,
   size = "md"
 }: ItemThumbnailProps) => {
-  return thumbnailPath ? (
+  // Keyed by path, not a bare boolean — a virtualized row reused for another
+  // item would otherwise stay stuck on the fallback.
+  const [failedPath, setFailedPath] = useState<string | null>(null);
+
+  return thumbnailPath && failedPath !== thumbnailPath ? (
     <img
+      loading="lazy"
+      decoding="async"
       alt="thumbnail"
       className={itemVariants({ size, withPadding: false })}
+      key={thumbnailPath}
+      onError={() => setFailedPath(thumbnailPath)}
       src={getPrivateUrl(thumbnailPath)}
     />
   ) : (

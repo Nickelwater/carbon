@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database } from "@carbon/database";
+import { withRevisionSuffix } from "./revision";
 
 export function getLineDescription(
   line: Database["public"]["Views"]["purchaseOrderLines"]["Row"]
@@ -10,15 +15,21 @@ export function getLineDescription(
       return line?.description;
     case "Comment":
       return line?.description;
-    default:
+    default: {
       // Use `||` (not `??`) so an empty-string supplier part number falls
-      // through to the item id. Supplier parts with no part number get
-      // backfilled onto the line as "", and `??` would render a blank line.
-      return (
-        line?.supplierPartId ||
-        line?.supplierPartIdFromSupplier ||
-        line?.itemReadableId
-      );
+      // through. Supplier parts with no part number get backfilled onto the
+      // line as "", and `??` would render a blank line.
+      const supplierPartId =
+        line?.supplierPartId || line?.supplierPartIdFromSupplier;
+      // `itemReadableId` is the view's `readableIdWithRevision` — the only
+      // place the revision reaches the document, so the supplier part number
+      // goes beside it rather than in its place (as the sales order does with
+      // the customer part number).
+      if (!line?.itemReadableId) return supplierPartId;
+      return supplierPartId && supplierPartId !== line.itemReadableId
+        ? `${line.itemReadableId} (${supplierPartId})`
+        : line.itemReadableId;
+    }
   }
 }
 
@@ -55,4 +66,16 @@ export function getTotal(
   lines: Database["public"]["Views"]["purchaseOrderLines"]["Row"][]
 ) {
   return lines.reduce((total, line) => total + getLineTotal(line), 0);
+}
+
+export function getPurchaseOrderDisplayId(
+  purchaseOrder?: {
+    purchaseOrderId?: string | null;
+    revisionId?: number | null;
+  } | null
+) {
+  return withRevisionSuffix(
+    purchaseOrder?.purchaseOrderId,
+    purchaseOrder?.revisionId
+  );
 }

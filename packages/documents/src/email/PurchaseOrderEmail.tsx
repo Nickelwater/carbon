@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database } from "@carbon/database";
 import { formatCityStatePostalCode, formatDate } from "@carbon/utils";
 import {
@@ -15,9 +19,10 @@ import type { Email } from "../types";
 import {
   getLineDescription,
   getLineDescriptionDetails,
+  getPurchaseOrderDisplayId,
   getTotal
 } from "../utils/purchase-order";
-import { getMoneyFormatter } from "../utils/shared";
+import { getMoneyFormatter, getRateFormatter } from "../utils/shared";
 import ExternalNotes from "./components/ExternalNotes";
 import {
   EmailThemeProvider,
@@ -70,8 +75,16 @@ const PurchaseOrderEmail = ({
     currencyDecimals,
     purchaseOrder.currencyCode ?? company.baseCurrencyCode ?? "USD"
   );
+  // A unit price is a RATE, not a settlement amount: the currency's
+  // decimals are its FLOOR, not its ceiling, so a sub-cent price does not
+  // print as 0.00. The PDFs already split these two kinds.
+  const rateFormatter = getRateFormatter(
+    locale,
+    currencyDecimals,
+    purchaseOrder.currencyCode ?? company.baseCurrencyCode ?? "USD"
+  );
   const preview = (
-    <Preview>{`${purchaseOrder.purchaseOrderId} from ${company.name}`}</Preview>
+    <Preview>{`${getPurchaseOrderDisplayId(purchaseOrder)} from ${company.name}`}</Preview>
   );
   const themeClasses = getEmailThemeClasses();
   const lightStyles = getEmailInlineStyles("light");
@@ -159,7 +172,7 @@ const PurchaseOrderEmail = ({
                       >
                         Order ID
                       </Text>
-                      <Text>{purchaseOrder.purchaseOrderId}</Text>
+                      <Text>{getPurchaseOrderDisplayId(purchaseOrder)}</Text>
                     </Column>
                     <Column>
                       <Text
@@ -267,8 +280,15 @@ const PurchaseOrderEmail = ({
                   <Text className="text-xs font-semibold">
                     {line.purchaseOrderLineType === "Comment"
                       ? "-"
-                      : line.unitPrice
-                        ? formatter.format(line.unitPrice)
+                      : // `formatter` is the SUPPLIER's currency (above), and
+                        // purchaseOrderLine.unitPrice is the GENERATED BASE
+                        // column -- supplierUnitPrice is what the supplier
+                        // quoted, and it is what getLineTotal already sums.
+                        // A zero unit price is a real price (a no-charge
+                        // line), not a missing one, and getLineTotal already
+                        // sums it as 0 -- so test for absence, not falsiness.
+                        line.supplierUnitPrice != null
+                        ? rateFormatter.format(line.supplierUnitPrice)
                         : "-"}
                   </Text>
                 </Column>

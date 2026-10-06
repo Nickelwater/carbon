@@ -1,3 +1,12 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import {
+  bicMatchesCountry,
+  getBankFieldConfig,
+  isValidSwiftBic
+} from "@carbon/utils";
 import { getLocalTimeZone, today } from "@internationalized/date";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
@@ -128,9 +137,7 @@ export const purchaseOrderValidator = z.object({
   id: zfd.text(z.string().optional()),
   purchaseOrderId: zfd.text(z.string().optional()),
   purchaseOrderType: z.enum(purchaseOrderTypeType, {
-    errorMap: (issue, ctx) => ({
-      message: "Type is required"
-    })
+    error: "Type is required"
   }),
   status: z.enum(purchaseOrderStatusType).optional(),
   supplierId: z.string().min(1, { message: "Supplier is required" }),
@@ -209,9 +216,7 @@ export const purchaseOrderLineValidator = z
     purchaseOrderLineType: z.enum(
       [...itemType, "Fixture", "G/L Account", "Fixed Asset"],
       {
-        errorMap: (issue, ctx) => ({
-          message: "Type is required"
-        })
+        error: "Type is required"
       }
     ),
     itemId: zfd.text(z.string().optional()),
@@ -322,6 +327,11 @@ export const selectedLineSchema = z.object({
   supplierShippingCost: z.number(),
   supplierUnitPrice: z.number(),
   supplierTaxAmount: z.number(),
+  // The base-currency twin of supplierTaxAmount, matching the unitPrice /
+  // supplierUnitPrice and shippingCost / supplierShippingCost pairs above.
+  // Optional so the supplier portal and the to-order drawer keep working
+  // without it; only cross-supplier totals need a comparable tax figure.
+  taxAmount: z.number().optional().default(0),
   // Same 0..1 fraction contract as purchaseOrderLineValidator — the two feed the
   // same columns, so an unbounded rate here would bypass the form's bound.
   taxPercent: z.number().min(0).max(1).optional().default(0),
@@ -351,9 +361,7 @@ export const supplierApprovalValidator = z.object({
   readableId: zfd.text(z.string().optional()),
   name: z.string().trim().min(1, { message: "Name is required" }),
   supplierStatus: z.enum(supplierStatusType, {
-    errorMap: (issue, ctx) => ({
-      message: "Supplier status is required"
-    })
+    error: "Supplier status is required"
   }),
   supplierTypeId: zfd.text(z.string().optional()),
   accountManagerId: zfd.text(z.string().optional()),
@@ -404,6 +412,109 @@ export const supplierLocationValidator = z.object({
   ...address
 });
 
+export const supplierBankAccountValidator = z
+  .object({
+    id: zfd.text(z.string().optional()),
+    supplierId: z.string().min(1, { message: "Supplier is required" }),
+    name: zfd.text(z.string().min(1, { message: "Name is required" })),
+    accountHolderName: zfd.text(z.string().optional()),
+    bankName: zfd.text(z.string().min(1, { message: "Bank name is required" })),
+    // Correspondent banks route international wires on this.
+    bankAddress: zfd.text(
+      z.string().min(1, { message: "Bank address is required" })
+    ),
+    // Required because it SELECTS the validation rules below — left blank, the
+    // permissive default applies and nothing is really checked.
+    countryCode: zfd.text(
+      z.string().min(1, { message: "Country is required" })
+    ),
+    currencyCode: zfd.text(z.string().optional()),
+    // Generic by design: `accountNumber` holds an IBAN in SEPA and a plain
+    // account number elsewhere; `bankCode` holds an ABA / sort code / BSB /
+    // IFSC / transit. countryCode decides which validator applies, so a new
+    // country is an entry in getBankFieldConfig, not a migration.
+    accountNumber: zfd.text(z.string().optional()),
+    bankCode: zfd.text(z.string().optional()),
+    swiftBic: zfd.text(z.string().optional()),
+    notes: zfd.text(z.string().optional())
+  })
+  .superRefine((data, ctx) => {
+    const config = getBankFieldConfig(data.countryCode);
+
+    if (!data.accountNumber) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "An account number is required",
+        path: ["accountNumber"]
+      });
+    } else if (
+      config.validateAccount &&
+      !config.validateAccount(data.accountNumber)
+    ) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid account number for the selected country",
+        path: ["accountNumber"]
+      });
+    }
+
+    if (config.bankCodeLabel !== null) {
+      // A country that defines a routing identifier always needs it — there is
+      // no scheme where it is optional.
+      if (!data.bankCode) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "A bank code is required for the selected country",
+          path: ["bankCode"]
+        });
+      } else if (
+        config.validateBankCode &&
+        !config.validateBankCode(data.bankCode)
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Invalid bank code for the selected country",
+          path: ["bankCode"]
+        });
+      }
+    }
+
+    // Cross-border payments will not route without a BIC, so where the country
+    // config demands one, absence is an error rather than a blank field.
+    if (!data.swiftBic) {
+      if (config.requiresSwift) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "A SWIFT/BIC code is required for this country",
+          path: ["swiftBic"]
+        });
+      }
+    } else if (!isValidSwiftBic(data.swiftBic)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Invalid SWIFT/BIC code",
+        path: ["swiftBic"]
+      });
+    } else if (!bicMatchesCountry(data.swiftBic, data.countryCode)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "This SWIFT/BIC belongs to a different country",
+        path: ["swiftBic"]
+      });
+    }
+  })
+  // Countries with no routing identifier (SEPA: the IBAN carries it) unmount the
+  // input, so nothing is submitted. Left undefined, an update would skip the
+  // column entirely and strand the previous country's code on the row — so it is
+  // explicitly nulled rather than merely absent.
+  .transform((data) => ({
+    ...data,
+    bankCode:
+      getBankFieldConfig(data.countryCode).bankCodeLabel === null
+        ? null
+        : (data.bankCode ?? null)
+  }));
+
 export const supplierPaymentValidator = z.object({
   supplierId: z.string().min(1, { message: "Supplier is required" }),
   invoiceSupplierId: zfd.text(z.string().optional()),
@@ -446,9 +557,7 @@ export const supplierQuoteValidator = z
     id: zfd.text(z.string().optional()),
     supplierQuoteId: zfd.text(z.string().optional()),
     supplierQuoteType: z.enum(purchaseOrderTypeType, {
-      errorMap: (issue, ctx) => ({
-        message: "Type is required"
-      })
+      error: "Type is required"
     }),
     supplierId: z.string().min(1, { message: "Supplier is required" }),
     supplierLocationId: zfd.text(z.string().optional()),
@@ -480,7 +589,7 @@ export const supplierQuoteLineValidator = z
     id: zfd.text(z.string().optional()),
     supplierQuoteId: z.string(),
     supplierQuoteLineType: z.enum([...itemType, "G/L Account"], {
-      errorMap: () => ({ message: "Type is required" })
+      error: "Type is required"
     }),
     itemId: zfd.text(z.string().optional()),
     accountId: zfd.text(z.string().optional()),
@@ -631,3 +740,104 @@ export function isPurchaseOrderLocked(
     status as PurchaseOrderLockedStatus
   );
 }
+
+/**
+ * Whether a status change is ELIGIBLE to create a revision — the bump itself
+ * also requires the explicit `createRevision` flag. Only a released order
+ * qualifies: `orderDate` is set at finalize, so an order reopened from
+ * "Needs Approval" or closed straight from Draft never reached the supplier.
+ */
+export function canCreatePurchaseOrderRevision(transition: {
+  newStatus: (typeof purchaseOrderStatusType)[number];
+  currentStatus: string | null | undefined;
+  orderDate: string | null | undefined;
+}): boolean {
+  return (
+    transition.newStatus === "Draft" &&
+    isPurchaseOrderLocked(transition.currentStatus) &&
+    Boolean(transition.orderDate)
+  );
+}
+
+// ─── Purchase Return Orders (Supplier Returns) ───
+
+export const purchaseReturnOrderStatusType = [
+  "Draft",
+  "To Ship",
+  "Completed",
+  "Cancelled"
+] as const;
+
+export const PURCHASE_RETURN_ORDER_LOCKED_STATUSES = [
+  "Completed",
+  "Cancelled"
+] as const;
+
+export function isPurchaseReturnOrderLocked(
+  status: string | null | undefined
+): boolean {
+  return PURCHASE_RETURN_ORDER_LOCKED_STATUSES.includes(
+    status as (typeof PURCHASE_RETURN_ORDER_LOCKED_STATUSES)[number]
+  );
+}
+
+export const purchaseReturnOrderValidator = z.object({
+  id: zfd.text(z.string().optional()),
+  purchaseReturnOrderId: zfd.text(z.string().optional()),
+  status: z.enum(purchaseReturnOrderStatusType).optional(),
+  supplierId: z.string().min(1, { message: "Supplier is required" }),
+  supplierLocationId: zfd.text(z.string().optional()),
+  supplierContactId: zfd.text(z.string().optional()),
+  supplierReference: zfd.text(z.string().optional()),
+  locationId: zfd.text(z.string().optional()),
+  purchaseOrderId: zfd.text(z.string().optional()),
+  currencyCode: zfd.text(z.string().optional()),
+  exchangeRate: zfd.numeric(z.number().optional()),
+  orderDate: z.string().min(1, { message: "Order date is required" }),
+  expirationDate: zfd.text(z.string().optional()),
+  assignee: zfd.text(z.string().optional())
+});
+
+export const purchaseReturnOrderLineValidator = z.object({
+  id: zfd.text(z.string().optional()),
+  purchaseReturnOrderId: z
+    .string()
+    .min(1, { message: "Return order is required" }),
+  itemId: z.string().min(1, { message: "Item is required" }),
+  quantity: zfd.numeric(
+    z.number().gt(0, { message: "Quantity must be positive" })
+  ),
+  unitOfMeasureCode: zfd.text(z.string().optional()),
+  unitPrice: zfd.numeric(z.number().min(0)),
+  restockFeePercent: zfd.numeric(z.number().min(0).max(1).optional()),
+  returnReasonId: zfd.text(z.string().optional()),
+  purchaseOrderLineId: zfd.text(z.string().optional()),
+  receiptLineId: zfd.text(z.string().optional()),
+  purchaseInvoiceLineId: zfd.text(z.string().optional()),
+  trackedEntityIds: zfd.repeatableOfType(z.string()).optional()
+});
+
+// Credit dialog: repeatable per-line quantity rows (same encoding as
+// selectedLines — a JSON-encoded field)
+export const purchaseReturnOrderCreditValidator = z.object({
+  lines: z
+    .string()
+    .transform((val, ctx) => {
+      try {
+        return JSON.parse(val) as unknown;
+      } catch {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Invalid lines" });
+        return z.NEVER;
+      }
+    })
+    .pipe(
+      z
+        .array(
+          z.object({
+            purchaseReturnOrderLineId: z.string().min(1),
+            quantity: z.number().min(0)
+          })
+        )
+        .min(1, { message: "At least one line is required" })
+    )
+});

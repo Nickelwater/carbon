@@ -1,15 +1,23 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
-import type { Database } from "@carbon/database";
+import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { getLogger } from "@carbon/logger";
-import { getMaterialDescription, getMaterialId } from "@carbon/utils";
+import { unchecked } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
 import type { InventoryItemType } from "~/modules/items";
 import { deriveItemMethodUpdate } from "~/modules/items";
 import {
+  getUnreleasedChangeOrderItems,
+  unreleasedChangeOrderItemsMessage
+} from "~/modules/items/items.server";
+import {
   cascadeItemTrackingType,
-  updateItemMethodAndSourcing
+  updateItemMethodAndSourcing,
+  updateMaterialProperties
 } from "~/modules/items/items.service";
-import { getCompanySettings } from "~/modules/settings";
 import { getDatabaseClient } from "~/services/database.server";
 
 const logger = getLogger("erp", "update");
@@ -71,11 +79,13 @@ export async function action({ request }: ActionFunctionArgs) {
     case "unitOfMeasureCode":
       return await client
         .from("item")
-        .update({
-          [field]: value,
-          updatedBy: userId,
-          updatedAt: new Date().toISOString()
-        })
+        .update(
+          unchecked({
+            [field]: value,
+            updatedBy: userId,
+            updatedAt: new Date().toISOString()
+          })
+        )
         .in("id", items as string[])
         .eq("companyId", companyId);
     case "replenishmentSystem":
@@ -109,214 +119,85 @@ export async function action({ request }: ActionFunctionArgs) {
     case "finishId":
     case "materialFormId":
     case "materialSubstanceId":
-    case "materialTypeId":
-      const settings = await getCompanySettings(client, companyId);
-
-      if (settings.data?.materialGeneratedIds) {
-        let name = "";
-        let code = "";
-        if (field === "materialSubstanceId") {
-          const materialSubstance = await client
-            .from("materialSubstance")
-            .select("name, code")
-            .eq("id", value)
-            .single();
-          name = materialSubstance.data?.name ?? "";
-          code = materialSubstance.data?.code ?? "";
-        }
-        if (field === "materialFormId") {
-          const materialForm = await client
-            .from("materialForm")
-            .select("name, code")
-            .eq("id", value)
-            .single();
-          name = materialForm.data?.name ?? "";
-          code = materialForm.data?.code ?? "";
-        }
-        if (field === "materialTypeId") {
-          const materialType = await client
-            .from("materialType")
-            .select("name, code")
-            .eq("id", value)
-            .single();
-          name = materialType.data?.name ?? "";
-          code = materialType.data?.code ?? "";
-        }
-        if (field === "finishId") {
-          const finish = await client
-            .from("materialFinish")
-            .select("name")
-            .eq("id", value)
-            .single();
-          name = finish.data?.name ?? "";
-        }
-        if (field === "gradeId") {
-          const grade = await client
-            .from("materialGrade")
-            .select("name")
-            .eq("id", value)
-            .single();
-
-          name = grade.data?.name ?? "";
-        }
-        if (field === "dimensionId") {
-          const dimension = await client
-            .from("materialDimension")
-            .select("name")
-            .eq("id", value)
-            .single();
-          name = dimension.data?.name ?? "";
-        }
-
-        for await (const id of items as string[]) {
-          const item = await client
-            .from("item")
-            .select("readableId")
-            .eq("id", id)
-            .eq("companyId", companyId)
-            .single();
-
-          const readableId = item.data?.readableId;
-
-          if (readableId) {
-            const [materialDetails, relatedItems] = await Promise.all([
-              client
-                .rpc("get_material_naming_details", { readable_id: readableId })
-                .single(),
-              client
-                .from("item")
-                .select("id")
-                .eq("readableId", readableId)
-                .eq("type", "Material")
-                .eq("companyId", companyId)
-            ]);
-
-            if (materialDetails.data) {
-              const namingDetails = materialDetails.data;
-
-              if (field === "materialSubstanceId") {
-                namingDetails.substance = name;
-                namingDetails.substanceCode = code;
-              }
-              if (field === "materialFormId") {
-                namingDetails.shape = name;
-                namingDetails.shapeCode = code;
-              }
-              if (field === "materialTypeId") {
-                namingDetails.materialType = name;
-                namingDetails.materialTypeCode = code;
-              }
-              if (field === "finishId") {
-                namingDetails.finish = name;
-              }
-              if (field === "gradeId") {
-                namingDetails.grade = name;
-              }
-              if (field === "dimensionId") {
-                namingDetails.dimensions = name;
-              }
-
-              const newMaterialId = getMaterialId(namingDetails);
-              const newDescription = getMaterialDescription(namingDetails);
-
-              const relatedItemIds = relatedItems.data?.map((item) => item.id);
-
-              if (relatedItemIds) {
-                const itemUpdateResult = await client
-                  .from("item")
-                  .update({ readableId: newMaterialId, name: newDescription })
-                  .in("id", relatedItemIds as string[])
-                  .eq("companyId", companyId);
-
-                if (itemUpdateResult.error) {
-                  return itemUpdateResult;
-                }
-              }
-
-              let updateData: Database["public"]["Tables"]["material"]["Update"] =
-                {
-                  [field]: value || null,
-                  id: newMaterialId,
-                  updatedBy: userId,
-                  updatedAt: new Date().toISOString()
-                };
-
-              // If substance changes, reset finishId, gradeId, and materialTypeId
-              if (field === "materialSubstanceId") {
-                updateData.finishId = null;
-                updateData.gradeId = null;
-                updateData.materialTypeId = null;
-              }
-
-              // If form changes, reset dimensionId and materialTypeId
-              if (field === "materialFormId") {
-                updateData.dimensionId = null;
-                updateData.materialTypeId = null;
-              }
-
-              const update = await client
-                .from("material")
-                .update(updateData)
-                .eq("id", readableId)
-                .eq("companyId", companyId);
-
-              if (update.error) {
-                return {
-                  error: { message: update.error.message },
-                  data: null
-                };
-              }
-            }
-          }
-        }
-
-        return {
-          data: null,
-          error: null
-        };
-      } else {
-        const materialItems = await client
-          .from("item")
-          .select("readableId")
-          .in("id", items as string[])
-          .eq("companyId", companyId);
-        const materialIds = [
-          ...new Set(materialItems.data?.map((item) => item.readableId) ?? [])
-        ];
-        if (materialIds.length === 0) {
-          return { error: { message: "No materials found" }, data: null };
-        }
-
-        let updateData: Database["public"]["Tables"]["material"]["Update"] = {
-          [field]: value || null,
-          updatedBy: userId,
-          updatedAt: new Date().toISOString()
-        };
-
-        // If substance changes, reset finishId, gradeId, and materialTypeId
-        if (field === "materialSubstanceId") {
-          updateData.finishId = null;
-          updateData.gradeId = null;
-          updateData.materialTypeId = null;
-        }
-
-        // If form changes, reset dimensionId and materialTypeId
-        if (field === "materialFormId") {
-          updateData.dimensionId = null;
-          updateData.materialTypeId = null;
-        }
-
-        return await client
-          .from("material")
-          .update(updateData)
-          .in("id", materialIds as string[])
-          .eq("companyId", companyId);
+    case "materialTypeId": {
+      const materialItems = await client
+        .from("item")
+        .select("readableId")
+        .in("id", items as string[])
+        .eq("companyId", companyId);
+      if (materialItems.error) return materialItems;
+      const materialIds = [
+        ...new Set(materialItems.data.map((item) => item.readableId))
+      ];
+      if (materialIds.length === 0) {
+        return { error: { message: "No materials found" }, data: null };
       }
-    case "active":
+
+      // Each material commits on its own, so try them all and name every
+      // refusal rather than stopping partway through the selection.
+      const failures: string[] = [];
+      for (const materialId of materialIds) {
+        const update = await updateMaterialProperties(
+          client,
+          getDatabaseClient(),
+          {
+            id: materialId,
+            companyId,
+            updatedBy: userId,
+            [field]: value || null
+          }
+        );
+        if (update.error) {
+          failures.push(`${materialId}: ${update.error.message}`);
+        }
+      }
+      if (failures.length > 0) {
+        return { error: { message: failures.join("; ") }, data: null };
+      }
+
+      return { data: null, error: null };
+    }
+    case "active": {
+      // Activating is the change notice's job: applyChangeNotice flips the
+      // revisions and parts it minted when it reaches Done. Switching one on by
+      // hand beforehand puts an unreleased item into the pickers, MRP and job
+      // creation carrying the notice's un-approved draft BOM. Deactivating is
+      // always allowed — that takes an item out of circulation, never into it.
+      if (value === "on") {
+        const unreleased = await getUnreleasedChangeOrderItems(
+          getCarbonServiceRole(),
+          { itemIds: items as string[], companyId }
+        );
+        if (unreleased.error) {
+          return { error: { message: unreleased.error }, data: null };
+        }
+        if (unreleased.data.length > 0) {
+          return {
+            error: {
+              message: `${unreleasedChangeOrderItemsMessage(
+                unreleased.data
+              )} Release the change notice to activate it.`
+            },
+            data: null
+          };
+        }
+      }
+
       return await client
         .from("item")
         .update({
           active: value === "on",
+          updatedBy: userId,
+          updatedAt: new Date().toISOString()
+        })
+        .in("id", items as string[])
+        .eq("companyId", companyId);
+    }
+    case "requiresInspection":
+      return await client
+        .from("item")
+        .update({
+          requiresInspection: value === "on",
           updatedBy: userId,
           updatedAt: new Date().toISOString()
         })

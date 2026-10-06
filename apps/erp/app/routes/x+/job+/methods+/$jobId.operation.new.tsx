@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
@@ -11,6 +15,8 @@ import {
   recalculateJobOperationDependencies,
   upsertJobOperation
 } from "~/modules/production";
+import { requireCompanyRecord } from "~/modules/shared/shared.server";
+import { getDatabaseClient } from "~/services/database.server";
 import { setCustomFields } from "~/utils/form";
 
 export async function action({ request, params }: ActionFunctionArgs) {
@@ -32,13 +38,29 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const insertJobOperation = await upsertJobOperation(serviceRole, {
-    ...validation.data,
-    jobId,
-    companyId,
-    createdBy: userId,
-    customFields: setCustomFields(formData)
-  });
+  const operationData = validation.data;
+
+  // The insert uses the service role, which bypasses RLS: the job and its make
+  // method must belong to this company.
+  await Promise.all([
+    requireCompanyRecord(serviceRole, "job", companyId, { id: jobId }),
+    requireCompanyRecord(serviceRole, "jobMakeMethod", companyId, {
+      id: validation.data.jobMakeMethodId,
+      jobId
+    })
+  ]);
+
+  const insertJobOperation = await upsertJobOperation(
+    serviceRole,
+    getDatabaseClient(),
+    {
+      ...operationData,
+      jobId,
+      companyId,
+      createdBy: userId,
+      customFields: setCustomFields(formData)
+    }
+  );
   if (insertJobOperation.error) {
     return data(
       {
@@ -65,12 +87,12 @@ export async function action({ request, params }: ActionFunctionArgs) {
   }
 
   const [recalculateResult, recalculateDependencies] = await Promise.all([
-    recalculateJobMakeMethodRequirements(serviceRole, {
+    recalculateJobMakeMethodRequirements(serviceRole, getDatabaseClient(), {
       id: validation.data.jobMakeMethodId,
       companyId,
       userId
     }),
-    recalculateJobOperationDependencies(serviceRole, {
+    recalculateJobOperationDependencies(serviceRole, getDatabaseClient(), {
       jobId,
       companyId,
       userId

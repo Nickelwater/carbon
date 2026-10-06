@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: LicenseRef-Carbon-Commercial
+// Carbon Enterprise file, licensed only under the Carbon Commercial License
+// (packages/ee/LICENSE). Not AGPL. Running, modifying, or copying it beyond those terms requires a commercial license.
+
 import type { Database } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SYNC_OPERATION_ALLOWED_TRANSITIONS } from "./models";
@@ -349,6 +353,42 @@ export async function insertTerminalSyncOperation(
 }
 
 /**
+ * Delete terminal disposition rows for entities that have since synced
+ * successfully. Accounting journals get a permanent disposition, but a
+ * re-evaluating INBOUND family (Ramp) can fail an entity one run — a charge
+ * coded to an unrecognized account records a Warning — and succeed the next,
+ * once it is recoded. Without this the resolved failure lingers in the Sync
+ * Activity inbox and keeps the tab badge lit, so on every successful sync the
+ * caller clears any prior disposition for those (entityType, entityId,
+ * direction) tuples. Defaults to `Warning` (the only status the Ramp recorder
+ * writes); a no-op when `entityIds` is empty. Service-role only (the table has
+ * no DELETE policy — jobs delete via service role).
+ */
+export async function clearResolvedSyncOperations(
+  client: SupabaseClient<Database>,
+  args: {
+    companyId: string;
+    integration: string;
+    entityType: string;
+    direction: SyncOperationDirection;
+    entityIds: string[];
+    statuses?: SyncOperationStatus[];
+  }
+): Promise<{ error: string | null }> {
+  if (args.entityIds.length === 0) return { error: null };
+  const statuses = args.statuses ?? ["Warning"];
+  const { error } = await syncOperationTable(client)
+    .delete()
+    .eq("companyId", args.companyId)
+    .eq("integration", args.integration)
+    .eq("entityType", args.entityType)
+    .eq("direction", args.direction)
+    .in("entityId", args.entityIds)
+    .in("status", statuses);
+  return { error: error ? (error as { message: string }).message : null };
+}
+
+/**
  * Claim up to `limit` operations for a drain: Pending rows plus "In Flight"
  * rows whose lastAttemptAt is older than 10 minutes (abandoned by a crashed
  * drain). Claimed rows move to "In Flight" with lastAttemptAt = now and
@@ -365,6 +405,9 @@ export async function insertTerminalSyncOperation(
  * `entityTypes` is the include-only counterpart (the consolidation cron
  * claims ONLY journalEntry operations). Mutually exclusive with
  * `excludeEntityTypes` — see getClaimEntityTypeFilterError.
+ *
+ * `direction` claims only operations going that way (a master-data import
+ * claims only its own pulls).
  */
 export async function claimPendingOperations(
   client: SupabaseClient<Database>,
@@ -383,6 +426,7 @@ export async function claimPendingOperations(
      * transitional consolidation flag.
      */
     holdDailySummaryJournalEntries?: boolean;
+    direction?: SyncOperationDirection;
   }
 ): Promise<{ data: SyncOperation[]; error: string | null }> {
   const filterError = getClaimEntityTypeFilterError(args);
@@ -414,6 +458,9 @@ export async function claimPendingOperations(
   if (args.holdDailySummaryJournalEntries) {
     pendingQuery = pendingQuery.or(dailySummaryHold);
   }
+  if (args.direction) {
+    pendingQuery = pendingQuery.eq("direction", args.direction);
+  }
 
   const pending = await pendingQuery
     .order("createdAt", { ascending: true })
@@ -435,6 +482,9 @@ export async function claimPendingOperations(
   }
   if (args.holdDailySummaryJournalEntries) {
     staleQuery = staleQuery.or(dailySummaryHold);
+  }
+  if (args.direction) {
+    staleQuery = staleQuery.eq("direction", args.direction);
   }
 
   const stale = await staleQuery
@@ -601,6 +651,62 @@ export async function failOperation(
 }
 
 /**
+ * Accounts currently blocking a sync: the distinct account ids named by
+ * parked UNMAPPED_ACCOUNTS journal operations (metadata.unmappedAccountIds),
+ * minus any that have since been mapped. Feeds the "Blocking sync" rows in the
+ * Account Mapping tab so an arbitrary (non-posting-default) account that held
+ * up a journal is surfaced with a mapping control.
+ */
+export async function getAccountsBlockingSync(
+  client: SupabaseClient<Database>,
+  args: { companyId: string; integration: string }
+): Promise<{
+  data: Array<{ id: string; number: string | null; name: string }> | null;
+  error: string | null;
+}> {
+  const ops = await syncOperationTable(client)
+    .select("metadata")
+    .eq("companyId", args.companyId)
+    .eq("integration", args.integration)
+    .eq("status", "Warning")
+    .eq("errorCode", "UNMAPPED_ACCOUNTS");
+  if (ops.error) return { data: null, error: ops.error.message };
+
+  const accountIds = new Set<string>();
+  for (const op of (ops.data ?? []) as Array<{
+    metadata: { unmappedAccountIds?: unknown } | null;
+  }>) {
+    const ids = op.metadata?.unmappedAccountIds;
+    if (Array.isArray(ids)) {
+      for (const id of ids) {
+        if (typeof id === "string" && id.length > 0) accountIds.add(id);
+      }
+    }
+  }
+  if (accountIds.size === 0) return { data: [], error: null };
+
+  const mapped = await client
+    .from("externalIntegrationMapping")
+    .select("entityId")
+    .eq("entityType", "account")
+    .eq("integration", args.integration)
+    .eq("companyId", args.companyId);
+  if (mapped.error) return { data: null, error: mapped.error.message };
+  const mappedSet = new Set((mapped.data ?? []).map((row) => row.entityId));
+
+  const remaining = [...accountIds].filter((id) => !mappedSet.has(id));
+  if (remaining.length === 0) return { data: [], error: null };
+
+  const accounts = await client
+    .from("account")
+    .select("id, number, name")
+    .in("id", remaining)
+    .order("number", { ascending: true });
+  if (accounts.error) return { data: null, error: accounts.error.message };
+  return { data: accounts.data ?? [], error: null };
+}
+
+/**
  * Mark an operation Skipped — the drain's close-out for a syncer no-op
  * with NO remote copy behind it (shouldSync gate, config-disabled entity,
  * parked payment). Truthful-ledger rule (v4 spec, Pillar C): such a no-op
@@ -736,4 +842,77 @@ export async function getSyncOperations(
     count: result.count ?? null,
     error: null
   };
+}
+
+/** The columns the Sync Activity CSV export reads, and nothing heavier. */
+const SYNC_OPERATION_EXPORT_COLUMNS =
+  "id, integration, entityType, entityId, direction, trigger, status, attemptCount, lastAttemptAt, completedAt, errorCode, errorMessage, externalId, createdAt";
+
+export type SyncOperationExportRow = Pick<
+  SyncOperation,
+  | "id"
+  | "integration"
+  | "entityType"
+  | "entityId"
+  | "direction"
+  | "trigger"
+  | "status"
+  | "attemptCount"
+  | "lastAttemptAt"
+  | "completedAt"
+  | "errorCode"
+  | "errorMessage"
+  | "externalId"
+  | "createdAt"
+>;
+
+/** Where the previous page ended: its last row's sort key. */
+export type SyncOperationCursor = Pick<SyncOperation, "createdAt" | "id">;
+
+/**
+ * One page of sync operations for the Sync Activity CSV export, newest first,
+ * under the same filters as `getSyncOperations`. Keyset-paged on
+ * (createdAt DESC, id) — served by `accountingSyncOperation_createdAt_idx` —
+ * so the caller can stream an unbounded history one page at a time instead
+ * of holding it in memory, and page N costs the same as page 1. Pass the
+ * previous page's last row as `after`; a page shorter than `limit` is the
+ * last one.
+ */
+export async function getSyncOperationsExportPage(
+  client: SupabaseClient<Database>,
+  args: {
+    companyId: string;
+    integration: string;
+    status?: SyncOperationStatus | SyncOperationStatus[];
+    after?: SyncOperationCursor;
+    limit: number;
+  }
+): Promise<{ data: SyncOperationExportRow[]; error: string | null }> {
+  let query = syncOperationTable(client)
+    .select(SYNC_OPERATION_EXPORT_COLUMNS)
+    .eq("companyId", args.companyId)
+    .eq("integration", args.integration);
+
+  if (args.status) {
+    query = Array.isArray(args.status)
+      ? query.in("status", args.status)
+      : query.eq("status", args.status);
+  }
+
+  if (args.after) {
+    // Quoted: a timestamp carries `.`, `:` and `+`, all reserved in an
+    // or-filter. `id` ascending breaks createdAt ties, matching the index.
+    const { createdAt, id } = args.after;
+    query = query.or(
+      `createdAt.lt."${createdAt}",and(createdAt.eq."${createdAt}",id.gt."${id}")`
+    );
+  }
+
+  const result = await query
+    .order("createdAt", { ascending: false })
+    .order("id", { ascending: true })
+    .limit(args.limit);
+
+  if (result.error) return { data: [], error: result.error.message };
+  return { data: (result.data ?? []) as SyncOperationExportRow[], error: null };
 }

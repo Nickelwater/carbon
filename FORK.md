@@ -265,3 +265,4 @@ Run after every upstream integration. Check off in the PR description.
 | ---- | ----- |
 | 2026-06-29 | Initial `FORK.md` — documents shipping labels, batch tracking, item packaging, inspection, quote parts, operation time basis, tool life, and merge workflow |
 | 2026-07-31 | Inspection reconciliation — fork three-type model wins; guard upstream `20260722132135`; add `20260731151905_reconcile-inspection-models` |
+| 2026-10-05 | Merged `upstream/main` into `sync-upstream` (from last sync 2026-08-18 / #1410 through #1806). Adopted Node server-functions (#1767); kept fork shipping/quality/quote-parts/LAN. Tag: `fork-pre-upstream-2026-10-05`. |

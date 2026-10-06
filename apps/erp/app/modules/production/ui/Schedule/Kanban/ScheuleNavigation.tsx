@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Button,
   DropdownMenu,
@@ -15,8 +19,8 @@ import {
   LuCalendar,
   LuCalendarDays,
   LuChevronDown,
-  LuCog,
-  LuList
+  LuList,
+  LuRedoDot
 } from "react-icons/lu";
 import { useLocation, useNavigate } from "react-router";
 import { path } from "~/utils/path";
@@ -26,9 +30,9 @@ export function ScheduleNavigation() {
   const navigate = useNavigate();
 
   const getCurrentView = () => {
-    if (location.pathname.includes(path.to.scheduleOperation))
+    if (location.pathname.includes(path.to.priorityOperation))
       return "operations";
-    if (location.pathname.includes(path.to.scheduleDates)) {
+    if (location.pathname.includes(path.to.priorityDates)) {
       if (location.search.includes("view=month")) {
         return "month";
       }
@@ -56,7 +60,7 @@ export function ScheduleNavigation() {
   const getViewIcon = (option: string) => {
     switch (option) {
       case "operations":
-        return <LuCog />;
+        return <LuRedoDot />;
       case "week":
         return <LuCalendarDays />;
       case "month":
@@ -71,15 +75,15 @@ export function ScheduleNavigation() {
 
     switch (view) {
       case "operations":
-        navigate(path.to.scheduleOperation + "?" + searchParams.toString());
+        navigate(path.to.priorityOperation + "?" + searchParams.toString());
         break;
       case "week":
         searchParams.set("view", "week");
-        navigate(path.to.scheduleDates + "?" + searchParams.toString());
+        navigate(path.to.priorityDates + "?" + searchParams.toString());
         break;
       case "month":
         searchParams.set("view", "month");
-        navigate(path.to.scheduleDates + "?" + searchParams.toString());
+        navigate(path.to.priorityDates + "?" + searchParams.toString());
         break;
     }
   };

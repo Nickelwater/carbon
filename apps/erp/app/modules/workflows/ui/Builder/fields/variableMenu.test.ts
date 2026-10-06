@@ -1,5 +1,9 @@
-import type { AvailableVariable } from "@carbon/workflows";
-import { createWorkflowCatalog } from "@carbon/workflows";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { AvailableVariable } from "@carbon/ee/workflows";
+import { createWorkflowCatalog } from "@carbon/ee/workflows";
 import { describe, expect, it } from "vitest";
 import { decodeTokenId } from "./tokenId";
 import {
@@ -235,18 +239,18 @@ describe("variableTree", () => {
     ).toBe(false);
   });
 
-  it("hides the record itself from a text field but keeps its properties", () => {
+  // A record prints as its readable id, so a text field offers it alongside its
+  // properties. A LIST of records still has no reading in a sentence.
+  it("offers the record itself in a text field, and its properties", () => {
     const [record] =
       variableTree([variable], catalog, { textOnly: true })[0].children ?? [];
-    expect(record.item).toBeUndefined();
+    expect(record.item).toBeDefined();
     expect(record.children?.length).toBeGreaterThan(0);
     expect(
       variableMenuItems([variable], catalog, { textOnly: true }).map((item) =>
         decodeTokenId(item.id)
       )
-    ).not.toContainEqual(
-      expect.objectContaining({ output: "record", path: [] })
-    );
+    ).toContainEqual(expect.objectContaining({ output: "record", path: [] }));
   });
 
   it("labels properties through the resolver, not the raw column name", () => {

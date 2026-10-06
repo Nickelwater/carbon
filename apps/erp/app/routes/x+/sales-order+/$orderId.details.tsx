@@ -1,13 +1,18 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
+import { redirect } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
 import type { FileObject } from "@supabase/storage-js";
 import type { JSONContent } from "@tiptap/react";
 import { useRef } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { redirect, useLoaderData, useParams } from "react-router";
+import { useLoaderData, useParams } from "react-router";
 import { DeferredFiles } from "~/components";
 import { useRouteData } from "~/hooks";
 import type { Opportunity, SalesOrder, SalesOrderLine } from "~/modules/sales";
@@ -107,7 +112,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
     message: "Cannot modify a locked sales order. Reopen it first."
   });
 
-  const { client, companyGroupId, userId } = await requirePermissions(request, {
+  const { client, userId } = await requirePermissions(request, {
     update: "sales"
   });
 
@@ -118,22 +123,18 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  const result = await updateSalesOrder(
-    client,
-    {
-      id,
-      status: validation.data.status,
-      currencyCode: validation.data.currencyCode,
-      orderDate: validation.data.orderDate,
-      customerId: validation.data.customerId,
-      customerContactId: validation.data.customerContactId || null,
-      customerLocationId: validation.data.customerLocationId || null,
-      notes: validation.data.notes,
-      customFields: setCustomFields(formData),
-      updatedBy: userId
-    },
-    companyGroupId
-  );
+  const result = await updateSalesOrder(client, {
+    id,
+    status: validation.data.status,
+    currencyCode: validation.data.currencyCode,
+    orderDate: validation.data.orderDate,
+    customerId: validation.data.customerId,
+    customerContactId: validation.data.customerContactId || null,
+    customerLocationId: validation.data.customerLocationId || null,
+    notes: validation.data.notes,
+    customFields: setCustomFields(formData),
+    updatedBy: userId
+  });
   if (result.error) {
     throw redirect(
       path.to.salesOrder(id),

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { z } from "zod";
 import { zfd } from "zod-form-data";
 // Import the constants from the models file directly (not the `../shared` barrel),
@@ -109,9 +113,7 @@ export const purchaseInvoiceLineValidator = z
       [...itemType, "Fixture", "G/L Account", "Fixed Asset", "Comment"],
 
       {
-        errorMap: (issue, ctx) => ({
-          message: "Type is required"
-        })
+        error: "Type is required"
       }
     ),
     purchaseOrderId: zfd.text(z.string().optional()),
@@ -200,17 +202,58 @@ export const salesInvoiceValidator = z.object({
   exchangeRateUpdatedAt: zfd.text(z.string().optional())
 });
 
+export const stripeCustomerActions = [
+  "use-linked",
+  "link-existing",
+  "create"
+] as const;
+
 export const salesInvoicePostValidator = z
   .object({
-    notification: z.enum(["Email", "None"]).optional(),
+    notification: z.enum(["Email", "Stripe", "None"]).optional(),
     customerContact: zfd.text(z.string().optional()),
-    cc: z.array(z.string()).optional()
+    cc: z.array(z.string()).optional(),
+    // What the user agreed to do with the connected account's customer list.
+    stripeCustomerAction: z.enum(stripeCustomerActions).optional(),
+    // The customer to link to, when the user picked one Stripe already had.
+    stripeCustomerId: zfd.text(z.string().optional()),
+    // Supplied only when the selected contact had no email on file.
+    stripeContactEmail: zfd.text(
+      z.string().email({ message: "Email is invalid" }).optional()
+    ),
+    // Supplied only when the invoice's own dateDue wouldn't survive
+    // clampDueDate (missing, past, or too far out) — see the post modal.
+    stripeDueDate: zfd.text(z.string().optional())
   })
   .refine(
-    (data) => (data.notification === "Email" ? data.customerContact : true),
+    (data) =>
+      data.notification === "Email" || data.notification === "Stripe"
+        ? data.customerContact
+        : true,
     {
-      message: "Customer contact is required for email",
+      message: "Customer contact is required",
       path: ["customerContact"] // path of error
+    }
+  )
+  // The guard that makes the confirmation step structurally mandatory: with no
+  // action there is no code path left that creates a customer on a merchant's
+  // account, so a stale or hand-rolled form body cannot skip the dialog.
+  .refine(
+    (data) =>
+      data.notification === "Stripe" ? data.stripeCustomerAction : true,
+    {
+      message: "Confirm the Stripe customer before posting",
+      path: ["stripeCustomerAction"]
+    }
+  )
+  .refine(
+    (data) =>
+      data.stripeCustomerAction === "link-existing"
+        ? data.stripeCustomerId
+        : true,
+    {
+      message: "Select the Stripe customer to link",
+      path: ["stripeCustomerId"]
     }
   );
 
@@ -230,9 +273,7 @@ export const salesInvoiceLineValidator = z
     id: zfd.text(z.string().optional()),
     invoiceId: z.string().min(1, { message: "Invoice is required" }),
     invoiceLineType: z.enum([...itemType, "Fixture", "Fixed Asset"], {
-      errorMap: (issue, ctx) => ({
-        message: "Type is required"
-      })
+      error: "Type is required"
     }),
     // Wrapped in zfd.text so an empty-string submission (the form always posts a
     // hidden methodType) coerces to undefined instead of failing the enum check.
@@ -241,9 +282,7 @@ export const salesInvoiceLineValidator = z
     methodType: zfd.text(
       z
         .enum(methodType, {
-          errorMap: (issue, ctx) => ({
-            message: "Method is required"
-          })
+          error: "Method is required"
         })
         .optional()
     ),
@@ -333,7 +372,7 @@ export const memoValidator = z
     id: zfd.text(z.string().optional()),
     memoId: zfd.text(z.string().optional()),
     direction: z.enum(memoDirection, {
-      errorMap: () => ({ message: "Direction is required" })
+      error: "Direction is required"
     }),
     customerId: zfd.text(z.string().optional()),
     supplierId: zfd.text(z.string().optional()),
@@ -368,10 +407,14 @@ export const paymentValidator = z
     id: zfd.text(z.string().optional()),
     paymentId: zfd.text(z.string().optional()),
     paymentType: z.enum(paymentType, {
-      errorMap: () => ({ message: "Payment type is required" })
+      error: "Payment type is required"
     }),
     customerId: zfd.text(z.string().optional()),
     supplierId: zfd.text(z.string().optional()),
+    // An employee payee settles reimbursements only — it is never a trade
+    // party, which is the point of the segregated employee-payable control
+    // account. Mirrors the DB's widened `payment_party_check`.
+    employeeId: zfd.text(z.string().optional()),
     paymentDate: z.string().min(1, { message: "Payment date is required" }),
     currencyCode: z.string().min(1, { message: "Currency is required" }),
     exchangeRate: zfd.numeric(z.number().positive().default(1)),
@@ -386,14 +429,104 @@ export const paymentValidator = z
   })
   .refine(
     (d) =>
-      d.paymentType === "Receipt"
-        ? Boolean(d.customerId)
-        : Boolean(d.supplierId),
+      [d.customerId, d.supplierId, d.employeeId].filter(Boolean).length === 1,
     {
-      message: "Receipt requires a customer; Disbursement requires a supplier",
+      message:
+        "A payment requires exactly one party (customer, supplier, or employee)",
       path: ["customerId"]
     }
   );
+
+// ----------------------------------------------------------------------
+// Charges (Ramp spend-management sync)
+// ----------------------------------------------------------------------
+
+export const chargeType = [
+  "Charge",
+  "Credit",
+  "Payment",
+  "Cashback",
+  "Repayment"
+] as const;
+export const chargeStatus = ["Draft", "Posted", "Voided"] as const;
+
+export type ChargeType = (typeof chargeType)[number];
+export type ChargeStatusType = (typeof chargeStatus)[number];
+
+// ----------------------------------------------------------------------
+// Reimbursements (employee expense payables — imported from a spend tool,
+// then editable in Carbon while Draft; never hand-created)
+// ----------------------------------------------------------------------
+
+export const reimbursementStatus = ["Draft", "Posted", "Voided"] as const;
+export type ReimbursementStatusType = (typeof reimbursementStatus)[number];
+
+export function isReimbursementLocked(
+  status: string | null | undefined
+): boolean {
+  return status !== null && status !== undefined && status !== "Draft";
+}
+
+// Header edit. No create counterpart by design.
+export const reimbursementUpdateValidator = z.object({
+  id: z.string().min(1),
+  reimbursementDate: z
+    .string()
+    .min(1, { message: "Reimbursement date is required" }),
+  currencyCode: z.string().min(1, { message: "Currency is required" }),
+  exchangeRate: zfd.numeric(z.number().positive().default(1)),
+  amount: zfd.numeric(
+    z.number().finite().positive({ message: "Amount must be positive" })
+  ),
+  reference: zfd.text(z.string().optional()),
+  notes: zfd.text(z.string().optional())
+});
+
+// One coding line. The five stored columns mirror chargeLine, plus the
+// generic dimension pairs DimensionSelector works in. Do NOT add a field per
+// dimension concept — that is what `dimensions` is.
+//
+// These lines arrive as parsed JSON from a hidden field, not as form data,
+// so this validator is plain zod (no zfd coercion) — zfd.numeric expects a
+// FormData string and would reject an already-numeric amount.
+export const reimbursementLineDimensionValidator = z.object({
+  dimensionId: z.string().min(1),
+  valueId: z.string().min(1)
+});
+
+export const reimbursementLineValidator = z.object({
+  id: z.string().optional(),
+  accountId: z.string().min(1, { message: "Account is required" }),
+  costCenterId: z.string().nullish(),
+  projectId: z.string().nullish(),
+  description: z.string().nullish(),
+  amount: z
+    .number()
+    .finite()
+    .positive({ message: "Line amount must be positive" }),
+  dimensions: z.array(reimbursementLineDimensionValidator).default([])
+});
+
+// The editor submits the whole line set as ONE hidden JSON field, so the
+// route parses that string and runs it through this array.
+export const reimbursementLinesValidator = z
+  .array(reimbursementLineValidator)
+  .min(1, { message: "A reimbursement needs at least one line" });
+
+// The "Pay expense" modal. Exactly three fields, and deliberately no more: they
+// are a 1:1 match for Rillet's `POST /reimbursements/{id}/payments`
+// (`{amount, date, account_code}`), which is what lets the payout sync across
+// with no impedance. The amount is in the reimbursement's DOCUMENT currency and
+// may be LESS than the balance — a partial payout is supported — so it is not
+// pinned to the balance here; the balance ceiling is enforced server-side by
+// `replaceInvoiceSettlements`.
+export const reimbursementPaymentValidator = z.object({
+  amount: zfd.numeric(
+    z.number().positive({ message: "Amount must be greater than zero" })
+  ),
+  paymentDate: z.string().min(1, { message: "Payment date is required" }),
+  bankAccount: z.string().min(1, { message: "Bank account is required" })
+});
 
 // The raw object schema (no refinements). Routes that need to `.omit()` a source
 // key before injecting it from the URL use THIS — peeling `.refine()` layers off
@@ -404,11 +537,14 @@ export const invoiceSettlementBase = z.object({
   // Source: exactly one of a payment or a memo settles the target.
   paymentId: zfd.text(z.string().optional()),
   memoId: zfd.text(z.string().optional()),
-  // Target: exactly one of a sales invoice, purchase invoice, or memo.
+  // Target: exactly one of a sales invoice, purchase invoice, memo, or
+  // reimbursement.
   targetSalesInvoiceId: zfd.text(z.string().optional()),
   targetPurchaseInvoiceId: zfd.text(z.string().optional()),
   targetMemoId: zfd.text(z.string().optional()),
-  appliedAmount: zfd.numeric(z.number().nonnegative().default(0)),
+  targetReimbursementId: zfd.text(z.string().optional()),
+  sourceAmount: zfd.numeric(z.number().finite().nonnegative().optional()),
+  appliedAmount: zfd.numeric(z.number().finite().nonnegative().default(0)),
   discountAmount: zfd.numeric(z.number().nonnegative().default(0)),
   writeOffAmount: zfd.numeric(z.number().nonnegative().default(0)),
   targetExchangeRate: zfd.numeric(
@@ -430,11 +566,12 @@ export const invoiceSettlementValidator = invoiceSettlementBase
       [
         d.targetSalesInvoiceId,
         d.targetPurchaseInvoiceId,
-        d.targetMemoId
+        d.targetMemoId,
+        d.targetReimbursementId
       ].filter(Boolean).length === 1,
     {
       message:
-        "Application must target exactly one document (sales invoice, purchase invoice, or memo)",
+        "Application must target exactly one document (sales invoice, purchase invoice, memo, or reimbursement)",
       path: ["targetSalesInvoiceId"]
     }
   )
@@ -442,7 +579,8 @@ export const invoiceSettlementValidator = invoiceSettlementBase
     (d) =>
       Number(d.appliedAmount) +
         Number(d.discountAmount) +
-        Number(d.writeOffAmount) >
+        Number(d.writeOffAmount) +
+        Number(d.sourceAmount ?? 0) >
       0,
     {
       message: "At least one of applied / discount / write-off must be > 0",
@@ -450,22 +588,15 @@ export const invoiceSettlementValidator = invoiceSettlementBase
     }
   );
 
-// Sub-cent balances are forgiven as dust: an outstanding amount below one cent
-// (the smallest representable currency unit) can't be collected and is treated
-// as paid. Kept in sync with the SQL view forgiveness in
-// 20260630151500_invoice-dust-forgiveness.sql.
-export const INVOICE_DUST_THRESHOLD = 0.01;
-
-// An invoice is payable when it's posted with an outstanding balance of at least
-// one cent — i.e. not draft/pending, voided, already fully paid, or down to dust.
-// Shared by the sales (AR) and purchase (AP) invoice headers; the caller AND-s in
-// the permission check.
+// The balance views preserve any remaining document minor unit, even when its
+// base equivalent is smaller than a base currency cent.
 export function isInvoicePayable(
   status: string | null | undefined,
   balance: number | null | undefined
 ): boolean {
   return (
     !["Voided", "Draft", "Pending", "Paid"].includes(status ?? "") &&
-    Number(balance ?? 0) >= INVOICE_DUST_THRESHOLD
+    Number.isFinite(Number(balance)) &&
+    Number(balance ?? 0) > 0
   );
 }

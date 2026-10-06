@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: LicenseRef-Carbon-Commercial
+// Carbon Enterprise file, licensed only under the Carbon Commercial License
+// (packages/ee/LICENSE). Not AGPL. Running, modifying, or copying it beyond those terms requires a commercial license.
+
 import { HiEnvelope } from "react-icons/hi2";
 import { z } from "zod";
 import { defineIntegration } from "../fns";
@@ -60,7 +64,7 @@ export const Email = defineIntegration({
       name: "apiKey",
       label: "API key",
       description: "Create one in the Resend dashboard under API Keys.",
-      type: "password",
+      type: "secret",
       required: true,
       value: "",
       group: "Resend",
@@ -97,7 +101,7 @@ export const Email = defineIntegration({
     {
       name: "password",
       label: "Password",
-      type: "password",
+      type: "secret",
       required: true,
       value: "",
       group: "SMTP",
@@ -119,7 +123,8 @@ export const Email = defineIntegration({
     z.object({
       provider: z.literal("resend"),
       fromEmail: z.string().email(),
-      apiKey: z.string().min(1, { message: "API Key is required" })
+      // Empty means "keep the existing vaulted secret"; presence enforced at install.
+      apiKey: z.string()
     }),
     z.object({
       provider: z.literal("smtp"),
@@ -131,7 +136,8 @@ export const Email = defineIntegration({
         .min(1, { message: "Port must be between 1 and 65535" })
         .max(65535, { message: "Port must be between 1 and 65535" }),
       username: z.string().min(1, { message: "Username is required" }),
-      password: z.string().min(1, { message: "Password is required" }),
+      // Empty means "keep the existing vaulted secret"; presence enforced at install.
+      password: z.string(),
       // `SwitchField` in the integration form always posts a literal
       // "true"/"false" string, and `z.coerce.boolean()` would treat both as
       // truthy (non-empty strings). Preprocess explicitly so unchecking the

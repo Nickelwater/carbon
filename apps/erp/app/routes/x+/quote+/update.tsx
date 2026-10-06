@@ -1,11 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
+import { unchecked } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
-import { getCurrencyByCode } from "~/modules/accounting";
+import { getExchangeRate } from "~/modules/accounting";
 import { isQuoteLocked } from "~/modules/sales";
 import { requireUnlockedBulk } from "~/utils/lockedGuard.server";
 
 export async function action({ request }: ActionFunctionArgs) {
-  const { client, companyGroupId, userId } = await requirePermissions(request, {
+  const { client, companyId, userId } = await requirePermissions(request, {
     update: "sales"
   });
 
@@ -67,17 +72,16 @@ export async function action({ request }: ActionFunctionArgs) {
         })
         .in("id", ids as string[]);
     case "currencyCode":
-      const currency = await getCurrencyByCode(
-        client,
-        companyGroupId,
-        value as string
-      );
-      if (currency.data) {
+      if (value) {
+        const exchangeRate = await getExchangeRate(client, companyId, value);
+        if (exchangeRate.error) {
+          return { error: exchangeRate.error, data: null };
+        }
         return await client
           .from("quote")
           .update({
             currencyCode: value,
-            exchangeRate: currency.data.exchangeRate,
+            exchangeRate: exchangeRate.data,
             updatedBy: userId,
             updatedAt: new Date().toISOString()
           })
@@ -96,11 +100,13 @@ export async function action({ request }: ActionFunctionArgs) {
     case "salesPersonId":
       return await client
         .from("quote")
-        .update({
-          [field]: value ? value : null,
-          updatedBy: userId,
-          updatedAt: new Date().toISOString()
-        })
+        .update(
+          unchecked({
+            [field]: value ? value : null,
+            updatedBy: userId,
+            updatedAt: new Date().toISOString()
+          })
+        )
         .in("id", ids as string[]);
     default:
       return { error: { message: "Invalid field" }, data: null };

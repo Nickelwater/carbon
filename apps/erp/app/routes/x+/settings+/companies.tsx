@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
@@ -10,10 +14,19 @@ import {
   TabsList,
   TabsTrigger
 } from "@carbon/react";
-import { isInternalEmail } from "@carbon/utils";
+import {
+  isInternalEmail,
+  isUnaffectedByNavigation,
+  redirect
+} from "@carbon/utils";
+import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { useCallback } from "react";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useLoaderData, useNavigate } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useLoaderData, useNavigate } from "react-router";
 import { New } from "~/components";
 import { getSubsidiaries } from "~/modules/settings";
 import {
@@ -24,9 +37,12 @@ import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
 export const handle: Handle = {
-  breadcrumb: "Companies",
+  breadcrumb: msg`Companies`,
   to: path.to.companies
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args) ? false : args.defaultShouldRevalidate;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { companyGroupId, email } = await requirePermissions(request, {
@@ -56,6 +72,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function SubsidiariesRoute() {
+  const { t } = useLingui();
   const { companies } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
@@ -83,7 +100,7 @@ export default function SubsidiariesRoute() {
             <TabsTrigger value="list">List View</TabsTrigger>
           </TabsList>
           <New
-            label="Company"
+            label={t`Company`}
             to={path.to.newCompanyInGroup}
             variant="primary"
           />
@@ -92,7 +109,7 @@ export default function SubsidiariesRoute() {
 
       <TabsContent value="tree">
         <CompaniesTreeView
-          // @ts-ignore
+          // @ts-expect-error
           companies={companies}
           onDelete={handleDelete}
           onAddChild={handleAddChild}
@@ -101,7 +118,7 @@ export default function SubsidiariesRoute() {
 
       <TabsContent value="list">
         <CompaniesListView
-          // @ts-ignore
+          // @ts-expect-error
           companies={companies}
           onDelete={handleDelete}
           onAddChild={handleAddChild}

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Database } from "@carbon/database";
 import type { FileObject } from "@supabase/storage-js";
 import type {
@@ -16,6 +20,7 @@ import type {
   getTrackedInputs
 } from "./operations.service";
 import type {
+  getInspectionGauges,
   getInspectionMeasurements,
   getInspectionSamplingPlans,
   getIssueTypesList
@@ -66,7 +71,12 @@ export type JobOperationParameter = NonNullable<
 >[number];
 
 export type Operation = BaseOperation & Durations;
-export type OperationWithDetails = BaseOperationWithDetails & Durations;
+export type OperationWithDetails = BaseOperationWithDetails &
+  Durations & {
+    /** Fork: parts-per-cycle / time basis (table cols; not on all RPCs) */
+    partsPerCycle?: number | null;
+    timeBasis?: string | null;
+  };
 
 export type OperationSettings = {
   showCustomer: boolean;
@@ -90,6 +100,9 @@ export type ProductionQuantity = NonNullable<
 export type StorageItem = FileObject & {
   bucket: string;
   itemId?: string;
+  // The file's full storage path when it does not live under the current job
+  // (the batch view lists every member job's files).
+  storagePath?: string;
 };
 
 export type TrackedEntity = NonNullable<
@@ -121,6 +134,10 @@ export type InspectionSample =
 
 export type InspectionSamplingPlan = NonNullable<
   Awaited<ReturnType<typeof getInspectionSamplingPlans>>["data"]
+>[number];
+
+export type InspectionGauge = NonNullable<
+  Awaited<ReturnType<typeof getInspectionGauges>>["data"]
 >[number];
 
 export type InspectionMeasurement = NonNullable<

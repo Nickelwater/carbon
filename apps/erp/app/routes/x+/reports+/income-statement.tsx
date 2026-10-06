@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
@@ -5,20 +9,21 @@ import { VStack } from "@carbon/react";
 import {
   computeReportPeriodBuckets,
   datetime,
-  defaultReportRange
+  defaultReportRange,
+  redirect
 } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import { useLocale } from "@react-aria/i18n";
 import { useState } from "react";
 import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useLoaderData } from "react-router";
+import { Outlet, useLoaderData } from "react-router";
 import {
   financialReportParamsValidator,
   getCompaniesInGroup,
   getFinancialStatementPeriodSeries,
   getFiscalYearSettings
 } from "~/modules/accounting";
-import { getConsolidatedPeriodSeriesForReport } from "~/modules/accounting/accounting.ee.server";
+import { getConsolidatedPeriodSeriesForReport } from "~/modules/accounting/accounting.server";
 import {
   exportPeriodReport,
   getPeriodColumnLabel,
@@ -70,6 +75,15 @@ export async function loader({ request }: LoaderFunctionArgs) {
   ]);
   const fiscalStartMonth =
     months.indexOf(fiscalYearSettings.data?.startMonth ?? "January") + 1;
+  if (companies.error) {
+    throw redirect(
+      path.to.accounting,
+      await flash(
+        request,
+        error(companies.error, "Failed to load report companies")
+      )
+    );
+  }
   const companiesList = companies.data ?? [];
   const parentCompany = companiesList.find((c) => !c.parentCompanyId);
   const parentCurrency = parentCompany?.baseCurrencyCode ?? null;
@@ -80,6 +94,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
       : companiesParam
         ? [companiesParam]
         : [companyId];
+  if (
+    selectedCompanyIds.length === 0 ||
+    selectedCompanyIds.some(
+      (id) => !companiesList.some((company) => company.id === id)
+    )
+  ) {
+    throw new Response("Company not found", { status: 404 });
+  }
   const isMultiCompany = selectedCompanyIds.length > 1;
 
   // Default range: last 6 months to date (in the company's business timezone) —
@@ -106,6 +128,19 @@ export async function loader({ request }: LoaderFunctionArgs) {
       parentCurrency,
       { buckets }
     );
+
+    if (consolidated.error || !consolidated.data) {
+      throw redirect(
+        path.to.accounting,
+        await flash(
+          request,
+          error(
+            consolidated.error,
+            "Failed to translate a subsidiary's balances"
+          )
+        )
+      );
+    }
 
     return {
       incomeStatement: consolidated.data.filter(

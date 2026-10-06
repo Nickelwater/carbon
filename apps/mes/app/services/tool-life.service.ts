@@ -15,7 +15,7 @@ export async function autoIssuePermanentTools(
   jobOperationId: string,
   userId: string
 ) {
-  const result = await client.rpc("auto_issue_permanent_job_operation_tools", {
+  const result = await (client as any).rpc("auto_issue_permanent_job_operation_tools", {
     p_job_operation_id: jobOperationId,
     p_user_id: userId
   });
@@ -35,7 +35,7 @@ export async function issueJobOperationTool(
   trackedEntityId: string | null,
   userId: string
 ) {
-  return client.rpc("issue_job_operation_tool", {
+  return (client as any).rpc("issue_job_operation_tool", {
     p_job_operation_tool_id: jobOperationToolId,
     p_tracked_entity_id: trackedEntityId,
     p_user_id: userId
@@ -49,7 +49,7 @@ export async function accrueToolLifeForOperation(
   eventType: "complete" | "scrap",
   userId: string
 ) {
-  const result = await client.rpc("accrue_tool_life_for_operation", {
+  const result = await (client as any).rpc("accrue_tool_life_for_operation", {
     p_job_operation_id: jobOperationId,
     p_quantity_parts: quantityParts,
     p_event_type: eventType,
@@ -68,11 +68,20 @@ export async function accrueToolLifeForOperation(
   return result;
 }
 
+type JobOperationToolIssuanceRow = {
+  id: string;
+  quantity: number;
+  issuedAt: string | null;
+  autoIssued: boolean | null;
+  trackedEntityId: string | null;
+  toolId: string;
+};
+
 export type JobOperationToolWithLife = {
   id: string;
   quantity: number;
   issuedAt: string | null;
-  autoIssued: boolean;
+  autoIssued: boolean | null;
   trackedEntityId: string | null;
   toolId: string;
   toolReadableId: string | null;
@@ -94,7 +103,11 @@ export async function getJobOperationToolsWithLife(
   client: SupabaseClient<Database>,
   jobOperationId: string
 ) {
-  const tools = await client
+  // issuedAt/autoIssued columns may lag generated types until migrate + generate:types.
+  const tools: {
+    data: JobOperationToolIssuanceRow[] | null;
+    error: { message: string } | null;
+  } = await (client as any)
     .from("jobOperationTool")
     .select("id, quantity, issuedAt, autoIssued, trackedEntityId, toolId")
     .eq("operationId", jobOperationId);

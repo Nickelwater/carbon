@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
@@ -16,10 +20,11 @@ import {
   useMount,
   VStack
 } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import { Suspense } from "react";
 import { LuShoppingCart } from "react-icons/lu";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Await, redirect, useLoaderData, useParams } from "react-router";
+import { Await, useLoaderData, useParams } from "react-router";
 import {
   CadModel,
   DeferredFiles,
@@ -27,7 +32,7 @@ import {
   SupplierAvatar
 } from "~/components";
 import { usePanels } from "~/components/Layout";
-import { usePermissions, useRealtime, useRouteData } from "~/hooks";
+import { usePermissions, useRouteData } from "~/hooks";
 import type { Job, JobPurchaseOrderLine } from "~/modules/production";
 import {
   getJob,
@@ -54,6 +59,8 @@ import {
 import JobMakeMethodTools from "~/modules/production/ui/Jobs/JobMakeMethodTools";
 import PurchasingStatus from "~/modules/purchasing/ui/PurchaseOrder/PurchasingStatus";
 import { getTagsList } from "~/modules/shared";
+import { requireCompanyRecord } from "~/modules/shared/shared.server";
+import { getDatabaseClient } from "~/services/database.server";
 import { useItems } from "~/stores";
 import type { StorageItem } from "~/types";
 import { setCustomFields } from "~/utils/form";
@@ -69,7 +76,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { jobId } = params;
   if (!jobId) throw new Error("Could not find jobId");
 
-  const job = await getJob(client, jobId);
+  // `client` is the service role (bypassRls) and every read keys on the URL id,
+  // so the job must be this company's. The check runs beside the reads it
+  // guards, not before them: it rejects the whole batch, and nothing read here
+  // is returned unless it passes.
+  const [, job, rootMethod, tags] = await Promise.all([
+    requireCompanyRecord(client, "job", companyId, { id: jobId }),
+    getJob(client, jobId),
+    getRootMakeMethod(client, jobId, companyId),
+    getTagsList(client, companyId, "operation")
+  ]);
   if (job.error) {
     throw redirect(
       path.to.jobs,
@@ -77,7 +93,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     );
   }
 
-  const rootMethod = await getRootMakeMethod(client, jobId, companyId);
   if (rootMethod.error) {
     return {
       notes: (job.data?.notes ?? {}) as JSONContent,
@@ -97,10 +112,9 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
   const methodId = rootMethod.data.id;
 
-  const [materials, operations, tags, makeMethod] = await Promise.all([
+  const [materials, operations, makeMethod] = await Promise.all([
     getJobMaterialsByMethodId(client, methodId),
     getJobOperationsByMethodId(client, methodId),
-    getTagsList(client, companyId, "operation"),
     getJobMakeMethodById(client, methodId, companyId)
   ]);
 
@@ -189,11 +203,15 @@ export async function action({ request, params }: ActionFunctionArgs) {
     );
   }
 
-  const recalculate = await recalculateJobRequirements(getCarbonServiceRole(), {
-    id,
-    companyId,
-    userId
-  });
+  const recalculate = await recalculateJobRequirements(
+    getCarbonServiceRole(),
+    getDatabaseClient(),
+    {
+      id,
+      companyId,
+      userId
+    }
+  );
   if (recalculate.error) {
     throw redirect(
       path.to.job(id),
@@ -230,20 +248,15 @@ export default function JobDetailsRoute() {
     }
   });
 
-  const jobData = useRouteData<{
-    job: Job;
-    files: Promise<StorageItem[]> | StorageItem[];
-  }>(path.to.job(jobId));
+  const jobData = useRouteData<{ job: Job }>(path.to.job(jobId));
 
   if (!jobData) throw new Error("Could not find job data");
-
-  useRealtime("modelUpload", `modelPath=eq.(${jobData?.job.modelPath})`);
 
   const methodId = makeMethod?.id;
 
   return (
     <div className="h-full w-full items-start overflow-y-auto scrollbar-hide">
-      <VStack spacing={2} className="p-2">
+      <VStack spacing={4} className="p-4">
         <JobMakeMethodTools makeMethod={makeMethod ?? undefined} />
 
         <JobNotes
@@ -255,26 +268,25 @@ export default function JobDetailsRoute() {
 
         {methodId && (
           <>
-            <JobBillOfMaterial
-              key={`bom:${methodId}`}
-              jobMakeMethodId={methodId}
-              // @ts-ignore
-              materials={materials}
-              // @ts-ignore
-              operations={operations}
-            />
             <JobBillOfProcess
               key={`bop:${methodId}`}
               jobMakeMethodId={methodId}
-              // @ts-ignore
               materials={materials}
-              // @ts-ignore
+              // @ts-expect-error
               operations={operations}
               locationId={jobData?.job?.locationId ?? ""}
               tags={tags}
               itemId={makeMethod.itemId}
               salesOrderLineId={jobData?.job.salesOrderLineId ?? ""}
               customerId={jobData?.job.customerId ?? ""}
+            />
+            <JobBillOfMaterial
+              key={`bom:${methodId}`}
+              jobMakeMethodId={methodId}
+              // @ts-expect-error
+              materials={materials}
+              // @ts-expect-error
+              operations={operations}
             />
           </>
         )}
@@ -298,9 +310,8 @@ export default function JobDetailsRoute() {
           <Await resolve={productionData}>
             {(resolvedProductionData) => (
               <JobEstimatesVsActuals
-                // @ts-ignore
                 materials={materials ?? []}
-                // @ts-ignore
+                // @ts-expect-error
                 operations={operations}
                 productionEvents={resolvedProductionData.events}
                 productionQuantities={resolvedProductionData.quantities}
@@ -328,7 +339,7 @@ export default function JobDetailsRoute() {
             jobId: jobData?.job?.id ?? undefined,
             itemId: jobData?.job?.itemId ?? undefined
           }}
-          modelPath={jobData?.job?.modelPath ?? null}
+          modelUpload={jobData?.job ?? null}
           title="CAD Model"
           uploadClassName="aspect-square min-h-[420px] max-h-[70vh]"
           viewerClassName="aspect-square min-h-[420px] max-h-[70vh]"

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { PostgrestError } from "@supabase/supabase-js";
 import { z } from "zod";
 import { zfd } from "zod-form-data";
@@ -181,19 +185,13 @@ export const itemValidator = z.object({
   // purchased item. Only surfaced/edited for Buy items in the Properties panel.
   mpn: zfd.text(z.string().optional()),
   replenishmentSystem: z.enum(itemReplenishmentSystems, {
-    errorMap: (issue, ctx) => ({
-      message: "Replenishment system is required"
-    })
+    error: "Replenishment system is required"
   }),
   defaultMethodType: z.enum(methodType, {
-    errorMap: (issue, ctx) => ({
-      message: "Default method is required"
-    })
+    error: "Default method is required"
   }),
   itemTrackingType: z.enum(itemTrackingTypes, {
-    errorMap: (issue, ctx) => ({
-      message: "Part type is required"
-    })
+    error: "Part type is required"
   }),
   postingGroupId: zfd.text(z.string().optional()),
   unitOfMeasureCode: z
@@ -233,10 +231,8 @@ export const itemValidator = z.object({
 // Common storage / shelf-life refines. Shared across all item-type
 // validators. Default Storage Unit is optional for every type - users can
 // set it later via the pickMethod UI once they know where the item lives.
-const applyStorageAndShelfLifeRefines = <T extends z.AnyZodObject>(
-  schema: T
-) => {
-  const refined: z.ZodEffects<z.ZodTypeAny, z.infer<T>, z.input<T>> = schema
+const applyStorageAndShelfLifeRefines = <T extends z.ZodObject>(schema: T) => {
+  const refined: z.ZodType<z.infer<T>, z.input<T>> = schema
     .refine(
       (data: z.infer<T>) =>
         data.shelfLifeDays === undefined ||
@@ -316,7 +312,7 @@ const applyStorageAndShelfLifeRefines = <T extends z.AnyZodObject>(
           "Calculate from BOM requires a BoM - only Make or Buy and Make items qualify",
         path: ["shelfLifeCalculateFromBom"]
       }
-    ) as z.ZodEffects<z.ZodTypeAny, z.infer<T>, z.input<T>>;
+    ) as unknown as z.ZodType<z.infer<T>, z.input<T>>;
 
   return refined;
 };
@@ -433,24 +429,18 @@ export const materialValidatorWithGeneratedIds = z.object({
 });
 
 export const methodMaterialValidator = z.object({
-  id: z.string().min(1, { message: "Material ID is required" }),
+  id: z.string().trim().min(1, { message: "Material ID is required" }),
   makeMethodId: z.string().min(1, { message: "Make method is required" }),
   order: zfd.numeric(z.number().min(0)),
   itemType: z.enum(methodItemType, {
-    errorMap: (issue, ctx) => ({
-      message: "Item type is required"
-    })
+    error: "Item type is required"
   }),
   kit: zfd.text(z.string().optional()).transform((value) => value === "true"),
   methodType: z.enum(methodType, {
-    errorMap: (issue, ctx) => ({
-      message: "Method type is required"
-    })
+    error: "Method type is required"
   }),
   sourcingType: z.enum(sourcingType, {
-    errorMap: (issue, ctx) => ({
-      message: "Sourcing type is required"
-    })
+    error: "Sourcing type is required"
   }),
   itemId: z.string().optional(),
   methodOperationId: zfd.text(z.string().optional()),
@@ -459,13 +449,27 @@ export const methodMaterialValidator = z.object({
   unitOfMeasureCode: z
     .string()
     .min(1, { message: "Unit of Measure is required" }),
-  storageUnitIds: z.string().transform((val) => {
-    try {
-      return JSON.parse(val) as Record<string, string>;
-    } catch {
-      return {};
-    }
-  })
+  // A location → storageUnitId map. The BoM web form submits it as a JSON string
+  // (`<Hidden value={JSON.stringify(...)} />`); the MCP/API layer sends the object
+  // map directly. `preprocess` accepts both — a string is JSON-parsed (a malformed
+  // string stays a string and is REJECTED by the record below, never silently
+  // stored) — and the input JSON Schema published to MCP is a clean object map.
+  // `nullish` lets a caller omit it or send `null` to clear (the service applies
+  // the create/update semantics: omitted → preserve on update / {} on create,
+  // explicit null/{} → clear).
+  storageUnitIds: z
+    .preprocess(
+      (val) => {
+        if (typeof val !== "string") return val;
+        try {
+          return JSON.parse(val);
+        } catch {
+          return val;
+        }
+      },
+      z.record(z.string(), z.string())
+    )
+    .nullish()
 });
 
 export const methodOperationValidator = z
@@ -474,14 +478,10 @@ export const methodOperationValidator = z
     makeMethodId: z.string().min(0, { message: "Make method is required" }),
     order: zfd.numeric(z.number().min(0)),
     operationOrder: z.enum(methodOperationOrders, {
-      errorMap: (issue, ctx) => ({
-        message: "Operation order is required"
-      })
+      error: "Operation order is required"
     }),
     operationType: z.enum(operationTypes, {
-      errorMap: (issue, ctx) => ({
-        message: "Operation type is required"
-      })
+      error: "Operation type is required"
     }),
     processId: z.string().min(1, { message: "Process is required" }),
     workCenterId: zfd.text(z.string().optional()),
@@ -493,19 +493,19 @@ export const methodOperationValidator = z
     ),
     setupUnit: z
       .enum(standardFactorType, {
-        errorMap: () => ({ message: "Setup unit is required" })
+        error: "Setup unit is required"
       })
       .optional(),
     setupTime: zfd.numeric(z.number().min(0).optional()),
     laborUnit: z
       .enum(standardFactorType, {
-        errorMap: () => ({ message: "Labor unit is required" })
+        error: "Labor unit is required"
       })
       .optional(),
     laborTime: zfd.numeric(z.number().min(0).optional()),
     machineUnit: z
       .enum(standardFactorType, {
-        errorMap: () => ({ message: "Machine unit is required" })
+        error: "Machine unit is required"
       })
       .optional(),
     machineTime: zfd.numeric(z.number().min(0).optional()),
@@ -608,9 +608,7 @@ export const itemCostValidator = z.object({
   itemId: z.string().min(1, { message: "Item ID is required" }),
   itemPostingGroupId: zfd.text(z.string().optional()),
   costingMethod: z.enum(itemCostingMethods, {
-    errorMap: () => ({
-      message: "Costing method is required"
-    })
+    error: "Costing method is required"
   }),
   // standardCost: zfd.numeric(z.number().min(0)),
   unitCost: zfd.numeric(z.number().min(0))
@@ -637,9 +635,7 @@ export const itemPlanningValidator = z
     itemId: z.string().min(1, { message: "Item ID is required" }),
     locationId: z.string().min(1, { message: "Location is required" }),
     reorderingPolicy: z.enum(itemReorderingPolicies, {
-      errorMap: (issue, ctx) => ({
-        message: "Reordering policy is required"
-      })
+      error: "Reordering policy is required"
     }),
     demandAccumulationPeriod: zfd.numeric(z.number().min(1).optional()),
     demandAccumulationSafetyStock: zfd.numeric(z.number().min(0).optional()),
@@ -703,7 +699,8 @@ export const supersessionModeMeta: Record<
   },
   "Prefer New": {
     color: "blue",
-    description: "Default to the successor; old part as fallback only"
+    description:
+      "Plan and build with the successor; picking falls back to the old part only while the successor is out of stock"
   },
   "Stock Only": {
     color: "orange",
@@ -730,7 +727,10 @@ export const itemSupersessionValidator = z
     minimumReserveQuantity: zfd.numeric(z.number().min(0).optional())
   })
   .refine(
-    (data) => (data.supersessionMode ? !!data.discontinuationDate : true),
+    (data) =>
+      data.supersessionMode && data.supersessionMode !== "Consume First"
+        ? !!data.discontinuationDate
+        : true,
     {
       message: "Discontinuation date is required",
       path: ["discontinuationDate"]
@@ -762,6 +762,39 @@ export const itemSupersessionValidator = z
     }
   );
 
+export const predecessorSupersessionValidator = z
+  .object({
+    predecessorItemId: z.string().min(1, { message: "Part is required" }),
+    supersessionMode: z.enum(supersessionModes),
+    discontinuationDate: zfd.text(z.string().optional()),
+    successorEffectivityDate: zfd.text(z.string().optional()),
+    conversionFactor: zfd.numeric(z.number().positive().optional())
+  })
+  .refine((data) => data.supersessionMode !== "No Stock", {
+    message: "No Stock has no successor; set it on the part itself",
+    path: ["supersessionMode"]
+  })
+  .refine(
+    (data) =>
+      data.supersessionMode !== "Consume First"
+        ? !!data.discontinuationDate
+        : true,
+    {
+      message: "Discontinuation date is required",
+      path: ["discontinuationDate"]
+    }
+  )
+  .refine(
+    (data) =>
+      data.successorEffectivityDate && data.discontinuationDate
+        ? data.successorEffectivityDate >= data.discontinuationDate
+        : true,
+    {
+      message:
+        "Successor effectivity date must be on or after the discontinuation date",
+      path: ["successorEffectivityDate"]
+    }
+  );
 export const itemPurchasingValidator = z.object({
   itemId: z.string().min(1, { message: "Item ID is required" }),
   preferredSupplierId: zfd.text(z.string().optional()),
@@ -942,9 +975,7 @@ export const serviceValidator = applyStorageAndShelfLifeRefines(
         .string()
         .min(1, { message: "Unit of Measure is required" }),
       replenishmentSystem: z.enum(serviceReplenishmentSystems, {
-        errorMap: (issue, ctx) => ({
-          message: "Replenishment system is required"
-        })
+        error: "Replenishment system is required"
       }),
       // Services can never be shipped, received, or stocked
       itemTrackingType: z.literal("Non-Inventory")
@@ -1353,8 +1384,9 @@ export type ChangeNoticeItemDiff = {
   // read-only diff viewer can render the BOP as a tree.
   operations: OperationDiffEntry[];
   attributes: MethodDiffEntry<Record<string, unknown>>[];
-  // Supplier parts on a Revision/New Part draft item. Drafts start with none
-  // (the source's suppliers aren't copied), so these surface as `added` entries.
+  // Supplier parts on a draft item. A Revision draft starts with a copy of its
+  // source revision's, so its entries are a real diff against the source; a
+  // Replacement Part / New Part draft starts with none, so its are all `added`.
   supplierParts: MethodDiffEntry<Record<string, unknown>>[];
 };
 

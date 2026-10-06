@@ -14,20 +14,22 @@ export function rgbaToGfa(
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const i = (y * width + x) * 4;
-      const alpha = rgba[i + 3];
-      const lum =
-        alpha === 0
-          ? 255
-          : rgba[i] * 0.299 + rgba[i + 1] * 0.587 + rgba[i + 2] * 0.114;
+      const alpha = rgba[i + 3] ?? 0;
+      const r = rgba[i] ?? 0;
+      const g = rgba[i + 1] ?? 0;
+      const b = rgba[i + 2] ?? 0;
+      const lum = alpha === 0 ? 255 : r * 0.299 + g * 0.587 + b * 0.114;
       if (lum < threshold) {
-        bytes[y * rowBytes + (x >> 3)] |= 0x80 >> (x & 7);
+        const byteIndex = y * rowBytes + (x >> 3);
+        bytes[byteIndex] = (bytes[byteIndex] ?? 0) | (0x80 >> (x & 7));
       }
     }
   }
 
   let hex = "";
   for (let k = 0; k < total; k++) {
-    hex += HEX[bytes[k] >> 4] + HEX[bytes[k] & 15];
+    const b = bytes[k] ?? 0;
+    hex += HEX.charAt(b >> 4) + HEX.charAt(b & 15);
   }
 
   return `^GFA,${total},${total},${rowBytes},${hex}`;

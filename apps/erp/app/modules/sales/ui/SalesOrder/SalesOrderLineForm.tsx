@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
+import { useRuleViolations } from "@carbon/ee/rules";
 
 import { ValidatedForm } from "@carbon/form";
 import {
@@ -35,7 +40,13 @@ import {
   useMount,
   VStack
 } from "@carbon/react";
-import { getItemReadableId, INPUT_FORMAT, INPUT_STEP } from "@carbon/utils";
+import {
+  equals,
+  getItemReadableId,
+  INPUT_FORMAT,
+  INPUT_STEP,
+  round
+} from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
@@ -48,6 +59,11 @@ import {
 import { useParams } from "react-router";
 import type { z } from "zod";
 import { ItemLifecycleBadge, MethodIcon } from "~/components";
+import type { ConfiguratorValues } from "~/components/Configurator/ConfiguratorForm";
+import {
+  ItemConfigureButton,
+  useItemConfiguration
+} from "~/components/Configurator/ItemConfigurator";
 import {
   Combobox,
   CustomFormFields,
@@ -83,7 +99,7 @@ import type {
   SalesOrder,
   SalesOrderLineType
 } from "../../types";
-import { PriceTracePopover } from "../Pricing/PriceTracePopover";
+import { PriceTraceModal } from "../Pricing/PriceTraceModal";
 import { ContractCustomerPartLabel } from "./ContractCustomerPartLabel";
 import { customerPartNumberLabel } from "./contractCustomerPartLabelLogic";
 
@@ -108,6 +124,19 @@ const SalesOrderLineForm = ({
   const { orderId } = useParams();
 
   if (!orderId) throw new Error("orderId not found");
+
+  // Sales-rule enforcement: submissions run through the violation hook's
+  // fetcher so a blocked response opens <rules.ViolationModal /> with an
+  // acknowledge-and-resubmit path for warns. Modal close happens on success
+  // (not on submit) so violations can surface first.
+  const rules = useRuleViolations({
+    action: initialValues.id
+      ? path.to.salesOrderLine(orderId, initialValues.id)
+      : path.to.newSalesOrderLine(orderId),
+    onSuccess: () => {
+      if (type === "modal") onClose?.();
+    }
+  });
 
   const routeData = useRouteData<{
     salesOrder: SalesOrder;
@@ -156,10 +185,15 @@ const SalesOrderLineForm = ({
     priceListId:
       (initialValues as { priceListId?: string | null }).priceListId ?? null,
     priceListName: null,
-    priceTrace:
-      (initialValues as { priceTrace?: PriceTraceStep[] | null }).priceTrace ??
-      null
+    priceTrace: initialValues.priceTrace ?? null
   });
+
+  const configurator = useItemConfiguration({
+    itemId: initialValues.itemId,
+    configuration: initialValues.configuration as ConfiguratorValues | null
+  });
+  const { configuration } = configurator;
+  const requiresConfiguration = configurator.parameters !== null;
 
   const isEditing = initialValues.id !== undefined;
   const isFixedAsset = initialValues.salesOrderLineType === "Fixed Asset";
@@ -241,7 +275,7 @@ const SalesOrderLineForm = ({
   }, [pricingRuleId, carbon]);
 
   const onTypeChange = (t: SalesOrderLineType) => {
-    // @ts-ignore
+    // @ts-expect-error
     setLineType(t);
     // Clear itemData only when the new filter excludes the currently selected
     // item — otherwise a stale itemId of the old type would post with the new
@@ -267,7 +301,11 @@ const SalesOrderLineForm = ({
   const percentFormatter = usePercentFormatter();
 
   const resolvePrice = useCallback(
-    async (itemId: string, quantity: number) => {
+    async (
+      itemId: string,
+      quantity: number,
+      lineConfiguration: Record<string, unknown> | null
+    ) => {
       const customerId = routeData?.salesOrder?.customerId;
       if (!customerId) return null;
 
@@ -275,7 +313,12 @@ const SalesOrderLineForm = ({
         const response = await fetch(path.to.api.salesResolvePrice, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ customerId, itemId, quantity })
+          body: JSON.stringify({
+            customerId,
+            itemId,
+            quantity,
+            ...(lineConfiguration ? { configuration: lineConfiguration } : {})
+          })
         });
         if (response.ok) {
           const result = await response.json();
@@ -296,21 +339,24 @@ const SalesOrderLineForm = ({
     [routeData?.salesOrder?.customerId]
   );
 
+  const applyResolvedPrice = (
+    result: NonNullable<Awaited<ReturnType<typeof resolvePrice>>>
+  ) =>
+    setItemData((d) => ({
+      ...d,
+      unitPrice: result.finalPrice,
+      priceListId: result.priceListId,
+      priceListName: result.priceListName,
+      priceTrace: result.trace
+    }));
+
   const debouncedQuantityResolve = useDebounce(async (qty: number) => {
     if (!itemData.itemId) {
       setIsPriceResolving(false);
       return;
     }
-    const result = await resolvePrice(itemData.itemId, qty);
-    if (result) {
-      setItemData((d) => ({
-        ...d,
-        unitPrice: result.finalPrice,
-        priceListId: result.priceListId,
-        priceListName: result.priceListName,
-        priceTrace: result.trace
-      }));
-    }
+    const result = await resolvePrice(itemData.itemId, qty, configuration);
+    if (result) applyResolvedPrice(result);
     setIsPriceResolving(false);
   }, 400);
 
@@ -320,10 +366,20 @@ const SalesOrderLineForm = ({
     debouncedQuantityResolve(qty);
   };
 
+  // A new configuration changes the configuration prices.
+  const onConfigured = async (values: ConfiguratorValues) => {
+    if (!itemData.itemId) return;
+    setIsPriceResolving(true);
+    const result = await resolvePrice(itemData.itemId, saleQuantity, values);
+    if (result) applyResolvedPrice(result);
+    setIsPriceResolving(false);
+  };
+
   const onChange = async (itemId: string) => {
     if (!itemId) return;
     if (!carbon || !company.id) return;
     setIsPriceResolving(true);
+    configurator.changeItem(itemId);
     const [item, price] = await Promise.all([
       carbon
         .from("item")
@@ -354,7 +410,7 @@ const SalesOrderLineForm = ({
     let resolvedPrice = price.data?.unitSalePrice ?? 0;
     let priceListId: string | null = null;
 
-    const result = await resolvePrice(itemId, saleQuantity);
+    const result = await resolvePrice(itemId, saleQuantity, null);
     if (result) {
       resolvedPrice = result.finalPrice;
       priceListId = result.priceListId;
@@ -477,6 +533,7 @@ const SalesOrderLineForm = ({
           >
             <ModalCardContent size="xxlarge">
               <ValidatedForm
+                fetcher={rules.fetcher}
                 defaultValues={initialValues}
                 validator={salesOrderLineValidator}
                 method="post"
@@ -487,9 +544,6 @@ const SalesOrderLineForm = ({
                 }
                 className="w-full"
                 isDisabled={isEditing && isLocked}
-                onSubmit={() => {
-                  if (type === "modal") onClose?.();
-                }}
               >
                 <HStack
                   className={cn(
@@ -616,15 +670,17 @@ const SalesOrderLineForm = ({
                       name="priceListId"
                       value={itemData?.priceListId ?? undefined}
                     />
+                    {/* Always posted: "null" clears a stored trace once the
+                        price is typed rather than resolved. */}
                     <Hidden
                       name="priceTrace"
-                      value={
-                        itemData?.priceTrace
-                          ? JSON.stringify(itemData.priceTrace)
-                          : undefined
-                      }
+                      value={JSON.stringify(itemData?.priceTrace ?? null)}
                     />
                     <Hidden name="unitOfMeasureCode" value={itemData.uom} />
+                    <Hidden
+                      name="configuration"
+                      value={configuration ? JSON.stringify(configuration) : ""}
+                    />
                     <VStack>
                       {canToggleCustomerParts && !isEditing && (
                         <HStack
@@ -666,6 +722,7 @@ const SalesOrderLineForm = ({
                           />
                         ) : (
                           <Item
+                            autoFocus={!isEditing}
                             name="itemId"
                             label={i18n._(itemTypeLabel(lineType as "Part"))}
                             type={lineType as "Part"}
@@ -745,7 +802,7 @@ const SalesOrderLineForm = ({
                                     <Trans>Unit Price</Trans>
                                   </LabelWithHelp>
                                 </span>
-                                <PriceTracePopover
+                                <PriceTraceModal
                                   trace={itemData.priceTrace}
                                   currencyCode={baseCurrency}
                                 />
@@ -758,10 +815,20 @@ const SalesOrderLineForm = ({
                                   currencyDecimals
                                 )}
                                 onChange={(value) =>
-                                  setItemData((d) => ({
-                                    ...d,
-                                    unitPrice: value
-                                  }))
+                                  setItemData((d) =>
+                                    // The field commits at the storage scale,
+                                    // so a resolved price with more digits
+                                    // comes back rounded on blur — not a typed
+                                    // price.
+                                    equals(round(value), round(d.unitPrice))
+                                      ? d
+                                      : {
+                                          ...d,
+                                          unitPrice: value,
+                                          // A typed price is not the resolved one.
+                                          priceTrace: null
+                                        }
+                                  )
                                 }
                               />
                             </div>
@@ -1129,9 +1196,25 @@ const SalesOrderLineForm = ({
                   )}
                 </ModalCardBody>
                 <ModalCardFooter>
+                  {activeTab === "item" && (
+                    <ItemConfigureButton
+                      configurator={configurator}
+                      isDisabled={
+                        !isEditable ||
+                        (isEditing
+                          ? !permissions.can("update", "sales")
+                          : !permissions.can("create", "sales"))
+                      }
+                      onConfigured={onConfigured}
+                    />
+                  )}
                   <Submit
                     isDisabled={
                       isPriceResolving ||
+                      (!isEditing &&
+                        requiresConfiguration &&
+                        activeTab === "item" &&
+                        !configuration) ||
                       !isEditable ||
                       (isEditing
                         ? !permissions.can("update", "sales")
@@ -1146,6 +1229,7 @@ const SalesOrderLineForm = ({
           </ModalCard>
         </ModalCardProvider>
       </Tabs>
+      <rules.ViolationModal />
     </>
   );
 };

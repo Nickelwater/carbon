@@ -1,16 +1,25 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
+import { supportedModelTypes } from "@carbon/files/cad";
+import { getLogger } from "@carbon/logger";
 import type { JSONContent } from "@carbon/react";
 import { VStack } from "@carbon/react";
-import { supportedModelTypes } from "@carbon/utils";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { DndContext } from "@dnd-kit/core";
 import { msg } from "@lingui/core/macro";
 import type { FileObject } from "@supabase/storage-js";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useParams, useSubmit } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useParams, useSubmit } from "react-router";
 import { PanelProvider, ResizablePanels } from "~/components/Layout/Panels";
 import type { SalesRFQLine } from "~/modules/sales";
 import {
@@ -28,12 +37,24 @@ import { useOptimisticDocumentDrag } from "~/modules/sales/ui/SalesRFQ/useOptimi
 import { detailBreadcrumb, type Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
+const logger = getLogger("erp", "sales-rfq");
+
 export const handle: Handle = {
+  realtime: [
+    { table: "salesRfq", column: "id", param: "rfqId" },
+    { table: "salesRfqLine", column: "salesRfqId", param: "rfqId" }
+  ],
   breadcrumb: detailBreadcrumb(
     { breadcrumb: msg`RFQs`, to: path.to.salesRfqs },
     (data) => data?.rfqSummary?.rfqId
-  )
+  ),
+  module: "sales"
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { params: ["rfqId"] })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { companyId } = await requirePermissions(request, {
@@ -50,12 +71,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     getSalesRFQLines(serviceRole, rfqId)
   ]);
 
+  // The service role bypasses RLS and rfqId comes from the URL.
+  if (rfqSummary.data && rfqSummary.data.companyId !== companyId) {
+    logger.error("Sales RFQ not found for company", { companyId, rfqId });
+    throw redirect(path.to.salesRfqs);
+  }
+
   const opportunity = await getOpportunity(
     serviceRole,
     rfqSummary.data?.opportunityId ?? null
   );
-
-  if (!opportunity.data) throw new Error("Failed to get opportunity record");
 
   if (rfqSummary.error) {
     throw redirect(
@@ -71,6 +96,26 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw redirect(
       path.to.salesRfqs,
       await flash(request, error(lines.error, "Failed to load RFQ lines"))
+    );
+  }
+
+  if (opportunity.error) {
+    throw new Error(
+      `Failed to get opportunity record for sales RFQ ${rfqId} (opportunityId: ${
+        rfqSummary.data?.opportunityId ?? "null"
+      }): ${opportunity.error.message}`
+    );
+  }
+
+  if (!rfqSummary.data?.opportunityId) {
+    throw new Error(
+      `The sales RFQ ${rfqId} has no opportunityId; the opportunity record is missing`
+    );
+  }
+
+  if (!opportunity.data) {
+    throw new Error(
+      `No opportunity found with id ${rfqSummary.data.opportunityId} referenced by sales RFQ ${rfqId}`
     );
   }
 
@@ -151,15 +196,15 @@ export default function SalesRFQRoute() {
   return (
     <DndContext onDragEnd={handleDragEnd}>
       <PanelProvider>
-        <div className="flex flex-col h-[calc(100dvh-49px)] overflow-hidden w-full">
+        <div className="flex flex-col h-[calc(100dvh-var(--topbar-height)-var(--content-inset))] overflow-hidden w-full">
           <SalesRFQHeader />
-          <div className="flex h-[calc(100dvh-99px)] overflow-hidden w-full">
+          <div className="flex h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] overflow-hidden w-full">
             <div className="flex flex-grow overflow-hidden">
               <ResizablePanels
                 explorer={<SalesRFQExplorer />}
                 content={
-                  <div className="h-[calc(100dvh-99px)] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full">
-                    <VStack spacing={2} className="p-2">
+                  <div className="bg-card h-[calc(100dvh-var(--topbar-height)-var(--header-height)-var(--content-inset))] overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent w-full">
+                    <VStack spacing={4} className="p-4">
                       <Outlet />
                     </VStack>
                   </div>

@@ -1,9 +1,22 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { VStack } from "@carbon/react";
+import { isUnaffectedByNavigation } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
-import type { LoaderFunctionArgs } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
 import { Outlet, useLoaderData } from "react-router";
-import { EmployeeTypesTable, getEmployeeTypes } from "~/modules/users";
+import { usePlanGate } from "~/hooks/usePlanGate";
+import {
+  EmployeeTypesTable,
+  EmployeeTypesUpgradeOverlay,
+  getEmployeeTypes
+} from "~/modules/users";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 import { getGenericQueryFilters } from "~/utils/query";
@@ -12,6 +25,11 @@ export const handle: Handle = {
   breadcrumb: msg`Employee Types`,
   to: path.to.employeeTypes
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args, { search: "all" })
+    ? false
+    : args.defaultShouldRevalidate;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -41,6 +59,11 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function EmployeeTypesRoute() {
   const { data, count } = useLoaderData<typeof loader>();
+  const { isGated } = usePlanGate({ feature: "PERMISSIONS" });
+
+  if (isGated) {
+    return <EmployeeTypesUpgradeOverlay />;
+  }
 
   return (
     <VStack spacing={0} className="h-full">

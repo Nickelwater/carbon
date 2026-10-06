@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   ActionMenu,
   Button,
@@ -12,6 +16,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   Switch
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
@@ -32,13 +37,13 @@ import { DimensionEntityTypeIcon } from "~/components/Icons";
 import ConfirmDelete from "~/components/Modals/ConfirmDelete";
 import { useUrlParams } from "~/hooks";
 import { path } from "~/utils/path";
-import type { getActiveDimensionsWithValues } from "../../accounting.ee.service";
 import type {
   AnalyticsReportKey,
   PivotMeasure,
   PivotState
 } from "../../accounting.models";
 import { financialReportColumns, pivotMeasures } from "../../accounting.models";
+import type { getActiveDimensionsWithValues } from "../../accounting.service";
 import type { ReportView } from "../../types";
 import SaveViewModal from "./SaveViewModal";
 
@@ -453,6 +458,7 @@ const PivotControlBar = ({
           </DropdownMenuItem>
           {activeView && activeView.createdBy === currentUserId && (
             <DropdownMenuItem
+              shortcut={MENU_ITEM_SHORTCUTS.delete}
               destructive
               onClick={() => setDeleteModalOpen(true)}
             >

@@ -1,9 +1,14 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
+import type { Json } from "@carbon/database";
 import type { TrackedEntityAttributes } from "@carbon/utils";
-import { isSerialShipmentAssignment } from "@carbon/utils";
+import { isSerialShipmentAssignment, round } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
 import { data } from "react-router";
 
@@ -64,7 +69,7 @@ export async function action({ request }: ActionFunctionArgs) {
             .update({
               attributes: clearShipmentAttrs(
                 (stale.attributes ?? {}) as Record<string, unknown>
-              )
+              ) as Json
             })
             .eq("id", stale.id)
         )
@@ -76,12 +81,28 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const trackedEntityId = formData.get("trackedEntityId") as string;
 
-  const trackedEntityResponse = await client
-    .from("trackedEntity")
-    .select("*")
-    .eq("id", trackedEntityId)
-    .eq("companyId", companyId)
-    .single();
+  const [trackedEntityResponse, shipmentResponse, shipmentLineResponse] =
+    await Promise.all([
+      client
+        .from("trackedEntity")
+        .select("*")
+        .eq("id", trackedEntityId)
+        .eq("companyId", companyId)
+        .single(),
+      client
+        .from("shipment")
+        .select("sourceDocument, sourceDocumentId")
+        .eq("id", shipmentId)
+        .eq("companyId", companyId)
+        .single(),
+      client
+        .from("shipmentLine")
+        .select("itemId")
+        .eq("id", shipmentLineId)
+        .eq("shipmentId", shipmentId)
+        .eq("companyId", companyId)
+        .single()
+    ]);
 
   if (trackedEntityResponse.error) {
     return data(
@@ -95,7 +116,76 @@ export async function action({ request }: ActionFunctionArgs) {
 
   const trackedEntity = trackedEntityResponse.data;
 
-  if (trackedEntity.status !== "Available") {
+  if (shipmentResponse.error) {
+    return data(
+      { success: false, error: shipmentResponse.error.message },
+      await flash(
+        request,
+        error(shipmentResponse.error, "Failed to load shipment")
+      )
+    );
+  }
+
+  if (shipmentLineResponse.error) {
+    return data(
+      { success: false, error: shipmentLineResponse.error.message },
+      await flash(
+        request,
+        error(shipmentLineResponse.error, "Failed to load shipment line")
+      )
+    );
+  }
+
+  if (
+    trackedEntity.itemId &&
+    shipmentLineResponse.data.itemId &&
+    trackedEntity.itemId !== shipmentLineResponse.data.itemId
+  ) {
+    const message = "Tracked entity does not match the line's item";
+    return data(
+      { success: false, error: message },
+      await flash(request, error(message))
+    );
+  }
+
+  const isSalesReturnShipment =
+    shipmentResponse.data?.sourceDocument === "Sales Return Order";
+  const allowedStatus = isSalesReturnShipment ? "On Hold" : "Available";
+
+  if (isSalesReturnShipment) {
+    const entityReceiptId = (
+      trackedEntity.attributes as Record<string, unknown> | null
+    )?.["Receipt"] as string | undefined;
+    const provenance = entityReceiptId
+      ? await client
+          .from("receipt")
+          .select("id")
+          .eq("id", entityReceiptId)
+          .eq("sourceDocument", "Sales Return Order")
+          .eq("sourceDocumentId", shipmentResponse.data.sourceDocumentId ?? "")
+          .eq("companyId", companyId)
+          .maybeSingle()
+      : { data: null, error: null };
+    if (provenance.error) {
+      return data(
+        { success: false, error: "Failed to verify the entity's provenance" },
+        await flash(
+          request,
+          error(provenance.error, "Failed to verify the entity's provenance")
+        )
+      );
+    }
+    if (!provenance.data) {
+      const message =
+        "Tracked entity was not received on this return order and cannot ship back on it";
+      return data(
+        { success: false, error: message },
+        await flash(request, error(message))
+      );
+    }
+  }
+
+  if (trackedEntity.status !== allowedStatus) {
     return data(
       {
         success: false,
@@ -131,7 +221,7 @@ export async function action({ request }: ActionFunctionArgs) {
       );
     }
 
-    if (trackedEntity.quantity < quantity) {
+    if (round(trackedEntity.quantity) < round(quantity)) {
       return data(
         { success: false, error: "Batch has insufficient quantity" },
         await flash(request, error("Batch has insufficient quantity"))
@@ -154,6 +244,33 @@ export async function action({ request }: ActionFunctionArgs) {
       Shipment: shipmentId,
       "Shipment Line Index": index
     };
+  }
+
+  const updateResponse = await serviceRole
+    .from("trackedEntity")
+    .update({
+      attributes: newAttributes as Json
+    })
+    .eq("id", trackedEntityId)
+    .eq("status", allowedStatus)
+    .select("id");
+
+  if (updateResponse.error) {
+    return data(
+      { success: false, error: updateResponse.error.message },
+      await flash(
+        request,
+        error(updateResponse.error, updateResponse.error.message)
+      )
+    );
+  }
+
+  if (!updateResponse.data || updateResponse.data.length === 0) {
+    const message = `Tracked entity is no longer ${allowedStatus}`;
+    return data(
+      { success: false, error: message },
+      await flash(request, error(message))
+    );
   }
 
   let staleQuery = serviceRole
@@ -198,27 +315,9 @@ export async function action({ request }: ActionFunctionArgs) {
           .update({
             attributes: clearShipmentAttrs(
               (stale.attributes ?? {}) as Record<string, unknown>
-            )
+            ) as Json
           })
           .eq("id", stale.id)
-      )
-    );
-  }
-
-  const updateResponse = await serviceRole
-    .from("trackedEntity")
-    .update({
-      attributes: newAttributes
-    })
-    .eq("id", trackedEntityId)
-    .eq("status", "Available");
-
-  if (updateResponse.error) {
-    return data(
-      { success: false, error: updateResponse.error.message },
-      await flash(
-        request,
-        error(updateResponse.error, updateResponse.error.message)
       )
     );
   }

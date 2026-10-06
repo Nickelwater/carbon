@@ -1,3 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { ValueOrRef } from "@carbon/ee/workflows";
+import { WORKFLOW_OPERATION_CATALOG } from "@carbon/ee/workflows";
 import {
   Command,
   CommandEmpty,
@@ -10,16 +16,14 @@ import {
   PopoverContent,
   PopoverTrigger
 } from "@carbon/react";
-import type { ValueOrRef } from "@carbon/workflows";
-import { WORKFLOW_OPERATION_CATALOG } from "@carbon/workflows";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useMemo, useState } from "react";
 import { LuCheck, LuChevronsUpDown, LuListOrdered } from "react-icons/lu";
 import {
-  catalog,
   describeValueType,
   entityLabelKey,
   operationInputLabelKey,
+  useWorkflowCatalog,
   useWorkflowLabel,
   workflowFieldHelp
 } from "../../catalog";
@@ -36,9 +40,15 @@ type OperationPickerProps = {
   selected: string;
   onSelect: (id: string) => void;
   label: (key: string, fallback?: string) => string;
+  isReadOnly?: boolean;
 };
 
-function OperationPicker({ selected, onSelect, label }: OperationPickerProps) {
+function OperationPicker({
+  selected,
+  onSelect,
+  label,
+  isReadOnly
+}: OperationPickerProps) {
   const { t } = useLingui();
   const [open, setOpen] = useState(false);
 
@@ -61,6 +71,7 @@ function OperationPicker({ selected, onSelect, label }: OperationPickerProps) {
       <PopoverTrigger asChild>
         <button
           type="button"
+          disabled={isReadOnly}
           className="flex w-full items-center justify-between rounded-md border bg-background px-3 py-2 text-sm hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         >
           <span
@@ -78,7 +89,10 @@ function OperationPicker({ selected, onSelect, label }: OperationPickerProps) {
         onTouchMove={(e) => e.stopPropagation()}
       >
         <Command>
-          <CommandInput placeholder={t`Search operations…`} />
+          <CommandInput
+            placeholder={t`Search operations…`}
+            disabled={isReadOnly}
+          />
           <CommandList className="max-h-64 overflow-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent">
             <CommandEmpty>
               <Trans>No operations found.</Trans>
@@ -92,6 +106,7 @@ function OperationPicker({ selected, onSelect, label }: OperationPickerProps) {
                   <CommandItem
                     key={id}
                     value={`${id} ${label(id)}`}
+                    disabled={isReadOnly}
                     onSelect={() => {
                       onSelect(id);
                       setOpen(false);
@@ -117,9 +132,14 @@ function OperationPicker({ selected, onSelect, label }: OperationPickerProps) {
 
 // ── ComputeForm ───────────────────────────────────────────────────────────────
 
-export function ComputeForm({ node, issues }: NodeFormProps<"compute">) {
+export function ComputeForm({
+  node,
+  issues,
+  isReadOnly
+}: NodeFormProps<"compute">) {
   const updateNodeData = useBuilderStore((s) => s.updateNodeData);
   const label = useWorkflowLabel();
+  const catalog = useWorkflowCatalog();
 
   const { operation: operationId, inputs } = node.data;
 
@@ -167,6 +187,7 @@ export function ComputeForm({ node, issues }: NodeFormProps<"compute">) {
           selected={operationId}
           onSelect={handleOperationSelect}
           label={label}
+          isReadOnly={isReadOnly}
         />
       </div>
 
@@ -198,6 +219,7 @@ export function ComputeForm({ node, issues }: NodeFormProps<"compute">) {
                 context={{ nodeId: node.id, inLoop: false }}
                 issue={issueForField(issues, name, `inputs.${name}`)}
                 partIssues={partIssuesForField(issues, name, `inputs.${name}`)}
+                isReadOnly={isReadOnly}
               />
             );
           })}

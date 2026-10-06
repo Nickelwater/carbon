@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { VStack } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
 import { useParams } from "react-router";
@@ -47,7 +51,7 @@ export default function ChangeNoticeAffectedItemRoute() {
       : t`This change notice is closed, so its changes are read-only.`;
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       <AffectedItemDetail
         key={affected.affectedItem.id}
         changeOrderId={id}

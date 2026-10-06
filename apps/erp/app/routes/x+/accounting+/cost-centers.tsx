@@ -1,6 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
+import { getApprovalRulesForApprover } from "@carbon/ee/approvals.server";
 import {
   Heading,
   HStack,
@@ -9,17 +14,21 @@ import {
   TabsList,
   TabsTrigger
 } from "@carbon/react";
+import { isUnaffectedByNavigation, redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
+import { useLingui } from "@lingui/react/macro";
 import { useCallback } from "react";
-import type { LoaderFunctionArgs } from "react-router";
-import { Outlet, redirect, useLoaderData, useNavigate } from "react-router";
+import type {
+  LoaderFunctionArgs,
+  ShouldRevalidateFunction
+} from "react-router";
+import { Outlet, useLoaderData, useNavigate } from "react-router";
 import { New } from "~/components";
 import { getCostCentersTree } from "~/modules/accounting";
 import {
   CostCentersListView,
   CostCentersTreeView
 } from "~/modules/accounting/ui/CostCenters";
-import { getApprovalRulesForApprover } from "~/modules/shared";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
 
@@ -27,6 +36,9 @@ export const handle: Handle = {
   breadcrumb: msg`Cost Centers`,
   to: path.to.costCenters
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args) ? false : args.defaultShouldRevalidate;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -56,6 +68,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 }
 
 export default function Route() {
+  const { t } = useLingui();
   const { costCenters } = useLoaderData<typeof loader>();
   const navigate = useNavigate();
 
@@ -90,7 +103,7 @@ export default function Route() {
             <TabsTrigger value="list">List View</TabsTrigger>
           </TabsList>
           <New
-            label="Cost Center"
+            label={t`Cost Center`}
             to={path.to.newCostCenter}
             variant="primary"
           />

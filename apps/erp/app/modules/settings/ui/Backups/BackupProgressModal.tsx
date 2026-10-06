@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   BarProgress,
   Button,
@@ -8,9 +12,11 @@ import {
   ModalHeader,
   ModalTitle
 } from "@carbon/react";
+import { Trans } from "@lingui/react/macro";
 import { useEffect, useState } from "react";
 import { LuCheck, LuLoaderCircle, LuTriangleAlert } from "react-icons/lu";
 import { useFetcher, useRevalidator } from "react-router";
+import { formatElapsed } from "./format";
 
 // The job reports progress as a stable phase KEY + done/total; these order the
 // keys and map them to labels per mode (display copy stays out of the job).
@@ -39,12 +45,6 @@ const PHASE_LABELS: Record<
     files: "Restoring files"
   }
 };
-
-function formatElapsed(ms: number): string {
-  const s = Math.max(0, Math.floor(ms / 1000));
-  const m = Math.floor(s / 60);
-  return m > 0 ? `${m}m ${s % 60}s` : `${s}s`;
-}
 
 // The animated step checklist. Completed steps get a check that pops in
 // (ease-out), the active step spins (constant motion → linear), pending steps sit
@@ -293,12 +293,11 @@ export function JobProgressModal({
             </div>
           ) : failed ? (
             <div className="flex flex-col items-center gap-3 py-4">
-              <LuTriangleAlert className="h-8 w-8 text-destructive-foreground duration-300 animate-in fade-in zoom-in-75 motion-reduce:animate-none" />
+              <LuTriangleAlert className="h-8 w-8 text-destructive duration-300 animate-in fade-in zoom-in-75 motion-reduce:animate-none" />
               {isExport ? (
                 <>
                   <p className="text-center text-sm text-muted-foreground">
-                    The system created an invalid backup — please contact Carbon
-                    support.
+                    <Trans>This backup could not be completed.</Trans>
                   </p>
                   {error ? (
                     <p className="max-w-full break-words text-center text-xs text-muted-foreground">
@@ -309,12 +308,28 @@ export function JobProgressModal({
               ) : (
                 <>
                   <p className="text-center text-sm text-muted-foreground">
-                    {error ?? "Something went wrong."}
+                    {isRevert ? (
+                      <Trans>This revert could not be completed.</Trans>
+                    ) : (
+                      <Trans>This restore could not be completed.</Trans>
+                    )}
                   </p>
+                  {error ? (
+                    <details className="max-w-full text-xs text-muted-foreground">
+                      <summary className="cursor-pointer text-center">
+                        <Trans>Technical details</Trans>
+                      </summary>
+                      <pre className="mt-1 whitespace-pre-wrap break-words font-mono text-[11px]">
+                        {error}
+                      </pre>
+                    </details>
+                  ) : null}
                   {!isRevert && (
                     <p className="text-center text-xs text-muted-foreground">
-                      Your data was not changed — the restore stops before
-                      touching anything if it can't complete.
+                      <Trans>
+                        Your data was not changed — the restore stops before
+                        touching anything if it can't complete.
+                      </Trans>
                     </p>
                   )}
                 </>

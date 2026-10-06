@@ -1,8 +1,13 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { validationError, validator } from "@carbon/form";
+import { redirect } from "@carbon/utils";
 import type { ActionFunctionArgs } from "react-router";
-import { data, redirect } from "react-router";
+import { data } from "react-router";
 import {
   getJobMethodValidator,
   recalculateJobOperationDependencies,
@@ -10,6 +15,7 @@ import {
   upsertJobMaterialMakeMethod,
   upsertJobMethod
 } from "~/modules/production";
+import { getDatabaseClient } from "~/services/database.server";
 import { path, requestReferrer } from "~/utils/path";
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -31,7 +37,7 @@ export async function action({ request }: ActionFunctionArgs) {
     return validationError(validation.error);
   }
 
-  if (["item", "quoteLine"].includes(type)) {
+  if (["item", "quoteLine", "job"].includes(type)) {
     const jobMethodPayload: any = {
       ...validation.data,
       companyId,
@@ -53,17 +59,22 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const jobMethod = await upsertJobMethod(
       serviceRole,
-      type === "item" ? "itemToJob" : "quoteLineToJob",
+      getDatabaseClient(),
+      type === "item"
+        ? "itemToJob"
+        : type === "job"
+          ? "jobToJob"
+          : "quoteLineToJob",
       jobMethodPayload
     );
 
     const [calculateQuantities, calculateDependencies] = await Promise.all([
-      recalculateJobRequirements(serviceRole, {
+      recalculateJobRequirements(serviceRole, getDatabaseClient(), {
         id: validation.data.targetId,
         companyId: companyId,
         userId: userId
       }),
-      recalculateJobOperationDependencies(serviceRole, {
+      recalculateJobOperationDependencies(serviceRole, getDatabaseClient(), {
         jobId: validation.data.targetId,
         companyId: companyId,
         userId: userId
@@ -83,7 +94,9 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     return {
-      error: jobMethod.error ? "Failed to get job method" : null
+      error: jobMethod.error
+        ? (jobMethod.error.message ?? "Failed to get job method")
+        : null
     };
   }
 
@@ -109,13 +122,15 @@ export async function action({ request }: ActionFunctionArgs) {
 
     const makeMethod = await upsertJobMaterialMakeMethod(
       serviceRole,
+      getDatabaseClient(),
       makeMethodPayload
     );
 
     if (makeMethod.error) {
       return {
         error: makeMethod.error
-          ? "Failed to update method from job method"
+          ? (makeMethod.error.message ??
+            "Failed to update method from job method")
           : null
       };
     }

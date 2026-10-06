@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import {
   Button,
@@ -221,7 +225,7 @@ export const PurchasingPlanningOrderDrawer = memo(
             .add({ days: selectedItem.leadTime ?? 0 })
             .toString(),
           startDate: locationToday,
-          supplierId: selectedItem.preferredSupplierId,
+          supplierId: selectedSupplier ?? selectedItem.preferredSupplierId,
           itemReadableId: selectedItem.readableIdWithRevision,
           description: selectedItem.name,
           periodId: periods[0].id
@@ -253,12 +257,19 @@ export const PurchasingPlanningOrderDrawer = memo(
             order.existingStatus === "Planned"
         );
         const ordersWithPeriods = editableOrders.map((order) => {
+          // Stamp the currently-selected supplier onto every order. Orders built
+          // by onAddOrder/getPurchaseOrdersFromPlanning may carry a null
+          // supplierId (e.g. the item has no preferredSupplierId), which the
+          // server validator rejects as "No suppliers provided" — the Order
+          // button already guards that selectedSupplier is set.
+          const supplierId = selectedSupplier ?? order.supplierId;
           if (
             !order.dueDate ||
             parseDate(order.dueDate) < parseDate(periods[0].startDate)
           ) {
             return {
               ...order,
+              supplierId,
               periodId: periods[0].id
             };
           }
@@ -272,6 +283,7 @@ export const PurchasingPlanningOrderDrawer = memo(
 
           return {
             ...order,
+            supplierId,
             periodId: period?.id ?? periods[periods.length - 1].id
           };
         });
@@ -292,7 +304,7 @@ export const PurchasingPlanningOrderDrawer = memo(
           encType: "application/json"
         });
       },
-      [fetcher, locationId, periods]
+      [fetcher, locationId, periods, selectedSupplier]
     );
 
     const onOrderUpdate = useCallback(

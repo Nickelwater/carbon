@@ -5,10 +5,8 @@ import { trigger } from "@carbon/jobs";
 import { NotificationEvent } from "@carbon/notifications";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ActionFunctionArgs } from "react-router";
-import {
-  inspectionDocumentStatus,
-  rewireSamplingPlansToActiveInspectionDocument
-} from "~/modules/quality";
+import { rewireSamplingPlansToActiveInspectionDocument } from "~/modules/quality";
+import { inspectionDocumentStatus } from "~/modules/production/production.models";
 import {
   canApproveRequest,
   createApprovalRequest,

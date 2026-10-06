@@ -1,5 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
-import { useStorageRuleViolations } from "@carbon/ee/storage-rules";
+import { useRuleViolations } from "@carbon/ee/rules";
 import {
   Alert,
   AlertDescription,
@@ -9,7 +13,6 @@ import {
   Modal,
   ModalBody,
   ModalContent,
-  ModalDescription,
   ModalFooter,
   ModalHeader,
   ModalOverlay,
@@ -33,7 +36,7 @@ import { DateTime } from "~/components";
 import { useSettings, useUser } from "~/hooks";
 import { useItems } from "~/stores";
 import { path } from "~/utils/path";
-import type { ShipmentLine } from "../..";
+import type { Shipment, ShipmentLine } from "../..";
 import { getShipmentTracking } from "../..";
 
 type ExpiredEntityPolicy = "Warn" | "Block" | "BlockWithOverride";
@@ -45,12 +48,21 @@ const ShipmentPostModal = ({ onClose }: { onClose: () => void }) => {
   const { t } = useLingui();
   const [items] = useItems();
   const routeData = useRouteData<{
+    shipment: Shipment;
     shipmentLines: ShipmentLine[];
     fixedAssetLines: {
       id: string;
       shipped: boolean;
     }[];
   }>(path.to.shipment(shipmentId));
+
+  // Return-to-customer shipments (source "Sales Return Order") ship returned
+  // stock, which is deliberately On Hold until shipped back — mirror the
+  // status lines.tracking required when the entity was assigned.
+  const expectedEntityStatus =
+    routeData?.shipment?.sourceDocument === "Sales Return Order"
+      ? "On Hold"
+      : "Available";
 
   const navigation = useNavigation();
 
@@ -175,7 +187,7 @@ const ShipmentPostModal = ({ onClose }: { onClose: () => void }) => {
         }
 
         batchTrackings.forEach((trackedEntity) => {
-          if (trackedEntity.status !== "Available") {
+          if (trackedEntity.status !== expectedEntityStatus) {
             errors.push({
               itemReadableId: getItemReadableId(items, line.itemId) ?? null,
               shippedQuantity: line.shippedQuantity ?? 0,
@@ -215,7 +227,10 @@ const ShipmentPostModal = ({ onClose }: { onClose: () => void }) => {
         const quantityAvailable = trackedEntities?.reduce((acc, tracking) => {
           const trackingQuantity = Number(tracking.quantity);
 
-          return acc + (tracking.status === "Available" ? trackingQuantity : 0);
+          return (
+            acc +
+            (tracking.status === expectedEntityStatus ? trackingQuantity : 0)
+          );
         }, 0);
 
         if (quantityAvailable !== line.shippedQuantity) {
@@ -257,7 +272,7 @@ const ShipmentPostModal = ({ onClose }: { onClose: () => void }) => {
     validateShipmentTracking();
   });
 
-  const ruleViolations = useStorageRuleViolations({
+  const ruleViolations = useRuleViolations({
     action: path.to.shipmentPost(shipmentId),
     onSuccess: onClose
   });
@@ -276,11 +291,11 @@ const ShipmentPostModal = ({ onClose }: { onClose: () => void }) => {
           <ModalTitle>
             <Trans>Post Shipment</Trans>
           </ModalTitle>
-          <ModalDescription>
-            <Trans>Are you sure you want to post this shipment?</Trans>
-          </ModalDescription>
         </ModalHeader>
         <ModalBody>
+          <p className="text-sm text-muted-foreground mb-4">
+            <Trans>Are you sure you want to post this shipment?</Trans>
+          </p>
           {validationErrors.length > 0 && (
             <Alert variant="destructive">
               <LuTriangleAlert className="h-4 w-4" />

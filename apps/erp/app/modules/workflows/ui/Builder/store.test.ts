@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { describe, expect, it } from "vitest";
 import type { BuilderNode } from "../../types";
 import { createNode } from "./graph";
@@ -7,7 +11,8 @@ const store = () =>
   createBuilderStore({
     nodes: [createNode("trigger", { x: 0, y: 0 })] as unknown as BuilderNode[],
     edges: [],
-    isReadOnly: false,
+    isVersionLocked: false,
+    canEdit: true,
     isOwner: true
   });
 

@@ -1,14 +1,32 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { TermId } from "@carbon/content/glossary";
+import { downloadCsv } from "@carbon/files/csv";
 import { ValidatedForm } from "@carbon/form";
-import type { TermId } from "@carbon/glossary";
-import { Badge, Button, HStack, LabelWithHelp } from "@carbon/react";
+import {
+  Badge,
+  Button,
+  Heading,
+  HStack,
+  IconButton,
+  LabelWithHelp,
+  useCloseRoute
+} from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useMemo } from "react";
-import { useNavigate } from "react-router";
+import { useCallback, useMemo, useState } from "react";
+import { LuDownload } from "react-icons/lu";
 import { Combobox, Hidden, Submit } from "~/components/Form";
 import { usePermissions } from "~/hooks";
 import { path } from "~/utils/path";
 import { defaultAccountValidator } from "../../accounting.models";
 import type { AccountListItem } from "../../types";
+
+const formValidator = defaultAccountValidator.extend({
+  salesShippingRevenueAccount:
+    defaultAccountValidator.shape.salesShippingRevenueAccount.unwrap()
+});
 
 type BadgeType = "Asset" | "Liability" | "Equity" | "Revenue" | "Expense";
 
@@ -51,8 +69,9 @@ const AccountDefaultsForm = ({
 }: AccountDefaultsFormProps) => {
   const { t } = useLingui();
   const permissions = usePermissions();
-  const navigate = useNavigate();
-  const onClose = () => navigate(-1);
+  const closeRoute = useCloseRoute();
+  const onClose = () => closeRoute();
+  const [salesAccount, setSalesAccount] = useState(initialValues.salesAccount);
 
   const isDisabled = !permissions.can("update", "accounting");
 
@@ -182,7 +201,7 @@ const AccountDefaultsForm = ({
       {
         id: "payables",
         title: t`Accounts Payable`,
-        description: t`Configure default accounts for vendor and supplier transactions`,
+        description: t`Configure default accounts for supplier transactions`,
         fields: [
           {
             name: "payablesAccount",
@@ -206,9 +225,15 @@ const AccountDefaultsForm = ({
           },
           {
             name: "supplierWriteOffAccount",
-            label: t`Vendor Write-Off Income`,
-            description: t`Other Income account for vendor balances cleared without full payment on AP settlement`,
+            label: t`Supplier Write-Off Income`,
+            description: t`Other Income account for supplier balances cleared without full payment on AP settlement`,
             badgeType: "Revenue"
+          },
+          {
+            name: "employeeReimbursementsPayableAccount",
+            label: t`Employee Reimbursements Payable`,
+            description: t`Liability account for amounts owed to employees for expense reimbursements. Falls back to Payables when unset`,
+            badgeType: "Liability"
           }
         ]
       },
@@ -281,11 +306,25 @@ const AccountDefaultsForm = ({
             termId: "account-default-sales"
           },
           {
+            name: "salesShippingRevenueAccount",
+            label: t`Shipping Revenue`,
+            description: t`Revenue account for shipping charged to customers`,
+            badgeType: "Revenue",
+            termId: "account-default-sales-shipping-revenue"
+          },
+          {
             name: "salesDiscountAccount",
             label: t`Sales Discounts`,
             description: t`Contra-revenue account for discounts given on sales`,
             badgeType: "Revenue",
             termId: "account-default-sales-discounts"
+          },
+          {
+            name: "customerPaymentDiscountAccount",
+            label: t`Customer Payment Discounts`,
+            description: t`Discounts given to customers for early payment`,
+            badgeType: "Revenue",
+            termId: "account-default-customer-payment-discounts"
           },
           {
             name: "realizedExchangeGainAccount",
@@ -313,6 +352,13 @@ const AccountDefaultsForm = ({
             description: t`Expense account for non-inventory purchases (services, supplies)`,
             badgeType: "Expense",
             termId: "account-default-indirect-materials-services"
+          },
+          {
+            name: "supplierPaymentDiscountAccount",
+            label: t`Supplier Payment Discounts`,
+            description: t`Discounts earned for early payment to suppliers`,
+            badgeType: "Expense",
+            termId: "account-default-supplier-payment-discounts"
           }
         ]
       },
@@ -447,20 +493,6 @@ const AccountDefaultsForm = ({
             termId: "account-default-interest"
           },
           {
-            name: "supplierPaymentDiscountAccount",
-            label: t`Supplier Payment Discounts`,
-            description: t`Discounts earned for early payment to suppliers`,
-            badgeType: "Expense",
-            termId: "account-default-supplier-payment-discounts"
-          },
-          {
-            name: "customerPaymentDiscountAccount",
-            label: t`Customer Payment Discounts`,
-            description: t`Discounts given to customers for early payment`,
-            badgeType: "Expense",
-            termId: "account-default-customer-payment-discounts"
-          },
-          {
             name: "roundingAccount",
             label: t`Rounding Account`,
             description: t`Account for small rounding differences in transactions`,
@@ -513,9 +545,46 @@ const AccountDefaultsForm = ({
     };
   }, [incomeStatementAccounts, balanceSheetAccounts]);
 
+  const accountsById = useMemo(() => {
+    const map = new Map<string, AccountListItem>();
+    for (const account of [
+      ...balanceSheetAccounts,
+      ...incomeStatementAccounts
+    ]) {
+      map.set(account.id, account);
+    }
+    return map;
+  }, [balanceSheetAccounts, incomeStatementAccounts]);
+
+  // Export every default-account slot with its category and the GL account it is
+  // currently mapped to (from the saved defaults). Built from the same
+  // `categoryGroups` the form renders, so the CSV mirrors the page.
+  const onExportCSV = useCallback(() => {
+    const columns = {
+      group: t`Group`,
+      defaultAccount: t`Default Account`,
+      category: t`Category`,
+      accountNumber: t`Account Number`,
+      accountName: t`Account Name`
+    };
+    const rows = categoryGroups.flatMap((group) =>
+      group.fields.map((field) => {
+        const account = accountsById.get(initialValues[field.name] ?? "");
+        return {
+          [columns.group]: group.title,
+          [columns.defaultAccount]: field.label,
+          [columns.category]: field.badgeType,
+          [columns.accountNumber]: account?.number ?? "",
+          [columns.accountName]: account?.name ?? ""
+        };
+      })
+    );
+    downloadCsv(rows, "default-accounts.csv");
+  }, [categoryGroups, accountsById, initialValues, t]);
+
   return (
     <ValidatedForm
-      validator={defaultAccountValidator}
+      validator={formValidator}
       method="post"
       action={path.to.accountingDefaults}
       defaultValues={initialValues}
@@ -525,9 +594,9 @@ const AccountDefaultsForm = ({
       <div className="rounded-lg border border-border bg-card">
         <div className="flex items-center justify-between border-b border-border p-6">
           <div>
-            <h1 className="text-xl font-semibold text-foreground">
+            <Heading as="h1" size="h3">
               <Trans>Default Accounts</Trans>
-            </h1>
+            </Heading>
             <p className="text-sm text-muted-foreground">
               <Trans>
                 Configure the default accounts used for various transaction
@@ -536,6 +605,14 @@ const AccountDefaultsForm = ({
             </p>
           </div>
           <HStack>
+            <IconButton
+              size="md"
+              variant="secondary"
+              aria-label={t`Export CSV`}
+              title={t`Export CSV`}
+              icon={<LuDownload />}
+              onClick={onExportCSV}
+            />
             <Submit isDisabled={isDisabled}>
               <Trans>Save</Trans>
             </Submit>
@@ -559,7 +636,7 @@ const AccountDefaultsForm = ({
                 {group.fields.map((field) => (
                   <div
                     key={field.name}
-                    className="group rounded-lg border border-border p-4 transition-all hover:border-muted-foreground/30"
+                    className="group rounded-lg border border-border p-4 transition-colors hover:border-muted-foreground/30"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div className="flex-1 min-w-0">
@@ -587,7 +664,23 @@ const AccountDefaultsForm = ({
                       <div className="flex-shrink-0 w-64">
                         <Combobox
                           name={field.name}
-                          options={accountOptions[field.badgeType]}
+                          options={
+                            field.name === "salesShippingRevenueAccount"
+                              ? accountOptions.Revenue.filter(
+                                  (account) => account.value !== salesAccount
+                                )
+                              : accountOptions[field.badgeType]
+                          }
+                          onChange={
+                            field.name === "salesAccount"
+                              ? (account) =>
+                                  setSalesAccount(account?.value ?? "")
+                              : undefined
+                          }
+                          isRequired={
+                            field.name === "salesShippingRevenueAccount" ||
+                            undefined
+                          }
                           size="sm"
                         />
                       </div>

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { Field } from "./Field";
 import { InlineValueEditor } from "./InlineValueEditor";
 import type { ValueFieldProps } from "./types";
@@ -12,7 +16,8 @@ export function TemplateField({
   onChange,
   context,
   issue,
-  partIssues
+  partIssues,
+  isReadOnly
 }: ValueFieldProps) {
   return (
     <Field
@@ -35,6 +40,7 @@ export function TemplateField({
         multiline
         minRows={4}
         maxRows={12}
+        isReadOnly={isReadOnly}
       />
     </Field>
   );

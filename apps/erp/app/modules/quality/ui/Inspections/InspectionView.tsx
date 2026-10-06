@@ -1,3 +1,8 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import { useLoaderQuery } from "@carbon/query";
 import {
   Alert,
   AlertDescription,
@@ -23,6 +28,7 @@ import {
   useDisclosure,
   VStack
 } from "@carbon/react";
+import { getReadableIdWithRevision } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import {
   lazy,
@@ -45,6 +51,7 @@ import { useFetcher } from "react-router";
 import { Confirm } from "~/components/Modals";
 import { usePermissions } from "~/hooks";
 import type {
+  InspectionGauge,
   InspectionMeasurement,
   InspectionRow,
   InspectionSample,
@@ -54,7 +61,6 @@ import type {
 } from "~/modules/quality/types";
 import { useItems } from "~/stores/items";
 import { path } from "~/utils/path";
-import { getReadableIdWithRevision } from "~/utils/string";
 import type { DrawingBalloon } from "./InspectionDrawingPane";
 import type { MeasurementSaveResult } from "./InspectionMeasurementGrid";
 import InspectionMeasurementGrid from "./InspectionMeasurementGrid";
@@ -94,12 +100,20 @@ export type InspectionViewProps = {
   samples: InspectionSample[];
   features: InspectionSamplingPlan[];
   measurements: InspectionMeasurement[];
+  // Active gauges, and the ones most recently recorded at this lot's work
+  // center (receipts are their own), newest first.
+  gauges: InspectionGauge[];
+  recentGaugeIds: string[];
   balloons: {
     id: string;
     inspectionFeatureId: string;
     pageNumber: number;
     xCoordinate: number;
     yCoordinate: number;
+    regionX: number;
+    regionY: number;
+    regionWidth: number;
+    regionHeight: number;
   }[];
   documentName: string | null;
   pdfUrl: string | null;
@@ -124,6 +138,8 @@ const InspectionView = ({
   samples,
   features,
   measurements,
+  gauges,
+  recentGaugeIds,
   balloons,
   documentName,
   pdfUrl,
@@ -444,6 +460,10 @@ const InspectionView = ({
         pageNumber: b.pageNumber,
         xCoordinate: b.xCoordinate,
         yCoordinate: b.yCoordinate,
+        regionX: b.regionX,
+        regionY: b.regionY,
+        regionWidth: b.regionWidth,
+        regionHeight: b.regionHeight,
         label: labelByFeatureId.get(b.inspectionFeatureId) ?? ""
       }));
   }, [balloons, liveFeatures]);
@@ -475,7 +495,7 @@ const InspectionView = ({
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* Header bar — mirrors InspectionDocumentEditor's header */}
-      <div className="flex min-h-[50px] flex-shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 overflow-x-auto border-b border-border bg-card px-4 py-2 scrollbar-hide dark:border-none dark:shadow-[inset_0_0_1px_rgb(255_255_255_/_0.24),_0_0_0_0.5px_rgb(0,0,0,1),0px_0px_4px_rgba(0,_0,_0,_0.08)]">
+      <div className="flex min-h-[var(--header-height)] flex-shrink-0 flex-wrap items-center justify-between gap-x-3 gap-y-2 overflow-x-auto border-b border-border bg-card px-4 py-2 scrollbar-hide">
         <div className="min-w-0 flex-1 pr-2">
           <HStack spacing={2} className="items-center">
             <h1 className="truncate text-base font-semibold">
@@ -599,7 +619,7 @@ const InspectionView = ({
               <div
                 role="separator"
                 aria-orientation="horizontal"
-                aria-label={t`Drag to resize drawing and features`}
+                aria-label={t`Drag to resize drawing and characteristics`}
                 aria-valuenow={Math.round(pdfPaneHeightPx)}
                 className={`group flex h-2 shrink-0 cursor-row-resize touch-none items-center justify-center rounded-md px-2 hover:bg-muted/80 ${
                   isResizingSplit ? "bg-muted" : ""
@@ -637,6 +657,8 @@ const InspectionView = ({
                   features={features}
                   samples={samples}
                   measurements={measurements}
+                  gauges={gauges}
+                  recentGaugeIds={recentGaugeIds}
                   maxSampleSize={maxSampleSize}
                   lotSize={inspection.lotSize}
                   lotAcceptanceNumber={inspection.acceptanceNumber}
@@ -652,8 +674,8 @@ const InspectionView = ({
                       aria-expanded={gridExpanded}
                       aria-label={
                         gridExpanded
-                          ? t`Collapse features table`
-                          : t`Expand features table`
+                          ? t`Collapse characteristics table`
+                          : t`Expand characteristics table`
                       }
                       icon={
                         gridExpanded ? (
@@ -684,6 +706,8 @@ const InspectionView = ({
                 features={features}
                 samples={samples}
                 measurements={measurements}
+                gauges={gauges}
+                recentGaugeIds={recentGaugeIds}
                 maxSampleSize={maxSampleSize}
                 lotSize={inspection.lotSize}
                 lotAcceptanceNumber={inspection.acceptanceNumber}
@@ -768,7 +792,7 @@ function DocumentSwitchModal({
 }) {
   const { t } = useLingui();
   const fetcher = useFetcher<{}>();
-  const optionsFetcher = useFetcher<{
+  const optionsFetcher = useLoaderQuery<{
     data:
       | {
           id: string;
@@ -777,15 +801,8 @@ function DocumentSwitchModal({
           version: number;
         }[]
       | null;
-  }>();
+  }>(path.to.api.inspectionDocuments(itemId));
   const [documentId, setDocumentId] = useState(currentDocumentId ?? "none");
-
-  useEffect(() => {
-    if (optionsFetcher.state === "idle" && optionsFetcher.data == null) {
-      optionsFetcher.load(path.to.api.inspectionDocuments(itemId));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const options = optionsFetcher.data?.data ?? [];
 
@@ -807,8 +824,8 @@ function DocumentSwitchModal({
           <VStack spacing={2}>
             <p className="text-sm text-muted-foreground">
               <Trans>
-                The lot's per-feature sampling plan will be re-resolved from the
-                selected document.
+                The lot's per-characteristic sampling plan will be re-resolved
+                from the selected document.
               </Trans>
             </p>
             <Select value={documentId} onValueChange={setDocumentId}>

@@ -1,6 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import {
   Badge,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   useDisclosure
@@ -10,6 +15,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useCallback, useMemo, useState } from "react";
 import { flushSync } from "react-dom";
 import {
+  LuAward,
   LuBookOpen,
   LuClock,
   LuPencil,
@@ -22,6 +28,7 @@ import {
 } from "react-icons/lu";
 import { useNavigate } from "react-router";
 import { EmployeeAvatar, Hyperlink, New, Table } from "~/components";
+import { Enumerable } from "~/components/Enumerable";
 import { ConfirmDelete } from "~/components/Modals";
 import { usePermissions } from "~/hooks";
 import type { TrainingListItem } from "~/modules/resources";
@@ -118,6 +125,25 @@ const TrainingsTable = memo(({ data, count, tags }: TrainingsTableProps) => {
         }
       },
       {
+        accessorKey: "grantsAbilityId",
+        header: t`Grants Ability`,
+        cell: ({ row }) => (
+          <Enumerable value={row.original.grantsAbilityName ?? null} />
+        ),
+        meta: {
+          icon: <LuAward />,
+          filter: {
+            type: "fetcher",
+            endpoint: path.to.api.abilities,
+            transform: (data: { id: string; name: string }[] | null) =>
+              data?.map((ability) => ({
+                value: ability.id,
+                label: ability.name
+              })) ?? []
+          }
+        }
+      },
+      {
         accessorKey: "estimatedDuration",
         header: t`Duration`,
         cell: ({ row }) =>
@@ -178,6 +204,7 @@ const TrainingsTable = memo(({ data, count, tags }: TrainingsTableProps) => {
       return (
         <>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.edit}
             disabled={!permissions.can("update", "resources")}
             onClick={() => {
               navigate(`${path.to.training(row.id!)}`);
@@ -187,6 +214,7 @@ const TrainingsTable = memo(({ data, count, tags }: TrainingsTableProps) => {
             <Trans>Edit Training</Trans>
           </MenuItem>
           <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.delete}
             destructive
             disabled={!permissions.can("delete", "resources")}
             onClick={() => {

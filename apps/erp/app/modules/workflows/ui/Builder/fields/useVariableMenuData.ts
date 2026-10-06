@@ -1,6 +1,10 @@
-import type { ValueType } from "@carbon/workflows";
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+import type { ValueType } from "@carbon/ee/workflows";
 import { useCallback, useRef } from "react";
-import { catalog, useWorkflowLabel } from "../catalog";
+import { useWorkflowCatalog, useWorkflowLabel } from "../catalog";
 import { describeVariable } from "../labelKeys";
 import { useVariablesGetter } from "../useDefinition";
 import type { VariableMenuData } from "./menuBridge";
@@ -15,6 +19,7 @@ export function useVariableMenuData(
   textOnly?: boolean
 ): () => VariableMenuData {
   const getVariables = useVariablesGetter(context.nodeId);
+  const catalog = useWorkflowCatalog();
 
   // `useWorkflowLabel` returns a fresh closure each render; read it through a ref so
   // the getter identity stays stable for callers that memoise on it.
@@ -39,5 +44,12 @@ export function useVariableMenuData(
         ? `No earlier step produces ${describeVariable(accepts, true, opts.labelFor)}.`
         : undefined
     };
-  }, [getVariables, accepts, textOnly, context.inLoop, context.batching]);
+  }, [
+    getVariables,
+    accepts,
+    textOnly,
+    context.inLoop,
+    context.batching,
+    catalog
+  ]);
 }

@@ -1,10 +1,16 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
+import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { flash } from "@carbon/auth/session.server";
+import { storage } from "@carbon/files";
 import { validationError, validator } from "@carbon/form";
+import { redirect } from "@carbon/utils";
 import { msg } from "@lingui/core/macro";
 import type { ActionFunctionArgs } from "react-router";
-import { redirect } from "react-router";
 import { useCompanyToday, useUrlParams, useUser } from "~/hooks";
 import { upsertDocument } from "~/modules/documents";
 import { resolveItemIdFromExtractedText } from "~/modules/items";
@@ -16,6 +22,7 @@ import {
   upsertSalesRFQLine
 } from "~/modules/sales";
 import { SalesRFQForm } from "~/modules/sales/ui/SalesRFQ";
+import { requireCompanyRecord } from "~/modules/shared/shared.server";
 import { getDatabaseClient } from "~/services/database.server";
 import { setCustomFields } from "~/utils/form";
 import type { Handle } from "~/utils/handle";
@@ -39,6 +46,42 @@ export async function action({ request }: ActionFunctionArgs) {
   if (validation.error) {
     return validationError(validation.error);
   }
+
+  // insertSalesRFQ writes through Kysely, which bypasses RLS: every id the
+  // form references must belong to this company.
+  const serviceRole = getCarbonServiceRole();
+  const {
+    customerId,
+    customerContactId,
+    customerEngineeringContactId,
+    customerLocationId,
+    locationId
+  } = validation.data;
+  await Promise.all([
+    requireCompanyRecord(serviceRole, "customer", companyId, {
+      id: customerId
+    }),
+    customerContactId
+      ? requireCompanyRecord(serviceRole, "customerContact", companyId, {
+          id: customerContactId
+        })
+      : null,
+    customerEngineeringContactId
+      ? requireCompanyRecord(serviceRole, "customerContact", companyId, {
+          id: customerEngineeringContactId
+        })
+      : null,
+    customerLocationId
+      ? requireCompanyRecord(serviceRole, "customerLocation", companyId, {
+          id: customerLocationId
+        })
+      : null,
+    locationId
+      ? requireCompanyRecord(serviceRole, "location", companyId, {
+          id: locationId
+        })
+      : null
+  ]);
 
   const result = await insertSalesRFQ(client, getDatabaseClient(), {
     ...validation.data,
@@ -122,8 +165,8 @@ export async function action({ request }: ActionFunctionArgs) {
           const safeFilename = stripSpecialCharacters(originalFilename);
           const newStoragePath = `${companyId}/opportunity/${opportunityId}/${safeFilename}`;
 
-          const copyResult = await client.storage
-            .from("private")
+          const copyResult = await storage(client)
+            .company(companyId)
             .copy(extractedStoragePath, newStoragePath);
 
           if (!copyResult.error) {

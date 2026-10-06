@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { ValidatedForm } from "@carbon/form";
 import {
   Button,
@@ -9,6 +13,7 @@ import {
   CardTitle,
   DropdownMenuIcon,
   DropdownMenuItem,
+  MENU_ITEM_SHORTCUTS,
   useDisclosure,
   VStack
 } from "@carbon/react";
@@ -26,10 +31,11 @@ import {
   Customer,
   CustomFormFields,
   DatePicker,
+  Employee,
   Hidden,
   Input,
   Number,
-  Select,
+  SelectControlled,
   SequenceOrCustomId,
   Submit,
   Supplier,
@@ -37,11 +43,7 @@ import {
 } from "~/components/Form";
 import { ConfirmDelete } from "~/components/Modals";
 import { useCurrencyDecimals, usePermissions, useUser } from "~/hooks";
-import {
-  isPaymentLocked,
-  paymentType,
-  paymentValidator
-} from "~/modules/invoicing";
+import { isPaymentLocked, paymentValidator } from "~/modules/invoicing";
 import { path } from "~/utils/path";
 import PaymentStatus from "./PaymentStatus";
 
@@ -91,12 +93,12 @@ type PaymentFormProps = {
 const PaymentForm = ({ initialValues, seedInvoiceIds }: PaymentFormProps) => {
   const { t } = useLingui();
   const { company } = useUser();
-  const currencyDecimals = useCurrencyDecimals(
-    company?.baseCurrencyCode ?? "USD"
+  const [currencyCode, setCurrencyCode] = useState(
+    initialValues.currencyCode || company?.baseCurrencyCode || "USD"
   );
+  const currencyDecimals = useCurrencyDecimals(currencyCode);
   const permissions = usePermissions();
   const post = useFetcher();
-  const voidFetcher = useFetcher();
   const isEditing = Boolean(initialValues.id);
   const status = initialValues.status as
     | "Draft"
@@ -107,24 +109,42 @@ const PaymentForm = ({ initialValues, seedInvoiceIds }: PaymentFormProps) => {
   const canMutate = permissions.can("update", "invoicing");
   const canDelete = permissions.can("delete", "invoicing");
   const deleteModal = useDisclosure();
+  const voidModal = useDisclosure();
 
-  // The counterparty selector visibility tracks paymentType so users
-  // see Customer for Receipts and Supplier for Disbursements.
-  const [currentType, setCurrentType] = useState<"Receipt" | "Disbursement">(
-    initialValues.paymentType ?? "Receipt"
-  );
-
-  const typeOptions = paymentType.map((t) => ({
-    label: t === "Receipt" ? "Payment from Customer" : "Payment to Supplier",
-    value: t
-  }));
+  // Cash direction and subledger party are independent for refunds. An employee
+  // payee is neither: it is always cash OUT against the reimbursement control
+  // account, so it has a single kind rather than a payment/refund pair.
+  const initialKind = initialValues.employeeId
+    ? "employee-payment"
+    : initialValues.supplierId
+      ? initialValues.paymentType === "Receipt"
+        ? "supplier-refund"
+        : "supplier-payment"
+      : initialValues.paymentType === "Disbursement"
+        ? "customer-refund"
+        : "customer-payment";
+  const [paymentKind, setPaymentKind] = useState(initialKind);
+  const defaultValues = { ...initialValues, paymentKind: initialKind };
+  const isEmployee = paymentKind === "employee-payment";
+  const isCustomer = paymentKind.startsWith("customer-");
+  const currentType =
+    paymentKind === "customer-payment" || paymentKind === "supplier-refund"
+      ? "Receipt"
+      : "Disbursement";
+  const typeOptions = [
+    { label: t`Payment from Customer`, value: "customer-payment" },
+    { label: t`Payment to Supplier`, value: "supplier-payment" },
+    { label: t`Refund to Customer`, value: "customer-refund" },
+    { label: t`Refund from Supplier`, value: "supplier-refund" },
+    { label: t`Reimbursement to Employee`, value: "employee-payment" }
+  ];
 
   return (
     <>
       <ValidatedForm
         method="post"
         validator={paymentValidator}
-        defaultValues={initialValues}
+        defaultValues={defaultValues}
         isDisabled={isEditing && isLocked}
         className="w-full"
       >
@@ -140,7 +160,11 @@ const PaymentForm = ({ initialValues, seedInvoiceIds }: PaymentFormProps) => {
               }
               menuItems={
                 status === "Draft" && canDelete ? (
-                  <DropdownMenuItem destructive onClick={deleteModal.onOpen}>
+                  <DropdownMenuItem
+                    shortcut={MENU_ITEM_SHORTCUTS.delete}
+                    destructive
+                    onClick={deleteModal.onOpen}
+                  >
                     <DropdownMenuIcon icon={<LuTrash />} />
                     <Trans>Delete</Trans>
                   </DropdownMenuItem>
@@ -166,14 +190,9 @@ const PaymentForm = ({ initialValues, seedInvoiceIds }: PaymentFormProps) => {
                   <Button
                     leftIcon={<LuTicketX />}
                     variant="destructive"
-                    isLoading={voidFetcher.state !== "idle"}
+                    type="button"
                     isDisabled={!canMutate}
-                    onClick={() =>
-                      voidFetcher.submit(null, {
-                        method: "post",
-                        action: path.to.paymentVoid(initialValues.id!)
-                      })
-                    }
+                    onClick={voidModal.onOpen}
                   >
                     <Trans>Void</Trans>
                   </Button>
@@ -187,15 +206,33 @@ const PaymentForm = ({ initialValues, seedInvoiceIds }: PaymentFormProps) => {
               </CardTitle>
               <CardDescription>
                 <Trans>
-                  Record cash received from a customer (Receipt) or paid to a
-                  supplier (Disbursement). Applications to specific invoices are
-                  added after the payment is created.
+                  Record a customer payment, supplier payment, refund, or
+                  employee reimbursement. Applications to invoices, memos or
+                  reimbursements are added after the payment is created.
                 </Trans>
               </CardDescription>
             </CardHeader>
           )}
           <CardContent>
             <Hidden name="id" />
+            <Hidden name="paymentType" value={currentType} />
+            {/* Exactly one party field is mounted, and the other two are
+                blanked — the validator's one-of-three refine (and the DB's
+                widened payment_party_check) rejects anything else. */}
+            {isEmployee ? (
+              <>
+                <Hidden name="customerId" value="" />
+                <Hidden name="supplierId" value="" />
+              </>
+            ) : (
+              <>
+                <Hidden
+                  name={isCustomer ? "supplierId" : "customerId"}
+                  value=""
+                />
+                <Hidden name="employeeId" value="" />
+              </>
+            )}
             {isEditing && <Hidden name="paymentId" />}
             {seedInvoiceIds && seedInvoiceIds.length > 0 && (
               <Hidden name="seedInvoiceIds" value={seedInvoiceIds.join(",")} />
@@ -209,26 +246,31 @@ const PaymentForm = ({ initialValues, seedInvoiceIds }: PaymentFormProps) => {
                     table="payment"
                   />
                 )}
-                <Select
-                  name="paymentType"
+                <SelectControlled
+                  autoFocus={!isEditing}
+                  name="paymentKind"
                   label={t`Type`}
                   options={typeOptions}
+                  value={paymentKind}
                   onChange={(opt) => {
-                    if (
-                      opt?.value === "Receipt" ||
-                      opt?.value === "Disbursement"
-                    ) {
-                      setCurrentType(opt.value);
-                    }
+                    if (opt) setPaymentKind(opt.value);
                   }}
                 />
-                {currentType === "Receipt" ? (
+                {isEmployee ? (
+                  <Employee name="employeeId" label={t`Employee`} />
+                ) : isCustomer ? (
                   <Customer name="customerId" label={t`Customer`} />
                 ) : (
                   <Supplier name="supplierId" label={t`Supplier`} />
                 )}
                 <DatePicker name="paymentDate" label={t`Payment Date`} />
-                <Currency name="currencyCode" label={t`Currency`} />
+                <Currency
+                  name="currencyCode"
+                  label={t`Currency`}
+                  onChange={(option) => {
+                    if (option) setCurrencyCode(option.value);
+                  }}
+                />
                 <Number
                   name="exchangeRate"
                   label={t`Exchange Rate`}
@@ -239,7 +281,7 @@ const PaymentForm = ({ initialValues, seedInvoiceIds }: PaymentFormProps) => {
                   name="totalAmount"
                   label={t`Total Amount`}
                   formatOptions={INPUT_FORMAT.money(
-                    company?.baseCurrencyCode ?? "USD",
+                    currencyCode,
                     currencyDecimals
                   )}
                 />
@@ -269,6 +311,17 @@ const PaymentForm = ({ initialValues, seedInvoiceIds }: PaymentFormProps) => {
           </CardFooter>
         </Card>
       </ValidatedForm>
+      {voidModal.isOpen && (
+        <ConfirmDelete
+          action={path.to.paymentVoid(initialValues.id!)}
+          name={initialValues.paymentId ?? ""}
+          title={t`Void ${initialValues.paymentId}`}
+          text={t`Are you sure you want to void this payment? This will reverse its accounting entries and applications. This cannot be undone.`}
+          deleteText={t`Void`}
+          onCancel={voidModal.onClose}
+          onSubmit={voidModal.onClose}
+        />
+      )}
       {deleteModal.isOpen && (
         <ConfirmDelete
           action={path.to.paymentDelete(initialValues.id!)}

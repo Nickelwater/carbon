@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { useCarbon } from "@carbon/auth";
 import { ValidatedForm } from "@carbon/form";
 import {
@@ -67,6 +71,7 @@ const QuoteMaterialForm = ({
     methodType: MethodType;
     description: string;
     unitCost: number;
+    unitCostSource: "system" | "manual";
     unitOfMeasureCode: string;
     quantity: number;
     itemReplenishmentSystem: string;
@@ -75,6 +80,8 @@ const QuoteMaterialForm = ({
     methodType: initialValues.methodType ?? "Pull from Inventory",
     description: initialValues.description ?? "",
     unitCost: initialValues.unitCost ?? 0,
+    unitCostSource:
+      initialValues.unitCostSource === "manual" ? "manual" : "system",
     unitOfMeasureCode: initialValues.unitOfMeasureCode ?? "EA",
     quantity: initialValues.quantity ?? 1,
     itemReplenishmentSystem: initialValues.item?.replenishmentSystem ?? "Buy"
@@ -89,6 +96,7 @@ const QuoteMaterialForm = ({
       quantity: 1,
       description: "",
       unitCost: 0,
+      unitCostSource: "system",
       unitOfMeasureCode: "EA",
       itemReplenishmentSystem: "Buy"
     });
@@ -132,6 +140,7 @@ const QuoteMaterialForm = ({
       itemId,
       description: item.data?.name ?? "",
       unitCost,
+      unitCostSource: "system",
       unitOfMeasureCode: item.data?.unitOfMeasureCode ?? "EA",
       methodType: item.data?.defaultMethodType ?? "Purchase to Order",
       itemReplenishmentSystem: item.data?.replenishmentSystem ?? "Buy"
@@ -144,6 +153,8 @@ const QuoteMaterialForm = ({
 
       if (itemData.methodType !== "Purchase to Order" || !itemData.itemId)
         return;
+      // A typed cost survives a quantity change.
+      if (itemData.unitCostSource === "manual") return;
       if (!carbon) return;
 
       const itemCost = await carbon
@@ -159,9 +170,19 @@ const QuoteMaterialForm = ({
         fallbackCost
       );
 
-      setItemData((d) => ({ ...d, unitCost }));
+      // Re-checked here because the guard above reads a captured value, and a
+      // cost can be typed while the awaits are in flight.
+      setItemData((d) =>
+        d.unitCostSource === "manual" ? d : { ...d, unitCost }
+      );
     },
-    [carbon, itemData.methodType, itemData.itemId, lookupBuyPrice]
+    [
+      carbon,
+      itemData.methodType,
+      itemData.itemId,
+      itemData.unitCostSource,
+      lookupBuyPrice
+    ]
   );
 
   const [, setSearchParams] = useUrlParams();
@@ -213,6 +234,7 @@ const QuoteMaterialForm = ({
             <Hidden name="unitCost" value={itemData.unitCost} />
           )}
           <Hidden name="order" />
+          <Hidden name="unitCostSource" value={itemData.unitCostSource} />
           <VStack className="pt-4">
             <div className="grid w-full gap-x-8 gap-y-4 grid-cols-1 lg:grid-cols-3">
               <Item
@@ -273,6 +295,13 @@ const QuoteMaterialForm = ({
                   label={t`Unit Cost`}
                   value={itemData.unitCost}
                   minValue={0}
+                  onChange={(newValue) =>
+                    setItemData((d) => ({
+                      ...d,
+                      unitCost: newValue,
+                      unitCostSource: "manual"
+                    }))
+                  }
                 />
               )}
             </div>

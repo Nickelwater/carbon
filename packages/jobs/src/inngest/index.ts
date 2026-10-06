@@ -1,6 +1,11 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 // Must load before any function module pulls in pdfjs (extract-document), whose
 // init runs `new DOMMatrix()` — undefined in the Node worker without this shim.
 import "@carbon/lib/shims";
+import { Edition } from "@carbon/utils";
 
 // Re-export the inngest client and helpers
 
@@ -21,6 +26,7 @@ export { inngest } from "./client.ts";
 import {
   auditFunction,
   embeddingFunction,
+  embeddingQueueFunction,
   eventQueueFunction,
   searchFunction,
   syncFunction,
@@ -29,20 +35,25 @@ import {
 } from "./functions/events";
 import { extractDocumentFunction } from "./functions/extraction";
 import {
-  accountingBackfillFunction,
   accountingConsolidationFunction,
+  accountingJournalBackfillFunction,
+  accountingMasterSyncFunction,
   accountingOutboundSweepFunction,
   accountingPullSweepFunction,
   accountingReconciliationFunction,
   jiraSyncFunction,
   linearSyncFunction,
+  mountPublishFunction,
   onshapeBackfillFunction,
   onshapeRevisionSyncFunction,
   paperlessPartsFunction,
+  rampSweepFunction,
+  rampSyncFunction,
   slackDocumentAssignmentUpdateFunction,
   slackDocumentCreatedFunction,
   slackDocumentStatusUpdateFunction,
   slackDocumentTaskUpdateFunction,
+  stripeConnectPullSweepFunction,
   syncExternalAccountingFunction,
   timeCardAutoCloseFunction
 } from "./functions/integrations";
@@ -57,9 +68,12 @@ import {
   cleanupFunction,
   dispatchFunction,
   generateMaintenanceForScheduleFunction,
+  markScheduleStaleFunction,
   mrpFunction,
+  nightlyReplanFunction,
   notificationDigestFunction,
-  notificationPurgeFunction,
+  purgeInactiveCompaniesFunction,
+  scheduleReplanWaveFunction,
   updateExchangeRatesFunction,
   weeklyFunction,
   workflowRunRetentionFunction
@@ -67,12 +81,16 @@ import {
 import {
   assemblyConvertFunction,
   assemblyPlanFunction,
+  changelogDispatchFunction,
   companyExportFunction,
   companyImportFunction,
   companyRestoreFinalizeFunction,
   companyRestoreFunction,
   companyRestoreRevertFunction,
   evaluateInProcessInspectionsFunction,
+  companyTemplateFinalizeFunction,
+  companyTemplateFunction,
+  companyTemplateRevertFunction,
   modelCompactFunction,
   modelOptimizeFunction,
   modelThumbnailFunction,
@@ -81,7 +99,6 @@ import {
   printJobDeliverFunction,
   printJobFunction,
   recalculateFunction,
-  rescheduleJobFunction,
   updatePermissionsFunction,
   userAdminFunction
 } from "./functions/tasks";
@@ -106,6 +123,7 @@ export const functions = [
   webhookFunction,
   workflowFunction,
   embeddingFunction,
+  embeddingQueueFunction,
   // Workflows
   workflowMomentFunction,
   workflowRunFunction,
@@ -119,6 +137,9 @@ export const functions = [
   companyRestoreFunction,
   companyRestoreFinalizeFunction,
   companyRestoreRevertFunction,
+  companyTemplateFinalizeFunction,
+  companyTemplateFunction,
+  companyTemplateRevertFunction,
   modelCompactFunction,
   modelOptimizeFunction,
   modelThumbnailFunction,
@@ -126,38 +147,49 @@ export const functions = [
   recalculateFunction,
   userAdminFunction,
   postTransactionFunction,
-  rescheduleJobFunction,
   onboardFunction,
   printJobFunction,
   printJobDeliverFunction,
   evaluateInProcessInspectionsFunction,
+  changelogDispatchFunction,
   // Scheduled
   cleanupFunction,
   dispatchFunction,
   generateMaintenanceForScheduleFunction,
   auditArchiveFunction,
   mrpFunction,
+  markScheduleStaleFunction,
+  nightlyReplanFunction,
+  scheduleReplanWaveFunction,
   weeklyFunction,
   updateExchangeRatesFunction,
   notificationDigestFunction,
-  notificationPurgeFunction,
+  // Not registered off Cloud, so a self-hosted Inngest has nothing to invoke.
+  ...(process.env.CARBON_EDITION === Edition.Cloud
+    ? [purgeInactiveCompaniesFunction]
+    : []),
   workflowRunRetentionFunction,
   // Integrations
   jiraSyncFunction,
   linearSyncFunction,
   paperlessPartsFunction,
-  accountingBackfillFunction,
+  accountingJournalBackfillFunction,
+  accountingMasterSyncFunction,
   accountingConsolidationFunction,
   accountingOutboundSweepFunction,
   accountingReconciliationFunction,
   accountingPullSweepFunction,
+  mountPublishFunction,
   onshapeBackfillFunction,
   onshapeRevisionSyncFunction,
+  rampSyncFunction,
+  rampSweepFunction,
   syncExternalAccountingFunction,
   slackDocumentCreatedFunction,
   slackDocumentStatusUpdateFunction,
   slackDocumentTaskUpdateFunction,
   slackDocumentAssignmentUpdateFunction,
+  stripeConnectPullSweepFunction,
   timeCardAutoCloseFunction,
   // Document extraction
   extractDocumentFunction

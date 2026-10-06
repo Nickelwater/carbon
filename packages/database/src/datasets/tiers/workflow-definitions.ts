@@ -1,0 +1,49 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
+// Every dataset's starter workflows (shape: `types/workflows.ts`). Split out from the tier that
+// writes them so `@carbon/workflows` can import it and assert every definition still passes
+// `validateDefinition` — the cycle blocks that check from running on this side.
+
+import { buildMotorWorkflows } from "../data/motor/workflows.ts";
+import { buildPrecisionWorkflows } from "../data/precision/workflows.ts";
+import { buildRoboticsWorkflows } from "../data/robotics/workflows.ts";
+import { buildSeedWorkflows } from "../data/satellite/workflows.ts";
+
+// Re-exported here so `@carbon/database/seed-workflows` stays the one import for that check.
+export { buildSeedWorkflows };
+
+/** Every dataset's builder, so the validation test covers all four and not just satellite. */
+export const SEED_WORKFLOW_BUILDERS = {
+  satellite: buildSeedWorkflows,
+  robotics: buildRoboticsWorkflows,
+  precision: buildPrecisionWorkflows,
+  motor: buildMotorWorkflows
+};
+
+export const FORMAT_VERSION = 4;
+
+/** Mirrors each event's `match` block in the workflow catalog, spelled out here for the
+ * same package-cycle reason; `seed-workflows.test.ts` in `@carbon/ee` pins the two together.
+ * `null` is a business moment: it has no table to subscribe to. */
+export const EVENT_SOURCES: Record<
+  string,
+  { table: string; operation: string } | null
+> = {
+  "salesOrder.created": { table: "salesOrder", operation: "INSERT" },
+  "nonConformance.priority.changed": {
+    table: "nonConformance",
+    operation: "UPDATE"
+  },
+  "purchaseOrder.status.changed": {
+    table: "purchaseOrder",
+    operation: "UPDATE"
+  },
+  "shipment.status.changed": { table: "shipment", operation: "UPDATE" },
+  "supplier.supplierStatus.changed": {
+    table: "supplier",
+    operation: "UPDATE"
+  },
+  "production.jobReleased": null
+};

@@ -1,24 +1,31 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validationError, validator } from "@carbon/form";
 import type { JSONContent } from "@carbon/react";
 import { Menubar, VStack } from "@carbon/react";
+import { redirect } from "@carbon/utils";
 import type { PostgrestResponse } from "@supabase/supabase-js";
 import { Suspense } from "react";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { Await, redirect, useLoaderData, useParams } from "react-router";
+import { Await, useLoaderData, useParams } from "react-router";
 import { DeferredFiles } from "~/components";
 import { usePermissions, useRouteData } from "~/hooks";
 import type { ItemFile, MakeMethod, ServiceSummary } from "~/modules/items";
 import {
-  getMakeMethodById,
-  getMakeMethods,
   getMethodMaterialsByMakeMethod,
   getMethodOperationsByMakeMethodId,
   serviceValidator,
   upsertService
 } from "~/modules/items";
+import {
+  getMakeMethodByIdOnce,
+  getMakeMethodsOnce
+} from "~/modules/items/items.server";
 import {
   BillOfMaterial,
   BillOfProcess,
@@ -44,7 +51,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const requestedMethodId = url.searchParams.get("methodId");
 
-  const makeMethods = await getMakeMethods(client, itemId, companyId);
+  const makeMethods = await getMakeMethodsOnce(client, itemId, companyId);
   const makeMethod = requestedMethodId
     ? (makeMethods.data?.find((m) => m.id === requestedMethodId) ??
       makeMethods.data?.find((m) => m.status === "Active") ??
@@ -56,7 +63,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     return { methodData: null, tags: [] };
   }
 
-  const fullMethod = await getMakeMethodById(client, makeMethod.id, companyId);
+  const fullMethod = await getMakeMethodByIdOnce(
+    client,
+    makeMethod.id,
+    companyId
+  );
   if (fullMethod.error || !fullMethod.data) {
     return { methodData: null, tags: [] };
   }
@@ -92,7 +103,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
 
 export async function action({ request, params }: ActionFunctionArgs) {
   assertIsPost(request);
-  const { client, userId } = await requirePermissions(request, {
+  const { client, companyId, userId } = await requirePermissions(request, {
     update: "parts"
   });
 
@@ -110,6 +121,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
   const updateService = await upsertService(client, {
     ...validation.data,
     id: itemId,
+    companyId,
     customFields: setCustomFields(formData),
     updatedBy: userId
   });
@@ -145,7 +157,7 @@ export default function ServiceDetailsRoute() {
   if (!serviceData) throw new Error("Could not find service data");
 
   return (
-    <VStack spacing={2} className="p-2">
+    <VStack spacing={4} className="p-4">
       {permissions.is("employee") && methodData && (
         <>
           <Suspense fallback={<Menubar />}>
@@ -169,23 +181,24 @@ export default function ServiceDetailsRoute() {
           />
           {serviceData.serviceSummary?.replenishmentSystem === "Make" && (
             <>
+              <BillOfProcess
+                key={`bop:${itemId}`}
+                makeMethod={methodData.makeMethod}
+                // @ts-expect-error
+                operations={methodData.methodOperations ?? []}
+                materials={methodData.methodMaterials ?? []}
+                tags={tags}
+              />
               <BillOfMaterial
                 key={`bom:${itemId}`}
                 makeMethod={methodData.makeMethod}
-                // @ts-ignore
+                // @ts-expect-error
                 materials={methodData.methodMaterials ?? []}
-                // @ts-ignore
+                // @ts-expect-error
                 operations={methodData.methodOperations}
                 replenishmentSystem={
                   serviceData.serviceSummary?.replenishmentSystem
                 }
-              />
-              <BillOfProcess
-                key={`bop:${itemId}`}
-                makeMethod={methodData.makeMethod}
-                // @ts-ignore
-                operations={methodData.methodOperations ?? []}
-                tags={tags}
               />
             </>
           )}

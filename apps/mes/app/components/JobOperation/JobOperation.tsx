@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import type { Result } from "@carbon/auth";
+import { convertKbToString } from "@carbon/files";
 import { useCarbon } from "@carbon/auth";
 import type { Database } from "@carbon/database";
 import { getLogger } from "@carbon/logger";
@@ -51,7 +56,6 @@ import {
 import type { TrackedEntityAttributes } from "@carbon/utils";
 import {
   convertDateStringToIsoString,
-  convertKbToString,
   cyclesFromParts,
   formatDurationMilliseconds,
   getItemReadableId,
@@ -108,7 +112,12 @@ import {
 } from "~/components/Icons";
 import { useDateFormatter, useUrlParams, useUser } from "~/hooks";
 import type { productionEventType } from "~/services/models";
-import type { InProcessInspectionRunSummary } from "~/services/operations.service";
+import type {
+  BatchMaterialTotal,
+  BatchWorkInstructions,
+  InProcessInspectionRunSummary,
+  JobOperationBatch
+} from "~/services/operations.service";
 import { getFileType } from "~/services/operations.service";
 import type {
   Job,
@@ -153,6 +162,12 @@ import { useOperation } from "./hooks/useOperation";
 const log = getLogger("mes", "job-operation");
 
 type JobOperationProps = {
+  // Present only when the op belongs to an Active/Completing batch; the loader
+  // resolves it and swaps in the batch's events. In batch mode the timers and
+  // completion act on the whole batch.
+  batch: JobOperationBatch | null;
+  batchMaterialTotals?: Record<string, BatchMaterialTotal> | null;
+  batchWorkInstructions?: Promise<BatchWorkInstructions> | null;
   events: ProductionEvent[];
   expiredEntityPolicy?: "Warn" | "Block" | "BlockWithOverride";
   autoSelectMaterialWithoutPickingList?: boolean;
@@ -332,12 +347,10 @@ export const JobOperation = ({
   ]);
 
   const partsPerCycle = normalizePartsPerCycle(
-    // @ts-expect-error partsPerCycle added via migration
     operation.partsPerCycle
   );
   const trackCycles = usesCycleQuantity(
     partsPerCycle,
-    // @ts-expect-error timeBasis added via migration
     operation.timeBasis
   );
   const targetParts = operation.targetQuantity ?? 0;

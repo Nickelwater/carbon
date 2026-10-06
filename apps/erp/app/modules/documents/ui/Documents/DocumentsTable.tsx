@@ -1,4 +1,9 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { getBrowserEnv } from "@carbon/auth";
+import { convertKbToString } from "@carbon/files";
 import {
   Badge,
   BadgeCloseButton,
@@ -8,14 +13,16 @@ import {
   CommandItem,
   cn,
   HStack,
+  MENU_ITEM_SHORTCUTS,
   MenuIcon,
   MenuItem,
   Popover,
   PopoverContent,
   PopoverTrigger,
+  PrefetchLink,
   useDisclosure
 } from "@carbon/react";
-import { convertKbToString, filterEmpty } from "@carbon/utils";
+import { filterEmpty } from "@carbon/utils";
 import { Trans, useLingui } from "@lingui/react/macro";
 import type { ColumnDef } from "@tanstack/react-table";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
@@ -35,7 +42,7 @@ import {
   LuUsers
 } from "react-icons/lu";
 import { RxCheck } from "react-icons/rx";
-import { Link, useRevalidator } from "react-router";
+import { useRevalidator } from "react-router";
 import { DateTime, EmployeeAvatar, Hyperlink, Table } from "~/components";
 import DocumentIcon from "~/components/DocumentIcon";
 import { Enumerable } from "~/components/Enumerable";
@@ -209,20 +216,19 @@ const DocumentsTable = memo(
           cell: ({ row }) =>
             row.original.sourceDocument &&
             row.original.sourceDocumentId && (
-              <Link
+              <PrefetchLink
                 to={getDocumentLocation(
                   row.original
                     .sourceDocument as (typeof documentSourceTypes)[number],
                   row.original.sourceDocumentId
                 )}
-                prefetch="intent"
                 className="group flex items-center gap-1"
               >
                 <Enumerable value={row.original.sourceDocument} />{" "}
                 <span className="group-hover:opacity-100 opacity-0 transition-opacity duration-200 w-4 h-4 text-foreground">
                   <LuExternalLink />
                 </span>
-              </Link>
+              </PrefetchLink>
             ),
           meta: {
             icon: <LuFileText />,
@@ -431,11 +437,18 @@ const DocumentsTable = memo(
     const renderContextMenu = useMemo(() => {
       return (row: Document) => (
         <>
-          <MenuItem disabled={canUpdate(row)} onClick={() => edit(row)}>
+          <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.edit}
+            disabled={canUpdate(row)}
+            onClick={() => edit(row)}
+          >
             <MenuIcon icon={<LuPencil />} />
             <Trans>Edit</Trans>
           </MenuItem>
-          <MenuItem onClick={() => download(row)}>
+          <MenuItem
+            shortcut={MENU_ITEM_SHORTCUTS.download}
+            onClick={() => download(row)}
+          >
             <MenuIcon icon={<LuDownload />} />
             <Trans>Download</Trans>
           </MenuItem>
@@ -667,6 +680,10 @@ function getDocumentLocation(
       return path.to.salesInvoice(sourceDocumentId);
     case "Supplier Quote":
       return path.to.supplierQuote(sourceDocumentId);
+    case "Supplier":
+      return path.to.supplierDetails(sourceDocumentId);
+    case "Customer":
+      return path.to.customerDetails(sourceDocumentId);
     default:
       return "#";
   }

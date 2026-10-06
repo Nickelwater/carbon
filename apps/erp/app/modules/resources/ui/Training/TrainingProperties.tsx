@@ -1,8 +1,15 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { Select, ValidatedForm } from "@carbon/form";
+import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
+  Copy,
   HStack,
+  Subheading,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -10,12 +17,13 @@ import {
   VStack
 } from "@carbon/react";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { LuCopy, LuKeySquare, LuLink } from "react-icons/lu";
-import { useFetcher, useParams } from "react-router";
+import { useParams } from "react-router";
 import { z } from "zod";
 import Assignee, { useOptimisticAssignment } from "~/components/Assignee";
-import { InputControlled, Tags } from "~/components/Form";
+import { Enumerable } from "~/components/Enumerable";
+import { Ability, InputControlled, Tags } from "~/components/Form";
 import { usePermissions, useRouteData } from "~/hooks";
 import { useTags } from "~/hooks/useTags";
 import type { Training } from "~/modules/resources";
@@ -39,13 +47,13 @@ const TrainingProperties = () => {
     tags: Array<{ name: string }>;
   }>(path.to.training(id));
 
-  const fetcher = useFetcher<typeof action>();
-  useEffect(() => {
-    if (fetcher.data?.error) {
-      toast.error(fetcher.data.error.message);
+  const fetcher = useAction<typeof action>({
+    onError: (data) => {
+      if (data?.error) {
+        toast.error(data.error.message);
+      }
     }
-  }, [fetcher.data]);
-
+  });
   // biome-ignore lint/correctness/useExhaustiveDependencies: suppressed due to migration
   const onUpdate = useCallback(
     (
@@ -55,7 +63,8 @@ const TrainingProperties = () => {
         | "type"
         | "frequency"
         | "estimatedDuration"
-        | "description",
+        | "description"
+        | "grantsAbilityId",
       value: string | null
     ) => {
       const formData = new FormData();
@@ -91,13 +100,13 @@ const TrainingProperties = () => {
   return (
     <VStack
       spacing={4}
-      className="w-[450px] bg-card h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
+      className="w-[450px] bg-background/30 h-full overflow-y-auto scrollbar-thin scrollbar-track-transparent scrollbar-thumb-accent border-l border-border px-4 py-2 text-sm"
     >
       <VStack spacing={2}>
         <HStack className="w-full justify-between">
-          <h3 className="text-xxs text-foreground/70 uppercase font-light tracking-wide">
+          <Subheading as="h3" variant="light">
             <Trans>Properties</Trans>
-          </h3>
+          </Subheading>
           <HStack spacing={1}>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -121,24 +130,13 @@ const TrainingProperties = () => {
                 </span>
               </TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  aria-label="Copy"
-                  size="sm"
-                  className="p-1"
-                  onClick={() => copyToClipboard(routeData?.training?.id ?? "")}
-                >
-                  <LuKeySquare className="w-3 h-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <span>
-                  <Trans>Copy training unique identifier</Trans>
-                </span>
-              </TooltipContent>
-            </Tooltip>
+            <Copy
+              text={routeData?.training?.id ?? ""}
+              label={t`Copy training unique identifier`}
+              icon={<LuKeySquare className="size-3" />}
+              variant="ghost"
+              className="w-auto"
+            />
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -285,6 +283,38 @@ const TrainingProperties = () => {
               onUpdate("estimatedDuration", e.target.value ?? null);
             }}
             className="text-muted-foreground"
+          />
+        </span>
+      </ValidatedForm>
+
+      <ValidatedForm
+        defaultValues={{
+          grantsAbilityId: routeData?.training?.grantsAbilityId ?? undefined
+        }}
+        validator={z.object({
+          grantsAbilityId: z.string().optional()
+        })}
+        className="w-full"
+      >
+        <span className="text-sm tracking-tight">
+          <Ability
+            label={t`Grants Ability`}
+            name="grantsAbilityId"
+            inline={(value, options) => {
+              const label = options.find((o) => o.value === value)?.label;
+              return typeof label === "string" ? (
+                <Enumerable value={label} />
+              ) : (
+                <span className="text-muted-foreground">
+                  <Trans>None</Trans>
+                </span>
+              );
+            }}
+            value={routeData?.training?.grantsAbilityId ?? ""}
+            onChange={(value) => {
+              onUpdate("grantsAbilityId", value?.value ?? null);
+            }}
+            isReadOnly={!permissions.can("update", "people")}
           />
         </span>
       </ValidatedForm>

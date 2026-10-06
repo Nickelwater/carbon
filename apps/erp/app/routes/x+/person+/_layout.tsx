@@ -1,11 +1,25 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { VStack } from "@carbon/react";
-import type { LoaderFunctionArgs, MetaFunction } from "react-router";
+import { isUnaffectedByNavigation } from "@carbon/utils";
+import type {
+  LoaderFunctionArgs,
+  MetaFunction,
+  ShouldRevalidateFunction
+} from "react-router";
 import { Outlet } from "react-router";
+
+export { RouteErrorBoundary as ErrorBoundary } from "@carbon/react/ErrorBoundary";
 
 export const meta: MetaFunction = () => {
   return [{ title: "Carbon | People" }];
 };
+
+export const shouldRevalidate: ShouldRevalidateFunction = (args) =>
+  isUnaffectedByNavigation(args) ? false : args.defaultShouldRevalidate;
 
 export async function loader({ request }: LoaderFunctionArgs) {
   await requirePermissions(request, {
@@ -17,7 +31,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
 export default function PersonRoute() {
   return (
-    <div className="flex h-full w-full justify-center bg-muted">
+    <div className="flex h-full w-full justify-center bg-card">
       <VStack spacing={4} className="h-full p-4 w-full max-w-[80rem]">
         <Outlet />
       </VStack>

@@ -1,3 +1,7 @@
+// SPDX-License-Identifier: AGPL-3.0-only
+// Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
+// including ports, remain AGPLv3; serving them over a network requires releasing their source.
+
 import { cn } from "@carbon/react";
 import { formatDate } from "@carbon/utils";
 import { useLingui } from "@lingui/react/macro";
@@ -15,7 +19,7 @@ import { DateTime, Hyperlink, Table } from "~/components";
 import { Enumerable } from "~/components/Enumerable";
 import { useCurrencyFormatter } from "~/hooks/useCurrencyFormatter";
 import { path } from "~/utils/path";
-import type { AccountingSyncTieOutListItem } from "../../accounting.ee.service";
+import type { AccountingSyncTieOutListItem } from "../../accounting.service";
 
 type SyncTieOutTableProps = {
   data: AccountingSyncTieOutListItem[];
