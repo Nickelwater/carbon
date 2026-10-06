@@ -141,16 +141,6 @@ export async function up(opts: UpOpts = {}) {
   const shouldRegen = shouldMigrate && (opts.regen ?? true);
   const shouldBorrow = opts.borrow === true;
   const lanRequested = isLanMode({ lan: opts.lan });
-  let lanHost: string | undefined;
-  if (lanRequested) {
-    lanHost = resolveDevHost();
-    if (!lanHost) {
-      throw new Error(
-        "LAN mode needs a reachable IPv4 address. Set CARBON_DEV_HOST to this machine's LAN IP (e.g. 192.168.1.42) and retry."
-      );
-    }
-    // LAN mode needs fixed/predictable ports — disable portless.
-  }
 
   const minimal = opts.minimal ?? false;
   const size = { minimal, full: !minimal && opts.full === true };
@@ -167,11 +157,23 @@ export async function up(opts: UpOpts = {}) {
 
   // --no-portless flag or CARBON_PORTLESS=0 to use http://localhost:PORT URLs
   // and skip the portless proxy setup (useful when the .dev TLD cert is not
-  // trusted). The flag takes precedence over the env var.
-  const portless =
+  // trusted). The flag takes precedence over the env var. LAN mode always
+  // disables portless (other devices cannot resolve *.dev or trust local CA).
+  let portless =
     opts.portless !== undefined
       ? opts.portless
       : process.env.CARBON_PORTLESS !== "0";
+  if (lanRequested) portless = false;
+
+  let lanHost: string | undefined;
+  if (lanRequested) {
+    lanHost = resolveDevHost();
+    if (!lanHost) {
+      throw new Error(
+        "LAN mode needs a reachable IPv4 address. Set CARBON_DEV_HOST to this machine's LAN IP (e.g. 192.168.1.42) and retry."
+      );
+    }
+  }
 
   intro(minimal ? "Carbon · dev up (minimal)" : "Carbon · dev up");
   // Fail fast with a clear message instead of a cryptic daemon error deep in
@@ -194,6 +196,10 @@ export async function up(opts: UpOpts = {}) {
   if (portless) {
     await ensurePortlessInstalled();
     await ensureProxyPrivileges();
+  } else if (lanHost) {
+    log.info(
+      `LAN mode — ERP/MES/API on http://${lanHost} (fixed ports, no portless)`
+    );
   } else {
     log.info("portless disabled (CARBON_PORTLESS=0) — using localhost URLs");
   }

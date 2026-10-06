@@ -633,7 +633,19 @@ export const manifest = {
   implementationHub: company("settings", { update: "employee", column: "id" }),
   implementationRow: policies({ all: inCompany("companyId", "employee") }),
   industry: policies({ select: authenticated }),
+  // Fork: legacy inbound* tables dual-write with generic inspection (keep until fully cut over).
+  inboundInspection: company("quality", { read: "quality_view" }),
+  inboundInspectionHistory: company("quality", {
+    read: "quality_view",
+    update: false,
+    delete: false
+  }),
+  inboundInspectionSample: company("quality", { read: "quality_view" }),
+  inboundInspectionSampleMeasurement: company("quality", {
+    read: "quality_view"
+  }),
   inspection: company("quality", { read: "quality_view" }),
+  inspectionDependency: company("quality", { read: "quality_view" }),
   inspectionDocument: company("quality"),
   inspectionFeature: company("quality"),
   inspectionHistory: company("quality", {
@@ -641,9 +653,14 @@ export const manifest = {
     update: false,
     delete: false
   }),
+  inspectionInProcess: company("quality", { read: "quality_view" }),
+  inspectionLot: company("quality", { read: "quality_view" }),
   inspectionMeasurement: company("quality", { read: "quality_view" }),
+  inspectionReceipt: company("quality", { read: "quality_view" }),
   inspectionSample: company("quality", { read: "quality_view" }),
+  inspectionSampleMeasurement: company("quality", { read: "quality_view" }),
   inspectionSamplingPlan: company("quality", { read: "quality_view" }),
+  inspectionTrackedEntity: company("quality", { read: "quality_view" }),
   integration: policies({ select: authenticated }),
   intercompanyEliminationLine: company("accounting"),
   intercompanyTransaction: policies({
@@ -758,6 +775,7 @@ export const manifest = {
   itemInspectionDocumentAssignment: company("quality", {
     read: "quality_view"
   }),
+  itemInspectionPolicy: company("quality", { read: "quality_view" }),
   itemLedger: policies({
     select: inCompany("companyId", anyOf("inventory_view", "accounting_view")),
     insert: inCompany(
@@ -765,6 +783,7 @@ export const manifest = {
       anyOf("inventory_create", "accounting_create")
     )
   }),
+  itemPackaging: company("parts", { read: "parts_view" }),
   itemPlanning: company("parts", { read: "parts_view", delete: false }),
   itemPostingGroup: company("accounting", { read: "accounting_view" }),
   itemReplenishment: company("parts", { read: "parts_view" }),
@@ -800,6 +819,7 @@ export const manifest = {
   jobOperationStepRecord: company("production", { create: "employee" }),
   jobOperationStepSlide: company("production"),
   jobOperationTool: company("production"),
+  jobOperationInspectionPlan: company("quality", { read: "quality_view" }),
   jobOperationToolStep: policies({
     select: exists("jobOperationTool", "jobOperationToolId", "employee"),
     insert: exists(
@@ -950,6 +970,7 @@ export const manifest = {
   methodOperationStep: company("production"),
   methodOperationStepSlide: company("production"),
   methodOperationTool: company("parts", { read: "parts_view" }),
+  methodOperationInspectionPlan: company("quality", { read: "quality_view" }),
   methodOperationToolStep: policies({
     select: exists("methodOperationTool", "methodOperationToolId", "employee"),
     insert: exists(
@@ -974,6 +995,9 @@ export const manifest = {
   nonConformanceActionTask: company("quality", { read: "quality_view" }),
   nonConformanceApprovalTask: company("quality", { read: "quality_view" }),
   nonConformanceCustomer: company("quality", { read: "quality_view" }),
+  nonConformanceInboundInspection: company("quality", {
+    read: "quality_view"
+  }),
   nonConformanceInspection: company("quality", { read: "quality_view" }),
   nonConformanceItem: company("quality", { read: "quality_view" }),
   nonConformanceItemTrackedEntity: company("quality", { read: "quality_view" }),
@@ -1151,6 +1175,8 @@ export const manifest = {
     ),
     delete: exists("quoteOperationTool", "quoteOperationToolId", "sales_delete")
   }),
+  // Fork: quote-only parts (no item master). Employees can view; sales_* mutates.
+  quotePart: company("sales", { read: "employee" }),
   quotePayment: policies({
     select: or(
       inCompany("companyId", "sales_view"),
@@ -1486,6 +1512,13 @@ export const manifest = {
     delete: inCompany("companyId", "people_delete")
   }),
   tool: company("parts"),
+  // Fork: tool-life ledger — view with parts_view; append with parts_update only.
+  toolLifeLedger: company("parts", {
+    read: "parts_view",
+    create: "parts_update",
+    update: false,
+    delete: false
+  }),
   trackedActivity: company("inventory", { create: "employee" }),
   trackedActivityInput: company("inventory", { create: "employee" }),
   trackedActivityOutput: company("inventory", { create: "employee" }),
