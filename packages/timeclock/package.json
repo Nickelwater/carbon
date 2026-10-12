@@ -1,7 +1,6 @@
 {
   "name": "@carbon/timeclock",
   "dependencies": {
-    "@carbon/auth": "workspace:*",
     "@carbon/database": "workspace:*",
     "@carbon/logger": "workspace:*",
     "@supabase/supabase-js": "catalog:",

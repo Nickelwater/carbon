@@ -7,10 +7,9 @@ import {
   type IncomingMessage,
   type ServerResponse
 } from "node:http";
-import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import type { Database, Json } from "@carbon/database";
 import { getLogger } from "@carbon/logger";
-import type { SupabaseClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { type WebSocket, WebSocketServer } from "ws";
 import type { TimeclockEnv } from "./env";
 import { propunchTimeToIso } from "./ingest";
@@ -24,6 +23,22 @@ import {
 } from "./protocol";
 
 const log = getLogger("timeclock");
+
+/** Service-role client without `@carbon/auth` (avoids loading the full app env). */
+function createServiceRoleClient(): SupabaseClient<Database> {
+  const url =
+    process.env.SUPABASE_INTERNAL_URL?.trim() ||
+    process.env.SUPABASE_URL?.trim();
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !key) {
+    throw new Error(
+      "SUPABASE_URL (or SUPABASE_INTERNAL_URL) and SUPABASE_SERVICE_ROLE_KEY are required"
+    );
+  }
+  return createClient<Database>(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
 
 type SocketEntry = {
   sn: string;
@@ -397,7 +412,7 @@ function handleHttp(
 }
 
 export function startTimeclockGateway(env: TimeclockEnv) {
-  const client = getCarbonServiceRole();
+  const client = createServiceRoleClient();
 
   const server = createServer((req, res) => handleHttp(req, res, env));
   const wss = new WebSocketServer({ server, path: "/pub/chat" });

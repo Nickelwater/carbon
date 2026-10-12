@@ -1139,18 +1139,29 @@ export async function updateTimeClockDevice(
     pollIntervalSeconds?: number;
   }
 ) {
+  // Do not sanitize the whole bag: unset optional fields become null and
+  // would wipe NOT NULL columns (autoPoll, pollIntervalSeconds).
+  const patch: {
+    name?: string | null;
+    enabled?: boolean;
+    autoPoll?: boolean;
+    pollIntervalSeconds?: number;
+    updatedBy: string;
+    updatedAt: string;
+  } = {
+    updatedBy: userId,
+    updatedAt: new Date().toISOString()
+  };
+  if ("name" in input) patch.name = input.name ?? null;
+  if (typeof input.enabled === "boolean") patch.enabled = input.enabled;
+  if (typeof input.autoPoll === "boolean") patch.autoPoll = input.autoPoll;
+  if (typeof input.pollIntervalSeconds === "number") {
+    patch.pollIntervalSeconds = input.pollIntervalSeconds;
+  }
+
   return client
     .from("timeClockDevice")
-    .update(
-      sanitize({
-        name: input.name,
-        enabled: input.enabled,
-        autoPoll: input.autoPoll,
-        pollIntervalSeconds: input.pollIntervalSeconds,
-        updatedBy: userId,
-        updatedAt: new Date().toISOString()
-      })
-    )
+    .update(patch)
     .eq("id", input.id)
     .eq("companyId", companyId)
     .select("*")
