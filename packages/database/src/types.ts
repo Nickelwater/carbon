@@ -73872,6 +73872,7 @@ export type Database = {
           quantityComplete: number | null
           quantityReworked: number | null
           quantityScrapped: number | null
+          readyAt: string | null
           reworkId: string | null
           setupRate: number | null
           setupTime: number | null
@@ -73928,6 +73929,7 @@ export type Database = {
           quantityComplete?: number | null
           quantityReworked?: number | null
           quantityScrapped?: number | null
+          readyAt?: string | null
           reworkId?: string | null
           setupRate?: number | null
           setupTime?: number | null
@@ -73984,6 +73986,7 @@ export type Database = {
           quantityComplete?: number | null
           quantityReworked?: number | null
           quantityScrapped?: number | null
+          readyAt?: string | null
           reworkId?: string | null
           setupRate?: number | null
           setupTime?: number | null
@@ -74310,6 +74313,7 @@ export type Database = {
           quantityComplete: number | null
           quantityReworked: number | null
           quantityScrapped: number | null
+          readyAt: string | null
           reworkId: string | null
           setupRate: number | null
           setupTime: number | null

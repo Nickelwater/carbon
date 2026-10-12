@@ -519,6 +519,7 @@ msgstr "0-4 weeks"
 
 msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
 msgstr "1 = full operator per run hour; 0 = unattended; 2 = two operators"
+
 msgid "1 batchable operation is not in a batch — it runs individually until batched"
 msgstr "1 batchable operation is not in a batch — it runs individually until batched"
 
@@ -1414,6 +1415,7 @@ msgstr "Add"
 #. placeholder {0}: selectedLineIds.size
 msgid "Add {0} lines"
 msgstr "Add {0} lines"
+
 #. placeholder {0}: selected.length
 msgid "Add {0} operations"
 msgstr "Add {0} operations"
@@ -1488,10 +1490,11 @@ msgstr "Add any notes about your decision..."
 msgid "Add Approval Requirement"
 msgstr "Add Approval Requirement"
 
-msgid "Add batch ({remainingQuantity} remaining)"
-msgstr "Add batch ({remainingQuantity} remaining)"
 msgid "Add Authenticator App"
 msgstr "Add Authenticator App"
+
+msgid "Add batch ({remainingQuantity} remaining)"
+msgstr "Add batch ({remainingQuantity} remaining)"
 
 msgid "Add Calibration Record"
 msgstr "Add Calibration Record"
@@ -1561,6 +1564,7 @@ msgstr "Add Line Item"
 
 msgid "Add lines"
 msgstr "Add lines"
+
 msgid "Add Lines"
 msgstr "Add Lines"
 
@@ -1854,11 +1858,11 @@ msgstr "All members of selected groups and selected individuals will be able to 
 msgid "All open jobs"
 msgstr "All open jobs"
 
-msgid "All returnable lines"
-msgstr "All returnable lines"
-
 msgid "All required samples have been recorded."
 msgstr "All required samples have been recorded."
+
+msgid "All returnable lines"
+msgstr "All returnable lines"
 
 msgid "All rows imported — {inserted} inserted, {updated} updated."
 msgstr "All rows imported — {inserted} inserted, {updated} updated."
@@ -2399,11 +2403,8 @@ msgid "Are you sure you want to delete {0}?"
 msgstr "Are you sure you want to delete {0}?"
 
 #. placeholder {0}: document?.name
-#. placeholder {0}: initialValues.memoId
-#. placeholder {0}: initialValues.paymentId
 #. placeholder {0}: getQuoteDisplayId( routeData?.quote )
 #. placeholder {0}: getQuoteDisplayId( selectedQuotation )
-#. placeholder {0}: initialValues.memoId
 msgid "Are you sure you want to delete {0}? This cannot be undone."
 msgstr "Are you sure you want to delete {0}? This cannot be undone."
 
@@ -3187,11 +3188,12 @@ msgstr "Batch Number"
 msgid "Batch Properties"
 msgstr "Batch Properties"
 
+msgid "Batch Quantities"
+msgstr "Batch Quantities"
+
 #. placeholder {0}: selected.quantity
 msgid "Batch quantity: {0}"
 msgstr "Batch quantity: {0}"
-msgid "Batch Quantities"
-msgstr "Batch Quantities"
 
 msgid "Batch Size"
 msgstr "Batch Size"
@@ -3352,13 +3354,14 @@ msgstr "Books lock date (manual)"
 msgid "Both"
 msgstr "Both"
 
-msgid "Box Quantity"
-msgstr "Box Quantity"
 msgid "Both finishes compared against a date you choose."
 msgstr "Both finishes compared against a date you choose."
 
 msgid "Bottleneck"
 msgstr "Bottleneck"
+
+msgid "Box Quantity"
+msgstr "Box Quantity"
 
 msgid "Branch an editable copy of this version that you can change and publish."
 msgstr "Branch an editable copy of this version that you can change and publish."
@@ -3835,13 +3838,14 @@ msgstr "Changing type resets this item's draft edits."
 msgid "Characteristic"
 msgstr "Characteristic"
 
-msgid "Characteristics from this document will be used when inspecting lots of this part."
-msgstr "Characteristics from this document will be used when inspecting lots of this part."
 msgid "Characteristic values suggested from drawing"
 msgstr "Characteristic values suggested from drawing"
 
 msgid "Characteristics"
 msgstr "Characteristics"
+
+msgid "Characteristics from this document will be used when inspecting lots of this part."
+msgstr "Characteristics from this document will be used when inspecting lots of this part."
 
 msgid "Charges"
 msgstr "Charges"
@@ -5752,6 +5756,7 @@ msgstr "Declining balance"
 
 msgid "Dedicated Part"
 msgstr "Dedicated Part"
+
 msgid "Deep in the small hours, {name}."
 msgstr "Deep in the small hours, {name}."
 
@@ -9013,6 +9018,7 @@ msgstr "Host, secure, and back up the platform"
 
 msgid "hours"
 msgstr "hours"
+
 msgid "Hours"
 msgstr "Hours"
 
@@ -9388,6 +9394,7 @@ msgstr "In-Process Inspection Dependencies"
 
 msgid "In-Process Inspections"
 msgstr "In-Process Inspections"
+
 msgid "inactive"
 msgstr "inactive"
 
@@ -9523,6 +9530,7 @@ msgstr "Inspect Next Item"
 
 msgid "Inspect Next Sample"
 msgstr "Inspect Next Sample"
+
 msgid "Inspecting an item you received shows a warning."
 msgstr "Inspecting an item you received shows a warning."
 
@@ -10622,6 +10630,7 @@ msgstr "Lot"
 
 msgid "Lot Inspections"
 msgstr "Lot Inspections"
+
 msgid "Lot number"
 msgstr "Lot number"
 
@@ -10648,6 +10657,7 @@ msgstr "Low"
 
 msgid "Low life"
 msgstr "Low life"
+
 msgid "Lowercase item IDs are allowed"
 msgstr "Lowercase item IDs are allowed"
 
@@ -12258,6 +12268,7 @@ msgstr "No payments yet."
 
 msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
 msgstr "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
+
 msgid "No planned or recorded time."
 msgstr "No planned or recorded time."
 
@@ -12356,6 +12367,7 @@ msgstr "No samples inspected yet."
 
 msgid "No samples recorded yet."
 msgstr "No samples recorded yet."
+
 msgid "No scheduled work in this window"
 msgstr "No scheduled work in this window"
 
@@ -12560,11 +12572,11 @@ msgstr "Not set up"
 msgid "Not started"
 msgstr "Not started"
 
-msgid "Not working today"
-msgstr "Not working today"
-
 msgid "Not tracked"
 msgstr "Not tracked"
+
+msgid "Not working today"
+msgstr "Not working today"
 
 msgid "Not yet"
 msgstr "Not yet"
@@ -12665,6 +12677,7 @@ msgstr "of"
 
 msgid "Of"
 msgstr "Of"
+
 #. placeholder {0}: formatHours(baseHours)
 msgid "of {0}h"
 msgstr "of {0}h"
@@ -12708,10 +12721,11 @@ msgstr "On hand"
 msgid "On Hand"
 msgstr "On Hand"
 
-msgid "On hand:"
-msgstr "On hand:"
 msgid "On hand {before} to {after}"
 msgstr "On hand {before} to {after}"
+
+msgid "On hand:"
+msgstr "On hand:"
 
 msgid "On Hold"
 msgstr "On Hold"
@@ -13270,10 +13284,11 @@ msgstr "Overhead Variance"
 msgid "Overhead Variance (default)"
 msgstr "Overhead Variance (default)"
 
-msgid "overridden"
-msgstr "overridden"
 msgid "overloaded"
 msgstr "overloaded"
+
+msgid "overridden"
+msgstr "overridden"
 
 msgid "Override needs the inventory:update permission and a reason."
 msgstr "Override needs the inventory:update permission and a reason."
@@ -13405,10 +13420,11 @@ msgstr "Part ID"
 msgid "Part is configured for manufacturing"
 msgstr "Part is configured for manufacturing"
 
-msgid "Part name / Customer part number"
-msgstr "Part name / Customer part number"
 msgid "Part lead times update from posted purchase receipts."
 msgstr "Part lead times update from posted purchase receipts."
+
+msgid "Part name / Customer part number"
+msgstr "Part name / Customer part number"
 
 msgid "Part Number"
 msgstr "Part Number"
@@ -13439,6 +13455,7 @@ msgstr "Parts & items"
 
 msgid "Parts per Cycle"
 msgstr "Parts per Cycle"
+
 msgid "Parts run one after another — e.g. a saw or laser table."
 msgstr "Parts run one after another — e.g. a saw or laser table."
 
@@ -13576,11 +13593,9 @@ msgstr "Per piece"
 
 msgid "Per Piece"
 msgstr "Per Piece"
+
 msgid "Per unit"
 msgstr "Per unit"
-
-msgid "Per Unit"
-msgstr "Per Unit"
 
 msgid "Per-line override of the order header's fulfillment Location; used for split shipments and drop-ships."
 msgstr "Per-line override of the order header's fulfillment Location; used for split shipments and drop-ships."
@@ -14169,6 +14184,7 @@ msgstr "Produced At"
 
 msgid "Produced By"
 msgstr "Produced By"
+
 msgid "produced item"
 msgstr "produced item"
 
@@ -15023,6 +15039,7 @@ msgstr "Record inspections tied to a part and a job"
 
 msgid "Record the inspection result for this sample."
 msgstr "Record the inspection result for this sample."
+
 msgid "Record the payout of {displayId} to the employee. Pay less than the total due to settle it partially."
 msgstr "Record the payout of {displayId} to the employee. Pay less than the total due to settle it partially."
 
@@ -15198,9 +15215,6 @@ msgstr "Remaining after split stays on the original row."
 msgid "Remaining:"
 msgstr "Remaining:"
 
-msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
-msgstr "Remember this PIN. You will need it to exit console mode on MES terminals."
-
 msgid "Remove"
 msgstr "Remove"
 
@@ -15233,10 +15247,11 @@ msgstr "Remove {0} of {memberCount} operations from {1}?"
 msgid "Remove {label}"
 msgstr "Remove {label}"
 
-msgid "Remove batch"
-msgstr "Remove batch"
 msgid "Remove authenticator app"
 msgstr "Remove authenticator app"
+
+msgid "Remove batch"
+msgstr "Remove batch"
 
 msgid "Remove clause"
 msgstr "Remove clause"
@@ -15492,8 +15507,6 @@ msgstr "Required Date"
 msgid "Required for Lot Accept"
 msgstr "Required for Lot Accept"
 
-msgid "Required for permanent tools"
-msgstr "Required for permanent tools"
 msgid "Required in a controlled environment — audit logging cannot be turned off."
 msgstr "Required in a controlled environment — audit logging cannot be turned off."
 
@@ -16231,16 +16244,17 @@ msgstr "Save dimension settings"
 msgid "Save Method"
 msgstr "Save Method"
 
-msgid "Save Sample"
-msgstr "Save Sample"
-
-msgid "Save Tool Life Policy"
-msgstr "Save Tool Life Policy"
 msgid "Save Rate"
 msgstr "Save Rate"
 
+msgid "Save Sample"
+msgstr "Save Sample"
+
 msgid "Save the form you're editing"
 msgstr "Save the form you're editing"
+
+msgid "Save Tool Life Policy"
+msgstr "Save Tool Life Policy"
 
 msgid "Save view"
 msgstr "Save view"
@@ -16699,6 +16713,7 @@ msgstr "Select method..."
 
 msgid "Select open sales order lines to add to this shipment."
 msgstr "Select open sales order lines to add to this shipment."
+
 msgid "Select operation"
 msgstr "Select operation"
 
@@ -16994,9 +17009,6 @@ msgstr "Setup Map"
 msgid "Setup Rate"
 msgstr "Setup Rate"
 
-msgid "Setup Rate (Hourly)"
-msgstr "Setup Rate (Hourly)"
-
 msgid "Setup time"
 msgstr "Setup time"
 
@@ -17132,9 +17144,6 @@ msgstr "shipped"
 msgid "Shipped"
 msgstr "Shipped"
 
-msgid "Shipped"
-msgstr "Shipped"
-
 msgid "Shipped lines for this customer with quantity remaining to return"
 msgstr "Shipped lines for this customer with quantity remaining to return"
 
@@ -17265,12 +17274,6 @@ msgstr "Show All"
 
 msgid "Show all hidden on this step"
 msgstr "Show all hidden on this step"
-
-msgid "Show available batch numbers"
-msgstr "Show available batch numbers"
-
-msgid "Show available tracking numbers"
-msgstr "Show available tracking numbers"
 
 msgid "Show calculation"
 msgstr "Show calculation"
@@ -18530,9 +18533,6 @@ msgstr "The authorization was refused in Onshape. Save the integration settings 
 msgid "The authorization was refused in Onshape. Try connecting again."
 msgstr "The authorization was refused in Onshape. Try connecting again."
 
-#. placeholder {0}: inspection.sampleSize
-msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
-msgstr "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
 msgid "The authorization was refused in Ramp. Try connecting again."
 msgstr "The authorization was refused in Ramp. Try connecting again."
 
@@ -18547,6 +18547,10 @@ msgstr "The batch goes to the shop floor. Its jobs are already released."
 
 msgid "The batch runs at its most urgent member's time — the others are pulled early"
 msgstr "The batch runs at its most urgent member's time — the others are pulled early"
+
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
 
 msgid "The book of all posted journal lines, summed by account — written only when the company has accounting enabled."
 msgstr "The book of all posted journal lines, summed by account — written only when the company has accounting enabled."
@@ -19145,10 +19149,11 @@ msgstr "The SAML metadata URL published by your identity provider"
 msgid "The schedule used to spread this asset's cost over its useful life (straight-line, declining balance, units of production)."
 msgstr "The schedule used to spread this asset's cost over its useful life (straight-line, declining balance, units of production)."
 
-msgid "The selected PDF from the part's Files section will be attached to this inspection document."
-msgstr "The selected PDF from the part's Files section will be attached to this inspection document."
 msgid "The scheduler uses the first rule below that applies, then subtracts downtime and staffing."
 msgstr "The scheduler uses the first rule below that applies, then subtracts downtime and staffing."
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr "The selected PDF from the part's Files section will be attached to this inspection document."
 
 msgid "The shelves and bins where stock physically sits"
 msgstr "The shelves and bins where stock physically sits"
@@ -19888,6 +19893,7 @@ msgstr "Tool Life"
 
 msgid "Tool Life Policy History"
 msgstr "Tool Life Policy History"
+
 msgid "Tooling Cost"
 msgstr "Tooling Cost"
 
@@ -20208,6 +20214,7 @@ msgstr "U.S. Person Attestation"
 
 msgid "Un-sampled entities will remain On Hold so you can keep inspecting and disposition later. Sampled outcomes are preserved."
 msgstr "Un-sampled entities will remain On Hold so you can keep inspecting and disposition later. Sampled outcomes are preserved."
+
 msgid "Unable to unlock"
 msgstr "Unable to unlock"
 
@@ -21097,10 +21104,11 @@ msgstr "Voiding this receipt will:"
 msgid "Voiding this shipment will:"
 msgstr "Voiding this shipment will:"
 
-msgid "Waive"
-msgstr "Waive"
 msgid "Waited"
 msgstr "Waited"
+
+msgid "Waive"
+msgstr "Waive"
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."

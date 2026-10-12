@@ -15,11 +15,12 @@ msgstr ""
 msgid " · required for Lot"
 msgstr ""
 
+msgid "(Inactive)"
+msgstr "(비활성)"
+
 #. placeholder {0}: qty.targetParts
 msgid "{0}"
 msgstr ""
-msgid "(Inactive)"
-msgstr "(비활성)"
 
 #. placeholder {0}: attribute.name
 #. placeholder {1}: activeStep + 1
@@ -54,33 +55,17 @@ msgstr "{0} 전"
 msgid "{0} cycles"
 msgstr ""
 
-#. placeholder {0}: blockingRuns.length
-msgid "{0} In-Process run(s) open"
-msgstr ""
-
-#. placeholder {0}: serialIndex + 1
-#. placeholder {1}: operation.operationQuantity
-#. placeholder {0}: batchFacts.customers.length
-msgid "{0} customers"
-msgstr "{0} 고객"
-
 #. placeholder {0}: unplanned .map( (m) => (m.job as { jobId?: string | null } | null)?.jobId ) .filter(Boolean) .join(", ")
 msgid "{0} has no lot number. Set it on the batch or job in Carbon, then complete."
 msgstr "{0}에 로트 번호가 없습니다. Carbon에서 배치 또는 작업 지시에 설정한 다음 완료 처리하세요."
 
-#. placeholder {0}: batchFacts.items.length
-msgid "{0} items"
-msgstr "{0} 품목"
-
-#. placeholder {0}: (batch.operations ?? []).length
-msgid "{0} jobs"
-msgstr "{0} 작업 지시"
+#. placeholder {0}: blockingRuns.length
+msgid "{0} In-Process run(s) open"
+msgstr ""
 
 #. placeholder {0}: issuedLines.length
-#. placeholder {0}: operation.quantityComplete
 #. placeholder {0}: serialIndex + 1
 #. placeholder {1}: operation.operationQuantity
-#. placeholder {1}: operation.targetQuantity
 #. placeholder {1}: trackedLines.length
 msgid "{0} of {1}"
 msgstr "{1} 중 {0}"
@@ -108,14 +93,12 @@ msgstr "{0} 대기열"
 msgid "{0} running"
 msgstr "{0} 실행 중"
 
-#. placeholder {0}: operation.jobReadableId
-#. placeholder {1}: batch.readableId
-msgid "{0} runs in batch {1}"
-msgstr "{0}이 배치 {1}에서 실행"
-
 #. placeholder {0}: item.quantityScrapped
 msgid "{0} Scrapped"
 msgstr "{0} 스크랩됨"
+
+msgid "{completed} of {quantity}"
+msgstr "{completed} / {quantity}"
 
 msgid "{completedCycleCount} of {targetCycleCount} cycles"
 msgstr ""
@@ -125,8 +108,6 @@ msgstr ""
 
 msgid "{completedParts} of {targetParts} parts ({partsPerCycle} per cycle)"
 msgstr ""
-msgid "{completed} of {quantity}"
-msgstr "{completed} / {quantity}"
 
 msgid "{completions} passed unit(s) will be completed."
 msgstr "{completions}개의 통과 단위가 완료 처리될 예정입니다."
@@ -136,6 +117,7 @@ msgstr "{fails}개의 샘플 불량이 기록되었으며 완료되지 않습니
 
 msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
 msgstr ""
+
 #. placeholder {0}: step.perMember.length
 msgid "{recorded}/{0} jobs"
 msgstr "{recorded}/{0} 작업 지시"
@@ -145,8 +127,6 @@ msgstr "+{overflow} 더 보기"
 
 msgid "3D Model"
 msgstr ""
-msgid "A previous completion did not finish. Retrying resumes the remaining steps — quantities are not double-counted."
-msgstr "이전 완료가 완료되지 않았습니다. 다시 시도하면 남은 단계가 재개되며 — 수량이 중복으로 계산되지 않습니다."
 
 msgid "About"
 msgstr "정보"
@@ -270,14 +250,8 @@ msgstr "가용"
 msgid "Available"
 msgstr "가용"
 
-msgid "Back to batch"
-msgstr "배치로 돌아가기"
-
 msgid "Batch"
 msgstr "배치"
-
-msgid "Batch Details"
-msgstr "배치 상세정보"
 
 msgid "Batch is not available"
 msgstr "배치는 가용하지 않습니다"
@@ -289,14 +263,8 @@ msgstr "배치 번호 {0}"
 msgid "Batch number is required"
 msgstr "배치 번호가 필요합니다"
 
-msgid "Batch quantity"
-msgstr "배치 수량"
-
 msgid "batch total"
 msgstr "배치 총계"
-
-msgid "Behind target by {daysBehindTarget} day(s)"
-msgstr "목표에서 {daysBehindTarget}일 뒤짐"
 
 #. placeholder {0}: step.minValue
 #. placeholder {1}: step.maxValue
@@ -346,9 +314,6 @@ msgstr "채팅"
 
 msgid "Check your email"
 msgstr "이메일을 확인하세요"
-
-msgid "Choose a job"
-msgstr "작업 지시 선택"
 
 msgid "Clear"
 msgstr "지우기"
@@ -418,9 +383,6 @@ msgstr "완료"
 msgid "Complete All"
 msgstr "모두 완료"
 
-msgid "Complete batch"
-msgstr "배치 완료 처리"
-
 msgid "Complete Batch"
 msgstr "배치 완료"
 
@@ -429,9 +391,6 @@ msgstr "완료 처리 통과"
 
 msgid "Completed"
 msgstr "완료됨"
-
-msgid "Completing"
-msgstr "완료 처리 중"
 
 msgid "Connecting"
 msgstr "연결 중"
@@ -487,8 +446,6 @@ msgstr ""
 msgid "Cycles"
 msgstr ""
 
-msgid "Dark Mode"
-msgstr "다크 모드"
 msgid "Dark"
 msgstr "다크"
 
@@ -577,7 +534,7 @@ msgstr "기한"
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
 msgid "Due {0}"
 msgstr "기한 {0}"
 
@@ -737,10 +694,6 @@ msgstr "계정 설정을 완료하세요"
 msgid "Finish with material unpicked?"
 msgstr "미선택 재료가 있는 상태로 완료하시겠습니까?"
 
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(batchFacts.dueDate) )
-msgid "First due {0}"
-msgstr "첫 번째 기한 {0}"
-
 msgid "Fix the highlighted quantities before completing."
 msgstr "완료하기 전에 강조된 수량을 수정하세요."
 
@@ -759,13 +712,14 @@ msgstr "일반"
 msgid "Go back to operation"
 msgstr "공정작업으로 돌아가기"
 
-msgid "hours"
-msgstr ""
 msgid "Go to onboarding"
 msgstr "온보딩으로 이동"
 
 msgid "Hide description"
 msgstr "설명 숨기기"
+
+msgid "hours"
+msgstr ""
 
 msgid "How many were actually picked?"
 msgstr "실제로 몇 개를 피킹했습니까?"
@@ -845,7 +799,6 @@ msgid "Issue Type"
 msgstr "이슈 유형"
 
 msgid "Issued"
-msgstr ""
 msgstr "발급됨"
 
 msgid "Issued {issuedQuantity} of {lotLabel}"
@@ -904,6 +857,7 @@ msgstr ""
 
 msgid "Life remaining"
 msgstr ""
+
 msgid "Light"
 msgstr "라이트"
 
@@ -927,9 +881,6 @@ msgstr "로컬"
 
 msgid "Location"
 msgstr "위치"
-
-msgid "Log completed"
-msgstr "완료 기록"
 
 msgid "Log Completed"
 msgstr "완료 기록"
@@ -958,13 +909,14 @@ msgstr "로그인"
 msgid "Lot"
 msgstr "로트"
 
-msgid "Low"
-msgstr ""
 msgid "Lot numbers missing"
 msgstr "로트 번호 누락"
 
 msgid "Lot tracked"
 msgstr "로트 추적됨"
+
+msgid "Low"
+msgstr ""
 
 msgid "Machine"
 msgstr "기계"
@@ -1218,6 +1170,7 @@ msgstr "OEM 필요"
 
 msgid "Of"
 msgstr ""
+
 #. placeholder {0}: m.operationQuantity ?? 0
 msgid "of {0}"
 msgstr "/{0}"
@@ -1246,9 +1199,6 @@ msgstr "열림"
 
 msgid "Open a display on the screen mounted at the work center and leave it running. Each board refreshes on its own."
 msgstr "작업장에 설치된 화면에 디스플레이를 열고 계속 실행 상태로 두세요. 각 보드는 자동으로 새로고침됩니다."
-
-msgid "Open a job in this batch"
-msgstr "이 배치에서 작업 지시 열기"
 
 msgid "Open an NCR for MRB disposition"
 msgstr "MRB 처분 결정을 위해 NCR을 여세요"
@@ -1334,9 +1284,6 @@ msgstr "추적 품목 선택"
 msgid "Picked"
 msgstr "피킹됨"
 
-msgid "Picked as"
-msgstr "피킹 항목"
-
 msgid "Picked quantity"
 msgstr "피킹 수량"
 
@@ -1384,14 +1331,12 @@ msgstr "예방"
 
 msgid "Preview PDF"
 msgstr ""
+
 msgid "Previous step"
 msgstr "이전 단계"
 
 msgid "Print"
 msgstr "인쇄"
-
-msgid "Print batch list"
-msgstr "배치 목록 인쇄"
 
 msgid "Printer Settings"
 msgstr "프린터 설정"
@@ -1416,11 +1361,6 @@ msgstr "공정"
 
 msgid "Progress"
 msgstr "진행 상황"
-
-#. placeholder {0}: formatDate( projectedCompletionDate )
-#. placeholder {0}: formatDate(projectedCompletionDate)
-msgid "Proj. {0}"
-msgstr "예상. {0}"
 
 msgid "Quality Issue"
 msgstr "품질 이슈"
@@ -1471,9 +1411,6 @@ msgstr "거부"
 
 msgid "Reject Lot"
 msgstr "로트 거부"
-
-msgid "Released"
-msgstr "릴리스됨"
 
 msgid "Remove"
 msgstr "제거"
@@ -1629,13 +1566,14 @@ msgstr "품목을 선택하세요..."
 msgid "Select Batch {0}"
 msgstr "배치 {0} 선택"
 
+msgid "Select gauge"
+msgstr "계측기 선택"
+
 msgid "Select how many cycles to log as complete"
 msgstr ""
 
 msgid "Select how many cycles to log as scrap"
 msgstr ""
-msgid "Select gauge"
-msgstr "계측기 선택"
 
 msgid "Select Printer"
 msgstr "프린터 선택"
@@ -1759,10 +1697,6 @@ msgstr "사용된 예비 부품"
 msgid "Start"
 msgstr "시작"
 
-#. placeholder {0}: workTypeLabels[ eventType.toLowerCase() as keyof typeof workTypeLabels ].toLowerCase()
-msgid "Start {0}"
-msgstr "{0} 시작"
-
 msgid "Start or pause the operation"
 msgstr "공정을 시작하거나 일시 중지"
 
@@ -1845,10 +1779,6 @@ msgstr "로트는 통과로 표시되고 이 공정에서 남은 {remaining}개�
 msgid "The lot will still be dispositioned, but an NCR cannot be created until at least one Issue Type is configured."
 msgstr "로트는 여전히 처리되지만 최소한 하나의 Issue Type이 구성될 때까지 NCR을 생성할 수 없습니다."
 
-#. placeholder {0}: (batch.operations ?? []).length
-msgid "The timer and completion are shared by all {0} jobs. Steps, materials and files here are this job's own."
-msgstr "타이머와 완료는 모든 {0} 작업 지시에 공유됩니다. 여기의 단계, 자재 및 파일은 이 작업 지시의 것입니다."
-
 msgid "then"
 msgstr "그 다음"
 
@@ -1907,13 +1837,14 @@ msgstr "사이드바 전환"
 msgid "Tools"
 msgstr "공구"
 
+msgid "Total"
+msgstr "총계"
+
 msgid "Total Cycles"
 msgstr ""
 
 msgid "Total Parts"
 msgstr ""
-msgid "Total"
-msgstr "총계"
 
 msgid "Total Quantity"
 msgstr "총 수량"
@@ -2031,9 +1962,6 @@ msgstr "계정에 로그인할 수 있는 매직 링크를 보내드렸습니다
 
 msgid "What is {translatedTerm}?"
 msgstr "{translatedTerm}란 무엇인가요?"
-
-msgid "Whole batch"
-msgstr "전체 배치"
 
 msgid "WIP"
 msgstr "재공품"
