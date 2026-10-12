@@ -43,7 +43,6 @@ msgstr ""
 
 #. placeholder {0}: setupProgress.total
 msgid "\"{taskName}\" is done — all {0} of its Setup Map items are configured."
-msgstr ""
 msgstr "\"{taskName}\" está feito — todos os {0} itens do seu Mapa de Setup estão configurados."
 
 msgid "(excluded for this customer)"
@@ -520,6 +519,7 @@ msgstr "0-4 semanas"
 
 msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
 msgstr ""
+
 msgid "1 batchable operation is not in a batch — it runs individually until batched"
 msgstr "1 operação agrupável não está em um lote de produção — ela é executada individualmente até ser agrupada"
 
@@ -986,7 +986,6 @@ msgid "A reusable, versioned set of work instructions attached to a process, giv
 msgstr ""
 
 msgid "A routing step on a released job, the job's own copy of an operation, carrying a status the floor drives from Todo through Done."
-msgstr ""
 msgstr "Uma etapa de roteiro em uma ordem de produção liberada, a cópia da ordem de uma operação, carregando um status que o piso dirige de Todo até Feito."
 
 msgid "A sales invoice (you bill a customer) or purchase invoice (a supplier bills you), settled by applying payments and credit or debit memos."
@@ -1149,7 +1148,6 @@ msgid "A taxable surcharge (handling, setup, fuel) added to the line; rolls into
 msgstr "Uma sobretaxa tributável (manuseio, setup, combustível) adicionada à linha; é incluída na base tributária."
 
 msgid "A timed record of Setup, Labor, or Machine work logged against a job operation, whose duration rolls up into the operation's actual cost."
-msgstr ""
 msgstr "Um registro cronometrado de trabalho de Setup, Mão de obra ou Máquina registrado em uma operação da ordem, cuja duração é acumulada no custo real da operação."
 
 msgid "A tool is a physical item used to make a part that can be used across multiple jobs"
@@ -1417,6 +1415,7 @@ msgstr "Adicionar"
 #. placeholder {0}: selectedLineIds.size
 msgid "Add {0} lines"
 msgstr ""
+
 #. placeholder {0}: selected.length
 msgid "Add {0} operations"
 msgstr "Adicionar {0} operações"
@@ -1435,7 +1434,6 @@ msgid "Add a comment..."
 msgstr "Adicione um comentário..."
 
 msgid "Add a custom pricing row to override quantity, price, shipping, lead time, and tax"
-msgstr ""
 msgstr "Adicionar uma linha de precificação personalizada para substituir quantidade, preço, envio, lead time e imposto"
 
 msgid "Add a domain"
@@ -1492,10 +1490,11 @@ msgstr "Adicione qualquer observação sobre sua decisão..."
 msgid "Add Approval Requirement"
 msgstr "Adicionar Requisito de Aprovação"
 
-msgid "Add batch ({remainingQuantity} remaining)"
-msgstr ""
 msgid "Add Authenticator App"
 msgstr "Adicionar Aplicação Autenticadora"
+
+msgid "Add batch ({remainingQuantity} remaining)"
+msgstr ""
 
 msgid "Add Calibration Record"
 msgstr "Adicionar Registro de Calibração"
@@ -1565,6 +1564,7 @@ msgstr "Adicionar Item de Linha"
 
 msgid "Add lines"
 msgstr ""
+
 msgid "Add Lines"
 msgstr "Adicionar Linhas"
 
@@ -1837,7 +1837,6 @@ msgid "All gauges"
 msgstr "Todos os instrumentos de medição"
 
 msgid "All item types"
-msgstr ""
 msgstr "Todos os tipos de item"
 
 msgid "All items"
@@ -1859,11 +1858,11 @@ msgstr "Todos os membros dos grupos selecionados e indivíduos selecionados pode
 msgid "All open jobs"
 msgstr "Todas as Ordens de produção abertas"
 
-msgid "All returnable lines"
-msgstr "Todas as linhas devolvíveis"
-
 msgid "All required samples have been recorded."
 msgstr ""
+
+msgid "All returnable lines"
+msgstr "Todas as linhas devolvíveis"
 
 msgid "All rows imported — {inserted} inserted, {updated} updated."
 msgstr "Todas as linhas importadas — {inserted} inseridas, {updated} atualizadas."
@@ -2328,9 +2327,6 @@ msgstr "Tem certeza de que deseja cancelar {0}? Será fechado e somente leitura 
 msgid "Are you sure you want to cancel {0}? This will also cancel all related supplier quotes."
 msgstr "Tem a certeza de que deseja cancelar {0}? Isto também cancelará todas as cotações de fornecedores relacionadas."
 
-#. placeholder {0}: routeData?.purchaseOrder?.purchaseOrderId ?? "this purchase order"
-msgid "Are you sure you want to cancel {0}? This will close the order."
-msgstr ""
 msgid "Are you sure you want to cancel {orderLabel}? This will close the order."
 msgstr "Tem certeza de que deseja cancelar {orderLabel}? Isso fechará o pedido."
 
@@ -2407,11 +2403,8 @@ msgid "Are you sure you want to delete {0}?"
 msgstr "Tem certeza de que deseja excluir {0}?"
 
 #. placeholder {0}: document?.name
-#. placeholder {0}: initialValues.memoId
-#. placeholder {0}: initialValues.paymentId
 #. placeholder {0}: getQuoteDisplayId( routeData?.quote )
 #. placeholder {0}: getQuoteDisplayId( selectedQuotation )
-#. placeholder {0}: initialValues.memoId
 msgid "Are you sure you want to delete {0}? This cannot be undone."
 msgstr "Tem certeza de que deseja excluir {0}? Isto não pode ser desfeito."
 
@@ -3008,6 +3001,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "Formatos de numeração automática para pedidos, ordens de produção, peças e muito mais"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "Sugerir automaticamente compras de demanda e pontos de ressuprimento"
 
@@ -3195,11 +3191,12 @@ msgstr "Número do Lote"
 msgid "Batch Properties"
 msgstr "Propriedades em Lote"
 
+msgid "Batch Quantities"
+msgstr "Quantidades de Lote"
+
 #. placeholder {0}: selected.quantity
 msgid "Batch quantity: {0}"
 msgstr ""
-msgid "Batch Quantities"
-msgstr "Quantidades de Lote"
 
 msgid "Batch Size"
 msgstr "Tamanho do Lote"
@@ -3360,13 +3357,14 @@ msgstr "Data de bloqueio de livros (manual)"
 msgid "Both"
 msgstr "Ambos"
 
-msgid "Box Quantity"
-msgstr ""
 msgid "Both finishes compared against a date you choose."
 msgstr "Ambas as datas de conclusão comparadas com a data que você escolher."
 
 msgid "Bottleneck"
 msgstr "Gargalo"
+
+msgid "Box Quantity"
+msgstr ""
 
 msgid "Branch an editable copy of this version that you can change and publish."
 msgstr "Ramifique uma cópia editável desta versão que você pode alterar e publicar."
@@ -3561,7 +3559,6 @@ msgid "Cancel Order"
 msgstr ""
 
 msgid "Cancel Purchase Order"
-msgstr ""
 msgstr "Cancelar Pedido de compra"
 
 msgid "Cancel Return"
@@ -3842,7 +3839,7 @@ msgid "Changing type resets this item's draft edits."
 msgstr "Alterar o tipo redefine as edições em rascunho deste item."
 
 msgid "Characteristic"
-msgstr "Característica"
+msgstr ""
 
 msgid "Characteristic values suggested from drawing"
 msgstr "Valores de característica sugeridos do desenho"
@@ -3850,17 +3847,14 @@ msgstr "Valores de característica sugeridos do desenho"
 msgid "Characteristics"
 msgstr "Características"
 
+msgid "Characteristics from this document will be used when inspecting lots of this part."
+msgstr ""
+
 msgid "Charges"
 msgstr "Cobranças"
 
 msgid "Chart"
 msgstr "Gráfico"
-
-msgid "Characteristic"
-msgstr ""
-
-msgid "Characteristics from this document will be used when inspecting lots of this part."
-msgstr ""
 
 msgid "Chart of accounts"
 msgstr "Plano de contas"
@@ -4095,6 +4089,9 @@ msgstr "Recolher Configuração"
 
 msgid "Collapse subtree"
 msgstr "Recolher subárvore"
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "Dimensão da coluna"
@@ -5287,10 +5284,6 @@ msgid "Credit account when overhead is absorbed into WIP"
 msgstr ""
 
 msgid "Credit accounts used when manufacturing costs are absorbed into WIP"
-msgstr ""
-msgstr "Conta contábil de crédito quando custos indiretos são absorvidos em Produto em processo"
-
-msgid "Credit accounts used when manufacturing costs are absorbed into WIP"
 msgstr "Contas contábeis de crédito usadas quando custos de manufatura são absorvidos em Produto em processo"
 
 msgid "Credit amounts are in company base currency ({currency}). Credits take effect when this payment posts."
@@ -5769,6 +5762,7 @@ msgstr "Saldo Decrescente"
 
 msgid "Dedicated Part"
 msgstr ""
+
 msgid "Deep in the small hours, {name}."
 msgstr "Bem na madrugada, {name}."
 
@@ -5800,7 +5794,6 @@ msgid "Default accounts for tax-related transactions"
 msgstr "Contas padrão para transações relacionadas a impostos"
 
 msgid "Default accounts for the cost of goods sold and indirect purchases"
-msgstr ""
 msgstr "Contas contábeis padrão para custo dos produtos vendidos e compras indiretas"
 
 msgid "Default Approver"
@@ -5977,7 +5970,6 @@ msgid "Delete Contractor"
 msgstr "Excluir terceirizado"
 
 msgid "Delete Count"
-msgstr ""
 msgstr "Excluir contagem"
 
 msgid "Delete Custom Field"
@@ -6194,7 +6186,6 @@ msgid "Delete Suggestion"
 msgstr "Excluir Sugestão"
 
 msgid "Delete supplier"
-msgstr ""
 msgstr "Excluir fornecedor"
 
 msgid "Delete Supplier"
@@ -6211,7 +6202,6 @@ msgstr "Excluir Tipo de fornecedor"
 
 #. placeholder {0}: pendingDelete.quantity
 msgid "Delete the price break for quantity {0}? This can't be undone."
-msgstr ""
 msgstr "Excluir a faixa de preço para quantidade {0}? Isso não pode ser desfeito."
 
 msgid "Delete this sub-assembly and all of its steps? This cannot be undone."
@@ -6421,6 +6411,12 @@ msgstr "Direção"
 msgid "Directions"
 msgstr "Direções"
 
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Desativado"
 
@@ -6610,7 +6606,6 @@ msgid "Download Labels"
 msgstr "Baixar Etiquetas"
 
 msgid "Download Link"
-msgstr ""
 msgstr "Link de download"
 
 msgid "Download PDF"
@@ -7288,8 +7283,14 @@ msgstr "Lista vazia"
 msgid "Empty work centers"
 msgstr "Centros de trabalho vazios"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "Ative o registro de auditoria nas configurações para começar a rastrear alterações nos seus dados."
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "Ative cotações digitais para sua empresa. Isso permitirá que você envie cotações digitais para seus clientes e permita que eles as aceitem online."
@@ -7430,7 +7431,7 @@ msgstr "Contacto de Engenharia"
 msgid "Enroll"
 msgstr ""
 
-msgid "Enroll this company in the Implementation Hub"
+msgid "Enroll ID"
 msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
@@ -8703,7 +8704,6 @@ msgid "Getting set up"
 msgstr "Configurando"
 
 msgid "Give it an owner and a date"
-msgstr ""
 msgstr "Dê a ele um responsável e uma data"
 
 msgid "GL"
@@ -8737,7 +8737,6 @@ msgid "GL account credited when labor or machine cost is absorbed into a product
 msgstr "Conta contábil creditada quando o custo de mão de obra ou máquina é absorvido em uma ordem de produção."
 
 msgid "GL account credited when manufacturing overhead is absorbed into a production job."
-msgstr ""
 msgstr "Conta contábil creditada quando custos indiretos de manufatura são absorvidos em uma ordem de produção."
 
 msgid "GL account debited to clear accumulated depreciation when an asset is disposed."
@@ -9040,6 +9039,7 @@ msgstr "Hospedar, proteger e fazer backup da plataforma"
 
 msgid "hours"
 msgstr ""
+
 msgid "Hours"
 msgstr "Horas"
 
@@ -9284,7 +9284,6 @@ msgid "If ordered today — placed behind everything already released."
 msgstr "Se encomendado hoje — colocado atrás de tudo já liberado."
 
 msgid "If ordered, no stockout projected in the next 48 weeks"
-msgstr ""
 msgstr "Se houver pedido emitido, nenhuma ruptura de estoque projetada nas próximas 48 semanas"
 
 msgid "If something is off track"
@@ -9416,6 +9415,7 @@ msgstr ""
 
 msgid "In-Process Inspections"
 msgstr ""
+
 msgid "inactive"
 msgstr "inativo"
 
@@ -9551,6 +9551,7 @@ msgstr "Inspecionar Próximo Item"
 
 msgid "Inspect Next Sample"
 msgstr ""
+
 msgid "Inspecting an item you received shows a warning."
 msgstr "Inspecionar um item que você recebeu mostra um aviso."
 
@@ -10050,7 +10051,6 @@ msgid "Job Materials"
 msgstr "Materiais da ordem"
 
 msgid "Job operation"
-msgstr ""
 msgstr "Operação da ordem"
 
 msgid "Job Operation"
@@ -10268,6 +10268,9 @@ msgstr ""
 msgid "Last Run"
 msgstr "Última execução"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "Última sincronização: <0/>"
 
@@ -10413,7 +10416,6 @@ msgid "Likelihood"
 msgstr "Probabilidade"
 
 msgid "Line"
-msgstr ""
 msgstr "Linha"
 
 #. placeholder {0}: line.lineNumber
@@ -10652,6 +10654,7 @@ msgstr "Lote"
 
 msgid "Lot Inspections"
 msgstr ""
+
 msgid "Lot number"
 msgstr "Número de lote"
 
@@ -10678,6 +10681,7 @@ msgstr "Baixo"
 
 msgid "Low life"
 msgstr ""
+
 msgid "Lowercase item IDs are allowed"
 msgstr "IDs de itens em minúsculas são permitidos"
 
@@ -12288,6 +12292,7 @@ msgstr "Nenhum pagamento ainda."
 
 msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
 msgstr ""
+
 msgid "No planned or recorded time."
 msgstr "Nenhum tempo planejado ou registrado."
 
@@ -12386,6 +12391,7 @@ msgstr "Nenhuma amostra inspecionada ainda."
 
 msgid "No samples recorded yet."
 msgstr ""
+
 msgid "No scheduled work in this window"
 msgstr "Nenhum trabalho programado nesta janela"
 
@@ -12590,11 +12596,11 @@ msgstr "Não configurado"
 msgid "Not started"
 msgstr "Não iniciado"
 
-msgid "Not working today"
-msgstr "Não está trabalhando hoje"
-
 msgid "Not tracked"
 msgstr ""
+
+msgid "Not working today"
+msgstr "Não está trabalhando hoje"
 
 msgid "Not yet"
 msgstr "Ainda não"
@@ -12695,6 +12701,7 @@ msgstr "de"
 
 msgid "Of"
 msgstr ""
+
 #. placeholder {0}: formatHours(baseHours)
 msgid "of {0}h"
 msgstr "de {0}h"
@@ -12738,10 +12745,11 @@ msgstr "Em mão"
 msgid "On Hand"
 msgstr "Em Mãos"
 
-msgid "On hand:"
-msgstr ""
 msgid "On hand {before} to {after}"
 msgstr "Em mão: de {before} para {after}"
+
+msgid "On hand:"
+msgstr ""
 
 msgid "On Hold"
 msgstr "Suspenso"
@@ -12830,7 +12838,6 @@ msgid "One system from quote to cash"
 msgstr "Um único sistema de orçamento até caixa"
 
 msgid "Only Draft procedures are editable. Create a new version to change an Active or Archived procedure."
-msgstr ""
 msgstr "Apenas os procedimentos em Rascunho são editáveis. Crie uma nova versão para alterar um procedimento Ativo ou Arquivado."
 
 msgid "Only empty, open periods can be deleted."
@@ -13284,10 +13291,6 @@ msgid "Overhead Absorption"
 msgstr ""
 
 msgid "Overhead Absorption (default)"
-msgstr ""
-msgstr "Absorção de custos indiretos"
-
-msgid "Overhead Absorption (default)"
 msgstr "Absorção de custos indiretos (padrão)"
 
 msgid "Overhead rate"
@@ -13476,6 +13479,7 @@ msgstr "Peças e itens"
 
 msgid "Parts per Cycle"
 msgstr ""
+
 msgid "Parts run one after another — e.g. a saw or laser table."
 msgstr "Peças executadas uma após a outra — p.ex. uma serra ou mesa laser."
 
@@ -13613,11 +13617,9 @@ msgstr ""
 
 msgid "Per Piece"
 msgstr ""
+
 msgid "Per unit"
 msgstr "Por unidade"
-
-msgid "Per Unit"
-msgstr "Por Unidade"
 
 msgid "Per-line override of the order header's fulfillment Location; used for split shipments and drop-ships."
 msgstr "Sobrescrita por linha do local de expedição do cabeçalho do pedido; usada para remessas divididas e entregas diretas."
@@ -14206,6 +14208,7 @@ msgstr ""
 
 msgid "Produced By"
 msgstr ""
+
 msgid "produced item"
 msgstr "item produzido"
 
@@ -14327,8 +14330,6 @@ msgstr "Projeção"
 msgid "Projections"
 msgstr "Projeções"
 
-msgid "Promised"
-msgstr ""
 msgid "Projects"
 msgstr "Projetos"
 
@@ -14352,6 +14353,9 @@ msgstr "Correspondências propostas onde o número da conta Carbon é exatamente
 
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "Correspondências propostas onde o nome do valor da dimensão Carbon é exatamente igual a um nome de opção de provedor."
+
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
 
 msgid "Protect the go-live date"
 msgstr "Proteja a data de ativação"
@@ -15062,6 +15066,7 @@ msgstr "Registar inspeções vinculadas a uma peça e um trabalho"
 
 msgid "Record the inspection result for this sample."
 msgstr ""
+
 msgid "Record the payout of {displayId} to the employee. Pay less than the total due to settle it partially."
 msgstr "Registre o desembolso de {displayId} para o funcionário. Pague menos do total devido para liquidar parcialmente."
 
@@ -15237,9 +15242,6 @@ msgstr "Restante após divisão permanece na linha original."
 msgid "Remaining:"
 msgstr ""
 
-msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
-msgstr "Lembre-se deste PIN. Você precisará dele para sair do modo console nos terminais MES."
-
 msgid "Remove"
 msgstr "Remover"
 
@@ -15272,10 +15274,11 @@ msgstr "Remover {0} de {memberCount} operações de {1}?"
 msgid "Remove {label}"
 msgstr "Remover {label}"
 
-msgid "Remove batch"
-msgstr ""
 msgid "Remove authenticator app"
 msgstr "Remover aplicação autenticadora"
+
+msgid "Remove batch"
+msgstr ""
 
 msgid "Remove clause"
 msgstr "Remover cláusula"
@@ -15405,7 +15408,6 @@ msgid "Reordering Policy"
 msgstr "Política de ressuprimento"
 
 msgid "Reorders dispatch sequence and work center only — does not reschedule. Change dates on the Dates board."
-msgstr ""
 msgstr "Reordena apenas a sequência de despacho e centro de trabalho — não reagenda. Altere as datas no painel de datas."
 
 msgid "Repeats once for each item in {inputLabel}"
@@ -15459,6 +15461,9 @@ msgstr "Repreçar com as regras e custos de hoje fornece <0>{0}</0>."
 
 msgid "Reprint"
 msgstr "Reimprimir"
+
+msgid "Reprocess"
+msgstr ""
 
 msgid "Request a new invite"
 msgstr "Solicitar um novo convite"
@@ -15529,14 +15534,11 @@ msgstr "Ações Obrigatórias (em ordem)"
 msgid "Required Date"
 msgstr "Data de necessidade"
 
-msgid "Required in a controlled environment — audit logging cannot be turned off."
-msgstr "Obrigatório num ambiente controlado — o registo de auditoria não pode ser desativado."
-
 msgid "Required for Lot Accept"
 msgstr ""
 
-msgid "Required for permanent tools"
-msgstr ""
+msgid "Required in a controlled environment — audit logging cannot be turned off."
+msgstr "Obrigatório num ambiente controlado — o registo de auditoria não pode ser desativado."
 
 msgid "Requirement"
 msgstr "Requisito"
@@ -16272,16 +16274,17 @@ msgstr "Salvar configurações de dimensão"
 msgid "Save Method"
 msgstr "Salvar Método"
 
-msgid "Save Sample"
-msgstr ""
-
-msgid "Save Tool Life Policy"
-msgstr ""
 msgid "Save Rate"
 msgstr "Salvar taxa"
 
+msgid "Save Sample"
+msgstr ""
+
 msgid "Save the form you're editing"
 msgstr "Salvar o formulário que você está editando"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save view"
 msgstr "Salvar visualização"
@@ -16334,8 +16337,6 @@ msgstr ""
 #. placeholder {0}: samplesRemaining ?? 0
 msgid "Scan or select the batch and record each sample result. {0} of {sampleSize} required samples remaining."
 msgstr ""
-msgid "Scan or select a tracked entity from this lot to add it as a sample column, then record its result in the grid."
-msgstr "Escanear ou selecionar uma entidade rastreada deste lote para adicioná-la como coluna de amostra, depois registre seu resultado na grade."
 
 msgid "Scan this QR code with your authenticator app (e.g. Google Authenticator or 1Password), then enter the 6-digit code it shows."
 msgstr "Escanear este código QR com seu aplicativo autenticador (por exemplo, Google Authenticator ou 1Password), depois insira o código de 6 dígitos que ele exibe."
@@ -16742,6 +16743,7 @@ msgstr "Selecione método..."
 
 msgid "Select open sales order lines to add to this shipment."
 msgstr ""
+
 msgid "Select operation"
 msgstr "Selecionar operação"
 
@@ -17037,9 +17039,6 @@ msgstr "Mapa de Configuração"
 msgid "Setup Rate"
 msgstr ""
 
-msgid "Setup Rate (Hourly)"
-msgstr ""
-
 msgid "Setup time"
 msgstr "Tempo de setup"
 
@@ -17173,8 +17172,6 @@ msgid "shipped"
 msgstr ""
 
 msgid "Shipped"
-msgstr ""
-msgid "Shipped"
 msgstr "Enviado"
 
 msgid "Shipped lines for this customer with quantity remaining to return"
@@ -17307,12 +17304,6 @@ msgstr "Mostrar tudo"
 
 msgid "Show all hidden on this step"
 msgstr "Mostrar todos os ocultos nesta etapa"
-
-msgid "Show available batch numbers"
-msgstr "Mostrar números de lote de produção disponíveis"
-
-msgid "Show available tracking numbers"
-msgstr "Mostrar números de rastreamento disponíveis"
 
 msgid "Show calculation"
 msgstr "Mostrar cálculo"
@@ -18166,7 +18157,6 @@ msgid "Supplier Payment Discounts (default)"
 msgstr "Descontos de Pagamento do Fornecedor (padrão)"
 
 msgid "Supplier Prepayments"
-msgstr ""
 msgstr "Adiantamentos do fornecedor"
 
 msgid "supplier process"
@@ -18532,13 +18522,11 @@ msgstr "Esse nome já está sendo usado por outra etapa."
 
 #. placeholder {0}: i18n._(step.title)
 msgid "The \"{0}\" phase checks itself off once all of its tasks in the project plan are done."
-msgstr ""
 msgstr "A fase \"{0}\" marca-se como concluída assim que todas as suas tarefas no plano do projeto forem concluídas."
 
 #. placeholder {0}: i18n._(step.title)
 #. placeholder {1}: i18n._(step.gate)
 msgid "The \"{0}\" phase is done — its \"{1}\" checkpoint has been passed."
-msgstr ""
 msgstr "A fase \"{0}\" está concluída — seu ponto de verificação \"{1}\" foi aprovado."
 
 #. placeholder {0}: steps.length
@@ -18575,9 +18563,6 @@ msgstr "A autorização foi recusada no Onshape. Salve as configurações de int
 msgid "The authorization was refused in Onshape. Try connecting again."
 msgstr "A autorização foi recusada no Onshape. Tente conectar novamente."
 
-#. placeholder {0}: inspection.sampleSize
-msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
-msgstr ""
 msgid "The authorization was refused in Ramp. Try connecting again."
 msgstr "A autorização foi recusada no Ramp. Tente conectar novamente."
 
@@ -18592,6 +18577,10 @@ msgstr "O lote de produção vai para o chão de fábrica. Suas ordens de produ�
 
 msgid "The batch runs at its most urgent member's time — the others are pulled early"
 msgstr "O lote é executado no prazo do membro mais urgente — os demais são adiantados"
+
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr ""
 
 msgid "The book of all posted journal lines, summed by account — written only when the company has accounting enabled."
 msgstr "O livro de todas as linhas de diário registradas, somadas por conta – escrito apenas quando a contabilidade está habilitada para a empresa."
@@ -18807,7 +18796,6 @@ msgid "The following line items are missing prices or lead times:"
 msgstr "Os seguintes itens de linha estão sem preços ou lead times:"
 
 msgid "The following tasks are not done yet:"
-msgstr ""
 msgstr "As seguintes tarefas ainda não estão feitas:"
 
 msgid "The forms and shapes your raw materials come in"
@@ -19191,10 +19179,11 @@ msgstr "O URL de metadados SAML publicado por seu provedor de identidade"
 msgid "The schedule used to spread this asset's cost over its useful life (straight-line, declining balance, units of production)."
 msgstr "O cronograma usado para distribuir o custo deste ativo durante sua vida útil (linha reta, saldo decrescente, unidades de produção)."
 
-msgid "The selected PDF from the part's Files section will be attached to this inspection document."
-msgstr ""
 msgid "The scheduler uses the first rule below that applies, then subtracts downtime and staffing."
 msgstr "O agendador usa a primeira regra abaixo que se aplica e depois subtrai o tempo de parada e a disponibilidade de pessoal."
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The shelves and bins where stock physically sits"
 msgstr "As prateleiras e compartimentos onde o estoque fica fisicamente"
@@ -19332,7 +19321,6 @@ msgid "The unique identifier on this physical unit; one row per serial, quantity
 msgstr "O identificador único nesta unidade física; uma linha por número de série, a quantidade é sempre 1."
 
 msgid "The unit a routing time is expressed in, such as Hours/Piece or Total Hours, telling Carbon whether the time scales with quantity or is fixed per run."
-msgstr ""
 msgstr "A unidade em que o tempo de roteiro de produção é expresso, como Horas/Peça ou Horas Totais, informando ao Carbon se o tempo escala com a quantidade ou é fixo por execução."
 
 msgid "The unit price of the item at the time of the purchase"
@@ -19485,7 +19473,6 @@ msgid "This counterparty has nothing outstanding — the payment will be recorde
 msgstr "Este terceiro não tem nada pendente — o pagamento será registrado em conta."
 
 msgid "This download link is invalid or has been tampered with."
-msgstr ""
 msgstr "Este link de download é inválido ou foi adulterado."
 
 msgid "This file is no longer available, or you don't have permission to download it."
@@ -19574,7 +19561,6 @@ msgid "This may take a moment. Hang tight."
 msgstr ""
 
 msgid "This method version is read-only. Create a new version from the method menu to make changes."
-msgstr ""
 msgstr "Esta versão do método é somente leitura. Crie uma nova versão no menu de métodos para fazer alterações."
 
 msgid "This Month"
@@ -19824,6 +19810,9 @@ msgstr "Apontamentos desativados"
 msgid "Timecards are enabled"
 msgstr "Apontamentos ativados"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "Cronômetro em execução"
 
@@ -19937,6 +19926,7 @@ msgstr ""
 
 msgid "Tool Life Policy History"
 msgstr ""
+
 msgid "Tooling Cost"
 msgstr "Custo de Ferramentação"
 
@@ -20257,6 +20247,7 @@ msgstr "Atestação de Pessoa dos EUA"
 
 msgid "Un-sampled entities will remain On Hold so you can keep inspecting and disposition later. Sampled outcomes are preserved."
 msgstr ""
+
 msgid "Unable to unlock"
 msgstr "Incapaz de desbloquear"
 
@@ -20399,6 +20390,9 @@ msgid "Unmapped dimension values"
 msgstr "Valores de dimensão não mapeados"
 
 msgid "Unmapped Extracted Lines"
+msgstr ""
+
+msgid "Unmapped punches"
 msgstr ""
 
 msgid "Unmapped values"
@@ -20983,7 +20977,6 @@ msgid "View missing values"
 msgstr "Ver valores ausentes"
 
 msgid "View notes"
-msgstr ""
 msgstr "Ver Observações"
 
 msgid "View on schedule board"

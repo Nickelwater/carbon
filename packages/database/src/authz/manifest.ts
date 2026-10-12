@@ -1511,6 +1511,8 @@ export const manifest = {
     ),
     delete: inCompany("companyId", "people_delete")
   }),
+  timeClockDevice: company("people"),
+  timeClockPunch: company("people"),
   tool: company("parts"),
   // Fork: tool-life ledger — view with parts_view; append with parts_update only.
   toolLifeLedger: company("parts", {

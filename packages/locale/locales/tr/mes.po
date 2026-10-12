@@ -15,11 +15,12 @@ msgstr ""
 msgid " · required for Lot"
 msgstr ""
 
+msgid "(Inactive)"
+msgstr "(Pasif)"
+
 #. placeholder {0}: qty.targetParts
 msgid "{0}"
 msgstr ""
-msgid "(Inactive)"
-msgstr "(Pasif)"
 
 #. placeholder {0}: attribute.name
 #. placeholder {1}: activeStep + 1
@@ -54,33 +55,17 @@ msgstr "{0} önce"
 msgid "{0} cycles"
 msgstr ""
 
-#. placeholder {0}: blockingRuns.length
-msgid "{0} In-Process run(s) open"
-msgstr ""
-
-#. placeholder {0}: serialIndex + 1
-#. placeholder {1}: operation.operationQuantity
-#. placeholder {0}: batchFacts.customers.length
-msgid "{0} customers"
-msgstr "{0} müşteri"
-
 #. placeholder {0}: unplanned .map( (m) => (m.job as { jobId?: string | null } | null)?.jobId ) .filter(Boolean) .join(", ")
 msgid "{0} has no lot number. Set it on the batch or job in Carbon, then complete."
 msgstr "{0} Lot numarasına sahip değil. Bunu Carbon'da Partide veya İş emrinde ayarla, sonra Tamamla."
 
-#. placeholder {0}: batchFacts.items.length
-msgid "{0} items"
-msgstr "{0} stok kartı"
-
-#. placeholder {0}: (batch.operations ?? []).length
-msgid "{0} jobs"
-msgstr "{0} iş emri"
+#. placeholder {0}: blockingRuns.length
+msgid "{0} In-Process run(s) open"
+msgstr ""
 
 #. placeholder {0}: issuedLines.length
-#. placeholder {0}: operation.quantityComplete
 #. placeholder {0}: serialIndex + 1
 #. placeholder {1}: operation.operationQuantity
-#. placeholder {1}: operation.targetQuantity
 #. placeholder {1}: trackedLines.length
 msgid "{0} of {1}"
 msgstr "{0} adet {1}"
@@ -108,14 +93,12 @@ msgstr "{0} kuyrukta"
 msgid "{0} running"
 msgstr "{0} çalışıyor"
 
-#. placeholder {0}: operation.jobReadableId
-#. placeholder {1}: batch.readableId
-msgid "{0} runs in batch {1}"
-msgstr "{0} çalıştırma Parti {1} içinde"
-
 #. placeholder {0}: item.quantityScrapped
 msgid "{0} Scrapped"
 msgstr "{0} Hurdaya Çıkarılmış"
+
+msgid "{completed} of {quantity}"
+msgstr "{completed} / {quantity}"
 
 msgid "{completedCycleCount} of {targetCycleCount} cycles"
 msgstr ""
@@ -125,8 +108,6 @@ msgstr ""
 
 msgid "{completedParts} of {targetParts} parts ({partsPerCycle} per cycle)"
 msgstr ""
-msgid "{completed} of {quantity}"
-msgstr "{completed} / {quantity}"
 
 msgid "{completions} passed unit(s) will be completed."
 msgstr "{completions} geçti birim(ler) tamamlanacak."
@@ -136,6 +117,7 @@ msgstr "{fails} örnek hata(ları) kaydedildi ve tamamlanmayacak — bunları i�
 
 msgid "{partsPerCycle} parts per cycle · {targetCycleCount} cycles required for {requiredParts} parts"
 msgstr ""
+
 #. placeholder {0}: step.perMember.length
 msgid "{recorded}/{0} jobs"
 msgstr "{recorded}/{0} iş emirleri"
@@ -145,8 +127,6 @@ msgstr "+{overflow} daha fazla"
 
 msgid "3D Model"
 msgstr ""
-msgid "A previous completion did not finish. Retrying resumes the remaining steps — quantities are not double-counted."
-msgstr "Önceki bir tamamlanma işlemi bitmedi. Yeniden deneme kalan adımları devam ettirir — miktarlar çifte sayılmaz."
 
 msgid "About"
 msgstr "Hakkında"
@@ -270,14 +250,8 @@ msgstr "kullanılabilir"
 msgid "Available"
 msgstr "Kullanılabilir"
 
-msgid "Back to batch"
-msgstr "Partiye geri dön"
-
 msgid "Batch"
 msgstr "Parti"
-
-msgid "Batch Details"
-msgstr "Parti Detayları"
 
 msgid "Batch is not available"
 msgstr "Parti kullanılabilir değil"
@@ -289,14 +263,8 @@ msgstr "Lot Numarası {0}"
 msgid "Batch number is required"
 msgstr "Lot numarası zorunludur"
 
-msgid "Batch quantity"
-msgstr "Parti miktarı"
-
 msgid "batch total"
 msgstr "parti toplamı"
-
-msgid "Behind target by {daysBehindTarget} day(s)"
-msgstr "Hedeften {daysBehindTarget} gün geride"
 
 #. placeholder {0}: step.minValue
 #. placeholder {1}: step.maxValue
@@ -346,9 +314,6 @@ msgstr "Sohbet"
 
 msgid "Check your email"
 msgstr "E-postanızı kontrol edin"
-
-msgid "Choose a job"
-msgstr "İş emri seç"
 
 msgid "Clear"
 msgstr "Temizle"
@@ -418,9 +383,6 @@ msgstr "Tamamla"
 msgid "Complete All"
 msgstr "Tümünü Tamamla"
 
-msgid "Complete batch"
-msgstr "Partiyi tamamla"
-
 msgid "Complete Batch"
 msgstr "Partiyi Tamamla"
 
@@ -429,9 +391,6 @@ msgstr "Tamamlanan geçti"
 
 msgid "Completed"
 msgstr "Tamamlandı"
-
-msgid "Completing"
-msgstr "Tamamlanıyor"
 
 msgid "Connecting"
 msgstr "Bağlanıyor"
@@ -487,8 +446,6 @@ msgstr ""
 msgid "Cycles"
 msgstr ""
 
-msgid "Dark Mode"
-msgstr "Karanlık Mod"
 msgid "Dark"
 msgstr "Koyu"
 
@@ -577,7 +534,7 @@ msgstr "Vade"
 
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
 #. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(operation.jobDueDate) )
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString( operation.operationDueDate ) )
+#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(item.dueDate) )
 msgid "Due {0}"
 msgstr "Süresi dolacak {0}"
 
@@ -737,10 +694,6 @@ msgstr "Hesabınızı ayarlamayı tamamlayın"
 msgid "Finish with material unpicked?"
 msgstr "Malzeme seçilmeden bitir?"
 
-#. placeholder {0}: formatRelativeTime( convertDateStringToIsoString(batchFacts.dueDate) )
-msgid "First due {0}"
-msgstr "İlk vade {0}"
-
 msgid "Fix the highlighted quantities before completing."
 msgstr "Tamamlamadan önce vurgulanan miktarları düzeltin."
 
@@ -759,13 +712,14 @@ msgstr "Genel"
 msgid "Go back to operation"
 msgstr "İşleme geri dön"
 
-msgid "hours"
-msgstr ""
 msgid "Go to onboarding"
 msgstr "Başlangıç adımına git"
 
 msgid "Hide description"
 msgstr "Açıklamayı gizle"
+
+msgid "hours"
+msgstr ""
 
 msgid "How many were actually picked?"
 msgstr "Gerçekte kaç tane alındı?"
@@ -845,7 +799,6 @@ msgid "Issue Type"
 msgstr "Sorun Türü"
 
 msgid "Issued"
-msgstr ""
 msgstr "Verilen"
 
 msgid "Issued {issuedQuantity} of {lotLabel}"
@@ -904,6 +857,7 @@ msgstr ""
 
 msgid "Life remaining"
 msgstr ""
+
 msgid "Light"
 msgstr "Açık"
 
@@ -927,9 +881,6 @@ msgstr "Yerel"
 
 msgid "Location"
 msgstr "Konum"
-
-msgid "Log completed"
-msgstr "Tamamlandı kaydı"
 
 msgid "Log Completed"
 msgstr "Tamamlandı Olarak Kaydet"
@@ -958,13 +909,14 @@ msgstr "Giriş Yap"
 msgid "Lot"
 msgstr "Lot"
 
-msgid "Low"
-msgstr ""
 msgid "Lot numbers missing"
 msgstr "Lot numaraları eksik"
 
 msgid "Lot tracked"
 msgstr "Lot izlendi"
+
+msgid "Low"
+msgstr ""
 
 msgid "Machine"
 msgstr "Makine"
@@ -1216,12 +1168,12 @@ msgstr "OEE Etkisi"
 msgid "OEM Required"
 msgstr "OEM Gerekli"
 
+msgid "Of"
+msgstr ""
+
 #. placeholder {0}: m.operationQuantity ?? 0
 msgid "of {0}"
 msgstr "/{0}"
-
-msgid "Of"
-msgstr ""
 
 msgid "Oldest first"
 msgstr "En eski önce"
@@ -1247,9 +1199,6 @@ msgstr "Açık"
 
 msgid "Open a display on the screen mounted at the work center and leave it running. Each board refreshes on its own."
 msgstr "İş merkezine yerleştirilmiş ekranda bir ekran açın ve çalışır durumda bırakın. Her pano kendi kendine yenilenir."
-
-msgid "Open a job in this batch"
-msgstr "Bu partizeki bir iş emrini aç"
 
 msgid "Open an NCR for MRB disposition"
 msgstr "MRB kararı için NCR aç"
@@ -1335,9 +1284,6 @@ msgstr "Takip edilen öğeyi seç"
 msgid "Picked"
 msgstr "Alındı"
 
-msgid "Picked as"
-msgstr "Toplandı olarak"
-
 msgid "Picked quantity"
 msgstr "Alınan miktar"
 
@@ -1385,14 +1331,12 @@ msgstr "Önleyici"
 
 msgid "Preview PDF"
 msgstr ""
+
 msgid "Previous step"
 msgstr "Önceki adım"
 
 msgid "Print"
 msgstr "Yazdır"
-
-msgid "Print batch list"
-msgstr "Yazdır parti listesini"
 
 msgid "Printer Settings"
 msgstr "Yazıcı Ayarları"
@@ -1417,11 +1361,6 @@ msgstr "Süreçler"
 
 msgid "Progress"
 msgstr "İlerleme"
-
-#. placeholder {0}: formatDate( projectedCompletionDate )
-#. placeholder {0}: formatDate(projectedCompletionDate)
-msgid "Proj. {0}"
-msgstr "Proj. {0}"
 
 msgid "Quality Issue"
 msgstr "Kalite Sorunu"
@@ -1472,9 +1411,6 @@ msgstr "Reddet"
 
 msgid "Reject Lot"
 msgstr "Lotu Reddet"
-
-msgid "Released"
-msgstr "Serbest bırakıldı"
 
 msgid "Remove"
 msgstr "Kaldır"
@@ -1630,13 +1566,14 @@ msgstr "Bir ürün seçin..."
 msgid "Select Batch {0}"
 msgstr "Seçilecek Parti {0}"
 
+msgid "Select gauge"
+msgstr "Ölçüm aleti seç"
+
 msgid "Select how many cycles to log as complete"
 msgstr ""
 
 msgid "Select how many cycles to log as scrap"
 msgstr ""
-msgid "Select gauge"
-msgstr "Ölçüm aleti seç"
 
 msgid "Select Printer"
 msgstr "Yazıcı Seç"
@@ -1760,10 +1697,6 @@ msgstr "Kullanılan Yedek Parçalar"
 msgid "Start"
 msgstr "Başlat"
 
-#. placeholder {0}: workTypeLabels[ eventType.toLowerCase() as keyof typeof workTypeLabels ].toLowerCase()
-msgid "Start {0}"
-msgstr "Başlat {0}"
-
 msgid "Start or pause the operation"
 msgstr "Operasyonu başlat veya duraklat"
 
@@ -1846,10 +1779,6 @@ msgstr "Lot Geçti olarak işaretlenecek ve {remaining} kalan birim bu operasyon
 msgid "The lot will still be dispositioned, but an NCR cannot be created until at least one Issue Type is configured."
 msgstr "Lot yine de işleme tabi tutulacak, ancak en az bir Sorun Türü yapılandırılana kadar bir NCR oluşturulamaz."
 
-#. placeholder {0}: (batch.operations ?? []).length
-msgid "The timer and completion are shared by all {0} jobs. Steps, materials and files here are this job's own."
-msgstr "Zamanlayıcı ve tamamlama tüm {0} iş emirleri tarafından paylaşılır. Buradaki adımlar, malzemeler ve dosyalar bu iş emrinin kendisinindir."
-
 msgid "then"
 msgstr "sonra"
 
@@ -1908,13 +1837,14 @@ msgstr "Kenar çubuğunu aç/kapat"
 msgid "Tools"
 msgstr "Araçlar"
 
+msgid "Total"
+msgstr "Toplam"
+
 msgid "Total Cycles"
 msgstr ""
 
 msgid "Total Parts"
 msgstr ""
-msgid "Total"
-msgstr "Toplam"
 
 msgid "Total Quantity"
 msgstr "Toplam Miktar"
@@ -2032,9 +1962,6 @@ msgstr "Hesabınıza giriş yapmak için size bir sihirli bağlantı gönderdik.
 
 msgid "What is {translatedTerm}?"
 msgstr "{translatedTerm} nedir?"
-
-msgid "Whole batch"
-msgstr "Tüm Parti"
 
 msgid "WIP"
 msgstr "Yarı Mamul"

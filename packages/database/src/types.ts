@@ -14240,6 +14240,7 @@ export type Database = {
           companyId: string
           customFields: Json | null
           departmentId: string | null
+          enrollId: string | null
           id: string
           locationId: string
           managerId: string | null
@@ -14254,6 +14255,7 @@ export type Database = {
           companyId: string
           customFields?: Json | null
           departmentId?: string | null
+          enrollId?: string | null
           id: string
           locationId: string
           managerId?: string | null
@@ -14268,6 +14270,7 @@ export type Database = {
           companyId?: string
           customFields?: Json | null
           departmentId?: string | null
+          enrollId?: string | null
           id?: string
           locationId?: string
           managerId?: string | null
@@ -64764,6 +64767,249 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "userDefaults"
             referencedColumns: ["userId"]
+          }
+        ]
+      }
+      timeClockDevice: {
+        Row: {
+          autoPoll: boolean
+          companyId: string
+          createdAt: string
+          createdBy: string
+          enabled: boolean
+          firmware: string | null
+          id: string
+          lastRegAt: string | null
+          lastSeenAt: string | null
+          modelName: string | null
+          name: string | null
+          pollIntervalSeconds: number
+          serialNumber: string
+          updatedAt: string | null
+          updatedBy: string | null
+        }
+        Insert: {
+          autoPoll?: boolean
+          companyId: string
+          createdAt?: string
+          createdBy: string
+          enabled?: boolean
+          firmware?: string | null
+          id?: string
+          lastRegAt?: string | null
+          lastSeenAt?: string | null
+          modelName?: string | null
+          name?: string | null
+          pollIntervalSeconds?: number
+          serialNumber: string
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Update: {
+          autoPoll?: boolean
+          companyId?: string
+          createdAt?: string
+          createdBy?: string
+          enabled?: boolean
+          firmware?: string | null
+          id?: string
+          lastRegAt?: string | null
+          lastSeenAt?: string | null
+          modelName?: string | null
+          name?: string | null
+          pollIntervalSeconds?: number
+          serialNumber?: string
+          updatedAt?: string | null
+          updatedBy?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeClockDevice_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_createdBy_fkey"
+            columns: ["createdBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeeSummary"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "employeesAcrossCompanies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "user"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockDevice_updatedBy_fkey"
+            columns: ["updatedBy"]
+            isOneToOne: false
+            referencedRelation: "userDefaults"
+            referencedColumns: ["userId"]
+          }
+        ]
+      }
+      timeClockPunch: {
+        Row: {
+          companyId: string
+          createdAt: string
+          deviceId: string
+          employeeId: string | null
+          enrollId: string
+          error: string | null
+          event: number
+          id: string
+          inout: number | null
+          mode: number
+          punchedAt: string
+          raw: Json
+          serialNumber: string
+          status: string
+          timeCardEntryId: string | null
+        }
+        Insert: {
+          companyId: string
+          createdAt?: string
+          deviceId: string
+          employeeId?: string | null
+          enrollId: string
+          error?: string | null
+          event?: number
+          id?: string
+          inout?: number | null
+          mode?: number
+          punchedAt: string
+          raw: Json
+          serialNumber: string
+          status?: string
+          timeCardEntryId?: string | null
+        }
+        Update: {
+          companyId?: string
+          createdAt?: string
+          deviceId?: string
+          employeeId?: string | null
+          enrollId?: string
+          error?: string | null
+          event?: number
+          id?: string
+          inout?: number | null
+          mode?: number
+          punchedAt?: string
+          raw?: Json
+          serialNumber?: string
+          status?: string
+          timeCardEntryId?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "timeClockPunch_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockPunch_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "company"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "timeClockPunch_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "customFieldTables"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "timeClockPunch_companyId_fkey"
+            columns: ["companyId"]
+            isOneToOne: false
+            referencedRelation: "integrations"
+            referencedColumns: ["companyId"]
+          },
+          {
+            foreignKeyName: "timeClockPunch_deviceId_companyId_fkey"
+            columns: ["deviceId", "companyId"]
+            isOneToOne: false
+            referencedRelation: "timeClockDevice"
+            referencedColumns: ["id", "companyId"]
           }
         ]
       }

@@ -519,6 +519,7 @@ msgstr "0-4주"
 
 msgid "1 = full operator per run hour; 0 = unattended; 2 = two operators"
 msgstr ""
+
 msgid "1 batchable operation is not in a batch — it runs individually until batched"
 msgstr "1개 배치 가능한 공정은 배치에 포함되지 않음 — 배치될 때까지 개별적으로 실행됨"
 
@@ -1414,6 +1415,7 @@ msgstr "추가"
 #. placeholder {0}: selectedLineIds.size
 msgid "Add {0} lines"
 msgstr ""
+
 #. placeholder {0}: selected.length
 msgid "Add {0} operations"
 msgstr "{0}개 공정 추가"
@@ -1488,10 +1490,11 @@ msgstr "결정에 대한 메모를 추가하세요..."
 msgid "Add Approval Requirement"
 msgstr "승인 요구사항 추가"
 
-msgid "Add batch ({remainingQuantity} remaining)"
-msgstr ""
 msgid "Add Authenticator App"
 msgstr "인증 앱 추가"
+
+msgid "Add batch ({remainingQuantity} remaining)"
+msgstr ""
 
 msgid "Add Calibration Record"
 msgstr "교정 기록 추가"
@@ -1561,6 +1564,7 @@ msgstr "라인 항목 추가"
 
 msgid "Add lines"
 msgstr ""
+
 msgid "Add Lines"
 msgstr "라인 추가"
 
@@ -1854,11 +1858,11 @@ msgstr "선택한 그룹의 모든 구성원과 선택한 개인이 요청을 �
 msgid "All open jobs"
 msgstr "모든 미결 작업 지시"
 
-msgid "All returnable lines"
-msgstr "모든 반품 가능 라인"
-
 msgid "All required samples have been recorded."
 msgstr ""
+
+msgid "All returnable lines"
+msgstr "모든 반품 가능 라인"
 
 msgid "All rows imported — {inserted} inserted, {updated} updated."
 msgstr "모든 행을 가져왔습니다 — {inserted}개 추가, {updated}개 업데이트."
@@ -2399,11 +2403,8 @@ msgid "Are you sure you want to delete {0}?"
 msgstr "{0}을(를) 삭제하시겠습니까?"
 
 #. placeholder {0}: document?.name
-#. placeholder {0}: initialValues.memoId
-#. placeholder {0}: initialValues.paymentId
 #. placeholder {0}: getQuoteDisplayId( routeData?.quote )
 #. placeholder {0}: getQuoteDisplayId( selectedQuotation )
-#. placeholder {0}: initialValues.memoId
 msgid "Are you sure you want to delete {0}? This cannot be undone."
 msgstr "{0}을(를) 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다."
 
@@ -3000,6 +3001,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "주문, 작업 지시, 부품 등의 자동 번호 지정 형식"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "소요량 및 재주문점에서 구매를 자동 제안합니다"
 
@@ -3187,11 +3191,12 @@ msgstr "배치 번호"
 msgid "Batch Properties"
 msgstr "배치 속성"
 
+msgid "Batch Quantities"
+msgstr "배치 수량"
+
 #. placeholder {0}: selected.quantity
 msgid "Batch quantity: {0}"
 msgstr ""
-msgid "Batch Quantities"
-msgstr "배치 수량"
 
 msgid "Batch Size"
 msgstr "배치 크기"
@@ -3352,13 +3357,14 @@ msgstr "장부 잠금 날짜(수동)"
 msgid "Both"
 msgstr "모두"
 
-msgid "Box Quantity"
-msgstr ""
 msgid "Both finishes compared against a date you choose."
 msgstr "두 완료 날짜를 선택한 날짜와 비교합니다."
 
 msgid "Bottleneck"
 msgstr "병목"
+
+msgid "Box Quantity"
+msgstr ""
 
 msgid "Branch an editable copy of this version that you can change and publish."
 msgstr "이 버전의 편집 가능한 복사본을 분기하여 변경 및 게시할 수 있습니다."
@@ -3835,14 +3841,13 @@ msgstr "유형을 변경하면 이 항목의 초안 편집이 재설정됩니다
 msgid "Characteristic"
 msgstr ""
 
-msgid "Characteristics from this document will be used when inspecting lots of this part."
-msgstr ""
-msgstr "특성"
-
 msgid "Characteristic values suggested from drawing"
 msgstr "도면에서 제안된 특성 값"
 
 msgid "Characteristics"
+msgstr "특성"
+
+msgid "Characteristics from this document will be used when inspecting lots of this part."
 msgstr "특성"
 
 msgid "Charges"
@@ -4084,6 +4089,9 @@ msgstr "셋업 접기"
 
 msgid "Collapse subtree"
 msgstr "하위 트리 접기"
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "열 차원"
@@ -5754,6 +5762,7 @@ msgstr "정률법"
 
 msgid "Dedicated Part"
 msgstr ""
+
 msgid "Deep in the small hours, {name}."
 msgstr "{name}님, 한밤중이군요."
 
@@ -6401,6 +6410,12 @@ msgstr "방향"
 
 msgid "Directions"
 msgstr "방향"
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
 
 msgid "Disabled"
 msgstr "비활성화됨"
@@ -7268,8 +7283,14 @@ msgstr "빈 목록"
 msgid "Empty work centers"
 msgstr "빈 작업장"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "데이터 변경 사항 추적을 시작하려면 설정에서 감사 로깅을 활성화하세요."
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "회사의 디지털 견적서를 활성화하세요. 이렇게 하면 고객에게 디지털 견적서를 보낼 수 있으며, 고객이 온라인에서 수락할 수 있습니다."
@@ -7409,6 +7430,9 @@ msgstr "엔지니어링 담당자"
 
 msgid "Enroll"
 msgstr "등록"
+
+msgid "Enroll ID"
+msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
 msgstr "만료일을 설정하기 전에 배치 번호를 입력하세요."
@@ -9015,6 +9039,7 @@ msgstr "플랫폼 호스팅, 보안, 백업"
 
 msgid "hours"
 msgstr ""
+
 msgid "Hours"
 msgstr "시간"
 
@@ -9390,6 +9415,7 @@ msgstr ""
 
 msgid "In-Process Inspections"
 msgstr ""
+
 msgid "inactive"
 msgstr "비활성"
 
@@ -9525,6 +9551,7 @@ msgstr "다음 품목 검사"
 
 msgid "Inspect Next Sample"
 msgstr ""
+
 msgid "Inspecting an item you received shows a warning."
 msgstr "받은 품목을 검사하면 경고가 표시됩니다."
 
@@ -10241,6 +10268,9 @@ msgstr "지난 분기"
 msgid "Last Run"
 msgstr "마지막 실행"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "마지막 동기화: <0/>"
 
@@ -10386,14 +10416,11 @@ msgid "Likelihood"
 msgstr "발생 가능성"
 
 msgid "Line"
-msgstr "라인"
+msgstr ""
 
 #. placeholder {0}: line.lineNumber
 msgid "Line {0}"
 msgstr "라인 {0}"
-
-msgid "Line"
-msgstr ""
 
 msgid "Line description (optional)"
 msgstr "행 설명 (선택 사항)"
@@ -10627,6 +10654,7 @@ msgstr "로트"
 
 msgid "Lot Inspections"
 msgstr ""
+
 msgid "Lot number"
 msgstr "로트 번호"
 
@@ -10653,6 +10681,7 @@ msgstr "낮음"
 
 msgid "Low life"
 msgstr ""
+
 msgid "Lowercase item IDs are allowed"
 msgstr "소문자 항목 ID는 허용됩니다"
 
@@ -12261,11 +12290,11 @@ msgstr "매입채무가 없습니다"
 msgid "No payments yet."
 msgstr "아직 지불이 없습니다."
 
-msgid "No planned or recorded time."
-msgstr "계획되거나 기록된 시간이 없습니다."
-
 msgid "No PDF files found in this part's Files section. Upload a PDF on the part first, or create the document without a file and upload one later."
 msgstr ""
+
+msgid "No planned or recorded time."
+msgstr "계획되거나 기록된 시간이 없습니다."
 
 msgid "No planning data"
 msgstr "계획 데이터가 없습니다"
@@ -12362,6 +12391,7 @@ msgstr "아직 검사된 샘플이 없습니다."
 
 msgid "No samples recorded yet."
 msgstr ""
+
 msgid "No scheduled work in this window"
 msgstr "이 시간대에 스케줄된 작업이 없습니다"
 
@@ -12566,11 +12596,11 @@ msgstr "설정되지 않음"
 msgid "Not started"
 msgstr "시작되지 않음"
 
-msgid "Not working today"
-msgstr "오늘 근무하지 않음"
-
 msgid "Not tracked"
 msgstr ""
+
+msgid "Not working today"
+msgstr "오늘 근무하지 않음"
 
 msgid "Not yet"
 msgstr "아직 아님"
@@ -12671,6 +12701,7 @@ msgstr "중"
 
 msgid "Of"
 msgstr ""
+
 #. placeholder {0}: formatHours(baseHours)
 msgid "of {0}h"
 msgstr "{0}h 중"
@@ -12714,10 +12745,11 @@ msgstr "보유수량"
 msgid "On Hand"
 msgstr "보유수량"
 
-msgid "On hand:"
-msgstr ""
 msgid "On hand {before} to {after}"
 msgstr "보유수량: {before}에서 {after}(으)로"
+
+msgid "On hand:"
+msgstr ""
 
 msgid "On Hold"
 msgstr "보류"
@@ -13276,10 +13308,11 @@ msgstr "제조간접비 차이"
 msgid "Overhead Variance (default)"
 msgstr "제조간접비 차이(기본값)"
 
-msgid "overridden"
-msgstr ""
 msgid "overloaded"
 msgstr "과부하"
+
+msgid "overridden"
+msgstr ""
 
 msgid "Override needs the inventory:update permission and a reason."
 msgstr "재정의는 inventory:update 권한과 사유가 필요합니다."
@@ -13411,10 +13444,11 @@ msgstr "품목 ID"
 msgid "Part is configured for manufacturing"
 msgstr "제조용으로 설정된 품목입니다"
 
-msgid "Part name / Customer part number"
-msgstr ""
 msgid "Part lead times update from posted purchase receipts."
 msgstr "부품 리드타임은 전기된 구매 입고에서 업데이트됩니다."
+
+msgid "Part name / Customer part number"
+msgstr ""
 
 msgid "Part Number"
 msgstr "부품 번호"
@@ -13443,14 +13477,14 @@ msgstr "부품"
 msgid "Parts & items"
 msgstr "부품 & 품목"
 
+msgid "Parts per Cycle"
+msgstr ""
+
 msgid "Parts run one after another — e.g. a saw or laser table."
 msgstr "부품은 차례대로 실행됩니다 — 예: 톱 또는 레이저 테이블."
 
 msgid "Parts run together in one load — e.g. a furnace, oven, or plating bath."
 msgstr "부품은 한 로드에서 함께 실행됩니다 — 예: 용광로, 오븐 또는 도금 욕조."
-
-msgid "Parts per Cycle"
-msgstr ""
 
 msgid "Parts, materials, and how you classify them."
 msgstr "부품, 자재 및 이를 분류하는 방법."
@@ -13572,9 +13606,6 @@ msgstr "인원"
 msgid "People"
 msgstr "인원"
 
-msgid "Per unit"
-msgstr "개당"
-
 msgid "Per cycle"
 msgstr ""
 
@@ -13586,6 +13617,9 @@ msgstr ""
 
 msgid "Per Piece"
 msgstr ""
+
+msgid "Per unit"
+msgstr "개당"
 
 msgid "Per-line override of the order header's fulfillment Location; used for split shipments and drop-ships."
 msgstr "주문 헤더의 출하 사업장에 대한 라인별 재정의; 분할 출하 및 직송에 사용됨."
@@ -14174,6 +14208,7 @@ msgstr ""
 
 msgid "Produced By"
 msgstr ""
+
 msgid "produced item"
 msgstr "생산된 품목"
 
@@ -14295,8 +14330,6 @@ msgstr "예측"
 msgid "Projections"
 msgstr "예측"
 
-msgid "Promised"
-msgstr ""
 msgid "Projects"
 msgstr "프로젝트"
 
@@ -14320,6 +14353,9 @@ msgstr "Carbon 계정 번호가 공급자 계정 코드와 정확히 일치하�
 
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "Carbon 차원 값의 이름이 제공자 옵션 이름과 정확히 일치하는 제안된 일치 항목입니다."
+
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
 
 msgid "Protect the go-live date"
 msgstr "도입일을 사수하세요"
@@ -15030,6 +15066,7 @@ msgstr "품목과 작업에 연결된 검사를 기록"
 
 msgid "Record the inspection result for this sample."
 msgstr ""
+
 msgid "Record the payout of {displayId} to the employee. Pay less than the total due to settle it partially."
 msgstr "{displayId}의 지불을 직원에게 기록하세요. 부분적으로 결제하려면 총 미결액보다 적게 지불하세요."
 
@@ -15205,9 +15242,6 @@ msgstr "분할 후 남은 수량은 원래 행에 유지됩니다."
 msgid "Remaining:"
 msgstr ""
 
-msgid "Remember this PIN. You will need it to exit console mode on MES terminals."
-msgstr "이 PIN을 기억해 두세요. MES 단말기에서 콘솔 모드를 종료할 때 필요합니다."
-
 msgid "Remove"
 msgstr "제거"
 
@@ -15240,10 +15274,11 @@ msgstr "{1}에서 {memberCount}개 공정 중 {0}개를 제거하시겠습니까
 msgid "Remove {label}"
 msgstr "제거 {label}"
 
-msgid "Remove batch"
-msgstr ""
 msgid "Remove authenticator app"
 msgstr "인증 앱 제거"
+
+msgid "Remove batch"
+msgstr ""
 
 msgid "Remove clause"
 msgstr "절 제거"
@@ -15427,6 +15462,9 @@ msgstr "오늘의 규칙 및 원가로 가격을 다시 책정하면 <0>{0}</0>�
 msgid "Reprint"
 msgstr "재출력"
 
+msgid "Reprocess"
+msgstr ""
+
 msgid "Request a new invite"
 msgstr "새 초대권 요청"
 
@@ -15496,14 +15534,11 @@ msgstr "필수 조치(순서대로)"
 msgid "Required Date"
 msgstr "소요일"
 
-msgid "Required in a controlled environment — audit logging cannot be turned off."
-msgstr "통제된 환경에서 필수입니다 — 감사 로깅을 끌 수 없습니다."
-
 msgid "Required for Lot Accept"
 msgstr ""
 
-msgid "Required for permanent tools"
-msgstr ""
+msgid "Required in a controlled environment — audit logging cannot be turned off."
+msgstr "통제된 환경에서 필수입니다 — 감사 로깅을 끌 수 없습니다."
 
 msgid "Requirement"
 msgstr "요구사항"
@@ -16239,16 +16274,17 @@ msgstr "차원 설정 저장"
 msgid "Save Method"
 msgstr "저장 방법"
 
-msgid "Save Sample"
-msgstr ""
-
-msgid "Save Tool Life Policy"
-msgstr ""
 msgid "Save Rate"
 msgstr "환율 저장"
 
+msgid "Save Sample"
+msgstr ""
+
 msgid "Save the form you're editing"
 msgstr "편집 중인 양식 저장"
+
+msgid "Save Tool Life Policy"
+msgstr ""
 
 msgid "Save view"
 msgstr "보기 저장"
@@ -16301,8 +16337,6 @@ msgstr ""
 #. placeholder {0}: samplesRemaining ?? 0
 msgid "Scan or select the batch and record each sample result. {0} of {sampleSize} required samples remaining."
 msgstr ""
-msgid "Scan or select a tracked entity from this lot to add it as a sample column, then record its result in the grid."
-msgstr "이 로트에서 추적 대상을 스캔하거나 선택하여 표본 열로 추가한 후, 그리드에 그 결과를 기록하세요."
 
 msgid "Scan this QR code with your authenticator app (e.g. Google Authenticator or 1Password), then enter the 6-digit code it shows."
 msgstr "인증 앱(예: Google Authenticator 또는 1Password)으로 이 QR 코드를 스캔한 후 표시된 6자리 코드를 입력하세요."
@@ -16709,6 +16743,7 @@ msgstr "방법 선택..."
 
 msgid "Select open sales order lines to add to this shipment."
 msgstr ""
+
 msgid "Select operation"
 msgstr "작업 선택"
 
@@ -17004,9 +17039,6 @@ msgstr "설정 맵"
 msgid "Setup Rate"
 msgstr ""
 
-msgid "Setup Rate (Hourly)"
-msgstr ""
-
 msgid "Setup time"
 msgstr "셋업 시간"
 
@@ -17140,8 +17172,6 @@ msgid "shipped"
 msgstr ""
 
 msgid "Shipped"
-msgstr ""
-msgid "Shipped"
 msgstr "배송됨"
 
 msgid "Shipped lines for this customer with quantity remaining to return"
@@ -17274,12 +17304,6 @@ msgstr "모두 표시"
 
 msgid "Show all hidden on this step"
 msgstr "이 단계에서 모두 숨김 표시"
-
-msgid "Show available batch numbers"
-msgstr "가용 배치 번호 표시"
-
-msgid "Show available tracking numbers"
-msgstr "가용 추적 번호 표시"
 
 msgid "Show calculation"
 msgstr "계산 표시"
@@ -18539,9 +18563,6 @@ msgstr "Onshape에서 인증이 거부되었습니다. 연동 설정을 저장�
 msgid "The authorization was refused in Onshape. Try connecting again."
 msgstr "Onshape에서 인증이 거부되었습니다. 다시 연결해 보세요."
 
-#. placeholder {0}: inspection.sampleSize
-msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
-msgstr ""
 msgid "The authorization was refused in Ramp. Try connecting again."
 msgstr "Ramp에서 인증이 거부되었습니다. 다시 연결해 보세요."
 
@@ -18556,6 +18577,10 @@ msgstr "배치가 현장으로 이동합니다. 포함된 작업 지시들은 �
 
 msgid "The batch runs at its most urgent member's time — the others are pulled early"
 msgstr "배치는 가장 급한 항목의 일정에 맞춰 실행되며 나머지는 앞당겨집니다"
+
+#. placeholder {0}: inspection.sampleSize
+msgid "The batch will be released to Available. {inspected} sample(s) were recorded against the required {0}."
+msgstr ""
 
 msgid "The book of all posted journal lines, summed by account — written only when the company has accounting enabled."
 msgstr "모든 전기된 전표 라인의 기록으로 계정별로 집계되며 회사의 회계가 활성화되었을 때만 작성됩니다."
@@ -19154,10 +19179,11 @@ msgstr "신원 공급자가 게시한 SAML 메타데이터 URL"
 msgid "The schedule used to spread this asset's cost over its useful life (straight-line, declining balance, units of production)."
 msgstr "이 자산의 원가를 내용연수에 걸쳐 배분하는 데 사용되는 상각 스케줄입니다(정액법, 정률법, 생산량비례법)."
 
-msgid "The selected PDF from the part's Files section will be attached to this inspection document."
-msgstr ""
 msgid "The scheduler uses the first rule below that applies, then subtracts downtime and staffing."
 msgstr "스케줄러는 아래에 적용되는 첫 번째 규칙을 사용한 다음, 비가동 시간 및 인원을 뺍니다."
+
+msgid "The selected PDF from the part's Files section will be attached to this inspection document."
+msgstr ""
 
 msgid "The shelves and bins where stock physically sits"
 msgstr "재고가 실제로 보관되는 선반과 빈(bin)"
@@ -19784,6 +19810,9 @@ msgstr "타임카드가 비활성화됨"
 msgid "Timecards are enabled"
 msgstr "타임카드가 활성화됨"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "타이머 실행 중"
 
@@ -19897,6 +19926,7 @@ msgstr ""
 
 msgid "Tool Life Policy History"
 msgstr ""
+
 msgid "Tooling Cost"
 msgstr "공구 원가"
 
@@ -20217,6 +20247,7 @@ msgstr "미국인 증명"
 
 msgid "Un-sampled entities will remain On Hold so you can keep inspecting and disposition later. Sampled outcomes are preserved."
 msgstr ""
+
 msgid "Unable to unlock"
 msgstr "잠금 해제할 수 없습니다"
 
@@ -20360,6 +20391,9 @@ msgstr "매핑되지 않은 차원 값"
 
 msgid "Unmapped Extracted Lines"
 msgstr "매핑되지 않은 추출 라인"
+
+msgid "Unmapped punches"
+msgstr ""
 
 msgid "Unmapped values"
 msgstr "매핑되지 않은 값"
@@ -21106,10 +21140,11 @@ msgstr "이 입고를 무효화하면 다음과 같은 결과가 발생합니다
 msgid "Voiding this shipment will:"
 msgstr "이 출하를 무효화하면 다음과 같은 결과가 발생합니다:"
 
-msgid "Waive"
-msgstr ""
 msgid "Waited"
 msgstr "대기함"
+
+msgid "Waive"
+msgstr ""
 
 msgid "Walk each area with your champion and toggle anything out of scope. Codes read Module.Area.Number (ACC.GL.01 = Accounting, General Ledger, item 1)."
 msgstr "담당자와 함께 각 영역을 살펴보고 범위에서 벗어난 항목은 토글로 제외하세요. 코드는 모듈.영역.번호 형식입니다(ACC.GL.01 = 회계, 총계정원장, 1번 항목)."

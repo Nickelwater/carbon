@@ -22365,6 +22365,231 @@ export default {
         tags: ["itemSerialSequences"]
       }
     },
+    "/timeClockDevice": {
+      get: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.serialNumber"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.name"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.enabled"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.autoPoll"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.pollIntervalSeconds"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.lastSeenAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.lastRegAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.firmware"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.modelName"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.createdBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.createdAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.updatedBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.updatedAt"
+          },
+          {
+            $ref: "#/parameters/select"
+          },
+          {
+            $ref: "#/parameters/order"
+          },
+          {
+            $ref: "#/parameters/range"
+          },
+          {
+            $ref: "#/parameters/rangeUnit"
+          },
+          {
+            $ref: "#/parameters/offset"
+          },
+          {
+            $ref: "#/parameters/limit"
+          },
+          {
+            $ref: "#/parameters/preferCount"
+          }
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+            schema: {
+              items: {
+                $ref: "#/definitions/timeClockDevice"
+              },
+              type: "array"
+            }
+          },
+          "206": {
+            description: "Partial Content"
+          }
+        },
+        tags: ["timeClockDevice"]
+      },
+      post: {
+        parameters: [
+          {
+            $ref: "#/parameters/body.timeClockDevice"
+          },
+          {
+            $ref: "#/parameters/select"
+          },
+          {
+            $ref: "#/parameters/preferPost"
+          }
+        ],
+        responses: {
+          "201": {
+            description: "Created"
+          }
+        },
+        tags: ["timeClockDevice"]
+      },
+      delete: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.serialNumber"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.name"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.enabled"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.autoPoll"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.pollIntervalSeconds"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.lastSeenAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.lastRegAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.firmware"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.modelName"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.createdBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.createdAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.updatedBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.updatedAt"
+          },
+          {
+            $ref: "#/parameters/preferReturn"
+          }
+        ],
+        responses: {
+          "204": {
+            description: "No Content"
+          }
+        },
+        tags: ["timeClockDevice"]
+      },
+      patch: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.serialNumber"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.name"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.enabled"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.autoPoll"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.pollIntervalSeconds"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.lastSeenAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.lastRegAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.firmware"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.modelName"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.createdBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.createdAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.updatedBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockDevice.updatedAt"
+          },
+          {
+            $ref: "#/parameters/body.timeClockDevice"
+          },
+          {
+            $ref: "#/parameters/preferReturn"
+          }
+        ],
+        responses: {
+          "204": {
+            description: "No Content"
+          }
+        },
+        tags: ["timeClockDevice"]
+      }
+    },
     "/department": {
       get: {
         parameters: [
@@ -69819,6 +70044,231 @@ export default {
         tags: ["quoteLines"]
       }
     },
+    "/timeClockPunch": {
+      get: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.deviceId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.serialNumber"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.enrollId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.punchedAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.inout"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.event"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.mode"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.raw"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.status"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.employeeId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.timeCardEntryId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.error"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.createdAt"
+          },
+          {
+            $ref: "#/parameters/select"
+          },
+          {
+            $ref: "#/parameters/order"
+          },
+          {
+            $ref: "#/parameters/range"
+          },
+          {
+            $ref: "#/parameters/rangeUnit"
+          },
+          {
+            $ref: "#/parameters/offset"
+          },
+          {
+            $ref: "#/parameters/limit"
+          },
+          {
+            $ref: "#/parameters/preferCount"
+          }
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+            schema: {
+              items: {
+                $ref: "#/definitions/timeClockPunch"
+              },
+              type: "array"
+            }
+          },
+          "206": {
+            description: "Partial Content"
+          }
+        },
+        tags: ["timeClockPunch"]
+      },
+      post: {
+        parameters: [
+          {
+            $ref: "#/parameters/body.timeClockPunch"
+          },
+          {
+            $ref: "#/parameters/select"
+          },
+          {
+            $ref: "#/parameters/preferPost"
+          }
+        ],
+        responses: {
+          "201": {
+            description: "Created"
+          }
+        },
+        tags: ["timeClockPunch"]
+      },
+      delete: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.deviceId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.serialNumber"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.enrollId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.punchedAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.inout"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.event"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.mode"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.raw"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.status"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.employeeId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.timeCardEntryId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.error"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.createdAt"
+          },
+          {
+            $ref: "#/parameters/preferReturn"
+          }
+        ],
+        responses: {
+          "204": {
+            description: "No Content"
+          }
+        },
+        tags: ["timeClockPunch"]
+      },
+      patch: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.deviceId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.serialNumber"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.enrollId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.punchedAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.inout"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.event"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.mode"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.raw"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.status"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.employeeId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.timeCardEntryId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.error"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeClockPunch.createdAt"
+          },
+          {
+            $ref: "#/parameters/body.timeClockPunch"
+          },
+          {
+            $ref: "#/parameters/preferReturn"
+          }
+        ],
+        responses: {
+          "204": {
+            description: "No Content"
+          }
+        },
+        tags: ["timeClockPunch"]
+      }
+    },
     "/salesInvoices": {
       get: {
         parameters: [
@@ -72919,6 +73369,9 @@ export default {
             $ref: "#/parameters/rowFilter.employeeJob.tags"
           },
           {
+            $ref: "#/parameters/rowFilter.employeeJob.enrollId"
+          },
+          {
             $ref: "#/parameters/select"
           },
           {
@@ -73014,6 +73467,9 @@ export default {
             $ref: "#/parameters/rowFilter.employeeJob.tags"
           },
           {
+            $ref: "#/parameters/rowFilter.employeeJob.enrollId"
+          },
+          {
             $ref: "#/parameters/preferReturn"
           }
         ],
@@ -73061,6 +73517,9 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.employeeJob.tags"
+          },
+          {
+            $ref: "#/parameters/rowFilter.employeeJob.enrollId"
           },
           {
             $ref: "#/parameters/body.employeeJob"
@@ -122703,6 +123162,93 @@ export default {
       },
       type: "object"
     },
+    timeClockDevice: {
+      required: [
+        "id",
+        "companyId",
+        "serialNumber",
+        "enabled",
+        "autoPoll",
+        "pollIntervalSeconds",
+        "createdBy",
+        "createdAt"
+      ],
+      properties: {
+        id: {
+          default: "public.id('tcd'::text)",
+          description: "Note:\nThis is a Primary Key.<pk/>",
+          format: "text",
+          type: "string"
+        },
+        companyId: {
+          description:
+            "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `company.id`.<fk table='company' column='id'/>",
+          format: "text",
+          type: "string"
+        },
+        serialNumber: {
+          format: "text",
+          type: "string"
+        },
+        name: {
+          format: "text",
+          type: "string"
+        },
+        enabled: {
+          default: false,
+          format: "boolean",
+          type: "boolean"
+        },
+        autoPoll: {
+          default: false,
+          format: "boolean",
+          type: "boolean"
+        },
+        pollIntervalSeconds: {
+          default: 300,
+          format: "integer",
+          type: "integer"
+        },
+        lastSeenAt: {
+          format: "timestamp with time zone",
+          type: "string"
+        },
+        lastRegAt: {
+          format: "timestamp with time zone",
+          type: "string"
+        },
+        firmware: {
+          format: "text",
+          type: "string"
+        },
+        modelName: {
+          format: "text",
+          type: "string"
+        },
+        createdBy: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string"
+        },
+        createdAt: {
+          default: "now()",
+          format: "timestamp with time zone",
+          type: "string"
+        },
+        updatedBy: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string"
+        },
+        updatedAt: {
+          format: "timestamp with time zone",
+          type: "string"
+        }
+      },
+      type: "object"
+    },
     department: {
       required: ["id", "name", "companyId", "createdBy", "createdAt"],
       properties: {
@@ -145098,6 +145644,91 @@ export default {
       },
       type: "object"
     },
+    timeClockPunch: {
+      required: [
+        "id",
+        "companyId",
+        "deviceId",
+        "serialNumber",
+        "enrollId",
+        "punchedAt",
+        "event",
+        "mode",
+        "raw",
+        "status",
+        "createdAt"
+      ],
+      properties: {
+        id: {
+          default: "public.id('tcp'::text)",
+          description: "Note:\nThis is a Primary Key.<pk/>",
+          format: "text",
+          type: "string"
+        },
+        companyId: {
+          description:
+            "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `company.id`.<fk table='company' column='id'/>",
+          format: "text",
+          type: "string"
+        },
+        deviceId: {
+          format: "text",
+          type: "string"
+        },
+        serialNumber: {
+          format: "text",
+          type: "string"
+        },
+        enrollId: {
+          format: "text",
+          type: "string"
+        },
+        punchedAt: {
+          format: "timestamp with time zone",
+          type: "string"
+        },
+        inout: {
+          format: "integer",
+          type: "integer"
+        },
+        event: {
+          default: 0,
+          format: "integer",
+          type: "integer"
+        },
+        mode: {
+          default: 0,
+          format: "integer",
+          type: "integer"
+        },
+        raw: {
+          format: "jsonb"
+        },
+        status: {
+          default: "pending",
+          format: "text",
+          type: "string"
+        },
+        employeeId: {
+          format: "text",
+          type: "string"
+        },
+        timeCardEntryId: {
+          format: "text",
+          type: "string"
+        },
+        error: {
+          format: "text",
+          type: "string"
+        },
+        createdAt: {
+          default: "now()",
+          format: "timestamp with time zone",
+          type: "string"
+        }
+      },
+      type: "object"
+    },
     salesInvoices: {
       properties: {
         id: {
@@ -146667,6 +147298,10 @@ export default {
             type: "string"
           },
           type: "array"
+        },
+        enrollId: {
+          format: "text",
+          type: "string"
         }
       },
       type: "object"
@@ -170780,6 +171415,105 @@ export default {
     },
     "rowFilter.itemSerialSequences.itemTrackingType": {
       name: "itemTrackingType",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "body.timeClockDevice": {
+      name: "timeClockDevice",
+      description: "timeClockDevice",
+      required: false,
+      in: "body",
+      schema: {
+        $ref: "#/definitions/timeClockDevice"
+      }
+    },
+    "rowFilter.timeClockDevice.id": {
+      name: "id",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.companyId": {
+      name: "companyId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.serialNumber": {
+      name: "serialNumber",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.name": {
+      name: "name",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.enabled": {
+      name: "enabled",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.autoPoll": {
+      name: "autoPoll",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.pollIntervalSeconds": {
+      name: "pollIntervalSeconds",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.lastSeenAt": {
+      name: "lastSeenAt",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.lastRegAt": {
+      name: "lastRegAt",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.firmware": {
+      name: "firmware",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.modelName": {
+      name: "modelName",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.createdBy": {
+      name: "createdBy",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.createdAt": {
+      name: "createdAt",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.updatedBy": {
+      name: "updatedBy",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockDevice.updatedAt": {
+      name: "updatedAt",
       required: false,
       in: "query",
       type: "string"
@@ -195638,6 +196372,105 @@ export default {
       in: "query",
       type: "string"
     },
+    "body.timeClockPunch": {
+      name: "timeClockPunch",
+      description: "timeClockPunch",
+      required: false,
+      in: "body",
+      schema: {
+        $ref: "#/definitions/timeClockPunch"
+      }
+    },
+    "rowFilter.timeClockPunch.id": {
+      name: "id",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.companyId": {
+      name: "companyId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.deviceId": {
+      name: "deviceId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.serialNumber": {
+      name: "serialNumber",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.enrollId": {
+      name: "enrollId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.punchedAt": {
+      name: "punchedAt",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.inout": {
+      name: "inout",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.event": {
+      name: "event",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.mode": {
+      name: "mode",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.raw": {
+      name: "raw",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.status": {
+      name: "status",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.employeeId": {
+      name: "employeeId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.timeCardEntryId": {
+      name: "timeCardEntryId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.error": {
+      name: "error",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeClockPunch.createdAt": {
+      name: "createdAt",
+      required: false,
+      in: "query",
+      type: "string"
+    },
     "body.salesInvoices": {
       name: "salesInvoices",
       description: "salesInvoices",
@@ -197292,6 +198125,12 @@ export default {
     },
     "rowFilter.employeeJob.tags": {
       name: "tags",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.employeeJob.enrollId": {
+      name: "enrollId",
       required: false,
       in: "query",
       type: "string"
