@@ -1529,9 +1529,6 @@ msgstr "Добавить центр затрат"
 msgid "Add Employee"
 msgstr "Добавить сотрудника"
 
-msgid "Add Entry"
-msgstr "Добавить запись"
-
 msgid "Add from library…"
 msgstr "Добавить из библиотеки…"
 
@@ -1631,6 +1628,9 @@ msgstr "Добавить принтер"
 
 msgid "Add Property"
 msgstr "Добавить свойство"
+
+msgid "Add punch"
+msgstr ""
 
 msgid "Add Question"
 msgstr "Добавить вопрос"
@@ -5665,6 +5665,9 @@ msgstr "День {0}"
 msgid "Day off"
 msgstr "Выходной"
 
+msgid "Day total"
+msgstr ""
+
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "Ежедневные вопросы и поддержка после запуска"
 
@@ -9527,6 +9530,9 @@ msgstr "Ввод"
 msgid "Inputs"
 msgstr "Входные данные"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "Вставить токен"
 
@@ -11895,6 +11901,9 @@ msgstr "Следующий Срок выполнения"
 msgid "Next page"
 msgstr "Следующая страница"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "Следующая Нумерация"
 
@@ -12087,6 +12096,9 @@ msgstr "Сотрудники еще не назначены. Добавьте г
 
 msgid "No employees found"
 msgstr "Сотрудники не найдены"
+
+msgid "No employees found."
+msgstr ""
 
 msgid "No events found."
 msgstr "События не найдены."
@@ -12448,9 +12460,6 @@ msgstr "Поставщиков еще нет"
 
 msgid "No sync operations yet"
 msgstr "Операции синхронизации еще не выполнены"
-
-msgid "No time entries for this week"
-msgstr "Нет записей о времени на эту неделю"
 
 msgid "No tools"
 msgstr "Нет инструментов"
@@ -12965,6 +12974,9 @@ msgstr "Открыть навигацию"
 
 msgid "Open payables by supplier and age"
 msgstr "Открытая кредиторская задолженность по поставщикам и срокам"
+
+msgid "Open person page"
+msgstr ""
 
 msgid "Open Purchase Invoices"
 msgstr "Открытые счета-фактуры полученные"
@@ -13522,6 +13534,9 @@ msgstr "Оплатить"
 msgid "Pay expense"
 msgstr "Оплатить расход"
 
+msgid "Pay period length"
+msgstr ""
+
 msgid "Pay Rate"
 msgstr "Курс платежа"
 
@@ -13635,6 +13650,9 @@ msgstr "Процент партии"
 
 msgid "Period"
 msgstr "Период"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "Закрытие периода"
@@ -14062,6 +14080,9 @@ msgstr "Предыдущий день"
 msgid "Previous page"
 msgstr "Предыдущая страница"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "Предыдущий шаг"
 
@@ -14423,6 +14444,9 @@ msgstr "Со склада"
 
 msgid "Pull, map, and load your data"
 msgstr "Извлеките, сопоставьте и загрузите ваши данные"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "Закупка и производство из MRP"
@@ -16274,6 +16298,12 @@ msgstr "Сохранить настройки измерений"
 msgid "Save Method"
 msgstr "Сохранить метод"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "Сохранить курс"
 
@@ -16484,6 +16514,9 @@ msgstr "Поиск покупателей и типов..."
 
 msgid "Search customers or types..."
 msgstr "Поиск покупателей или типов..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "Поиск сотрудников..."

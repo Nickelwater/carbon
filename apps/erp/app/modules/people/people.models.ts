@@ -119,3 +119,22 @@ export const deleteTimeCardEntryValidator = z.object({
   intent: z.literal("deleteEntry"),
   entryId: z.string().min(1)
 });
+
+export const createTimeCardPunchValidator = z.object({
+  intent: z.literal("createPunch"),
+  employeeId: z.string().min(1),
+  punchedAt: z.string().min(1, { message: "Punch time is required" }),
+  note: zfd.text(z.string().optional())
+});
+
+export const updateTimeCardPunchValidator = z.object({
+  intent: z.literal("updatePunch"),
+  punchId: z.string().min(1),
+  punchedAt: z.string().min(1, { message: "Punch time is required" }),
+  note: zfd.text(z.string().optional())
+});
+
+export const deleteTimeCardPunchValidator = z.object({
+  intent: z.literal("deletePunch"),
+  punchId: z.string().min(1)
+});

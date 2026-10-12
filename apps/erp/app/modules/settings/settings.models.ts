@@ -744,6 +744,16 @@ export const timeCardSettingsValidator = z.object({
   timeCardEnabled: zfd.checkbox()
 });
 
+export const payPeriodSettingsValidator = z.object({
+  intent: z.literal("payPeriod"),
+  payPeriodLengthDays: zfd.numeric(
+    z.number().refine((n) => n === 7 || n === 14, {
+      message: "Pay period must be 7 or 14 days"
+    })
+  ),
+  payPeriodAnchorDate: z.string().min(1, { message: "Anchor date is required" })
+});
+
 // The editor submits the block list as a JSON string in a hidden field; we
 // parse it and validate every block against the shared schema.
 const jsonField = <T>(schema: z.ZodType<T>, message: string) =>

@@ -1529,9 +1529,6 @@ msgstr "原価センターを追加"
 msgid "Add Employee"
 msgstr "従業員を追加"
 
-msgid "Add Entry"
-msgstr "エントリを追加"
-
 msgid "Add from library…"
 msgstr "ライブラリから追加…"
 
@@ -1631,6 +1628,9 @@ msgstr "プリンターを追加"
 
 msgid "Add Property"
 msgstr "プロパティを追加"
+
+msgid "Add punch"
+msgstr ""
 
 msgid "Add Question"
 msgstr "質問を追加"
@@ -5665,6 +5665,9 @@ msgstr "日 {0}"
 msgid "Day off"
 msgstr "休日"
 
+msgid "Day total"
+msgstr ""
+
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "日々の質問とローンチ後のハイパーケア"
 
@@ -9527,6 +9530,9 @@ msgstr "入力"
 msgid "Inputs"
 msgstr "入力"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "トークンを挿入"
 
@@ -11895,6 +11901,9 @@ msgstr "次の期日"
 msgid "Next page"
 msgstr "次のページ"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "次の採番"
 
@@ -12087,6 +12096,9 @@ msgstr "まだ従業員が割り当てられていません。グループを追
 
 msgid "No employees found"
 msgstr "従業員が見つかりません"
+
+msgid "No employees found."
+msgstr ""
 
 msgid "No events found."
 msgstr "イベントが見つかりません。"
@@ -12448,9 +12460,6 @@ msgstr "仕入先がまだありません"
 
 msgid "No sync operations yet"
 msgstr "まだ同期工程はありません"
-
-msgid "No time entries for this week"
-msgstr "今週のタイムエントリがありません"
 
 msgid "No tools"
 msgstr "ツールがありません"
@@ -12965,6 +12974,9 @@ msgstr "ナビゲーションを開く"
 
 msgid "Open payables by supplier and age"
 msgstr "仕入先・日数別オープン買掛金"
+
+msgid "Open person page"
+msgstr ""
 
 msgid "Open Purchase Invoices"
 msgstr "オープン仕入先請求書"
@@ -13522,6 +13534,9 @@ msgstr "支払う"
 msgid "Pay expense"
 msgstr "費用を支払う"
 
+msgid "Pay period length"
+msgstr ""
+
 msgid "Pay Rate"
 msgstr "支払レート"
 
@@ -13635,6 +13650,9 @@ msgstr "ロットの割合"
 
 msgid "Period"
 msgstr "期間"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "期間クローズ"
@@ -14062,6 +14080,9 @@ msgstr "前の日"
 msgid "Previous page"
 msgstr "前のページ"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "前のステップ"
 
@@ -14423,6 +14444,9 @@ msgstr "在庫から引当"
 
 msgid "Pull, map, and load your data"
 msgstr "データをプル、マップ、ロードする"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "MRPから購入・製造"
@@ -16274,6 +16298,12 @@ msgstr "ディメンション設定を保存"
 msgid "Save Method"
 msgstr "メソッドを保存"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "レートを保存"
 
@@ -16484,6 +16514,9 @@ msgstr "得意先とタイプを検索..."
 
 msgid "Search customers or types..."
 msgstr "得意先またはタイプを検索..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "従業員を検索..."

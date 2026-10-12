@@ -74,8 +74,16 @@ export async function runTier10(ctx: Ctx): Promise<void> {
   await insertRow(
     ctx,
     "companySettings",
-    { id: ctx.companyId, timeCardEnabled: true },
-    { onConflict: '("id") DO UPDATE SET "timeCardEnabled" = true' }
+    {
+      id: ctx.companyId,
+      timeCardEnabled: true,
+      payPeriodLengthDays: 7,
+      payPeriodAnchorDate: resolveDate(ctx.anchor, 0)
+    },
+    {
+      onConflict:
+        '("id") DO UPDATE SET "timeCardEnabled" = true, "payPeriodLengthDays" = 7, "payPeriodAnchorDate" = EXCLUDED."payPeriodAnchorDate"'
+    }
   );
 
   ctx.log(

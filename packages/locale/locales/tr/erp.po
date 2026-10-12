@@ -1529,9 +1529,6 @@ msgstr "Maliyet Merkezi Ekle"
 msgid "Add Employee"
 msgstr "Çalışan Ekle"
 
-msgid "Add Entry"
-msgstr "Giri Ekle"
-
 msgid "Add from library…"
 msgstr "Kütüphaneden ekle…"
 
@@ -1631,6 +1628,9 @@ msgstr "Yazıcı Ekle"
 
 msgid "Add Property"
 msgstr "Özellik Ekle"
+
+msgid "Add punch"
+msgstr ""
 
 msgid "Add Question"
 msgstr "Soru Ekle"
@@ -5665,6 +5665,9 @@ msgstr "Gün {0}"
 msgid "Day off"
 msgstr "Tatil"
 
+msgid "Day total"
+msgstr ""
+
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "Günlük sorular ve başlatmadan sonra hiper bakım"
 
@@ -9527,6 +9530,9 @@ msgstr "Giriş"
 msgid "Inputs"
 msgstr "Girişler"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "Token ekle"
 
@@ -11895,6 +11901,9 @@ msgstr "Sonraki Vade Tarihi"
 msgid "Next page"
 msgstr "Sonraki sayfa"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "Sonraki numaralandırma"
 
@@ -12087,6 +12096,9 @@ msgstr "Henüz çalışan atanmadı. Durumu görmek için gruplar ekleyin."
 
 msgid "No employees found"
 msgstr "Hiç çalışan bulunamadı"
+
+msgid "No employees found."
+msgstr ""
 
 msgid "No events found."
 msgstr "Olay bulunamadı."
@@ -12448,9 +12460,6 @@ msgstr "Henüz tedarikçi yok"
 
 msgid "No sync operations yet"
 msgstr "Henüz senkronizasyon operasyonu yok"
-
-msgid "No time entries for this week"
-msgstr "Bu hafta için zaman girişi yok"
 
 msgid "No tools"
 msgstr "Araç yok"
@@ -12965,6 +12974,9 @@ msgstr "Gezinmeyi aç"
 
 msgid "Open payables by supplier and age"
 msgstr "Tedarikçi ve yaşa göre açık borçlar"
+
+msgid "Open person page"
+msgstr ""
 
 msgid "Open Purchase Invoices"
 msgstr "Açık Alış faturaları"
@@ -13522,6 +13534,9 @@ msgstr "Öde"
 msgid "Pay expense"
 msgstr "Gider Öde"
 
+msgid "Pay period length"
+msgstr ""
+
 msgid "Pay Rate"
 msgstr "Ödeme Oranı"
 
@@ -13635,6 +13650,9 @@ msgstr "Lot Yüzdesi"
 
 msgid "Period"
 msgstr "Dönem"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "Dönem Kapanışı"
@@ -14062,6 +14080,9 @@ msgstr "Önceki Gün"
 msgid "Previous page"
 msgstr "Önceki sayfa"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "Önceki adım"
 
@@ -14423,6 +14444,9 @@ msgstr "Stoktan kullan"
 
 msgid "Pull, map, and load your data"
 msgstr "Verilerinizi çekin, eşleyin ve yükleyin"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "MRP'den satın al ve üretim yap"
@@ -16274,6 +16298,12 @@ msgstr "Boyut ayarlarını kaydet"
 msgid "Save Method"
 msgstr "Yöntemi Kaydet"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "Kuru kaydet"
 
@@ -16484,6 +16514,9 @@ msgstr "Müşterileri ve türleri ara..."
 
 msgid "Search customers or types..."
 msgstr "Müşterileri veya türleri arayın..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "Çalışanları ara..."

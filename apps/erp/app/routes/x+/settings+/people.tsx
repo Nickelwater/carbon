@@ -7,6 +7,7 @@ import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { updateConsoleSetting } from "@carbon/ee/console.server";
 import { companyHasFeature } from "@carbon/ee/plan.server";
+import { validator } from "@carbon/form";
 import {
   Badge,
   Button,
@@ -38,7 +39,12 @@ import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { useFetcher, useLoaderData } from "react-router";
 import { UpgradeOverlayUpgradeButton } from "~/components/UpgradeOverlay";
 import { usePlanGate } from "~/hooks/usePlanGate";
-import { getCompanySettings, updateTimeCardSetting } from "~/modules/settings";
+import {
+  getCompanySettings,
+  payPeriodSettingsValidator,
+  updatePayPeriodSettings,
+  updateTimeCardSetting
+} from "~/modules/settings";
 import { getDatabaseClient } from "~/services/database.server";
 import type { Handle } from "~/utils/handle";
 import { path } from "~/utils/path";
@@ -79,6 +85,21 @@ export async function action({ request }: ActionFunctionArgs) {
     const update = await updateTimeCardSetting(client, companyId, enabled);
     if (update.error) return { success: false, message: update.error.message };
     return { success: true, message: "Timecard settings updated" };
+  }
+
+  if (intent === "payPeriod") {
+    const validation = await validator(payPeriodSettingsValidator).validate(
+      formData
+    );
+    if (validation.error) {
+      return { success: false, message: "Invalid pay period settings" };
+    }
+    const update = await updatePayPeriodSettings(client, companyId, {
+      payPeriodLengthDays: validation.data.payPeriodLengthDays,
+      payPeriodAnchorDate: validation.data.payPeriodAnchorDate
+    });
+    if (update.error) return { success: false, message: update.error.message };
+    return { success: true, message: "Pay period settings updated" };
   }
 
   if (intent === "console") {
@@ -276,6 +297,48 @@ export default function PeopleSettingsRoute() {
                 disabled={isToggling}
               />
             </HStack>
+            {companySettings.timeCardEnabled ? (
+              <fetcher.Form
+                method="post"
+                className="mt-6 grid gap-4 sm:grid-cols-2"
+              >
+                <input type="hidden" name="intent" value="payPeriod" />
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">
+                    <Trans>Pay period length</Trans>
+                  </span>
+                  <select
+                    name="payPeriodLengthDays"
+                    defaultValue={String(
+                      companySettings.payPeriodLengthDays ?? 7
+                    )}
+                    className="h-10 rounded-md border border-border bg-background px-3"
+                  >
+                    <option value="7">Weekly (7 days)</option>
+                    <option value="14">Biweekly (14 days)</option>
+                  </select>
+                </label>
+                <label className="flex flex-col gap-1 text-sm">
+                  <span className="font-medium">
+                    <Trans>Period anchor date</Trans>
+                  </span>
+                  <input
+                    type="date"
+                    name="payPeriodAnchorDate"
+                    required
+                    defaultValue={(
+                      companySettings.payPeriodAnchorDate ?? ""
+                    ).slice(0, 10)}
+                    className="h-10 rounded-md border border-border bg-background px-3"
+                  />
+                </label>
+                <div className="sm:col-span-2">
+                  <Button type="submit" isDisabled={isToggling}>
+                    <Trans>Save pay period</Trans>
+                  </Button>
+                </div>
+              </fetcher.Form>
+            ) : null}
           </CardContent>
         </Card>
       </VStack>

@@ -1529,9 +1529,6 @@ msgstr "添加成本中心"
 msgid "Add Employee"
 msgstr "添加员工"
 
-msgid "Add Entry"
-msgstr "添加条目"
-
 msgid "Add from library…"
 msgstr "从库中添加…"
 
@@ -1631,6 +1628,9 @@ msgstr "添加打印机"
 
 msgid "Add Property"
 msgstr "添加属性"
+
+msgid "Add punch"
+msgstr ""
 
 msgid "Add Question"
 msgstr "添加问题"
@@ -5665,6 +5665,9 @@ msgstr "第 {0} 天"
 msgid "Day off"
 msgstr "休息日"
 
+msgid "Day total"
+msgstr ""
+
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "日常问题和上线后的超级护理"
 
@@ -9527,6 +9530,9 @@ msgstr "输入"
 msgid "Inputs"
 msgstr "输入"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "插入令牌"
 
@@ -11895,6 +11901,9 @@ msgstr "下次到期日期"
 msgid "Next page"
 msgstr "下一页"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "下一个编号规则"
 
@@ -12087,6 +12096,9 @@ msgstr "尚未分配员工。添加群组以查看状态。"
 
 msgid "No employees found"
 msgstr "未找到员工"
+
+msgid "No employees found."
+msgstr ""
 
 msgid "No events found."
 msgstr "未找到事件。"
@@ -12448,9 +12460,6 @@ msgstr "还没有供应商"
 
 msgid "No sync operations yet"
 msgstr "还没有同步操作"
-
-msgid "No time entries for this week"
-msgstr "本周没有时间条目"
 
 msgid "No tools"
 msgstr "没有工具"
@@ -12965,6 +12974,9 @@ msgstr "打开导航"
 
 msgid "Open payables by supplier and age"
 msgstr "按供应商和期限打开应付款项"
+
+msgid "Open person page"
+msgstr ""
 
 msgid "Open Purchase Invoices"
 msgstr "未结采购发票"
@@ -13522,6 +13534,9 @@ msgstr "支付"
 msgid "Pay expense"
 msgstr "支付费用"
 
+msgid "Pay period length"
+msgstr ""
+
 msgid "Pay Rate"
 msgstr "支付汇率"
 
@@ -13635,6 +13650,9 @@ msgstr "批次百分比"
 
 msgid "Period"
 msgstr "期间"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "期间关闭"
@@ -14062,6 +14080,9 @@ msgstr "前一天"
 msgid "Previous page"
 msgstr "上一页"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "上一步骤"
 
@@ -14423,6 +14444,9 @@ msgstr "从库存领用"
 
 msgid "Pull, map, and load your data"
 msgstr "拉取、映射和加载您的数据"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "从 MRP 采购和制造"
@@ -16274,6 +16298,12 @@ msgstr "保存维度设置"
 msgid "Save Method"
 msgstr "保存方法"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "保存汇率"
 
@@ -16484,6 +16514,9 @@ msgstr "搜索客户和类型..."
 
 msgid "Search customers or types..."
 msgstr "搜索客户或类型..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "搜索员工..."

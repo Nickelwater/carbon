@@ -5,6 +5,7 @@
 import type { Database, Json } from "@carbon/database";
 import { getCompanyTimeZone } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
+import { pairPunches } from "@carbon/timeclock";
 import { datetime } from "@carbon/utils";
 import { getDayOfWeek, today } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -829,6 +830,62 @@ export async function upsertShift(
   return client.from("shift").update(sanitize(shift)).eq("id", shift.id);
 }
 
+/**
+ * Replace timeCardEntry rows for an employee from the punch ledger pairing.
+ */
+export async function rebuildTimeCardEntries(
+  client: SupabaseClient<Database>,
+  args: {
+    companyId: string;
+    employeeId: string;
+    actorUserId: string;
+  }
+) {
+  const punchesResult = await client
+    .from("timeCardPunch")
+    .select("id, punchedAt, source, createdBy")
+    .eq("companyId", args.companyId)
+    .eq("employeeId", args.employeeId)
+    .order("punchedAt", { ascending: true });
+
+  if (punchesResult.error) {
+    return { data: null, error: punchesResult.error };
+  }
+
+  const { segments } = pairPunches(punchesResult.data ?? []);
+
+  const del = await client
+    .from("timeCardEntry")
+    .delete()
+    .eq("companyId", args.companyId)
+    .eq("employeeId", args.employeeId);
+
+  if (del.error) {
+    return { data: null, error: del.error };
+  }
+
+  if (segments.length === 0) {
+    return { data: [], error: null };
+  }
+
+  const rows = segments.map((segment) => ({
+    companyId: args.companyId,
+    employeeId: args.employeeId,
+    clockIn: segment.clockIn.punchedAt,
+    clockOut: segment.clockOut?.punchedAt ?? null,
+    createdBy: segment.clockIn.createdBy || args.actorUserId,
+    updatedBy: segment.clockOut ? args.actorUserId : null,
+    updatedAt: segment.clockOut ? new Date().toISOString() : null
+  }));
+
+  const insert = await client.from("timeCardEntry").insert(rows).select("id");
+  if (insert.error) {
+    return { data: null, error: insert.error };
+  }
+
+  return { data: insert.data ?? [], error: null };
+}
+
 /** @mcp action */
 export async function clockIn(
   client: SupabaseClient<Database>,
@@ -847,10 +904,21 @@ export async function clockIn(
     return { data: null, error: { message: "Already clocked in" } };
   }
 
-  return client.from("timeCardEntry").insert({
+  const insert = await client.from("timeCardPunch").insert({
     employeeId: args.employeeId,
     companyId: args.companyId,
+    punchedAt: new Date().toISOString(),
+    source: "mes",
     createdBy: args.createdBy
+  });
+  if (insert.error) {
+    return { data: null, error: insert.error };
+  }
+
+  return rebuildTimeCardEntries(client, {
+    companyId: args.companyId,
+    employeeId: args.employeeId,
+    actorUserId: args.createdBy
   });
 }
 
@@ -870,17 +938,23 @@ export async function clockOut(
     return { data: null, error: { message: "Not currently clocked in" } };
   }
 
-  return client
-    .from("timeCardEntry")
-    .update(
-      sanitize({
-        clockOut: args.clockOut ?? new Date().toISOString(),
-        note: args.note,
-        updatedBy: args.updatedBy,
-        updatedAt: new Date().toISOString()
-      })
-    )
-    .eq("id", open.data.id);
+  const insert = await client.from("timeCardPunch").insert({
+    employeeId: args.employeeId,
+    companyId: args.companyId,
+    punchedAt: args.clockOut ?? new Date().toISOString(),
+    source: "mes",
+    note: args.note ?? null,
+    createdBy: args.updatedBy
+  });
+  if (insert.error) {
+    return { data: null, error: insert.error };
+  }
+
+  return rebuildTimeCardEntries(client, {
+    companyId: args.companyId,
+    employeeId: args.employeeId,
+    actorUserId: args.updatedBy
+  });
 }
 
 /** @mcp create */
@@ -895,11 +969,57 @@ export async function createTimeCardEntry(
     createdBy: string;
   }
 ) {
-  return client
+  const punches: {
+    employeeId: string;
+    companyId: string;
+    punchedAt: string;
+    source: "manual";
+    note: string | null;
+    createdBy: string;
+  }[] = [
+    {
+      employeeId: entry.employeeId,
+      companyId: entry.companyId,
+      punchedAt: entry.clockIn,
+      source: "manual",
+      note: entry.note ?? null,
+      createdBy: entry.createdBy
+    }
+  ];
+  if (entry.clockOut) {
+    punches.push({
+      employeeId: entry.employeeId,
+      companyId: entry.companyId,
+      punchedAt: entry.clockOut,
+      source: "manual",
+      note: null,
+      createdBy: entry.createdBy
+    });
+  }
+
+  const insert = await client.from("timeCardPunch").insert(punches);
+  if (insert.error) {
+    return { data: null, error: insert.error };
+  }
+
+  const rebuild = await rebuildTimeCardEntries(client, {
+    companyId: entry.companyId,
+    employeeId: entry.employeeId,
+    actorUserId: entry.createdBy
+  });
+  if (rebuild.error) {
+    return { data: null, error: rebuild.error };
+  }
+
+  const openOrLast = await client
     .from("timeCardEntry")
-    .insert(sanitize(entry))
     .select("id")
-    .single();
+    .eq("companyId", entry.companyId)
+    .eq("employeeId", entry.employeeId)
+    .eq("clockIn", entry.clockIn)
+    .maybeSingle();
+
+  return { data: openOrLast.data, error: openOrLast.error };
 }
 
 /** @mcp delete */
@@ -1200,8 +1320,8 @@ export async function getTimeClockPunches(
 }
 
 /**
- * Apply a staged punch to timeCardEntry (toggle) when the device is enabled
- * and enrollId maps to an employee. Used by the gateway and reprocess action.
+ * Apply a staged hardware punch onto the timeCardPunch ledger and rebuild
+ * timeCardEntry pairs. Used by reprocess action (gateway has its own copy).
  */
 export async function applyTimeClockPunchToggle(
   client: SupabaseClient<Database>,
@@ -1246,14 +1366,13 @@ export async function applyTimeClockPunchToggle(
   }
 
   if (!deviceResult.data.enabled) {
-    const pending = await client
+    return client
       .from("timeClockPunch")
       .update({ status: "pending", error: null })
       .eq("id", punch.id)
       .eq("companyId", args.companyId)
       .select("*")
       .single();
-    return pending;
   }
 
   const jobResult = await client
@@ -1268,7 +1387,7 @@ export async function applyTimeClockPunchToggle(
   }
 
   if (!jobResult.data) {
-    const unmapped = await client
+    return client
       .from("timeClockPunch")
       .update({
         status: "unmapped",
@@ -1280,66 +1399,58 @@ export async function applyTimeClockPunchToggle(
       .eq("companyId", args.companyId)
       .select("*")
       .single();
-    return unmapped;
   }
 
   const employeeId = jobResult.data.id;
-  const open = await getOpenClockEntry(client, employeeId, args.companyId);
 
-  if (open.error) {
-    return { data: null, error: open.error };
+  const existingLedger = await client
+    .from("timeCardPunch")
+    .select("id")
+    .eq("companyId", args.companyId)
+    .eq("timeClockPunchId", punch.id)
+    .maybeSingle();
+
+  if (existingLedger.error) {
+    return { data: null, error: existingLedger.error };
   }
 
-  let timeCardEntryId: string | null = null;
-
-  if (open.data) {
-    const clockOutResult = await client
-      .from("timeCardEntry")
-      .update(
-        sanitize({
-          clockOut: punch.punchedAt,
-          updatedBy: args.actorUserId,
-          updatedAt: new Date().toISOString()
-        })
-      )
-      .eq("id", open.data.id)
-      .select("id")
-      .single();
-
-    if (clockOutResult.error || !clockOutResult.data) {
-      return {
-        data: null,
-        error: clockOutResult.error ?? { message: "Failed to clock out" }
-      };
+  if (!existingLedger.data) {
+    const ledgerInsert = await client.from("timeCardPunch").insert({
+      companyId: args.companyId,
+      employeeId,
+      punchedAt: punch.punchedAt,
+      source: "hardware",
+      timeClockPunchId: punch.id,
+      createdBy: args.actorUserId
+    });
+    if (ledgerInsert.error) {
+      return { data: null, error: ledgerInsert.error };
     }
-    timeCardEntryId = clockOutResult.data.id;
-  } else {
-    const clockInResult = await client
-      .from("timeCardEntry")
-      .insert({
-        employeeId,
-        companyId: args.companyId,
-        clockIn: punch.punchedAt,
-        createdBy: args.actorUserId
-      })
-      .select("id")
-      .single();
-
-    if (clockInResult.error || !clockInResult.data) {
-      return {
-        data: null,
-        error: clockInResult.error ?? { message: "Failed to clock in" }
-      };
-    }
-    timeCardEntryId = clockInResult.data.id;
   }
+
+  const rebuild = await rebuildTimeCardEntries(client, {
+    companyId: args.companyId,
+    employeeId,
+    actorUserId: args.actorUserId
+  });
+  if (rebuild.error) {
+    return { data: null, error: rebuild.error };
+  }
+
+  const entryMatch = await client
+    .from("timeCardEntry")
+    .select("id")
+    .eq("companyId", args.companyId)
+    .eq("employeeId", employeeId)
+    .or(`clockIn.eq.${punch.punchedAt},clockOut.eq.${punch.punchedAt}`)
+    .maybeSingle();
 
   return client
     .from("timeClockPunch")
     .update({
       status: "applied",
       employeeId,
-      timeCardEntryId,
+      timeCardEntryId: entryMatch.data?.id ?? null,
       error: null
     })
     .eq("id", punch.id)
@@ -1359,5 +1470,167 @@ export async function reprocessTimeClockPunch(
     companyId,
     punchId,
     actorUserId: userId
+  });
+}
+
+/** @mcp read */
+export async function getTimeCardPunches(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: {
+    employeeId: string;
+    startIso: string;
+    endIso: string;
+  }
+) {
+  return client
+    .from("timeCardPunch")
+    .select("*")
+    .eq("companyId", companyId)
+    .eq("employeeId", args.employeeId)
+    .gte("punchedAt", args.startIso)
+    .lte("punchedAt", args.endIso)
+    .order("punchedAt", { ascending: true });
+}
+
+/** @mcp create */
+export async function createTimeCardPunch(
+  client: SupabaseClient<Database>,
+  args: {
+    companyId: string;
+    employeeId: string;
+    punchedAt: string;
+    source?: "manual" | "mes";
+    note?: string | null;
+    createdBy: string;
+  }
+) {
+  const insert = await client
+    .from("timeCardPunch")
+    .insert({
+      companyId: args.companyId,
+      employeeId: args.employeeId,
+      punchedAt: args.punchedAt,
+      source: args.source ?? "manual",
+      note: args.note ?? null,
+      createdBy: args.createdBy
+    })
+    .select("*")
+    .single();
+
+  if (insert.error) {
+    return insert;
+  }
+
+  const rebuild = await rebuildTimeCardEntries(client, {
+    companyId: args.companyId,
+    employeeId: args.employeeId,
+    actorUserId: args.createdBy
+  });
+  if (rebuild.error) {
+    return { data: null, error: rebuild.error };
+  }
+
+  return insert;
+}
+
+/** @mcp update */
+export async function updateTimeCardPunch(
+  client: SupabaseClient<Database>,
+  args: {
+    companyId: string;
+    id: string;
+    punchedAt?: string;
+    note?: string | null;
+    updatedBy: string;
+  }
+) {
+  const existing = await client
+    .from("timeCardPunch")
+    .select("*")
+    .eq("id", args.id)
+    .eq("companyId", args.companyId)
+    .single();
+
+  if (existing.error || !existing.data) {
+    return {
+      data: null,
+      error: existing.error ?? { message: "Punch not found" }
+    };
+  }
+
+  const patch: {
+    punchedAt?: string;
+    note?: string | null;
+    updatedBy: string;
+    updatedAt: string;
+  } = {
+    updatedBy: args.updatedBy,
+    updatedAt: new Date().toISOString()
+  };
+  if (args.punchedAt !== undefined) patch.punchedAt = args.punchedAt;
+  if (args.note !== undefined) patch.note = args.note;
+
+  const update = await client
+    .from("timeCardPunch")
+    .update(patch)
+    .eq("id", args.id)
+    .eq("companyId", args.companyId)
+    .select("*")
+    .single();
+
+  if (update.error || !update.data) {
+    return update;
+  }
+
+  const rebuild = await rebuildTimeCardEntries(client, {
+    companyId: args.companyId,
+    employeeId: existing.data.employeeId,
+    actorUserId: args.updatedBy
+  });
+  if (rebuild.error) {
+    return { data: null, error: rebuild.error };
+  }
+
+  return update;
+}
+
+/** @mcp delete */
+export async function deleteTimeCardPunch(
+  client: SupabaseClient<Database>,
+  args: {
+    companyId: string;
+    id: string;
+    actorUserId: string;
+  }
+) {
+  const existing = await client
+    .from("timeCardPunch")
+    .select("*")
+    .eq("id", args.id)
+    .eq("companyId", args.companyId)
+    .single();
+
+  if (existing.error || !existing.data) {
+    return {
+      data: null,
+      error: existing.error ?? { message: "Punch not found" }
+    };
+  }
+
+  const del = await client
+    .from("timeCardPunch")
+    .delete()
+    .eq("id", args.id)
+    .eq("companyId", args.companyId);
+
+  if (del.error) {
+    return { data: null, error: del.error };
+  }
+
+  return rebuildTimeCardEntries(client, {
+    companyId: args.companyId,
+    employeeId: existing.data.employeeId,
+    actorUserId: args.actorUserId
   });
 }

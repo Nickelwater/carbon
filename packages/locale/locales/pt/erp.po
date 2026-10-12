@@ -1529,9 +1529,6 @@ msgstr "Adicionar centro de custo"
 msgid "Add Employee"
 msgstr "Adicionar Funcionário"
 
-msgid "Add Entry"
-msgstr "Adicionar Entrada"
-
 msgid "Add from library…"
 msgstr "Adicionar da biblioteca…"
 
@@ -1631,6 +1628,9 @@ msgstr "Adicionar Impressora"
 
 msgid "Add Property"
 msgstr "Adicionar Propriedade"
+
+msgid "Add punch"
+msgstr ""
 
 msgid "Add Question"
 msgstr "Adicionar Pergunta"
@@ -5665,6 +5665,9 @@ msgstr "Dia {0}"
 msgid "Day off"
 msgstr "Dia de folga"
 
+msgid "Day total"
+msgstr ""
+
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "Perguntas do dia a dia e suporte intensivo após o lançamento"
 
@@ -9527,6 +9530,9 @@ msgstr "Entrada"
 msgid "Inputs"
 msgstr "Entradas"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "Inserir token"
 
@@ -11895,6 +11901,9 @@ msgstr "Próxima Data de Vencimento"
 msgid "Next page"
 msgstr "Próxima página"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "Próxima Sequência"
 
@@ -12087,6 +12096,9 @@ msgstr "Nenhum funcionário atribuído ainda. Adicione grupos para ver o status.
 
 msgid "No employees found"
 msgstr "Nenhum funcionário encontrado"
+
+msgid "No employees found."
+msgstr ""
 
 msgid "No events found."
 msgstr "Nenhum evento encontrado."
@@ -12448,9 +12460,6 @@ msgstr "Nenhum fornecedor ainda"
 
 msgid "No sync operations yet"
 msgstr "Nenhuma operação de sincronização ainda"
-
-msgid "No time entries for this week"
-msgstr "Sem registros de tempo para esta semana"
 
 msgid "No tools"
 msgstr "Nenhuma ferramenta"
@@ -12965,6 +12974,9 @@ msgstr "Abrir navegação"
 
 msgid "Open payables by supplier and age"
 msgstr "Contas a pagar em aberto por fornecedor e idade"
+
+msgid "Open person page"
+msgstr ""
 
 msgid "Open Purchase Invoices"
 msgstr "Faturas de Compra Abertas"
@@ -13522,6 +13534,9 @@ msgstr "Pagar"
 msgid "Pay expense"
 msgstr "Pagar despesa"
 
+msgid "Pay period length"
+msgstr ""
+
 msgid "Pay Rate"
 msgstr "Taxa de Pagamento"
 
@@ -13635,6 +13650,9 @@ msgstr "Percentagem do Lote"
 
 msgid "Period"
 msgstr "Período"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "Fechamento de período"
@@ -14062,6 +14080,9 @@ msgstr "Dia Anterior"
 msgid "Previous page"
 msgstr "Página anterior"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "Etapa anterior"
 
@@ -14423,6 +14444,9 @@ msgstr "Retirar do estoque"
 
 msgid "Pull, map, and load your data"
 msgstr "Extrair, mapear e carregar seus dados"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "Comprar e fabricar a partir do MRP"
@@ -16274,6 +16298,12 @@ msgstr "Salvar configurações de dimensão"
 msgid "Save Method"
 msgstr "Salvar Método"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "Salvar taxa"
 
@@ -16484,6 +16514,9 @@ msgstr "Pesquisar clientes e tipos..."
 
 msgid "Search customers or types..."
 msgstr "Pesquisar clientes ou tipos..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "Pesquisar funcionários..."

@@ -1529,9 +1529,6 @@ msgstr "원가 센터 추가"
 msgid "Add Employee"
 msgstr "직원 추가"
 
-msgid "Add Entry"
-msgstr "항목 추가"
-
 msgid "Add from library…"
 msgstr "라이브러리에서 추가…"
 
@@ -1631,6 +1628,9 @@ msgstr "프린터 추가"
 
 msgid "Add Property"
 msgstr "속성 추가"
+
+msgid "Add punch"
+msgstr ""
 
 msgid "Add Question"
 msgstr "질문 추가"
@@ -5665,6 +5665,9 @@ msgstr "일 {0}"
 msgid "Day off"
 msgstr "휴무일"
 
+msgid "Day total"
+msgstr ""
+
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "도입 후 일상적인 질문 대응 및 하이퍼케어"
 
@@ -9527,6 +9530,9 @@ msgstr "입력"
 msgid "Inputs"
 msgstr "입력"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "토큰 삽입"
 
@@ -11895,6 +11901,9 @@ msgstr "다음 마감일"
 msgid "Next page"
 msgstr "다음 페이지"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "다음 채번 규칙"
 
@@ -12087,6 +12096,9 @@ msgstr "아직 배정된 직원이 없습니다. 그룹을 추가하면 상태�
 
 msgid "No employees found"
 msgstr "직원이 없습니다"
+
+msgid "No employees found."
+msgstr ""
 
 msgid "No events found."
 msgstr "이벤트를 찾을 수 없습니다."
@@ -12448,9 +12460,6 @@ msgstr "아직 공급업체가 없습니다"
 
 msgid "No sync operations yet"
 msgstr "아직 동기화된 공정이 없습니다"
-
-msgid "No time entries for this week"
-msgstr "이번 주 시간 기록이 없습니다"
 
 msgid "No tools"
 msgstr "도구 없음"
@@ -12965,6 +12974,9 @@ msgstr "탐색 열기"
 
 msgid "Open payables by supplier and age"
 msgstr "공급업체 및 기간별 미결 매입채무"
+
+msgid "Open person page"
+msgstr ""
 
 msgid "Open Purchase Invoices"
 msgstr "미결 매입 송장"
@@ -13522,6 +13534,9 @@ msgstr "지불"
 msgid "Pay expense"
 msgstr "비용 지불"
 
+msgid "Pay period length"
+msgstr ""
+
 msgid "Pay Rate"
 msgstr "급여율"
 
@@ -13635,6 +13650,9 @@ msgstr "로트 비율"
 
 msgid "Period"
 msgstr "기간"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "기간 종료"
@@ -14062,6 +14080,9 @@ msgstr "이전 날"
 msgid "Previous page"
 msgstr "이전 페이지"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "이전 단계"
 
@@ -14423,6 +14444,9 @@ msgstr "재고 사용"
 
 msgid "Pull, map, and load your data"
 msgstr "데이터를 가져와서 매핑하고 로드하세요"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "MRP 기반 구매 및 제조"
@@ -16274,6 +16298,12 @@ msgstr "차원 설정 저장"
 msgid "Save Method"
 msgstr "저장 방법"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "환율 저장"
 
@@ -16484,6 +16514,9 @@ msgstr "고객 및 유형 검색..."
 
 msgid "Search customers or types..."
 msgstr "고객 또는 유형 검색..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "직원 검색..."

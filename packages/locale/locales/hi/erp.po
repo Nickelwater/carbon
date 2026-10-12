@@ -1529,9 +1529,6 @@ msgstr "लागत केंद्र जोड़ें"
 msgid "Add Employee"
 msgstr "कर्मचारी जोड़ें"
 
-msgid "Add Entry"
-msgstr "प्रविष्टि जोड़ें"
-
 msgid "Add from library…"
 msgstr "लाइब्रेरी से जोड़ें…"
 
@@ -1631,6 +1628,9 @@ msgstr "प्रिंटर जोड़ें"
 
 msgid "Add Property"
 msgstr "प्रॉपर्टी जोड़ें"
+
+msgid "Add punch"
+msgstr ""
 
 msgid "Add Question"
 msgstr "प्रश्न जोड़ें"
@@ -5665,6 +5665,9 @@ msgstr "दिन {0}"
 msgid "Day off"
 msgstr "छुट्टी"
 
+msgid "Day total"
+msgstr ""
+
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "दिन-प्रतिदिन के प्रश्न और लॉन्च के बाद हाइपरकेयर"
 
@@ -9527,6 +9530,9 @@ msgstr "इनपुट"
 msgid "Inputs"
 msgstr "इनपुट्स"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "टोकन डालें"
 
@@ -11895,6 +11901,9 @@ msgstr "अगली नियत तिथि"
 msgid "Next page"
 msgstr "अगला पृष्ठ"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "अगला अनुक्रम"
 
@@ -12087,6 +12096,9 @@ msgstr "अभी तक कोई कर्मचारी असाइन न�
 
 msgid "No employees found"
 msgstr "कोई कर्मचारी नहीं मिला"
+
+msgid "No employees found."
+msgstr ""
 
 msgid "No events found."
 msgstr "कोई ईवेंट नहीं मिला।"
@@ -12448,9 +12460,6 @@ msgstr "अभी तक कोई आपूर्तिकर्ता नह�
 
 msgid "No sync operations yet"
 msgstr "अभी तक कोई सिंक ऑपरेशन नहीं"
-
-msgid "No time entries for this week"
-msgstr "इस सप्ताह के लिए कोई समय प्रविष्टि नहीं"
 
 msgid "No tools"
 msgstr "कोई उपकरण नहीं"
@@ -12965,6 +12974,9 @@ msgstr "नेविगेशन खोलें"
 
 msgid "Open payables by supplier and age"
 msgstr "आपूर्तिकर्ता और आयु के अनुसार खुली देय राशि"
+
+msgid "Open person page"
+msgstr ""
 
 msgid "Open Purchase Invoices"
 msgstr "खुले क्रय चालान"
@@ -13522,6 +13534,9 @@ msgstr "भुगतान करें"
 msgid "Pay expense"
 msgstr "व्यय का भुगतान करें"
 
+msgid "Pay period length"
+msgstr ""
+
 msgid "Pay Rate"
 msgstr "भुगतान दर"
 
@@ -13635,6 +13650,9 @@ msgstr "लॉट का प्रतिशत"
 
 msgid "Period"
 msgstr "अवधि"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "अवधि बंद"
@@ -14062,6 +14080,9 @@ msgstr "पिछला दिन"
 msgid "Previous page"
 msgstr "पिछला पृष्ठ"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "पिछला चरण"
 
@@ -14423,6 +14444,9 @@ msgstr "इन्वेंटरी से लें"
 
 msgid "Pull, map, and load your data"
 msgstr "अपना डेटा खींचें, मैप करें, और लोड करें"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "MRP से खरीद और निर्माण करें"
@@ -16274,6 +16298,12 @@ msgstr "आयाम सेटिंग्स सहेजें"
 msgid "Save Method"
 msgstr "विधि सहेजें"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "दर सहेजें"
 
@@ -16484,6 +16514,9 @@ msgstr "ग्राहकों और प्रकारों को खो�
 
 msgid "Search customers or types..."
 msgstr "ग्राहकों या प्रकारों को खोजें..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "कर्मचारियों को खोजें..."

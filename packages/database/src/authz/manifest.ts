@@ -1511,6 +1511,21 @@ export const manifest = {
     ),
     delete: inCompany("companyId", "people_delete")
   }),
+  timeCardPunch: policies({
+    select: or(
+      and(owner("employeeId"), inCompany("companyId", "employee")),
+      inCompany("companyId", "people_view")
+    ),
+    insert: or(
+      and(owner("employeeId"), inCompany("companyId", "employee")),
+      inCompany("companyId", "people_create")
+    ),
+    update: or(
+      and(owner("employeeId"), inCompany("companyId", "employee")),
+      inCompany("companyId", "people_update")
+    ),
+    delete: inCompany("companyId", "people_delete")
+  }),
   timeClockDevice: company("people"),
   timeClockPunch: company("people"),
   tool: company("parts"),

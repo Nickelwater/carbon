@@ -21,6 +21,7 @@ import {
   parseClockMessage,
   type SendlogRecord
 } from "./protocol";
+import { rebuildTimeCardEntries } from "./rebuild.server";
 
 const log = getLogger("timeclock");
 
@@ -170,58 +171,55 @@ async function applyPunchToggle(
   }
 
   const employeeId = jobResult.data.id;
-  const open = await client
-    .from("timeCardEntry")
+
+  const existingLedger = await client
+    .from("timeCardPunch")
     .select("id")
-    .eq("employeeId", employeeId)
     .eq("companyId", companyId)
-    .is("clockOut", null)
+    .eq("timeClockPunchId", punch.id)
     .maybeSingle();
 
-  if (open.error) {
-    return { data: null, error: open.error };
+  if (existingLedger.error) {
+    return { data: null, error: existingLedger.error };
   }
 
-  let timeCardEntryId: string;
-
-  if (open.data) {
-    const out = await client
-      .from("timeCardEntry")
-      .update({
-        clockOut: punch.punchedAt,
-        updatedBy: SYSTEM_USER,
-        updatedAt: new Date().toISOString()
-      })
-      .eq("id", open.data.id)
-      .select("id")
-      .single();
-    if (out.error || !out.data) {
-      return { data: null, error: out.error ?? { message: "clockOut failed" } };
+  if (!existingLedger.data) {
+    const ledgerInsert = await client.from("timeCardPunch").insert({
+      companyId,
+      employeeId,
+      punchedAt: punch.punchedAt,
+      source: "hardware",
+      timeClockPunchId: punch.id,
+      createdBy: SYSTEM_USER
+    });
+    if (ledgerInsert.error) {
+      return { data: null, error: ledgerInsert.error };
     }
-    timeCardEntryId = out.data.id;
-  } else {
-    const inn = await client
-      .from("timeCardEntry")
-      .insert({
-        employeeId,
-        companyId,
-        clockIn: punch.punchedAt,
-        createdBy: SYSTEM_USER
-      })
-      .select("id")
-      .single();
-    if (inn.error || !inn.data) {
-      return { data: null, error: inn.error ?? { message: "clockIn failed" } };
-    }
-    timeCardEntryId = inn.data.id;
   }
+
+  const rebuild = await rebuildTimeCardEntries(client, {
+    companyId,
+    employeeId,
+    actorUserId: SYSTEM_USER
+  });
+  if (rebuild.error) {
+    return { data: null, error: rebuild.error };
+  }
+
+  const entryMatch = await client
+    .from("timeCardEntry")
+    .select("id")
+    .eq("companyId", companyId)
+    .eq("employeeId", employeeId)
+    .or(`clockIn.eq.${punch.punchedAt},clockOut.eq.${punch.punchedAt}`)
+    .maybeSingle();
 
   return client
     .from("timeClockPunch")
     .update({
       status: "applied",
       employeeId,
-      timeCardEntryId,
+      timeCardEntryId: entryMatch.data?.id ?? null,
       error: null
     })
     .eq("id", punch.id)

@@ -18,7 +18,8 @@
   },
   "exports": {
     ".": "./src/index.ts",
-    "./gateway.server": "./src/gateway.server.ts"
+    "./gateway.server": "./src/gateway.server.ts",
+    "./rebuild.server": "./src/rebuild.server.ts"
   },
   "private": true,
   "scripts": {

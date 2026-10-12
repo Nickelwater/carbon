@@ -11,6 +11,15 @@ export {
   type ToggleDecision
 } from "./ingest";
 export {
+  getPayPeriodContaining,
+  type PairedSegment,
+  type PairResult,
+  type PayPeriodBounds,
+  type PunchLike,
+  pairPunches,
+  shiftPayPeriod
+} from "./pair";
+export {
   ackReg,
   ackSendlog,
   type ClockMessage,

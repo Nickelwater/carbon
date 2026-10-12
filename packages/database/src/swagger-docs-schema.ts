@@ -21849,6 +21849,195 @@ export default {
         tags: ["supplyForecast"]
       }
     },
+    "/timeCardPunch": {
+      get: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.employeeId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.punchedAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.source"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.timeClockPunchId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.note"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.createdBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.createdAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.updatedBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.updatedAt"
+          },
+          {
+            $ref: "#/parameters/select"
+          },
+          {
+            $ref: "#/parameters/order"
+          },
+          {
+            $ref: "#/parameters/range"
+          },
+          {
+            $ref: "#/parameters/rangeUnit"
+          },
+          {
+            $ref: "#/parameters/offset"
+          },
+          {
+            $ref: "#/parameters/limit"
+          },
+          {
+            $ref: "#/parameters/preferCount"
+          }
+        ],
+        responses: {
+          "200": {
+            description: "OK",
+            schema: {
+              items: {
+                $ref: "#/definitions/timeCardPunch"
+              },
+              type: "array"
+            }
+          },
+          "206": {
+            description: "Partial Content"
+          }
+        },
+        tags: ["timeCardPunch"]
+      },
+      post: {
+        parameters: [
+          {
+            $ref: "#/parameters/body.timeCardPunch"
+          },
+          {
+            $ref: "#/parameters/select"
+          },
+          {
+            $ref: "#/parameters/preferPost"
+          }
+        ],
+        responses: {
+          "201": {
+            description: "Created"
+          }
+        },
+        tags: ["timeCardPunch"]
+      },
+      delete: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.employeeId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.punchedAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.source"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.timeClockPunchId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.note"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.createdBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.createdAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.updatedBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.updatedAt"
+          },
+          {
+            $ref: "#/parameters/preferReturn"
+          }
+        ],
+        responses: {
+          "204": {
+            description: "No Content"
+          }
+        },
+        tags: ["timeCardPunch"]
+      },
+      patch: {
+        parameters: [
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.id"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.companyId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.employeeId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.punchedAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.source"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.timeClockPunchId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.note"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.createdBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.createdAt"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.updatedBy"
+          },
+          {
+            $ref: "#/parameters/rowFilter.timeCardPunch.updatedAt"
+          },
+          {
+            $ref: "#/parameters/body.timeCardPunch"
+          },
+          {
+            $ref: "#/parameters/preferReturn"
+          }
+        ],
+        responses: {
+          "204": {
+            description: "No Content"
+          }
+        },
+        tags: ["timeCardPunch"]
+      }
+    },
     "/jobs": {
       get: {
         parameters: [
@@ -97249,6 +97438,12 @@ export default {
             $ref: "#/parameters/rowFilter.companySettings.showBomExplorerReadableId"
           },
           {
+            $ref: "#/parameters/rowFilter.companySettings.payPeriodLengthDays"
+          },
+          {
+            $ref: "#/parameters/rowFilter.companySettings.payPeriodAnchorDate"
+          },
+          {
             $ref: "#/parameters/select"
           },
           {
@@ -97467,6 +97662,12 @@ export default {
             $ref: "#/parameters/rowFilter.companySettings.showBomExplorerReadableId"
           },
           {
+            $ref: "#/parameters/rowFilter.companySettings.payPeriodLengthDays"
+          },
+          {
+            $ref: "#/parameters/rowFilter.companySettings.payPeriodAnchorDate"
+          },
+          {
             $ref: "#/parameters/preferReturn"
           }
         ],
@@ -97637,6 +97838,12 @@ export default {
           },
           {
             $ref: "#/parameters/rowFilter.companySettings.showBomExplorerReadableId"
+          },
+          {
+            $ref: "#/parameters/rowFilter.companySettings.payPeriodLengthDays"
+          },
+          {
+            $ref: "#/parameters/rowFilter.companySettings.payPeriodAnchorDate"
           },
           {
             $ref: "#/parameters/body.companySettings"
@@ -122722,6 +122929,75 @@ export default {
         sourceType: {
           enum: ["Purchase Order", "Production Order"],
           format: 'public."supplySourceType"',
+          type: "string"
+        }
+      },
+      type: "object"
+    },
+    timeCardPunch: {
+      required: [
+        "id",
+        "companyId",
+        "employeeId",
+        "punchedAt",
+        "source",
+        "createdBy",
+        "createdAt"
+      ],
+      properties: {
+        id: {
+          default: "public.id('tcpn'::text)",
+          description: "Note:\nThis is a Primary Key.<pk/>",
+          format: "text",
+          type: "string"
+        },
+        companyId: {
+          description:
+            "Note:\nThis is a Primary Key.<pk/>\nThis is a Foreign Key to `company.id`.<fk table='company' column='id'/>",
+          format: "text",
+          type: "string"
+        },
+        employeeId: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string"
+        },
+        punchedAt: {
+          format: "timestamp with time zone",
+          type: "string"
+        },
+        source: {
+          format: "text",
+          type: "string"
+        },
+        timeClockPunchId: {
+          format: "text",
+          type: "string"
+        },
+        note: {
+          format: "text",
+          type: "string"
+        },
+        createdBy: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string"
+        },
+        createdAt: {
+          default: "now()",
+          format: "timestamp with time zone",
+          type: "string"
+        },
+        updatedBy: {
+          description:
+            "Note:\nThis is a Foreign Key to `user.id`.<fk table='user' column='id'/>",
+          format: "text",
+          type: "string"
+        },
+        updatedAt: {
+          format: "timestamp with time zone",
           type: "string"
         }
       },
@@ -158681,7 +158957,9 @@ export default {
         "includeOperationsOnTraveler",
         "requireSupplierContactAndLocation",
         "requireCustomerContactAndLocation",
-        "showBomExplorerReadableId"
+        "showBomExplorerReadableId",
+        "payPeriodLengthDays",
+        "payPeriodAnchorDate"
       ],
       properties: {
         id: {
@@ -158973,6 +159251,15 @@ export default {
           default: false,
           format: "boolean",
           type: "boolean"
+        },
+        payPeriodLengthDays: {
+          default: 7,
+          format: "integer",
+          type: "integer"
+        },
+        payPeriodAnchorDate: {
+          format: "date",
+          type: "string"
         }
       },
       type: "object"
@@ -170872,6 +171159,81 @@ export default {
     },
     "rowFilter.supplyForecast.sourceType": {
       name: "sourceType",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "body.timeCardPunch": {
+      name: "timeCardPunch",
+      description: "timeCardPunch",
+      required: false,
+      in: "body",
+      schema: {
+        $ref: "#/definitions/timeCardPunch"
+      }
+    },
+    "rowFilter.timeCardPunch.id": {
+      name: "id",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.companyId": {
+      name: "companyId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.employeeId": {
+      name: "employeeId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.punchedAt": {
+      name: "punchedAt",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.source": {
+      name: "source",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.timeClockPunchId": {
+      name: "timeClockPunchId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.note": {
+      name: "note",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.createdBy": {
+      name: "createdBy",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.createdAt": {
+      name: "createdAt",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.updatedBy": {
+      name: "updatedBy",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.timeCardPunch.updatedAt": {
+      name: "updatedAt",
       required: false,
       in: "query",
       type: "string"
@@ -210984,6 +211346,18 @@ export default {
     },
     "rowFilter.companySettings.showBomExplorerReadableId": {
       name: "showBomExplorerReadableId",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.companySettings.payPeriodLengthDays": {
+      name: "payPeriodLengthDays",
+      required: false,
+      in: "query",
+      type: "string"
+    },
+    "rowFilter.companySettings.payPeriodAnchorDate": {
+      name: "payPeriodAnchorDate",
       required: false,
       in: "query",
       type: "string"
