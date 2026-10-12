@@ -219,7 +219,18 @@ setInterval(async () => {
 // Not traffic: Inngest's poll, and the Vite client of an open tab probing for
 // its server over a WebSocket — answering those would wake the stack the
 // moment it went to sleep.
-export function startWaker(port: number, onWake: () => void) {
+//
+// `host` must match where the app bound while awake (`127.0.0.1` locally,
+// `0.0.0.0` under `crbn up --lan`) — otherwise a LAN URL never reaches the
+// waker and the stack stays parked.
+export function startWaker(
+  port: number,
+  onWake: () => void,
+  host = "127.0.0.1"
+) {
+  const listen = () => {
+    if (!stopped) server.listen(port, host);
+  };
   const server = createServer((req, res) => {
     if (req.url?.startsWith("/api/inngest")) {
       res.writeHead(503).end();
@@ -242,11 +253,9 @@ export function startWaker(port: number, onWake: () => void) {
   let retry: NodeJS.Timeout | undefined;
   server.on("error", () => {
     if (stopped) return;
-    retry = setTimeout(() => {
-      if (!stopped) server.listen(port, "127.0.0.1");
-    }, 250);
+    retry = setTimeout(listen, 250);
   });
-  server.listen(port, "127.0.0.1");
+  listen();
   return () =>
     new Promise<void>((resolve) => {
       // A retry left pending would bind the port after the stop and keep the

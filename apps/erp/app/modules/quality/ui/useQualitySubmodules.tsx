@@ -72,7 +72,7 @@ export default function useQualitySubmodules() {
       routes: [
         {
           name: t`Inbound Inspections`,
-          to: path.to.inspections,
+          to: path.to.inboundInspections,
           icon: <LuClipboardCheck />,
           table: "inspection"
         },

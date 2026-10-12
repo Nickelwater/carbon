@@ -3692,26 +3692,47 @@ export async function getInboundInspections(
     sourceType?: "Receipt" | "Job";
   }
 ) {
-  const result = await getInspections(
-    client,
-    companyId,
-    args
-      ? {
-          limit: args.limit,
-          offset: args.offset,
-          search: args.search,
-          status: args.status,
-          type: args.sourceType
-            ? args.sourceType === "Job"
-              ? "Lot"
-              : "Inbound"
-            : undefined,
-          filters: remapInspectionFilters(args.filters),
-          sorts: remapInspectionSorts(args.sorts)
-        }
-      : undefined
+  // Require the matching subtype with !inner so In-Process (and other)
+  // rows cannot appear on inbound/lot lists even if `type` were wrong.
+  const type = args?.sourceType === "Job" ? "Lot" : "Inbound";
+  const subtype =
+    type === "Lot" ? "inspectionLot!inner" : "inspectionReceipt!inner";
+  const select = INSPECTION_SELECT_LIST.replace(
+    type === "Lot" ? "inspectionLot(" : "inspectionReceipt(",
+    `${subtype}(`
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- PostgREST select depth (TS2589)
+  let query = (client as any)
+    .from("inspection")
+    .select(select, { count: LIST_COUNT })
+    .eq("companyId", companyId)
+    .eq("type", type);
+
+  if (args?.search) {
+    query = query.or(
+      `itemReadableId.ilike.%${args.search}%,sourceDocumentReadableId.ilike.%${args.search}%,notes.ilike.%${args.search}%`
+    );
+  }
+
+  if (args?.status) {
+    query = query.eq("status", args.status);
+  }
+
+  if (args) {
+    query = setGenericQueryFilters(
+      query,
+      {
+        limit: args.limit,
+        offset: args.offset,
+        filters: remapInspectionFilters(args.filters),
+        sorts: remapInspectionSorts(args.sorts)
+      },
+      [{ column: "createdAt", ascending: false }]
+    );
+  }
+
+  const result = await query;
   if (result.error || !result.data) return result;
 
   return {

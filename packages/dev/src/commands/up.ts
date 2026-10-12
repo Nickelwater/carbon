@@ -12,7 +12,7 @@ import { APP_CHOICES, type AppId } from "../constants.js";
 import { renderEnv, syncAppPortlessConfigs, writeEnv } from "../env.js";
 import { currentBranch } from "../git.js";
 import { onShutdown, tryConnect } from "../helpers.js";
-import { isLanMode, resolveDevHost } from "../network.js";
+import { DEV_BIND_ALL, isLanMode, resolveDevHost } from "../network.js";
 import { pickApps, pickBorrowSlug } from "../prompts.js";
 import {
   assemblerDepsBuilt,
@@ -387,8 +387,15 @@ export async function up(opts: UpOpts = {}) {
           parking.parked = true;
           parking.stop?.abort();
           await parking.exited;
+          // Match the app bind host: LAN mode listens on 0.0.0.0, so the
+          // waker must too — otherwise http://<lan-ip>:port never wakes it.
+          const wakerHost = lanHost ? DEV_BIND_ALL : "127.0.0.1";
           wakers = appPorts.map((port) =>
-            startWaker(port, () => writeFileSync(activityFile(stateDir), ""))
+            startWaker(
+              port,
+              () => writeFileSync(activityFile(stateDir), ""),
+              wakerHost
+            )
           );
         },
         wake: async (from) => {
