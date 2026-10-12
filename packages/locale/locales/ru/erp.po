@@ -4090,6 +4090,9 @@ msgstr "Свернуть настройку"
 msgid "Collapse subtree"
 msgstr "Свернуть поддерево"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

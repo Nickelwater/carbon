@@ -6,6 +6,8 @@ import { describe, expect, it } from "vitest";
 import {
   ackReg,
   ackSendlog,
+  getAllLogCommand,
+  getCollectLogCommand,
   getNewLogCommand,
   parseClockMessage
 } from "./protocol";
@@ -29,8 +31,11 @@ describe("protocol ACKs", () => {
     });
   });
 
-  it("builds getnewlog", () => {
+  it("builds getnewlog and getalllog", () => {
     expect(getNewLogCommand()).toEqual({ cmd: "getnewlog" });
+    expect(getAllLogCommand()).toEqual({ cmd: "getalllog" });
+    expect(getCollectLogCommand("new")).toEqual({ cmd: "getnewlog" });
+    expect(getCollectLogCommand("all")).toEqual({ cmd: "getalllog" });
   });
 
   it("parses JSON clock messages", () => {

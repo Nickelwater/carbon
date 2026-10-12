@@ -4090,6 +4090,9 @@ msgstr "Rüsten einklappen"
 msgid "Collapse subtree"
 msgstr "Teilbaum einklappen"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

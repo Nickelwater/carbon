@@ -4090,6 +4090,9 @@ msgstr "Comprimi preparazione"
 msgid "Collapse subtree"
 msgstr "Comprimi sottostruttura"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

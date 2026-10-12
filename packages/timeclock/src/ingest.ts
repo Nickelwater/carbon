@@ -2,6 +2,8 @@
 // Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
 // including ports, remain AGPLv3; serving them over a network requires releasing their source.
 
+import { parseAbsolute, parseDateTime, toZoned } from "@internationalized/date";
+
 export type PunchStatus =
   | "pending"
   | "applied"
@@ -62,13 +64,20 @@ export function punchIdempotencyKey(args: {
   ].join("|");
 }
 
-/** ProPunch terminal time `Y-m-d H:i:s` → ISO-ish UTC string for timestamptz insert. */
-export function propunchTimeToIso(time: string): string {
+/**
+ * ProPunch terminal time `Y-m-d H:i:s` is wall clock in the company timezone
+ * (same convention as `cloudtime` ACKs). Convert to an absolute UTC ISO string
+ * for timestamptz insert — never treat the naive string as UTC.
+ */
+export function propunchTimeToIso(time: string, timeZone: string): string {
   const trimmed = time.trim();
-  // Already ISO
-  if (trimmed.includes("T")) {
-    return trimmed;
+  if (!timeZone) {
+    throw new Error("propunchTimeToIso requires a company timezone");
   }
-  // "2026-10-12 09:15:00" → "2026-10-12T09:15:00"
-  return trimmed.replace(" ", "T");
+  // Already absolute (Z or numeric offset)
+  if (/[zZ]$|[+-]\d{2}:\d{2}$/.test(trimmed)) {
+    return parseAbsolute(trimmed, timeZone).toAbsoluteString();
+  }
+  const local = trimmed.includes("T") ? trimmed : trimmed.replace(" ", "T");
+  return toZoned(parseDateTime(local), timeZone).toAbsoluteString();
 }

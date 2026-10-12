@@ -4090,6 +4090,9 @@ msgstr "收起换型"
 msgid "Collapse subtree"
 msgstr "折叠子树"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

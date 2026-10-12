@@ -4090,6 +4090,9 @@ msgstr "Réduire la configuration"
 msgid "Collapse subtree"
 msgstr "Réduire le sous-arbre"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

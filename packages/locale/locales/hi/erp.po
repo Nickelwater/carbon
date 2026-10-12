@@ -4090,6 +4090,9 @@ msgstr "सेटअप को संक्षिप्त करें"
 msgid "Collapse subtree"
 msgstr "सबट्री को संक्षिप्त करें"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

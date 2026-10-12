@@ -4090,6 +4090,9 @@ msgstr "Collapse Setup"
 msgid "Collapse subtree"
 msgstr "Collapse subtree"
 
+msgid "Collect all punches"
+msgstr "Collect all punches"
+
 msgid "Collect Now"
 msgstr "Collect Now"
 

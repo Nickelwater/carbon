@@ -4090,6 +4090,9 @@ msgstr "Kurulumu Daralt"
 msgid "Collapse subtree"
 msgstr "Alt ağacı daralt"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

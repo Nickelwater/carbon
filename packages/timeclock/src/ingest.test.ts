@@ -78,9 +78,16 @@ describe("punchIdempotencyKey", () => {
 });
 
 describe("propunchTimeToIso", () => {
-  it("converts space-separated terminal time", () => {
-    expect(propunchTimeToIso("2026-10-12 09:15:00")).toBe(
-      "2026-10-12T09:15:00"
+  it("interprets terminal wall clock in the company timezone", () => {
+    // 16:39 CDT (UTC-5) → 21:39 UTC — matches a 4:39 PM Central punch
+    expect(propunchTimeToIso("2026-10-12 16:39:50", "America/Chicago")).toBe(
+      "2026-10-12T21:39:50.000Z"
     );
+  });
+
+  it("accepts an absolute ISO string", () => {
+    expect(
+      propunchTimeToIso("2026-10-12T21:39:50.000Z", "America/Chicago")
+    ).toBe("2026-10-12T21:39:50.000Z");
   });
 });

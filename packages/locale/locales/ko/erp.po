@@ -4090,6 +4090,9 @@ msgstr "셋업 접기"
 msgid "Collapse subtree"
 msgstr "하위 트리 접기"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

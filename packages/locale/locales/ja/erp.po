@@ -4090,6 +4090,9 @@ msgstr "段取りを折りたたむ"
 msgid "Collapse subtree"
 msgstr "サブツリーを折りたたむ"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

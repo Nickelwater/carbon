@@ -4090,6 +4090,9 @@ msgstr "Contraer preparación"
 msgid "Collapse subtree"
 msgstr "Contraer subárbol"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

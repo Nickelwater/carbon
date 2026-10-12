@@ -208,7 +208,9 @@ Send via gateway POST `/push_to_terminal` with `sn` set. On the WebSocket wire, 
 | `disabledevice` / `enabledevice` | Lock out / re-enable terminal during bulk updates |
 | `reboot` | Reboot device |
 | `opendoor`, `setdevlock`, `getdevlock`, `getuserlock`, `setuserlock`, `deleteuserlock` | Access-control helpers (partially stubbed in Acroprint PHP) |
-| `getnewlog` / `getalllog` / `cleanadmin` / `setdeviceinfo` | Declared; limited handling in analyzed PHP |
+| `getnewlog` | Pull unread attendance logs since last collect (Carbon Collect Now) |
+| `getalllog` | Pull full attendance log on the device (Carbon Collect all punches) |
+| `cleanadmin` / `setdeviceinfo` | Declared; limited handling in analyzed PHP |
 
 **Typical reply from clock:** `{ "ret": "<cmd>", "result": true|false, "sn": "...", ...payload }`
 

@@ -128,14 +128,15 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
-  if (intent === "collect") {
+  if (intent === "collect" || intent === "collectAll") {
     const sn = String(formData.get("sn") ?? "");
+    const mode = intent === "collectAll" ? "all" : "new";
     const port = process.env.TIMECLOCK_PORT?.trim() || "7788";
     try {
       const response = await fetch(`http://127.0.0.1:${port}/collect`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sn })
+        body: JSON.stringify({ sn, mode })
       });
       const body = (await response.json()) as { ok?: boolean; error?: string };
       if (!response.ok || !body.ok) {
@@ -152,7 +153,14 @@ export async function action({ request }: ActionFunctionArgs) {
       }
       return data(
         { success: true },
-        await flash(request, success("Collect requested"))
+        await flash(
+          request,
+          success(
+            mode === "all"
+              ? "Collect all punches requested"
+              : "Collect requested"
+          )
+        )
       );
     } catch {
       return data(

@@ -4090,6 +4090,9 @@ msgstr "Zwiń Setup"
 msgid "Collapse subtree"
 msgstr "Zwiń poddrzewo"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

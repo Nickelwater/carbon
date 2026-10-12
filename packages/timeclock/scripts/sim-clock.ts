@@ -16,6 +16,7 @@ const host = process.env.TIMECLOCK_HOST === "0.0.0.0"
   ? "127.0.0.1"
   : process.env.TIMECLOCK_HOST || "127.0.0.1";
 const port = process.env.TIMECLOCK_PORT || "7788";
+const timeZone = process.env.TIMECLOCK_TZ || "America/Chicago";
 const sn = process.argv[2] || "SIM-SN-001";
 const enrollId = process.argv[3] || "1001";
 
@@ -30,7 +31,7 @@ ws.on("open", () => {
       devinfo: {
         firmware: "sim",
         modelname: "FPC18",
-        time: formatCloudtime()
+        time: formatCloudtime(timeZone)
       }
     })
   );
@@ -44,7 +45,7 @@ ws.on("open", () => {
         record: [
           {
             enrollid: Number(enrollId) || enrollId,
-            time: formatCloudtime(),
+            time: formatCloudtime(timeZone),
             inout: 0,
             event: 0,
             mode: 1

@@ -16,14 +16,33 @@ import { propunchTimeToIso } from "./ingest";
 import {
   ackReg,
   ackSendlog,
+  type CollectLogMode,
   formatCloudtime,
-  getNewLogCommand,
+  getCollectLogCommand,
   parseClockMessage,
   type SendlogRecord
 } from "./protocol";
 import { rebuildTimeCardEntries } from "./rebuild.server";
 
 const log = getLogger("timeclock");
+
+async function getCompanyTimeZone(
+  client: SupabaseClient<Database>,
+  companyId: string
+): Promise<string> {
+  const result = await client
+    .from("company")
+    .select("timezone")
+    .eq("id", companyId)
+    .single();
+  if (result.error || !result.data?.timezone) {
+    throw new Error(
+      result.error?.message ??
+        `Company ${companyId} is missing company.timezone`
+    );
+  }
+  return result.data.timezone;
+}
 
 /** Service-role client without `@carbon/auth` (avoids loading the full app env). */
 function createServiceRoleClient(): SupabaseClient<Database> {
@@ -232,7 +251,8 @@ async function ingestSendlogRecords(
   client: SupabaseClient<Database>,
   companyId: string,
   sn: string,
-  records: SendlogRecord[]
+  records: SendlogRecord[],
+  timeZone: string
 ) {
   const device = await client
     .from("timeClockDevice")
@@ -267,7 +287,7 @@ async function ingestSendlogRecords(
 
   for (const record of records) {
     const enrollId = String(record.enrollid);
-    const punchedAt = propunchTimeToIso(record.time);
+    const punchedAt = propunchTimeToIso(record.time, timeZone);
     const mode = record.mode ?? 0;
     const event = record.event ?? 0;
     const inout = record.inout ?? null;
@@ -317,12 +337,15 @@ function sendJson(socket: WebSocket, payload: unknown) {
   }
 }
 
-function collectSn(sn: string): { ok: boolean; error?: string } {
+function collectSn(
+  sn: string,
+  mode: CollectLogMode = "new"
+): { ok: boolean; error?: string } {
   const entry = socketsBySn.get(sn);
   if (!entry || entry.socket.readyState !== entry.socket.OPEN) {
     return { ok: false, error: `Device ${sn} is not online` };
   }
-  sendJson(entry.socket, getNewLogCommand());
+  sendJson(entry.socket, getCollectLogCommand(mode));
   lastPollAt.set(sn, Date.now());
   return { ok: true };
 }
@@ -386,17 +409,18 @@ function handleHttp(
     });
     req.on("end", () => {
       try {
-        const parsed = JSON.parse(body) as { sn?: string };
+        const parsed = JSON.parse(body) as { sn?: string; mode?: string };
         if (!parsed.sn) {
           res.writeHead(400, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ ok: false, error: "sn required" }));
           return;
         }
-        const result = collectSn(parsed.sn);
+        const mode: CollectLogMode = parsed.mode === "all" ? "all" : "new";
+        const result = collectSn(parsed.sn, mode);
         res.writeHead(result.ok ? 200 : 404, {
           "Content-Type": "application/json"
         });
-        res.end(JSON.stringify(result));
+        res.end(JSON.stringify({ ...result, mode }));
       } catch {
         res.writeHead(400, { "Content-Type": "application/json" });
         res.end(JSON.stringify({ ok: false, error: "invalid JSON" }));
@@ -411,6 +435,13 @@ function handleHttp(
 
 export function startTimeclockGateway(env: TimeclockEnv) {
   const client = createServiceRoleClient();
+  let companyTimeZone: string | null = null;
+
+  async function resolveCompanyTimeZone(): Promise<string> {
+    if (companyTimeZone) return companyTimeZone;
+    companyTimeZone = await getCompanyTimeZone(client, env.companyId);
+    return companyTimeZone;
+  }
 
   const server = createServer((req, res) => handleHttp(req, res, env));
   const wss = new WebSocketServer({ server, path: "/pub/chat" });
@@ -434,6 +465,7 @@ export function startTimeclockGateway(env: TimeclockEnv) {
       socketsBySn.set(sn, { sn, socket, lastSeenAt: Date.now() });
 
       try {
+        const timeZone = await resolveCompanyTimeZone();
         if (message.cmd === "reg") {
           const reg = message as {
             cmd: "reg";
@@ -441,7 +473,7 @@ export function startTimeclockGateway(env: TimeclockEnv) {
             devinfo?: { firmware?: string; modelname?: string };
           };
           await upsertDeviceOnReg(client, env.companyId, sn, reg.devinfo);
-          sendJson(socket, ackReg(sn, formatCloudtime()));
+          sendJson(socket, ackReg(sn, formatCloudtime(timeZone)));
           return;
         }
 
@@ -455,9 +487,10 @@ export function startTimeclockGateway(env: TimeclockEnv) {
             client,
             env.companyId,
             sn,
-            sendlog.record ?? []
+            sendlog.record ?? [],
+            timeZone
           );
-          sendJson(socket, ackSendlog(sn, formatCloudtime()));
+          sendJson(socket, ackSendlog(sn, formatCloudtime(timeZone)));
         }
       } catch (error) {
         log.error("Clock message handling failed", { sn, error });
@@ -474,6 +507,20 @@ export function startTimeclockGateway(env: TimeclockEnv) {
   const pollHandle = setInterval(() => {
     void runPollTimer(client, env.companyId);
   }, 10_000);
+
+  void resolveCompanyTimeZone()
+    .then((timeZone) => {
+      log.info("Loaded company timezone for punch ingest", {
+        companyId: env.companyId,
+        timeZone
+      });
+    })
+    .catch((error) => {
+      log.error("Failed to load company timezone", {
+        companyId: env.companyId,
+        error
+      });
+    });
 
   server.listen(env.port, env.host, () => {
     log.info("Timeclock gateway listening", {

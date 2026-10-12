@@ -57,9 +57,10 @@ TIMECLOCK_PORT=7788 pnpm --filter @carbon/timeclock exec tsx scripts/sim-clock.t
 - Second punch → closes the open entry (toggle)
 - Disabled device punches stay `pending` until enabled + reprocess/new punch
 
-### 7. Collect Now
+### 7. Collect Now / Collect all punches
 
-- Row ⋮ → **Collect Now** (needs an online WS socket for that SN; sim disconnects after sendlog)
+- Row ⋮ → **Collect Now** (`getnewlog` — unread since last collect; needs an online WS socket for that SN; sim disconnects after sendlog)
+- Row ⋮ → **Collect all punches** (`getalllog` — full attendance log on the device; already-imported punches stay duplicates)
 
 ## Pass criteria (spec)
 

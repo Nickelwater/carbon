@@ -4090,6 +4090,9 @@ msgstr "Recolher Configuração"
 msgid "Collapse subtree"
 msgstr "Recolher subárvore"
 
+msgid "Collect all punches"
+msgstr ""
+
 msgid "Collect Now"
 msgstr ""
 

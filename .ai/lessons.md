@@ -3035,3 +3035,13 @@ And a delete whose failure the caller ignores is not a delete: return the error.
 **Rule:** A prefetch only helps if the browser may reuse its response. Give a prefetch response (`Sec-Purpose: prefetch`) a short `private` lifetime and leave every other response uncached; `prefetchCacheMiddleware` (`@carbon/utils`) does it in each app's root `middleware`, the fix React Router points to (remix-run/react-router#13255). Measure a prefetch by click-to-page time, not by whether the request was sent. A first fix removed the prefetch instead (`6e3bdf7bc6`); it worked but threw away the head start.
 
 **Applies to:** `packages/react/src/PrefetchLink.tsx`; `packages/utils/src/prefetch.ts`; any `<Link prefetch>` or `PrefetchPageLinks`; a revalidation started while a navigation to the same URL is loading.
+
+## ProPunch punch times are company wall clock, not UTC
+
+**Context:** Ingesting FPC18 / ProPunch `sendlog` records into `timeClockPunch.punchedAt`.
+
+**Problem:** Terminal `time` is `Y-m-d H:i:s` in the company timezone (same as `cloudtime`). Storing the naive string as UTC shifts punches by the company offset (e.g. 4:39 PM CDT shown as 11:39 AM).
+
+**Rule:** Always run `propunchTimeToIso(time, company.timezone)` (and emit `cloudtime` via `formatCloudtime(company.timezone)`). Never treat the naive string as UTC or use the Node process timezone. Keep `company.timezone` aligned with the plant/clock.
+
+**Applies to:** `packages/timeclock` ingest/gateway/protocol; any future hardware punch source.

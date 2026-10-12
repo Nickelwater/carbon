@@ -3,6 +3,7 @@
   "dependencies": {
     "@carbon/database": "workspace:*",
     "@carbon/logger": "workspace:*",
+    "@internationalized/date": "catalog:",
     "@supabase/supabase-js": "catalog:",
     "ws": "8.21.0",
     "zod": "catalog:"

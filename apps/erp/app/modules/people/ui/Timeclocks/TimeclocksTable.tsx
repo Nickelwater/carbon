@@ -15,6 +15,7 @@ import { memo, useCallback, useMemo } from "react";
 import {
   LuCheck,
   LuDownload,
+  LuHistory,
   LuRadar,
   LuToggleLeft,
   LuToggleRight
@@ -158,6 +159,18 @@ const TimeclocksTable = memo(
             >
               <MenuIcon icon={<LuDownload />} />
               <Trans>Collect Now</Trans>
+            </MenuItem>
+            <MenuItem
+              disabled={!row.enabled}
+              onClick={() =>
+                fetcher.submit(
+                  { intent: "collectAll", id: row.id, sn: row.serialNumber },
+                  { method: "post" }
+                )
+              }
+            >
+              <MenuIcon icon={<LuHistory />} />
+              <Trans>Collect all punches</Trans>
             </MenuItem>
           </>
         );
