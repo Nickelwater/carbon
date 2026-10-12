@@ -47,7 +47,18 @@ export const employeeJobValidator = z.object({
   locationId: z.string().min(1, { message: "Location is required" }),
   shiftId: zfd.text(z.string().optional()),
   departmentId: zfd.text(z.string().optional()),
-  managerId: zfd.text(z.string().optional())
+  managerId: zfd.text(z.string().optional()),
+  enrollId: zfd.text(z.string().optional())
+});
+
+export const timeClockDeviceUpdateValidator = z.object({
+  id: z.string().min(1),
+  name: zfd.text(z.string().optional()),
+  enabled: zfd.checkbox(),
+  autoPoll: zfd.checkbox(),
+  pollIntervalSeconds: zfd.numeric(
+    z.number().int().min(60).max(43200).optional()
+  )
 });
 
 export const holidayValidator = z.object({

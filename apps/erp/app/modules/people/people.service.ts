@@ -658,6 +658,7 @@ export async function updateEmployeeJob(
       shiftId: sanitized.shiftId,
       departmentId: sanitized.departmentId,
       managerId: sanitized.managerId,
+      enrollId: sanitized.enrollId,
       ...("customFields" in sanitized
         ? { customFields: sanitized.customFields }
         : {}),
@@ -1097,4 +1098,255 @@ export async function updateTimeCardEntry(
       })
     )
     .eq("id", args.entryId);
+}
+
+/** @mcp read */
+export async function getTimeClockDevices(
+  client: SupabaseClient<Database>,
+  companyId: string
+) {
+  return client
+    .from("timeClockDevice")
+    .select("*")
+    .eq("companyId", companyId)
+    .order("serialNumber", { ascending: true });
+}
+
+/** @mcp read */
+export async function getTimeClockDevice(
+  client: SupabaseClient<Database>,
+  id: string,
+  companyId: string
+) {
+  return client
+    .from("timeClockDevice")
+    .select("*")
+    .eq("id", id)
+    .eq("companyId", companyId)
+    .single();
+}
+
+/** @mcp update */
+export async function updateTimeClockDevice(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  userId: string,
+  input: {
+    id: string;
+    name?: string | null;
+    enabled?: boolean;
+    autoPoll?: boolean;
+    pollIntervalSeconds?: number;
+  }
+) {
+  return client
+    .from("timeClockDevice")
+    .update(
+      sanitize({
+        name: input.name,
+        enabled: input.enabled,
+        autoPoll: input.autoPoll,
+        pollIntervalSeconds: input.pollIntervalSeconds,
+        updatedBy: userId,
+        updatedAt: new Date().toISOString()
+      })
+    )
+    .eq("id", input.id)
+    .eq("companyId", companyId)
+    .select("*")
+    .single();
+}
+
+/** @mcp read */
+export async function getTimeClockPunches(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  args: {
+    status?: string;
+    deviceId?: string;
+    limit?: number;
+    offset?: number;
+  } = {}
+) {
+  let query = client
+    .from("timeClockPunch")
+    .select("*", { count: "exact" })
+    .eq("companyId", companyId)
+    .order("punchedAt", { ascending: false });
+
+  if (args.status) {
+    query = query.eq("status", args.status);
+  }
+  if (args.deviceId) {
+    query = query.eq("deviceId", args.deviceId);
+  }
+  if (args.limit !== undefined) {
+    const from = args.offset ?? 0;
+    query = query.range(from, from + args.limit - 1);
+  }
+
+  return query;
+}
+
+/**
+ * Apply a staged punch to timeCardEntry (toggle) when the device is enabled
+ * and enrollId maps to an employee. Used by the gateway and reprocess action.
+ */
+export async function applyTimeClockPunchToggle(
+  client: SupabaseClient<Database>,
+  args: {
+    companyId: string;
+    punchId: string;
+    actorUserId: string;
+  }
+) {
+  const punchResult = await client
+    .from("timeClockPunch")
+    .select("*")
+    .eq("id", args.punchId)
+    .eq("companyId", args.companyId)
+    .single();
+
+  if (punchResult.error || !punchResult.data) {
+    return {
+      data: null,
+      error: punchResult.error ?? { message: "Punch not found" }
+    };
+  }
+
+  const punch = punchResult.data;
+
+  if (punch.status === "applied" || punch.status === "duplicate") {
+    return { data: punch, error: null };
+  }
+
+  const deviceResult = await client
+    .from("timeClockDevice")
+    .select("id, enabled")
+    .eq("id", punch.deviceId)
+    .eq("companyId", args.companyId)
+    .single();
+
+  if (deviceResult.error || !deviceResult.data) {
+    return {
+      data: null,
+      error: deviceResult.error ?? { message: "Device not found" }
+    };
+  }
+
+  if (!deviceResult.data.enabled) {
+    const pending = await client
+      .from("timeClockPunch")
+      .update({ status: "pending", error: null })
+      .eq("id", punch.id)
+      .eq("companyId", args.companyId)
+      .select("*")
+      .single();
+    return pending;
+  }
+
+  const jobResult = await client
+    .from("employeeJob")
+    .select("id")
+    .eq("companyId", args.companyId)
+    .eq("enrollId", punch.enrollId)
+    .maybeSingle();
+
+  if (jobResult.error) {
+    return { data: null, error: jobResult.error };
+  }
+
+  if (!jobResult.data) {
+    const unmapped = await client
+      .from("timeClockPunch")
+      .update({
+        status: "unmapped",
+        employeeId: null,
+        timeCardEntryId: null,
+        error: "No employeeJob.enrollId match"
+      })
+      .eq("id", punch.id)
+      .eq("companyId", args.companyId)
+      .select("*")
+      .single();
+    return unmapped;
+  }
+
+  const employeeId = jobResult.data.id;
+  const open = await getOpenClockEntry(client, employeeId, args.companyId);
+
+  if (open.error) {
+    return { data: null, error: open.error };
+  }
+
+  let timeCardEntryId: string | null = null;
+
+  if (open.data) {
+    const clockOutResult = await client
+      .from("timeCardEntry")
+      .update(
+        sanitize({
+          clockOut: punch.punchedAt,
+          updatedBy: args.actorUserId,
+          updatedAt: new Date().toISOString()
+        })
+      )
+      .eq("id", open.data.id)
+      .select("id")
+      .single();
+
+    if (clockOutResult.error || !clockOutResult.data) {
+      return {
+        data: null,
+        error: clockOutResult.error ?? { message: "Failed to clock out" }
+      };
+    }
+    timeCardEntryId = clockOutResult.data.id;
+  } else {
+    const clockInResult = await client
+      .from("timeCardEntry")
+      .insert({
+        employeeId,
+        companyId: args.companyId,
+        clockIn: punch.punchedAt,
+        createdBy: args.actorUserId
+      })
+      .select("id")
+      .single();
+
+    if (clockInResult.error || !clockInResult.data) {
+      return {
+        data: null,
+        error: clockInResult.error ?? { message: "Failed to clock in" }
+      };
+    }
+    timeCardEntryId = clockInResult.data.id;
+  }
+
+  return client
+    .from("timeClockPunch")
+    .update({
+      status: "applied",
+      employeeId,
+      timeCardEntryId,
+      error: null
+    })
+    .eq("id", punch.id)
+    .eq("companyId", args.companyId)
+    .select("*")
+    .single();
+}
+
+/** @mcp update */
+export async function reprocessTimeClockPunch(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  punchId: string,
+  userId: string
+) {
+  return applyTimeClockPunchToggle(client, {
+    companyId,
+    punchId,
+    actorUserId: userId
+  });
 }

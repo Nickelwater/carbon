@@ -1,0 +1,35 @@
+{
+  "name": "@carbon/timeclock",
+  "dependencies": {
+    "@carbon/auth": "workspace:*",
+    "@carbon/database": "workspace:*",
+    "@carbon/logger": "workspace:*",
+    "@supabase/supabase-js": "catalog:",
+    "ws": "8.21.0",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@carbon/config": "workspace:*",
+    "@types/node": "catalog:",
+    "@types/ws": "8.18.1",
+    "rimraf": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "catalog:",
+    "vitest": "catalog:"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./gateway.server": "./src/gateway.server.ts"
+  },
+  "private": true,
+  "scripts": {
+    "clean": "rimraf .turbo node_modules dist",
+    "lint": "biome lint --write ",
+    "start": "tsx src/bin.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsgo --noEmit"
+  },
+  "sideEffects": false,
+  "version": "0.0.0"
+}

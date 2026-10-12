@@ -1901,6 +1901,11 @@ export const path = {
     people: `${x}/people/employee`,
     peopleSettings: `${x}/settings/people`,
     peopleTimecard: `${x}/people/timecard`,
+    peopleTimeclockCollect: (id: string) =>
+      generatePath(`${x}/people/timeclocks/${id}/collect`),
+    peopleTimeclockReprocess: (id: string) =>
+      generatePath(`${x}/people/timeclocks/punch/${id}/reprocess`),
+    peopleTimeclocks: `${x}/people/timeclocks`,
     person: (id: string) => generatePath(`${x}/person/${id}`),
     personAbilities: (id: string) =>
       generatePath(`${x}/person/${id}/abilities`),
@@ -2088,10 +2093,10 @@ export const path = {
       generatePath(`${x}/quote/${quoteId}/${quoteLineId}/method/${methodId}`),
     quoteLineOrder: (quoteId: string) =>
       generatePath(`${x}/quote/${quoteId}/line-order`),
-    quoteLinePromoteToPart: (quoteId: string, lineId: string) =>
-      generatePath(`${x}/quote/${quoteId}/${lineId}/promote-to-part`),
     quoteLinePriceTrace: (quoteId: string, lineId: string) =>
       generatePath(`${x}/quote/${quoteId}/${lineId}/price-trace`),
+    quoteLinePromoteToPart: (quoteId: string, lineId: string) =>
+      generatePath(`${x}/quote/${quoteId}/${lineId}/promote-to-part`),
     quoteLineRecalculatePrice: (quoteId: string, lineId: string) =>
       generatePath(`${x}/quote/${quoteId}/${lineId}/recalculate-price`),
     quoteLinesReorder: (quoteId: string) =>

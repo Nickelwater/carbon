@@ -9,6 +9,7 @@ import {
   LuClock,
   LuListChecks,
   LuNetwork,
+  LuRadar,
   LuUsers
 } from "react-icons/lu";
 import { useSavedViews } from "~/hooks/useSavedViews";
@@ -35,6 +36,13 @@ export default function usePeopleSubmodules() {
           icon: <LuClock />,
           setting: "timeCardEnabled",
           table: "timeCardEntry"
+        },
+        {
+          name: t`Timeclocks`,
+          to: path.to.peopleTimeclocks,
+          icon: <LuRadar />,
+          setting: "timeCardEnabled",
+          table: "timeClockDevice"
         }
       ]
     },
