@@ -9,7 +9,7 @@ ProPunch / FPC18 WebSocket gateway and punch ingest helpers for Carbon Timecards
 - ACK `sendlog` even when enroll id is unmapped; stage into `timeClockPunch`
 - Never soft-reset the clock (`initsys` / `cleanuser` / `cleanlog`) in v1
 - Interpret ProPunch `time` / emit `cloudtime` in `company.timezone` — never as UTC or the Node process timezone
-- Collect Now → `getnewlog` (unread); Collect all punches → `getalllog` (full device log). Duplicates are ignored by punch uniqueness
+- Collect Now → `getnewlog` (unread); Collect all punches → `getalllog` (full device log). Both need `stn: true` on the first request and handle `{ ret, record }` replies (not `cmd`); continue with `stn: false` while pages remain. Duplicates are ignored by punch uniqueness
 
 ## Never
 

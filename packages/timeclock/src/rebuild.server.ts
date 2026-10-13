@@ -3,12 +3,31 @@
 // including ports, remain AGPLv3; serving them over a network requires releasing their source.
 
 import type { Database } from "@carbon/database";
+import { parseAbsolute, toCalendarDate } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { pairPunches } from "./pair";
+import { pairPunchesByDay } from "./pair";
+
+async function companyTimeZone(
+  client: SupabaseClient<Database>,
+  companyId: string
+): Promise<string> {
+  const result = await client
+    .from("company")
+    .select("timezone")
+    .eq("id", companyId)
+    .maybeSingle();
+  if (result.error) {
+    throw new Error(
+      `Failed to resolve company timezone: ${result.error.message}`
+    );
+  }
+  return result.data?.timezone ?? "UTC";
+}
 
 /**
  * Replace all timeCardEntry rows for an employee with intervals derived from
- * their timeCardPunch ledger (pairing by ascending punchedAt).
+ * their timeCardPunch ledger. Pairing is per business day in company TZ so an
+ * open In never crosses midnight.
  */
 export async function rebuildTimeCardEntries(
   client: SupabaseClient<Database>,
@@ -29,7 +48,10 @@ export async function rebuildTimeCardEntries(
     return { data: null, error: punchesResult.error };
   }
 
-  const { segments } = pairPunches(punchesResult.data ?? []);
+  const tz = await companyTimeZone(client, args.companyId);
+  const { segments } = pairPunchesByDay(punchesResult.data ?? [], (instant) =>
+    toCalendarDate(parseAbsolute(instant, tz)).toString()
+  );
 
   const del = await client
     .from("timeCardEntry")

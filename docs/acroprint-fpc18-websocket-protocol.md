@@ -208,11 +208,13 @@ Send via gateway POST `/push_to_terminal` with `sn` set. On the WebSocket wire, 
 | `disabledevice` / `enabledevice` | Lock out / re-enable terminal during bulk updates |
 | `reboot` | Reboot device |
 | `opendoor`, `setdevlock`, `getdevlock`, `getuserlock`, `setuserlock`, `deleteuserlock` | Access-control helpers (partially stubbed in Acroprint PHP) |
-| `getnewlog` | Pull unread attendance logs since last collect (Carbon Collect Now) |
-| `getalllog` | Pull full attendance log on the device (Carbon Collect all punches) |
+| `getnewlog` | Pull unread attendance logs since last collect (Carbon Collect Now). First request must include `"stn": true`; continue pages with `"stn": false`. |
+| `getalllog` | Pull full attendance log on the device (Carbon Collect all punches). Same `stn` pagination; optional `"from"` / `"to"` date strings. |
 | `cleanadmin` / `setdeviceinfo` | Declared; limited handling in analyzed PHP |
 
 **Typical reply from clock:** `{ "ret": "<cmd>", "result": true|false, "sn": "...", ...payload }`
+
+**Log pull reply shape:** `{ "ret": "getalllog"|"getnewlog", "result": true, "count": N, "from": 0, "to": 49, "record": [ … ] }`. When `to + 1 < count`, the server sends `{ "cmd": "<same>", "stn": false }` for the next page.
 
 ### `backupnum` conventions (Acroprint)
 

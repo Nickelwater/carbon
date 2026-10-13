@@ -11293,6 +11293,9 @@ msgstr "누락된 정보"
 msgid "Missing Operations"
 msgstr "누락된 공정작업"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "누락된 운송비"
 

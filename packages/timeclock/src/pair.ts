@@ -45,6 +45,36 @@ export function pairPunches<T extends PunchLike>(punches: T[]): PairResult<T> {
   };
 }
 
+/**
+ * Pair punches within each business day separately so an open In on day N
+ * never consumes day N+1's first punch as its Out.
+ * `businessDay` maps a punch instant to a YYYY-MM-DD calendar day.
+ */
+export function pairPunchesByDay<T extends PunchLike>(
+  punches: T[],
+  businessDay: (instant: string) => string
+): PairResult<T> {
+  const byDay = new Map<string, T[]>();
+  for (const punch of punches) {
+    const day = businessDay(punch.punchedAt);
+    const list = byDay.get(day);
+    if (list) list.push(punch);
+    else byDay.set(day, [punch]);
+  }
+
+  const segments: PairedSegment<T>[] = [];
+  for (const day of [...byDay.keys()].sort()) {
+    const { segments: daySegments } = pairPunches(byDay.get(day) ?? []);
+    segments.push(...daySegments);
+  }
+
+  const last = segments[segments.length - 1];
+  return {
+    segments,
+    isOpen: !!last && last.clockOut === null
+  };
+}
+
 export type PayPeriodBounds = {
   start: string; // YYYY-MM-DD
   end: string; // YYYY-MM-DD inclusive

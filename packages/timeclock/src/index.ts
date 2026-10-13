@@ -17,17 +17,23 @@ export {
   type PayPeriodBounds,
   type PunchLike,
   pairPunches,
+  pairPunchesByDay,
   shiftPayPeriod
 } from "./pair";
 export {
   ackReg,
   ackSendlog,
   type ClockMessage,
+  type CollectLogCommand,
   type CollectLogMode,
+  type CollectLogReply,
+  collectLogHasMorePages,
   formatCloudtime,
   getAllLogCommand,
   getCollectLogCommand,
   getNewLogCommand,
+  isCollectLogReply,
+  normalizeProtocolName,
   parseClockMessage,
   type RegMessage,
   type SendlogMessage,

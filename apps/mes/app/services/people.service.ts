@@ -6,18 +6,31 @@ import type { Database } from "@carbon/database";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { sanitize } from "~/utils/supabase";
 
+/**
+ * Currently clocked in iff the chronologically latest segment is still open.
+ * An incomplete prior day (missing Out) is a punch error, not live status.
+ */
 export async function getOpenClockEntry(
   client: SupabaseClient<Database>,
   employeeId: string,
   companyId: string
 ) {
-  return client
+  const latest = await client
     .from("timeCardEntry")
     .select("*")
     .eq("employeeId", employeeId)
     .eq("companyId", companyId)
-    .is("clockOut", null)
+    .order("clockIn", { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  if (latest.error || !latest.data) {
+    return latest;
+  }
+  if (latest.data.clockOut != null) {
+    return { data: null, error: null };
+  }
+  return latest;
 }
 
 export async function clockIn(

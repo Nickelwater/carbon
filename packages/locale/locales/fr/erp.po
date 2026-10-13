@@ -11293,6 +11293,9 @@ msgstr "Informations manquantes"
 msgid "Missing Operations"
 msgstr "Opérations manquantes"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "Frais de port manquants"
 

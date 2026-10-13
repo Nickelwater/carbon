@@ -23,7 +23,8 @@ import { usePermissions } from "~/hooks";
 import {
   buildPunchGrid,
   formatDurationMs,
-  type GridPunch
+  type GridPunch,
+  PAIRS_PER_ROW
 } from "./buildPunchGrid";
 
 type TimecardPunchGridProps = {
@@ -51,6 +52,11 @@ function toLocalDatetimeInput(dateStr: string) {
   const hours = String(d.getHours()).padStart(2, "0");
   const minutes = String(d.getMinutes()).padStart(2, "0");
   return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+/** YYYY-MM-DD → datetime-local default (noon local) for inserting on that day. */
+function dateToDatetimeLocalDefault(ymd: string): string {
+  return `${ymd.slice(0, 10)}T12:00`;
 }
 
 function PunchCell({
@@ -126,7 +132,7 @@ const TimecardPunchGrid = ({
   const fetcher = useFetcher();
   const editable = canEdit && permissions.can("update", "people");
 
-  const { days, maxPairs } = buildPunchGrid({
+  const { rows } = buildPunchGrid({
     punches,
     periodStart,
     periodEnd,
@@ -136,6 +142,20 @@ const TimecardPunchGrid = ({
 
   const [editing, setEditing] = useState<GridPunch | null>(null);
   const [adding, setAdding] = useState(false);
+  /** When set, insert form defaults to noon on this YYYY-MM-DD. */
+  const [addingDate, setAddingDate] = useState<string | null>(null);
+
+  const openInsert = (ymd?: string) => {
+    setEditing(null);
+    setAddingDate(ymd ?? null);
+    setAdding(true);
+  };
+
+  const closeForm = () => {
+    setAdding(false);
+    setAddingDate(null);
+    setEditing(null);
+  };
 
   const deletePunch = (punchId: string) => {
     const fd = new FormData();
@@ -144,6 +164,11 @@ const TimecardPunchGrid = ({
     fetcher.submit(fd, { method: "post" });
   };
 
+  const insertDefault =
+    addingDate != null
+      ? dateToDatetimeLocalDefault(addingDate)
+      : toLocalDatetimeInput(new Date().toISOString());
+
   return (
     <div className="flex flex-col gap-3 h-full min-h-0">
       {editable ? (
@@ -151,10 +176,7 @@ const TimecardPunchGrid = ({
           <Button
             leftIcon={<LuPlus />}
             variant="secondary"
-            onClick={() => {
-              setAdding(true);
-              setEditing(null);
-            }}
+            onClick={() => openInsert()}
           >
             <Trans>Insert punch</Trans>
           </Button>
@@ -174,8 +196,7 @@ const TimecardPunchGrid = ({
               fd.set("punchedAt", new Date(local).toISOString());
             }
             fetcher.submit(fd, { method: "post" });
-            setAdding(false);
-            setEditing(null);
+            closeForm();
           }}
         >
           <input
@@ -190,13 +211,16 @@ const TimecardPunchGrid = ({
           <label className="flex flex-col gap-1 text-sm">
             <span>{t`Punch time`}</span>
             <Input
+              key={
+                editing ? `edit-${editing.id}` : `add-${addingDate ?? "now"}`
+              }
               type="datetime-local"
               name="punchedAt"
               required
               defaultValue={
                 editing
                   ? toLocalDatetimeInput(editing.punchedAt)
-                  : toLocalDatetimeInput(new Date().toISOString())
+                  : insertDefault
               }
             />
           </label>
@@ -211,14 +235,7 @@ const TimecardPunchGrid = ({
           <Button type="submit">
             {editing ? <Trans>Save punch</Trans> : <Trans>Add punch</Trans>}
           </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => {
-              setAdding(false);
-              setEditing(null);
-            }}
-          >
+          <Button type="button" variant="ghost" onClick={closeForm}>
             <Trans>Cancel</Trans>
           </Button>
         </fetcher.Form>
@@ -231,15 +248,13 @@ const TimecardPunchGrid = ({
               <Th>
                 <Trans>Date</Trans>
               </Th>
-              {Array.from({ length: maxPairs }, (_, i) => (
+              {Array.from({ length: PAIRS_PER_ROW }, (_, i) => (
                 <Fragment key={`hdr-${i}`}>
                   <Th>
-                    <Trans>In</Trans>
-                    {maxPairs > 1 ? ` ${i + 1}` : ""}
+                    <Trans>In</Trans> {i + 1}
                   </Th>
                   <Th>
-                    <Trans>Out</Trans>
-                    {maxPairs > 1 ? ` ${i + 1}` : ""}
+                    <Trans>Out</Trans> {i + 1}
                   </Th>
                 </Fragment>
               ))}
@@ -249,46 +264,95 @@ const TimecardPunchGrid = ({
             </Tr>
           </Thead>
           <Tbody>
-            {days.map((day) => (
-              <Tr key={day.date}>
+            {rows.map((row, rowIndex) => (
+              <Tr key={`${row.date}-${rowIndex}`}>
                 <Td className="whitespace-nowrap font-medium">
-                  {new Date(`${day.date}T12:00:00`).toLocaleDateString(locale, {
-                    weekday: "short",
-                    month: "short",
-                    day: "numeric"
-                  })}
+                  {row.isPrimary ? (
+                    editable ? (
+                      <button
+                        type="button"
+                        className="inline-flex items-center gap-1 hover:underline text-left"
+                        title={t`Insert punch`}
+                        onClick={() => openInsert(row.date)}
+                      >
+                        <span>
+                          {new Date(`${row.date}T12:00:00`).toLocaleDateString(
+                            locale,
+                            {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric"
+                            }
+                          )}
+                        </span>
+                        {row.hasPunchError ? (
+                          <span
+                            className="text-destructive font-bold"
+                            title={t`Missing punch`}
+                          >
+                            !
+                          </span>
+                        ) : null}
+                      </button>
+                    ) : (
+                      <HStack className="gap-1">
+                        <span>
+                          {new Date(`${row.date}T12:00:00`).toLocaleDateString(
+                            locale,
+                            {
+                              weekday: "short",
+                              month: "short",
+                              day: "numeric"
+                            }
+                          )}
+                        </span>
+                        {row.hasPunchError ? (
+                          <span
+                            className="text-destructive font-bold"
+                            title={t`Missing punch`}
+                          >
+                            !
+                          </span>
+                        ) : null}
+                      </HStack>
+                    )
+                  ) : null}
                 </Td>
-                {Array.from({ length: maxPairs }, (_, i) => {
-                  const pair = day.pairs[i] ?? {
-                    clockIn: null,
-                    clockOut: null
-                  };
-                  return (
-                    <Fragment key={`${day.date}-pair-${i}`}>
-                      <PunchCell
-                        punch={pair.clockIn}
-                        locale={locale}
-                        canEdit={editable}
-                        onEdit={setEditing}
-                        onDelete={deletePunch}
-                      />
-                      <PunchCell
-                        punch={pair.clockOut}
-                        locale={locale}
-                        canEdit={editable}
-                        onEdit={setEditing}
-                        onDelete={deletePunch}
-                        missing={!!pair.clockIn && !pair.clockOut}
-                      />
-                    </Fragment>
-                  );
-                })}
+                {row.pairs.map((pair, i) => (
+                  <Fragment key={`${row.date}-${rowIndex}-pair-${i}`}>
+                    <PunchCell
+                      punch={pair.clockIn}
+                      locale={locale}
+                      canEdit={editable}
+                      onEdit={(punch) => {
+                        setAdding(false);
+                        setAddingDate(null);
+                        setEditing(punch);
+                      }}
+                      onDelete={deletePunch}
+                    />
+                    <PunchCell
+                      punch={pair.clockOut}
+                      locale={locale}
+                      canEdit={editable}
+                      onEdit={(punch) => {
+                        setAdding(false);
+                        setAddingDate(null);
+                        setEditing(punch);
+                      }}
+                      onDelete={deletePunch}
+                      missing={!!pair.clockIn && !pair.clockOut}
+                    />
+                  </Fragment>
+                ))}
                 <Td className="tabular-nums">
-                  {formatDurationMs(day.dayTotalMs)}
+                  {row.dayTotalMs == null
+                    ? null
+                    : formatDurationMs(row.dayTotalMs)}
                 </Td>
               </Tr>
             ))}
-          </Tbody>{" "}
+          </Tbody>
         </TableBase>
       </div>
     </div>

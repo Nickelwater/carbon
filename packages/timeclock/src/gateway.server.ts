@@ -17,8 +17,11 @@ import {
   ackReg,
   ackSendlog,
   type CollectLogMode,
+  collectLogHasMorePages,
   formatCloudtime,
   getCollectLogCommand,
+  isCollectLogReply,
+  normalizeProtocolName,
   parseClockMessage,
   type SendlogRecord
 } from "./protocol";
@@ -452,7 +455,7 @@ export function startTimeclockGateway(env: TimeclockEnv) {
     socket.on("message", async (data) => {
       const raw = typeof data === "string" ? data : data.toString("utf8");
       const message = parseClockMessage(raw);
-      if (!message || !("cmd" in message)) {
+      if (!message) {
         return;
       }
 
@@ -466,6 +469,49 @@ export function startTimeclockGateway(env: TimeclockEnv) {
 
       try {
         const timeZone = await resolveCompanyTimeZone();
+
+        // Pull replies use `ret` (getnewlog / getalllog), not `cmd`.
+        if (isCollectLogReply(message)) {
+          const ret = normalizeProtocolName(message.ret) as
+            | "getnewlog"
+            | "getalllog";
+          if (!message.result) {
+            log.warn("Collect log reply failed", {
+              sn,
+              ret,
+              reason: message.reason
+            });
+            return;
+          }
+          const records = message.record ?? [];
+          log.info("Collect log page received", {
+            sn,
+            ret,
+            count: message.count ?? records.length,
+            from: message.from,
+            to: message.to,
+            records: records.length
+          });
+          if (records.length > 0) {
+            await ingestSendlogRecords(
+              client,
+              env.companyId,
+              sn,
+              records,
+              timeZone
+            );
+          }
+          // Protocol pagination: ack with stn:false to fetch the next page.
+          if (collectLogHasMorePages(message)) {
+            sendJson(socket, { cmd: ret, stn: false });
+          }
+          return;
+        }
+
+        if (!("cmd" in message) || typeof message.cmd !== "string") {
+          return;
+        }
+
         if (message.cmd === "reg") {
           const reg = message as {
             cmd: "reg";

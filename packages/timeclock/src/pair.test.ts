@@ -7,6 +7,7 @@ import {
   getPayPeriodContaining,
   type PunchLike,
   pairPunches,
+  pairPunchesByDay,
   shiftPayPeriod
 } from "./pair";
 
@@ -71,6 +72,35 @@ describe("pairPunches", () => {
     const first = result.segments[0];
     expect(first?.clockIn.id).toBe("a");
     expect(first?.clockOut?.id).toBe("b");
+  });
+});
+
+describe("pairPunchesByDay", () => {
+  it("does not pair across calendar days", () => {
+    const punches = [
+      p("in1", "2026-10-12T22:00:00Z"), // open In on day 1
+      p("in2", "2026-10-13T13:00:00Z"),
+      p("out2", "2026-10-13T17:00:00Z")
+    ];
+    const result = pairPunchesByDay(punches, (instant) => instant.slice(0, 10));
+    // Prior day is incomplete, but the latest day closed — not currently open.
+    expect(result.isOpen).toBe(false);
+    expect(result.segments).toEqual([
+      { clockIn: punches[0], clockOut: null },
+      { clockIn: punches[1], clockOut: punches[2] }
+    ]);
+  });
+
+  it("still pairs multiple segments within the same day", () => {
+    const punches = [
+      p("a", "2026-10-12T06:00:00Z"),
+      p("b", "2026-10-12T11:30:00Z"),
+      p("c", "2026-10-12T12:00:00Z"),
+      p("d", "2026-10-12T15:30:00Z")
+    ];
+    const result = pairPunchesByDay(punches, (instant) => instant.slice(0, 10));
+    expect(result.isOpen).toBe(false);
+    expect(result.segments).toHaveLength(2);
   });
 });
 

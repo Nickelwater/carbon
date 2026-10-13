@@ -11293,6 +11293,9 @@ msgstr "缺少信息"
 msgid "Missing Operations"
 msgstr "缺失的工序"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "缺少运费"
 

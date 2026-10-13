@@ -2,8 +2,11 @@
 // Carbon (github.com/crbnos/carbon). Modified or adapted versions of this file,
 // including ports, remain AGPLv3; serving them over a network requires releasing their source.
 
-import { type PunchLike, pairPunches } from "@carbon/timeclock";
+import { type PunchLike, pairPunchesByDay } from "@carbon/timeclock";
 import { parseDate } from "@internationalized/date";
+
+/** Fixed In/Out column pairs per table row. Extra pairs spill to another day row. */
+export const PAIRS_PER_ROW = 2;
 
 export type GridPunch = PunchLike & {
   source: string;
@@ -15,10 +18,17 @@ export type DayPairCell = {
   clockOut: GridPunch | null;
 };
 
-export type PunchGridDay = {
+export type PunchGridRow = {
+  /** Calendar day YYYY-MM-DD (company TZ). */
   date: string;
+  /** First row for this date — show the date label and day total. */
+  isPrimary: boolean;
+  /** Always length {@link PAIRS_PER_ROW}, padded with empty cells. */
   pairs: DayPairCell[];
-  dayTotalMs: number;
+  /** Full-day total on the primary row only; null on continuation rows. */
+  dayTotalMs: number | null;
+  /** Missing Out (or other incomplete pair) on this calendar day. */
+  hasPunchError: boolean;
 };
 
 /** Inclusive YYYY-MM-DD range → UTC instant bounds in company TZ. */
@@ -46,9 +56,40 @@ function eachDateInclusive(startYmd: string, endYmd: string): string[] {
   return dates;
 }
 
+function emptyPair(): DayPairCell {
+  return { clockIn: null, clockOut: null };
+}
+
+/** Pad/chunk day pairs into fixed-width rows of {@link PAIRS_PER_ROW}. */
+export function chunkDayPairs(pairs: DayPairCell[]): DayPairCell[][] {
+  const source = pairs.length === 0 ? [emptyPair()] : pairs;
+  const chunks: DayPairCell[][] = [];
+  for (let i = 0; i < source.length; i += PAIRS_PER_ROW) {
+    const chunk = source.slice(i, i + PAIRS_PER_ROW);
+    while (chunk.length < PAIRS_PER_ROW) {
+      chunk.push(emptyPair());
+    }
+    chunks.push(chunk);
+  }
+  return chunks;
+}
+
+function dayTotalMs(pairs: DayPairCell[]): number {
+  let total = 0;
+  for (const pair of pairs) {
+    if (pair.clockIn && pair.clockOut) {
+      total +=
+        new Date(pair.clockOut.punchedAt).getTime() -
+        new Date(pair.clockIn.punchedAt).getTime();
+    }
+  }
+  return total;
+}
+
 /**
- * Build a day grid for a pay period. Pairing is global (employee-wide order);
- * cells are placed on the calendar day of each punch in company TZ.
+ * Build a day grid for a pay period. Pairing is per business day so an open
+ * In never crosses midnight. Columns are always In/Out 1–2; pairs 3+ become
+ * extra rows for that day. Days with a missing Out are flagged.
  */
 export function buildPunchGrid(args: {
   punches: GridPunch[];
@@ -56,60 +97,50 @@ export function buildPunchGrid(args: {
   periodEnd: string;
   tz: string;
   businessDay: (instant: string, tz: string) => { toString(): string };
-}): { days: PunchGridDay[]; maxPairs: number; isOpen: boolean } {
-  const { segments, isOpen } = pairPunches(args.punches);
+}): { rows: PunchGridRow[]; isOpen: boolean } {
   const dates = eachDateInclusive(args.periodStart, args.periodEnd);
+  const dateSet = new Set(dates);
+
+  const { segments, isOpen } = pairPunchesByDay(args.punches, (instant) =>
+    args.businessDay(instant, args.tz).toString()
+  );
+
   const byDate = new Map<string, DayPairCell[]>(
     dates.map((d) => [d, [] as DayPairCell[]])
   );
-
-  let maxPairs = 1;
 
   for (const segment of segments) {
     const inDay = args
       .businessDay(segment.clockIn.punchedAt, args.tz)
       .toString();
-    const outDay = segment.clockOut
-      ? args.businessDay(segment.clockOut.punchedAt, args.tz).toString()
-      : inDay;
+    if (!dateSet.has(inDay)) continue;
 
-    if (!byDate.has(inDay)) {
-      // Punch outside displayed period — skip for grid rows
-      continue;
-    }
-
-    const inPairs = byDate.get(inDay)!;
-    const cell: DayPairCell = {
+    byDate.get(inDay)!.push({
       clockIn: segment.clockIn as GridPunch,
-      clockOut: outDay === inDay ? (segment.clockOut as GridPunch | null) : null
-    };
-    inPairs.push(cell);
-    maxPairs = Math.max(maxPairs, inPairs.length);
-
-    if (segment.clockOut && outDay !== inDay && byDate.has(outDay)) {
-      const outPairs = byDate.get(outDay)!;
-      outPairs.push({
-        clockIn: null,
-        clockOut: segment.clockOut as GridPunch
-      });
-      maxPairs = Math.max(maxPairs, outPairs.length);
-    }
+      clockOut: (segment.clockOut as GridPunch | null) ?? null
+    });
   }
 
-  const days: PunchGridDay[] = dates.map((date) => {
+  const rows: PunchGridRow[] = [];
+  for (const date of dates) {
     const pairs = byDate.get(date) ?? [];
-    let dayTotalMs = 0;
-    for (const pair of pairs) {
-      if (pair.clockIn && pair.clockOut) {
-        dayTotalMs +=
-          new Date(pair.clockOut.punchedAt).getTime() -
-          new Date(pair.clockIn.punchedAt).getTime();
-      }
-    }
-    return { date, pairs, dayTotalMs };
-  });
+    const hasPunchError = pairs.some(
+      (pair) => pair.clockIn != null && pair.clockOut == null
+    );
+    const total = dayTotalMs(pairs);
+    const chunks = chunkDayPairs(pairs);
+    chunks.forEach((chunk, index) => {
+      rows.push({
+        date,
+        isPrimary: index === 0,
+        pairs: chunk,
+        dayTotalMs: index === 0 ? total : null,
+        hasPunchError
+      });
+    });
+  }
 
-  return { days, maxPairs, isOpen };
+  return { rows, isOpen };
 }
 
 export function formatDurationMs(ms: number): string {

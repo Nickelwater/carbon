@@ -5,7 +5,7 @@
 import type { Database, Json } from "@carbon/database";
 import { getCompanyTimeZone } from "@carbon/database";
 import type { Kysely, KyselyDatabase } from "@carbon/database/client";
-import { pairPunches } from "@carbon/timeclock";
+import { pairPunchesByDay } from "@carbon/timeclock";
 import { datetime } from "@carbon/utils";
 import { getDayOfWeek, today } from "@internationalized/date";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -832,6 +832,7 @@ export async function upsertShift(
 
 /**
  * Replace timeCardEntry rows for an employee from the punch ledger pairing.
+ * Pairing is per business day in company TZ so an open In never crosses midnight.
  */
 export async function rebuildTimeCardEntries(
   client: SupabaseClient<Database>,
@@ -852,7 +853,10 @@ export async function rebuildTimeCardEntries(
     return { data: null, error: punchesResult.error };
   }
 
-  const { segments } = pairPunches(punchesResult.data ?? []);
+  const tz = await getCompanyTimeZone(client, args.companyId);
+  const { segments } = pairPunchesByDay(punchesResult.data ?? [], (instant) =>
+    datetime.businessDay(instant, tz).toString()
+  );
 
   const del = await client
     .from("timeCardEntry")
@@ -1043,19 +1047,32 @@ export async function getClockedInEmployees(
     .order("clockIn", { ascending: true });
 }
 
+/**
+ * Currently clocked in iff the chronologically latest segment is still open.
+ * An incomplete prior day (missing Out) is a punch error, not live status.
+ */
 /** @mcp read */
 export async function getOpenClockEntry(
   client: SupabaseClient<Database>,
   employeeId: string,
   companyId: string
 ) {
-  return client
+  const latest = await client
     .from("timeCardEntry")
     .select("*")
     .eq("employeeId", employeeId)
     .eq("companyId", companyId)
-    .is("clockOut", null)
+    .order("clockIn", { ascending: false })
+    .limit(1)
     .maybeSingle();
+
+  if (latest.error || !latest.data) {
+    return latest;
+  }
+  if (latest.data.clockOut != null) {
+    return { data: null, error: null };
+  }
+  return latest;
 }
 
 /** @mcp read */
