@@ -1632,6 +1632,7 @@ export const path = {
     newAttributeCategory: `${x}/people/attributes/new`,
     newAttributeForCategory: (id: string) =>
       generatePath(`${x}/people/attributes/list/${id}/new`),
+    newBasicEmployee: `${x}/users/employees/new-basic`,
     newBatch: `${x}/inventory/batches/new`,
     newBulkJob: `${x}/job/bulk/new`,
     // Create form lives at its own top-level route (like /x/part/new and
@@ -1966,6 +1967,8 @@ export const path = {
     profile: `${x}/account/profile`,
     project: (id: string) => generatePath(`${x}/accounting/projects/${id}`),
     projects: `${x}/accounting/projects`,
+    promoteBasicEmployee: (id: string) =>
+      generatePath(`${x}/person/${id}/promote`),
     purchaseInvoice: (id: string) =>
       generatePath(`${x}/purchase-invoice/${id}`),
     purchaseInvoiceDelivery: (id: string) =>

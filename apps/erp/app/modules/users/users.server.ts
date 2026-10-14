@@ -980,13 +980,14 @@ async function insertUser(
 }
 
 /**
- * Creates a console-only operator: a lightweight user record that can pin in
- * at MES terminals without needing email, password, or Supabase Auth.
+ * Creates a basic / no-login employee: public.user with synthetic email,
+ * no auth.users, employee active immediately. Used for timecard-only workers
+ * and (via createConsoleOperator) MES console operators.
  *
- * Uses a synthetic email ({uuid}@console.internal) to satisfy the NOT NULL
- * constraint. No auth.users entry is created — operators cannot log in.
+ * Synthetic email `{uuid}@console.internal` satisfies user.email NOT NULL.
+ * PIN hashing stays on Operators routes via setEmployeePin — not done here.
  */
-export async function createConsoleOperator(
+export async function createBasicEmployee(
   client: SupabaseClient<Database>,
   {
     firstName,
@@ -994,7 +995,7 @@ export async function createConsoleOperator(
     employeeType,
     locationId,
     companyId,
-    createdBy
+    enrollId
   }: {
     firstName: string;
     lastName: string;
@@ -1002,6 +1003,7 @@ export async function createConsoleOperator(
     locationId: string;
     companyId: string;
     createdBy: string;
+    enrollId?: string | null;
   }
 ): Promise<
   | { success: false; message: string }
@@ -1011,9 +1013,6 @@ export async function createConsoleOperator(
   const userId = crypto.randomUUID();
   const syntheticEmail = `${userId}@console.internal`;
 
-  // 1. Insert user record (no Supabase Auth)
-  // Note: isConsoleOperator field added by migration 20260319000000_console-mode.sql
-  // Type will be available after db:generate runs
   const userInsert = await serviceRole
     .from("user")
     .insert({
@@ -1024,7 +1023,7 @@ export async function createConsoleOperator(
       avatarUrl: null,
       active: true,
       isConsoleOperator: true
-    } as any)
+    })
     .select("*")
     .single();
 
@@ -1032,7 +1031,6 @@ export async function createConsoleOperator(
     return { success: false, message: userInsert.error.message };
   }
 
-  // 2. Insert employee (auto-active, no invite needed)
   const employeeInsert = await insertEmployee(client, {
     id: userId,
     employeeTypeId: employeeType,
@@ -1041,26 +1039,23 @@ export async function createConsoleOperator(
   });
 
   if (employeeInsert.error) {
-    // Cleanup: remove user
     await serviceRole.from("user").delete().eq("id", userId);
     return { success: false, message: employeeInsert.error.message };
   }
 
-  // 3. Insert employeeJob
   const jobInsert = await insertEmployeeJob(client, {
     id: userId,
     companyId,
-    locationId
+    locationId,
+    enrollId: enrollId?.trim() ? enrollId.trim() : null
   });
 
   if (jobInsert.error) {
-    // Cleanup
     await serviceRole.from("employee").delete().eq("id", userId);
     await serviceRole.from("user").delete().eq("id", userId);
     return { success: false, message: jobInsert.error.message };
   }
 
-  // 4. Add to userToCompany (for billing/plan counting)
   const companyLink = await serviceRole
     .from("userToCompany")
     .insert({ userId, companyId, role: "employee" as const })
@@ -1068,8 +1063,7 @@ export async function createConsoleOperator(
     .single();
 
   if (companyLink.error) {
-    // Non-critical — operator still works without this
-    logger.error("Failed to link console operator to company", {
+    logger.error("Failed to link basic employee to company", {
       error: companyLink.error
     });
   }
@@ -1082,8 +1076,27 @@ export async function createConsoleOperator(
 }
 
 /**
- * Converts a console-only operator to a full user by adding a Supabase Auth
- * account and updating their email to a real one.
+ * Console-operator create: same no-login identity as createBasicEmployee.
+ * PIN is set by the Operators route via setEmployeePin after this returns.
+ */
+export async function createConsoleOperator(
+  client: SupabaseClient<Database>,
+  args: {
+    firstName: string;
+    lastName: string;
+    employeeType: string;
+    locationId: string;
+    companyId: string;
+    createdBy: string;
+  }
+) {
+  return createBasicEmployee(client, args);
+}
+
+/**
+ * Promote a basic / no-login employee (isConsoleOperator) to a full user by
+ * adding Supabase Auth and a real email. Does not wipe employeePin rows.
+ * Alias: convertConsoleOperatorToUser (Operators UI).
  */
 export async function convertConsoleOperatorToUser(
   client: SupabaseClient<Database>,
@@ -1100,7 +1113,10 @@ export async function convertConsoleOperatorToUser(
     companyId: string;
     createdBy: string;
   }
-): Promise<{ success: false; message: string } | { success: true }> {
+): Promise<
+  | { success: false; message: string }
+  | { success: true; code: string | null; email: string }
+> {
   const serviceRole = getCarbonServiceRole();
 
   // userId comes from the URL and every write below is service-role, so prove
@@ -1195,8 +1211,9 @@ export async function convertConsoleOperatorToUser(
     .eq("id", userId)
     .eq("companyId", companyId);
 
-  // Create invite so user gets the magic link email
+  // Create invite so the caller can send the magic-link email (does not wipe employeePin).
   const code = crypto.randomUUID();
+  let inviteCode: string | null = null;
   const employee = await client
     .from("employee")
     .select("employeeTypeId")
@@ -1228,12 +1245,17 @@ export async function convertConsoleOperatorToUser(
         logger.error("Failed to create invite for converted operator", {
           error: inviteResult.error
         });
+      } else {
+        inviteCode = code;
       }
     }
   }
 
-  return { success: true };
+  return { success: true, code: inviteCode, email: email.toLowerCase() };
 }
+
+/** Promote basic / no-login employee → email invite (does not clear employeePin). */
+export const promoteBasicEmployeeToUser = convertConsoleOperatorToUser;
 
 function makePermissionsFromEmployeeType({
   data

@@ -1526,8 +1526,14 @@ msgstr "ठेकेदार जोड़ें"
 msgid "Add cost center"
 msgstr "लागत केंद्र जोड़ें"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "कर्मचारी जोड़ें"
+
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "लाइब्रेरी से जोड़ें…"
@@ -1703,6 +1709,9 @@ msgstr "भविष्य के उपयोग के लिए स्टॉ�
 
 msgid "Add tools"
 msgstr "उपकरण जोड़ें"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3989,6 +3998,9 @@ msgstr "नाम बदलने के लिए क्लिक करें"
 msgid "Click to upload a PDF drawing"
 msgstr "PDF ड्राइंग अपलोड करने के लिए क्लिक करें"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "कार्य प्रारंभ"
 
@@ -5260,6 +5272,9 @@ msgstr "वर्क सेंटर बनाया गया"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "उन भेजी गई मात्रा के लिए ड्राफ्ट आपूर्तिकर्ता क्रेडिट नोट बनाता है जो अभी तक क्रेडिट नहीं किए गए हैं।"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "एक वित्तीय वर्ष के लिए 12 मासिक अवधियों को बनाता है। जो अवधियां पहले से मौजूद हैं उन्हें रखा जाता है।"
@@ -9762,8 +9777,16 @@ msgstr "इन्वेंटरी मूल्यांकन"
 msgid "Invite"
 msgstr "आमंत्रित करें"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "आमंत्रण समाप्त हो गया"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "आमंत्रित"
@@ -12202,6 +12225,9 @@ msgstr "कोई सूची चर अपस्ट्रीम उपलब�
 msgid "No locations found."
 msgstr "कोई स्थान नहीं मिला।"
 
+msgid "No login"
+msgstr ""
+
 msgid "No logo uploaded"
 msgstr "कोई लोगो अपलोड नहीं किया गया"
 
@@ -13173,6 +13199,9 @@ msgstr "IAS 21 के अनुसार इक्विटी शेष को 
 
 msgid "Optional pages & sections"
 msgstr "वैकल्पिक पृष्ठ और अनुभाग"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "वैकल्पिक। इस तारीख के बाद नई खरीद सुझाव बंद करता है।"
@@ -16873,6 +16902,9 @@ msgstr "docs.carbon.ms पर स्व-सेवा संदर्भ"
 
 msgid "Send"
 msgstr "भेजें"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "आमंत्रण भेजें"

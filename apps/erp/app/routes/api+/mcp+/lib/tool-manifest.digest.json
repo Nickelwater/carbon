@@ -589,7 +589,7 @@
     {"name":"people_getWeeklyHoursForEmployees","classification":"READ","paramCount":1,"schema":"392d5681b870","response":"none","injectAuth":"companyId","permission":"people:view","paginates":false},
     {"name":"people_insertAttribute","classification":"WRITE","paramCount":5,"schema":"a9cc1aa15a69","response":"none","injectAuth":"companyId+createdBy+updatedBy","permission":"people:create","paginates":false},
     {"name":"people_insertAttributeCategory","classification":"WRITE","paramCount":3,"schema":"0f2b5b298e7f","response":"none","injectAuth":"companyId+createdBy+updatedBy","permission":"people:create","paginates":false},
-    {"name":"people_insertEmployeeJob","classification":"WRITE","paramCount":2,"schema":"8518dfd7feec","response":"none","injectAuth":"companyId+updatedBy","permission":"people:create","paginates":false},
+    {"name":"people_insertEmployeeJob","classification":"WRITE","paramCount":3,"schema":"fb0b51027b19","response":"none","injectAuth":"companyId+updatedBy","permission":"people:create","paginates":false},
     {"name":"people_reprocessTimeClockPunch","classification":"WRITE","paramCount":1,"schema":"650e3d18c1a9","response":"none","injectAuth":"companyId+updatedBy","permission":"people:update","paginates":false},
     {"name":"people_updateAttribute","classification":"WRITE","paramCount":4,"schema":"f66dbb270538","response":"none","injectAuth":"companyId+updatedBy","permission":"people:update","paginates":false},
     {"name":"people_updateAttributeCategory","classification":"WRITE","paramCount":4,"schema":"7bf8c03306de","response":"none","injectAuth":"companyId+updatedBy","permission":"people:update","paginates":false},

@@ -81,6 +81,15 @@ export const createOperatorValidator = z.object({
   locationId: z.string().min(1, { message: "Location is required" })
 });
 
+/** No-login / basic employee — no email, optional clock enroll id. */
+export const createBasicEmployeeValidator = z.object({
+  firstName: z.string().min(1, { message: "First name is required" }),
+  lastName: z.string().min(1, { message: "Last name is required" }),
+  employeeType: z.string().min(1, { message: "Employee type is required" }),
+  locationId: z.string().min(1, { message: "Location is required" }),
+  enrollId: zfd.text(z.string().optional())
+});
+
 export const convertOperatorValidator = z.object({
   email: z
     .string()
@@ -88,6 +97,9 @@ export const convertOperatorValidator = z.object({
     .email("Must be a valid email"),
   employeeType: z.string().min(1, { message: "Employee type is required" })
 });
+
+/** Promote a basic / no-login employee to an email invite (same fields). */
+export const promoteBasicEmployeeValidator = convertOperatorValidator;
 
 export const createSupplierAccountValidator = z.object({
   id: z.string().min(1, "Supplier contact is required"),

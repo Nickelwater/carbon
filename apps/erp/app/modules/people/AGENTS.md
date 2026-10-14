@@ -4,7 +4,8 @@ Employee management, departments, shifts, holidays, time tracking (clock in/out,
 
 ## Key Domain Concepts
 
-- **People vs Users vs Employees** — `user` is the global auth identity. `employee` is a per-company record with composite PK `(id, companyId)` where `id → user.id`. `employeeJob` holds title, location, department, shift, and manager. See `.claude/rules/user-employee-job-relationships.md`.
+- **People vs Users vs Employees** — `user` is the global auth identity. `employee` is a per-company record with composite PK `(id, companyId)` where `id → user.id`. `employeeJob` holds title, location, department, shift, manager, and `enrollId` (timeclock). See `.claude/rules/user-employee-job-relationships.md`.
+- **Basic / no-login employees** — People → “Add without email” (`createBasicEmployee`): no invite, synthetic `@console.internal` email, `isConsoleOperator`, active immediately. Optional `enrollId` for ProPunch. Promote with **Invite to ERP** on the person page (`promoteBasicEmployeeToUser`). PIN hashing stays on `employeePin` / `@carbon/ee/console.server` (Operators flow).
 - **Departments** — hierarchical organizational units via `parentDepartmentId`. Used for org structure and reporting.
 - **Shifts** — work schedules with day-of-week boolean flags (`monday`..`sunday`), start/end times, and location. Assigned to employees via `employeeJob.shiftId`.
 - **Holidays** — company-specific non-working days with year grouping.

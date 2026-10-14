@@ -1526,8 +1526,14 @@ msgstr "Add Contractor"
 msgid "Add cost center"
 msgstr "Add cost center"
 
+msgid "Add employee"
+msgstr "Add employee"
+
 msgid "Add Employee"
 msgstr "Add Employee"
+
+msgid "Add employee without email"
+msgstr "Add employee without email"
 
 msgid "Add from library…"
 msgstr "Add from library…"
@@ -1703,6 +1709,9 @@ msgstr "Add to stock for future use"
 
 msgid "Add tools"
 msgstr "Add tools"
+
+msgid "Add without email"
+msgstr "Add without email"
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3989,6 +3998,9 @@ msgstr "Click to rename"
 msgid "Click to upload a PDF drawing"
 msgstr "Click to upload a PDF drawing"
 
+msgid "Clock enroll ID"
+msgstr "Clock enroll ID"
+
 msgid "Clock In"
 msgstr "Clock In"
 
@@ -5260,6 +5272,9 @@ msgstr "Created work center"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
@@ -9762,8 +9777,16 @@ msgstr "Inventory Valuation"
 msgid "Invite"
 msgstr "Invite"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+
 msgid "Invite Expired"
 msgstr "Invite Expired"
+
+msgid "Invite to ERP"
+msgstr "Invite to ERP"
 
 msgid "Invited"
 msgstr "Invited"
@@ -12202,6 +12225,9 @@ msgstr "No list variables available upstream."
 msgid "No locations found."
 msgstr "No locations found."
 
+msgid "No login"
+msgstr "No login"
+
 msgid "No logo uploaded"
 msgstr "No logo uploaded"
 
@@ -13173,6 +13199,9 @@ msgstr "Optional fixed rate used when translating equity balances per IAS 21 (in
 
 msgid "Optional pages & sections"
 msgstr "Optional pages & sections"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr "Optional. Matches the enroll ID programmed on the timeclock."
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "Optional. Stops new purchase suggestions after this date."
@@ -16873,6 +16902,9 @@ msgstr "Self-serve reference at docs.carbon.ms"
 
 msgid "Send"
 msgstr "Send"
+
+msgid "Send invite"
+msgstr "Send invite"
 
 msgid "Send Invite"
 msgstr "Send Invite"

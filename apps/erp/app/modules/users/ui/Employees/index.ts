@@ -3,12 +3,14 @@
 // including ports, remain AGPLv3; serving them over a network requires releasing their source.
 
 import BulkEditPermissionsForm from "./BulkEditPermissionsForm.ee";
+import CreateBasicEmployeeModal from "./CreateBasicEmployeeModal";
 import CreateEmployeeModal from "./CreateEmployeeModal";
 import EmployeePermissionsForm from "./EmployeePermissionsForm.ee";
 import EmployeesTable from "./EmployeesTable";
 
 export {
   BulkEditPermissionsForm,
+  CreateBasicEmployeeModal,
   CreateEmployeeModal,
   EmployeePermissionsForm,
   EmployeesTable

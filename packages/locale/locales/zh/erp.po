@@ -1526,8 +1526,14 @@ msgstr "添加外协人员"
 msgid "Add cost center"
 msgstr "添加成本中心"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "添加员工"
+
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "从库中添加…"
@@ -1703,6 +1709,9 @@ msgstr "添加到库存以供将来使用"
 
 msgid "Add tools"
 msgstr "添加工具"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3989,6 +3998,9 @@ msgstr "单击以重命名"
 msgid "Click to upload a PDF drawing"
 msgstr "点击上传 PDF 图纸"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "开工"
 
@@ -5260,6 +5272,9 @@ msgstr "已创建工作中心"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "为尚未贷项的已发货数量创建供应商贷项备忘录草稿"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "为会计年度创建12个每月期间。已有期间保留不变。"
@@ -9762,8 +9777,16 @@ msgstr "库存估价"
 msgid "Invite"
 msgstr "邀请"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "邀请已过期"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "已邀请"
@@ -12202,6 +12225,9 @@ msgstr "上游没有可用的列表变量。"
 msgid "No locations found."
 msgstr "未找到位置。"
 
+msgid "No login"
+msgstr ""
+
 msgid "No logo uploaded"
 msgstr "未上传徽标"
 
@@ -13173,6 +13199,9 @@ msgstr "在根据IAS 21转换所有者权益余额时使用的可选固定汇率
 
 msgid "Optional pages & sections"
 msgstr "可选页面和部分"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "可选。在此日期之后停止新采购建议。"
@@ -16873,6 +16902,9 @@ msgstr "自助参考文档，位于 docs.carbon.ms"
 
 msgid "Send"
 msgstr "发送"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "发送邀请"

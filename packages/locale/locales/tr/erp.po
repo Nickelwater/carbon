@@ -1526,8 +1526,14 @@ msgstr "Taşeron Ekle"
 msgid "Add cost center"
 msgstr "Maliyet Merkezi Ekle"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "Çalışan Ekle"
+
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "Kütüphaneden ekle…"
@@ -1703,6 +1709,9 @@ msgstr "Gelecekteki kullanım için stoğa ekle"
 
 msgid "Add tools"
 msgstr "Araç ekle"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3989,6 +3998,9 @@ msgstr "Yeniden adlandırmak için tıklayın"
 msgid "Click to upload a PDF drawing"
 msgstr "PDF çizimi yüklemek için tıklayın"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "İş başlangıcı"
 
@@ -5260,6 +5272,9 @@ msgstr "İş merkezi oluşturuldu"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "Henüz ödenmemiş sevkiyat miktarları için taslak bir tedarikçi alacak dekontu oluşturur"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "Mali yıl için 12 aylık dönem oluşturur. Zaten mevcut olan dönemler korunur."
@@ -9762,8 +9777,16 @@ msgstr "Envanter Değerlemesi"
 msgid "Invite"
 msgstr "Davet et"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "Davet Süresi Doldu"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "Davetli"
@@ -12202,6 +12225,9 @@ msgstr "Yukarı akışta kullanılabilir liste değişkeni yok."
 msgid "No locations found."
 msgstr "Konum bulunamadı."
 
+msgid "No login"
+msgstr ""
+
 msgid "No logo uploaded"
 msgstr "Yüklenmiş logo yok"
 
@@ -13173,6 +13199,9 @@ msgstr "Özkaynak bakiyelerini IAS 21'e göre çevirirken kullanılan isteğe ba
 
 msgid "Optional pages & sections"
 msgstr "İsteğe bağlı sayfalar ve bölümler"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "İsteğe bağlı. Bu tarihten sonra yeni satın alma önerilerini durdurur."
@@ -16873,6 +16902,9 @@ msgstr "Kendi kendine yardım referansı docs.carbon.ms adresinde"
 
 msgid "Send"
 msgstr "Gönder"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "Davet Gönder"

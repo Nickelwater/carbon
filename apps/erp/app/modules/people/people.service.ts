@@ -566,9 +566,19 @@ export async function insertEmployeeJob(
     id: string;
     companyId: string;
     locationId: string;
+    enrollId?: string | null;
   }
 ) {
-  return client.from("employeeJob").insert(job).select("*").single();
+  return client
+    .from("employeeJob")
+    .insert({
+      id: job.id,
+      companyId: job.companyId,
+      locationId: job.locationId,
+      ...(job.enrollId ? { enrollId: job.enrollId } : {})
+    })
+    .select("*")
+    .single();
 }
 
 /** @mcp update */

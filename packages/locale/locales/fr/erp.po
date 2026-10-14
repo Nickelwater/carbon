@@ -1526,8 +1526,14 @@ msgstr "Ajouter Prestataire"
 msgid "Add cost center"
 msgstr "Ajouter un centre de coûts"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "Ajouter un employé"
+
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "Ajouter à partir de la bibliothèque…"
@@ -1703,6 +1709,9 @@ msgstr "Ajouter au stock pour utilisation future"
 
 msgid "Add tools"
 msgstr "Ajouter des outils"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3989,6 +3998,9 @@ msgstr "Cliquez pour renommer"
 msgid "Click to upload a PDF drawing"
 msgstr "Cliquer pour téléverser un dessin PDF"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "Pointage début"
 
@@ -5260,6 +5272,9 @@ msgstr "Poste de travail créé"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "Crée un Avoir de Fournisseur en Brouillon pour les quantités expédiées qui n'ont pas encore été créditées"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "Crée les 12 périodes mensuelles pour un exercice comptable. Les périodes qui existent déjà sont conservées."
@@ -9762,8 +9777,16 @@ msgstr "Évaluation des Stocks"
 msgid "Invite"
 msgstr "Inviter"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "Invitation expirée"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "Invité"
@@ -12202,6 +12225,9 @@ msgstr "Aucune variable de liste disponible en amont."
 msgid "No locations found."
 msgstr "Aucun emplacement trouvé."
 
+msgid "No login"
+msgstr ""
+
 msgid "No logo uploaded"
 msgstr "Aucun logo téléchargé"
 
@@ -13173,6 +13199,9 @@ msgstr "Taux fixe optionnel utilisé lors de la traduction des soldes des capita
 
 msgid "Optional pages & sections"
 msgstr "Pages et sections optionnelles"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "Facultatif. Arrête les nouvelles suggestions d'achat après cette date."
@@ -16873,6 +16902,9 @@ msgstr "Référence en libre-service sur docs.carbon.ms"
 
 msgid "Send"
 msgstr "Envoyer"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "Envoyer une invitation"

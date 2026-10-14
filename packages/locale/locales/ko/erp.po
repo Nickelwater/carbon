@@ -1526,8 +1526,14 @@ msgstr "외주 인력 추가"
 msgid "Add cost center"
 msgstr "원가 센터 추가"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "직원 추가"
+
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "라이브러리에서 추가…"
@@ -1703,6 +1709,9 @@ msgstr "향후 사용을 위해 재고에 추가"
 
 msgid "Add tools"
 msgstr "도구 추가"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3989,6 +3998,9 @@ msgstr "클릭하여 이름 바꾸기"
 msgid "Click to upload a PDF drawing"
 msgstr "클릭하여 PDF 도면을 업로드하세요"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "작업 시작"
 
@@ -5260,6 +5272,9 @@ msgstr "작업장 생성됨"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "아직 대변전표로 처리되지 않은 출하된 수량에 대한 공급업체 대변전표 초안을 생성합니다"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "회계연도의 12개월 기간을 생성합니다. 이미 존재하는 기간은 유지됩니다."
@@ -9762,8 +9777,16 @@ msgstr "재고 평가"
 msgid "Invite"
 msgstr "초대"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "초대권 만료됨"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "초대됨"
@@ -12202,6 +12225,9 @@ msgstr "업스트림에서 사용 가능한 목록 변수가 없습니다."
 msgid "No locations found."
 msgstr "위치가 없습니다."
 
+msgid "No login"
+msgstr ""
+
 msgid "No logo uploaded"
 msgstr "업로드된 로고가 없습니다"
 
@@ -13173,6 +13199,9 @@ msgstr "IAS 21에 따라 자본 잔액을 환산할 때 사용하는 선택적 �
 
 msgid "Optional pages & sections"
 msgstr "선택적 페이지 및 섹션"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "선택사항. 이 날짜 이후로 새로운 구매 제안을 중단합니다."
@@ -16873,6 +16902,9 @@ msgstr "docs.carbon.ms에서 셀프서비스 참고자료 확인"
 
 msgid "Send"
 msgstr "전송"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "초대 보내기"

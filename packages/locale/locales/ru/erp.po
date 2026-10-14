@@ -1526,8 +1526,14 @@ msgstr "Добавить подрядчика"
 msgid "Add cost center"
 msgstr "Добавить центр затрат"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "Добавить сотрудника"
+
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "Добавить из библиотеки…"
@@ -1703,6 +1709,9 @@ msgstr "Добавить в запас для будущего использо�
 
 msgid "Add tools"
 msgstr "Добавить инструменты"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3989,6 +3998,9 @@ msgstr "Нажмите, чтобы переименовать"
 msgid "Click to upload a PDF drawing"
 msgstr "Нажмите, чтобы загрузить чертеж PDF"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "Начало работы"
 
@@ -5260,6 +5272,9 @@ msgstr "Рабочий центр создан"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "Создает черновик кредит-ноты поставщика для отправленных количеств, которые еще не были скредитованы"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "Создает 12 ежемесячных периодов для финансового года. Уже существующие периоды сохраняются."
@@ -9762,8 +9777,16 @@ msgstr "Оценка товарно-материального запаса"
 msgid "Invite"
 msgstr "Пригласить"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "Истек срок приглашения"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "Приглашено"
@@ -12202,6 +12225,9 @@ msgstr "Нет доступных переменных списка выше."
 msgid "No locations found."
 msgstr "Локации не найдены."
 
+msgid "No login"
+msgstr ""
+
 msgid "No logo uploaded"
 msgstr "Логотип не загружен"
 
@@ -13173,6 +13199,9 @@ msgstr "Дополнительный фиксированный курс, исп
 
 msgid "Optional pages & sections"
 msgstr "Дополнительные страницы и разделы"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "Опционально. Останавливает новые предложения по закупкам после этой даты."
@@ -16873,6 +16902,9 @@ msgstr "Справочная информация для самостоятел�
 
 msgid "Send"
 msgstr "Отправить"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "Отправить приглашение"

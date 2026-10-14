@@ -3,6 +3,8 @@
 // including ports, remain AGPLv3; serving them over a network requires releasing their source.
 
 import {
+  Badge,
+  Button,
   Card,
   CardAttribute,
   CardAttributeLabel,
@@ -16,12 +18,11 @@ import {
   useDisclosure
 } from "@carbon/react";
 import { Trans } from "@lingui/react/macro";
-// import { LuHistory } from "react-icons/lu";
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import { Avatar, DateTime } from "~/components";
 import { AuditLogDrawer } from "~/components/AuditLog";
 import { Enumerable } from "~/components/Enumerable";
-import { useRouteData, useUser } from "~/hooks";
+import { usePermissions, useRouteData, useUser } from "~/hooks";
 import { path } from "~/utils/path";
 import type { EmployeeSummary } from "../../types";
 
@@ -30,22 +31,41 @@ const PersonHeader = () => {
   if (!personId) throw new Error("personId not found");
 
   const { company } = useUser();
+  const permissions = usePermissions();
   const auditDrawer = useDisclosure();
-  const routeData = useRouteData<{ employeeSummary: EmployeeSummary }>(
-    path.to.person(personId)
-  );
+  const routeData = useRouteData<{
+    employeeSummary: EmployeeSummary;
+    isNoLoginEmployee?: boolean;
+  }>(path.to.person(personId));
 
   return (
     <>
       <Card>
         <HStack className="justify-between items-center p-6 pl-0">
           <CardHeader className="pt-0">
-            <CardTitle className="font-headline text-2xl">
-              {routeData?.employeeSummary?.name}
-            </CardTitle>
+            <HStack className="items-center gap-2">
+              <CardTitle className="font-headline text-2xl">
+                {routeData?.employeeSummary?.name}
+              </CardTitle>
+              {routeData?.isNoLoginEmployee ? (
+                <Badge variant="secondary">
+                  <Trans>No login</Trans>
+                </Badge>
+              ) : null}
+            </HStack>
             <CardDescription>
               {routeData?.employeeSummary?.title}
             </CardDescription>
+            {routeData?.isNoLoginEmployee &&
+            permissions.can("update", "users") ? (
+              <div className="pt-2">
+                <Button variant="secondary" asChild>
+                  <Link to={path.to.promoteBasicEmployee(personId)}>
+                    <Trans>Invite to ERP</Trans>
+                  </Link>
+                </Button>
+              </div>
+            ) : null}
           </CardHeader>
           <Avatar
             size="lg"
