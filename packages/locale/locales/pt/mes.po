@@ -572,6 +572,9 @@ msgstr "Decorrido"
 msgid "Email Address"
 msgstr "Endereço de E-mail"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Empty work centers"
 msgstr "Centros de trabalho vazios"
 
@@ -1268,6 +1271,9 @@ msgstr "Aprovado na Inspeção"
 msgid "Passkey unlock failed"
 msgstr "Falha ao desbloquear com chave de acesso"
 
+msgid "Password"
+msgstr ""
+
 msgid "Pause"
 msgstr "Pausar"
 
@@ -1661,6 +1667,9 @@ msgstr "Mostrar descrição"
 msgid "Show keyboard shortcuts"
 msgstr "Mostrar atalhos de teclado"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in with Google"
 msgstr "Entrar com Google"
 
@@ -1669,6 +1678,9 @@ msgstr "Entrar com Outlook"
 
 msgid "Sign in with Passkey"
 msgstr "Entrar com chave de acesso"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Sair"

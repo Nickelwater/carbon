@@ -5034,6 +5034,10 @@ msgstr "代わりに新しいStripe得意先を作成"
 msgid "Create a new version"
 msgstr "新しいバージョンを作成"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "発注書を作成"
 
@@ -7255,6 +7259,9 @@ msgstr "メールアドレス"
 
 msgid "Email Domains"
 msgstr "メールドメイン"
+
+msgid "Email me a magic link"
+msgstr ""
 
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "メール通知はあなたの会社の現在のプランに含まれていません。メール設定が有効になっている場合は適用されます。"
@@ -13554,6 +13561,9 @@ msgstr "パスキー"
 msgid "Passkeys are disabled"
 msgstr "パスキーは無効です"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "期限切れ"
 
@@ -17447,6 +17457,9 @@ msgstr "生成されたPDFの各ページの背景に薄く表示されます"
 msgid "Shown to the user when this rule fails."
 msgstr "このルールが失敗したときにユーザーに表示されます。"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Carbonにサインイン"
 
@@ -17461,6 +17474,9 @@ msgstr "Outlookでサインイン"
 
 msgid "Sign in with Passkey"
 msgstr "パスキーでサインイン"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "ログアウト"

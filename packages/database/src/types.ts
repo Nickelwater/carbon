@@ -8037,7 +8037,7 @@ export type Database = {
           materialGeneratedIds?: boolean
           operationsDispatchNotificationGroup?: string[] | null
           otherDispatchNotificationGroup?: string[] | null
-          payPeriodAnchorDate: string
+          payPeriodAnchorDate?: string
           payPeriodLengthDays?: number
           plmReleaseControl?: string
           printing?: Json | null
@@ -74307,6 +74307,7 @@ export type Database = {
           quantityComplete: number | null
           quantityReworked: number | null
           quantityScrapped: number | null
+          readyAt: string | null
           reworkId: string | null
           setupRate: number | null
           setupTime: number | null
@@ -74363,6 +74364,7 @@ export type Database = {
           quantityComplete?: number | null
           quantityReworked?: number | null
           quantityScrapped?: number | null
+          readyAt?: string | null
           reworkId?: string | null
           setupRate?: number | null
           setupTime?: number | null
@@ -74419,6 +74421,7 @@ export type Database = {
           quantityComplete?: number | null
           quantityReworked?: number | null
           quantityScrapped?: number | null
+          readyAt?: string | null
           reworkId?: string | null
           setupRate?: number | null
           setupTime?: number | null
@@ -74745,6 +74748,7 @@ export type Database = {
           quantityComplete: number | null
           quantityReworked: number | null
           quantityScrapped: number | null
+          readyAt: string | null
           reworkId: string | null
           setupRate: number | null
           setupTime: number | null
@@ -77245,6 +77249,7 @@ export type Database = {
           companyId: string | null
           createdAt: string | null
           createdBy: string | null
+          customerPartSummary: string | null
           customFields: Json | null
           defaultMethodType: Database["public"]["Enums"]["methodType"] | null
           description: string | null

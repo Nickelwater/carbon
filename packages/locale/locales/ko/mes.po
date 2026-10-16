@@ -572,6 +572,9 @@ msgstr "경과 시간"
 msgid "Email Address"
 msgstr "이메일 주소"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Empty work centers"
 msgstr "빈 작업장"
 
@@ -1268,6 +1271,9 @@ msgstr "검사 통과"
 msgid "Passkey unlock failed"
 msgstr "패스키 잠금 해제 실패"
 
+msgid "Password"
+msgstr ""
+
 msgid "Pause"
 msgstr "일시 중지"
 
@@ -1661,6 +1667,9 @@ msgstr "설명 표시"
 msgid "Show keyboard shortcuts"
 msgstr "키보드 바로가기 표시"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in with Google"
 msgstr "Google로 로그인"
 
@@ -1669,6 +1678,9 @@ msgstr "Outlook으로 로그인"
 
 msgid "Sign in with Passkey"
 msgstr "패스키로 로그인"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "로그아웃"

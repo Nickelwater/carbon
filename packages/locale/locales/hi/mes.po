@@ -572,6 +572,9 @@ msgstr "बीता हुआ"
 msgid "Email Address"
 msgstr "ईमेल पता"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Empty work centers"
 msgstr "खाली वर्क सेंटर"
 
@@ -1268,6 +1271,9 @@ msgstr "निरीक्षण उत्तीर्ण"
 msgid "Passkey unlock failed"
 msgstr "पासकी अनलॉक विफल"
 
+msgid "Password"
+msgstr ""
+
 msgid "Pause"
 msgstr "रोकें"
 
@@ -1661,6 +1667,9 @@ msgstr "विवरण दिखाएं"
 msgid "Show keyboard shortcuts"
 msgstr "कीबोर्ड शॉर्टकट दिखाएं"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in with Google"
 msgstr "Google के साथ साइन इन करें"
 
@@ -1669,6 +1678,9 @@ msgstr "Outlook के साथ साइन इन करें"
 
 msgid "Sign in with Passkey"
 msgstr "पासकी के साथ साइन इन करें"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "साइन आउट करें"

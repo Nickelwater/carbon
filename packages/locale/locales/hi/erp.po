@@ -5034,6 +5034,10 @@ msgstr "इसके बजाय एक नया Stripe ग्राहक ब
 msgid "Create a new version"
 msgstr "एक नया संस्करण बनाएं"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "एक क्रय आदेश बनाएँ"
 
@@ -7255,6 +7259,9 @@ msgstr "ईमेल पता"
 
 msgid "Email Domains"
 msgstr "ईमेल डोमेन"
+
+msgid "Email me a magic link"
+msgstr ""
 
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "ईमेल सूचनाएँ आपकी कंपनी की वर्तमान योजना में शामिल नहीं हैं; ईमेल प्राथमिकताएँ लागू होंगी यदि वे सक्षम हैं।"
@@ -13554,6 +13561,9 @@ msgstr "पासकीज़"
 msgid "Passkeys are disabled"
 msgstr "पासकीज़ अक्षम हैं"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "अतिदेय"
 
@@ -17447,6 +17457,9 @@ msgstr "जनरेट की गई PDF के हर पेज के पी�
 msgid "Shown to the user when this rule fails."
 msgstr "जब यह नियम विफल हो तब उपयोगकर्ता को दिखाया जाता है।"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Carbon में साइन इन करें"
 
@@ -17461,6 +17474,9 @@ msgstr "Outlook के साथ साइन इन करें"
 
 msgid "Sign in with Passkey"
 msgstr "पासकी के साथ साइन इन करें"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "साइन आउट"

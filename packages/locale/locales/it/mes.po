@@ -572,6 +572,9 @@ msgstr "Trascorso"
 msgid "Email Address"
 msgstr "Indirizzo Email"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Empty work centers"
 msgstr "Centri di lavoro vuoti"
 
@@ -1268,6 +1271,9 @@ msgstr "Controllo superato"
 msgid "Passkey unlock failed"
 msgstr "Sblocco con passkey non riuscito"
 
+msgid "Password"
+msgstr ""
+
 msgid "Pause"
 msgstr "Sospendi"
 
@@ -1661,6 +1667,9 @@ msgstr "Mostra descrizione"
 msgid "Show keyboard shortcuts"
 msgstr "Mostra i tasti di scelta rapida"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in with Google"
 msgstr "Accedi con Google"
 
@@ -1669,6 +1678,9 @@ msgstr "Accedi con Outlook"
 
 msgid "Sign in with Passkey"
 msgstr "Accedi con Passkey"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Esci"

@@ -572,6 +572,9 @@ msgstr "Verstrichene Zeit"
 msgid "Email Address"
 msgstr "E-Mail-Adresse"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Empty work centers"
 msgstr "Leere Arbeitsplätze"
 
@@ -1268,6 +1271,9 @@ msgstr "Prüfung bestanden"
 msgid "Passkey unlock failed"
 msgstr "Passkey-Entsperrung fehlgeschlagen"
 
+msgid "Password"
+msgstr ""
+
 msgid "Pause"
 msgstr "Unterbrechen"
 
@@ -1661,6 +1667,9 @@ msgstr "Beschreibung anzeigen"
 msgid "Show keyboard shortcuts"
 msgstr "Tastaturkürzel anzeigen"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in with Google"
 msgstr "Mit Google anmelden"
 
@@ -1669,6 +1678,9 @@ msgstr "Mit Outlook anmelden"
 
 msgid "Sign in with Passkey"
 msgstr "Mit Passkey anmelden"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Abmelden"

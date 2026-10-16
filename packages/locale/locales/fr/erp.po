@@ -5034,6 +5034,10 @@ msgstr "Créer un nouveau client Stripe à la place"
 msgid "Create a new version"
 msgstr "Créer une nouvelle version"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "Créer un bon de commande"
 
@@ -7255,6 +7259,9 @@ msgstr "Adresse e-mail"
 
 msgid "Email Domains"
 msgstr "Domaines de messagerie"
+
+msgid "Email me a magic link"
+msgstr ""
 
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "Les notifications par e-mail ne sont pas incluses dans le plan actuel de votre société ; les préférences d'e-mail s'appliqueront si elles sont activées."
@@ -13554,6 +13561,9 @@ msgstr "Clés d'accès"
 msgid "Passkeys are disabled"
 msgstr "Les clés d'accès sont désactivées"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "Dépassé"
 
@@ -17447,6 +17457,9 @@ msgstr "Affiché en arrière-plan discret sur chaque page des PDF générés"
 msgid "Shown to the user when this rule fails."
 msgstr "Affiché à l'utilisateur quand cette règle échoue."
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Se connecter à Carbon"
 
@@ -17461,6 +17474,9 @@ msgstr "Se connecter avec Outlook"
 
 msgid "Sign in with Passkey"
 msgstr "Se connecter avec Clé d'accès"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Se déconnecter"

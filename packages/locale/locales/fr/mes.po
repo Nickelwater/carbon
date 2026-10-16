@@ -572,6 +572,9 @@ msgstr "Durée écoulée"
 msgid "Email Address"
 msgstr "Adresse e-mail"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Empty work centers"
 msgstr "Postes de travail vides"
 
@@ -1268,6 +1271,9 @@ msgstr "Contrôle réussi"
 msgid "Passkey unlock failed"
 msgstr "Le déverrouillage par clé d'accès a échoué"
 
+msgid "Password"
+msgstr ""
+
 msgid "Pause"
 msgstr "Mettre en pause"
 
@@ -1661,6 +1667,9 @@ msgstr "Afficher la description"
 msgid "Show keyboard shortcuts"
 msgstr "Afficher les raccourcis clavier"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in with Google"
 msgstr "Se connecter avec Google"
 
@@ -1669,6 +1678,9 @@ msgstr "Se connecter avec Outlook"
 
 msgid "Sign in with Passkey"
 msgstr "Se connecter avec une clé d'accès"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Se déconnecter"

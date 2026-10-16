@@ -5034,6 +5034,10 @@ msgstr "Erstellen Sie stattdessen einen neuen Stripe-Kunden"
 msgid "Create a new version"
 msgstr "Neue Version erstellen"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "Bestellung erstellen"
 
@@ -7255,6 +7259,9 @@ msgstr "E-Mail-Adresse"
 
 msgid "Email Domains"
 msgstr "E-Mail-Domänen"
+
+msgid "Email me a magic link"
+msgstr ""
 
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "E-Mail-Benachrichtigungen sind nicht in Ihrem aktuellen Unternehmensplan enthalten; E-Mail-Einstellungen werden angewendet, falls sie aktiviert sind."
@@ -13554,6 +13561,9 @@ msgstr "Passkeys"
 msgid "Passkeys are disabled"
 msgstr "Passkeys sind deaktiviert"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "Überfällig"
 
@@ -17447,6 +17457,9 @@ msgstr "Wird als schwacher Hintergrund hinter jeder Seite generierter PDFs angez
 msgid "Shown to the user when this rule fails."
 msgstr "Wird dem Benutzer angezeigt, wenn diese Regel fehlschlägt."
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Bei Carbon anmelden"
 
@@ -17461,6 +17474,9 @@ msgstr "Mit Outlook anmelden"
 
 msgid "Sign in with Passkey"
 msgstr "Mit Passkey anmelden"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Abmelden"

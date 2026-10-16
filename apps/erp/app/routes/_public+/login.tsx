@@ -11,11 +11,14 @@ import {
   getRedirectTo,
   isAuthProviderEnabled,
   magicLinkValidator,
+  passwordLoginValidator,
   RATE_LIMIT
 } from "@carbon/auth";
 import {
+  attemptPasswordLogin,
   botProtection,
   getMagicLinkErrorMessage,
+  isPasswordLoginPrimary,
   logAuthEvent,
   sendMagicLink,
   signInWithBypassEmail,
@@ -38,7 +41,14 @@ import {
 import { getUserByEmail } from "@carbon/auth/users.server";
 import { sendVerificationCode } from "@carbon/auth/verification.server";
 import { isSsoEnabled, isSsoRequiredForEmail } from "@carbon/ee/sso.server";
-import { Hidden, Input, Submit, ValidatedForm, validator } from "@carbon/form";
+import {
+  Hidden,
+  Input,
+  Password,
+  Submit,
+  ValidatedForm,
+  validator
+} from "@carbon/form";
 import { AccountLockout, Ratelimit, redis } from "@carbon/kv";
 import { getLogger } from "@carbon/logger";
 import {
@@ -93,7 +103,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
         hasGoogleAuth,
         hasPasskeyAuth,
         hasSsoAuth,
-        botProtection
+        botProtection,
+        passwordLoginPrimary: isPasswordLoginPrimary()
       },
       { headers: cookieHeaders }
     );
@@ -104,13 +115,61 @@ export async function loader({ request }: LoaderFunctionArgs) {
     hasGoogleAuth,
     hasPasskeyAuth,
     hasSsoAuth,
-    botProtection
+    botProtection,
+    passwordLoginPrimary: isPasswordLoginPrimary()
   };
 }
 
 export async function action({ request }: ActionFunctionArgs) {
   assertIsPost(request);
   const ip = getClientIp(request) ?? "127.0.0.1";
+  const formData = await request.formData();
+  const intent = String(formData.get("intent") ?? "");
+
+  if (intent === "password" && isPasswordLoginPrimary()) {
+    const validation = await validator(passwordLoginValidator).validate(
+      formData
+    );
+    if (validation.error) {
+      return error(validation.error, "Invalid email or password");
+    }
+    const { email, password, botToken, redirectTo } = validation.data;
+
+    if (await isSsoRequiredForEmail(getCarbonServiceRole(), email)) {
+      const SSO_REQUIRED_MESSAGE =
+        "Your organization requires single sign-on. Sign in with your work email to continue.";
+      logAuthEvent("login_failed", {
+        actor: email,
+        ip,
+        reason: "sso required for domain"
+      });
+      return data(
+        { success: false, message: SSO_REQUIRED_MESSAGE },
+        await flash(request, error(null, SSO_REQUIRED_MESSAGE))
+      );
+    }
+
+    const result = await attemptPasswordLogin({
+      email,
+      password,
+      ip,
+      botToken
+    });
+    if (!result.ok) {
+      return data(
+        { success: false, message: result.message },
+        await flash(request, error(null, result.message))
+      );
+    }
+
+    const sessionCookie = await setAuthSession(request, {
+      authSession: result.authSession
+    });
+    return redirect(redirectTo || path.to.authenticatedRoot, {
+      headers: [["Set-Cookie", sessionCookie]]
+    });
+  }
+
   const ratelimit = new Ratelimit({
     redis,
     limiter: Ratelimit.slidingWindow(RATE_LIMIT, "1 h"),
@@ -126,9 +185,7 @@ export async function action({ request }: ActionFunctionArgs) {
     );
   }
 
-  const validation = await validator(magicLinkValidator).validate(
-    await request.formData()
-  );
+  const validation = await validator(magicLinkValidator).validate(formData);
 
   if (validation.error) {
     return error(validation.error, "Invalid email address");
@@ -308,7 +365,8 @@ export default function LoginRoute() {
     hasGoogleAuth,
     hasPasskeyAuth,
     hasSsoAuth,
-    botProtection
+    botProtection,
+    passwordLoginPrimary
   } = useLoaderData<typeof loader>();
 
   const [searchParams] = useSearchParams();
@@ -320,6 +378,8 @@ export default function LoginRoute() {
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [ssoLoading, setSsoLoading] = useState(false);
   const [ssoError, setSsoError] = useState<string | null>(null);
+  /** On-prem: toggle between password (default) and magic-link forms. */
+  const [useMagicLink, setUseMagicLink] = useState(false);
   const conditionalAbortRef = useRef<AbortController | null>(null);
 
   // A forced logout (see destroyAuthSession) arrives as a bare 302, leaving the
@@ -613,7 +673,11 @@ export default function LoginRoute() {
         ) : (
           <ValidatedForm
             fetcher={fetcher}
-            validator={magicLinkValidator}
+            validator={
+              passwordLoginPrimary && !useMagicLink
+                ? passwordLoginValidator
+                : magicLinkValidator
+            }
             defaultValues={{ redirectTo, email: emailParam }}
             method="post"
             action="/login"
@@ -621,6 +685,9 @@ export default function LoginRoute() {
           >
             <Hidden name="redirectTo" value={redirectTo} type="hidden" />
             <Hidden name="botToken" value={bot.token} />
+            {passwordLoginPrimary && !useMagicLink ? (
+              <Hidden name="intent" value="password" />
+            ) : null}
             <VStack spacing={2}>
               {((fetcher.data?.success === false && fetcher.data?.message) ||
                 ssoError) && (
@@ -691,6 +758,15 @@ export default function LoginRoute() {
                 autoComplete={hasPasskeyAuth ? "email webauthn" : "email"}
               />
 
+              {passwordLoginPrimary && !useMagicLink ? (
+                <Password
+                  name="password"
+                  label=""
+                  placeholder={t`Password`}
+                  autoComplete="current-password"
+                />
+              ) : null}
+
               <Submit
                 isDisabled={
                   fetcher.state !== "idle" || ssoLoading || !bot.ready
@@ -702,9 +778,29 @@ export default function LoginRoute() {
                 withBlocker={false}
                 variant="secondary"
               >
-                <Trans>Continue</Trans>
+                {passwordLoginPrimary && !useMagicLink ? (
+                  <Trans>Sign in</Trans>
+                ) : (
+                  <Trans>Continue</Trans>
+                )}
               </Submit>
               {bot.challenge}
+
+              {passwordLoginPrimary ? (
+                <Button
+                  type="button"
+                  variant="link"
+                  size="sm"
+                  className="w-full"
+                  onClick={() => setUseMagicLink((v) => !v)}
+                >
+                  {useMagicLink ? (
+                    <Trans>Sign in with password</Trans>
+                  ) : (
+                    <Trans>Email me a magic link</Trans>
+                  )}
+                </Button>
+              ) : null}
             </VStack>
           </ValidatedForm>
         )}
