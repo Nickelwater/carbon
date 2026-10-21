@@ -132,13 +132,14 @@ const TimecardPunchGrid = ({
   const fetcher = useFetcher();
   const editable = canEdit && permissions.can("update", "people");
 
-  const { rows } = buildPunchGrid({
+  const { rows, weeks } = buildPunchGrid({
     punches,
     periodStart,
     periodEnd,
     tz,
     businessDay
   });
+  const weekByEnd = new Map(weeks.map((week) => [week.end, week]));
 
   const [editing, setEditing] = useState<GridPunch | null>(null);
   const [adding, setAdding] = useState(false);
@@ -261,97 +262,110 @@ const TimecardPunchGrid = ({
               <Th>
                 <Trans>Day total</Trans>
               </Th>
+              <Th>
+                <Trans>Week total</Trans>
+              </Th>
+              <Th>
+                <Trans>Overtime</Trans>
+              </Th>
             </Tr>
           </Thead>
           <Tbody>
-            {rows.map((row, rowIndex) => (
-              <Tr key={`${row.date}-${rowIndex}`}>
-                <Td className="whitespace-nowrap font-medium">
-                  {row.isPrimary ? (
-                    editable ? (
-                      <button
-                        type="button"
-                        className="inline-flex items-center gap-1 hover:underline text-left"
-                        title={t`Insert punch`}
-                        onClick={() => openInsert(row.date)}
-                      >
-                        <span>
-                          {new Date(`${row.date}T12:00:00`).toLocaleDateString(
-                            locale,
-                            {
+            {rows.map((row, rowIndex) => {
+              const week = row.isPrimary ? weekByEnd.get(row.date) : undefined;
+              return (
+                <Tr key={`${row.date}-${rowIndex}`}>
+                  <Td className="whitespace-nowrap font-medium">
+                    {row.isPrimary ? (
+                      editable ? (
+                        <button
+                          type="button"
+                          className="inline-flex items-center gap-1 hover:underline text-left"
+                          title={t`Insert punch`}
+                          onClick={() => openInsert(row.date)}
+                        >
+                          <span>
+                            {new Date(
+                              `${row.date}T12:00:00`
+                            ).toLocaleDateString(locale, {
                               weekday: "short",
                               month: "short",
                               day: "numeric"
-                            }
-                          )}
-                        </span>
-                        {row.hasPunchError ? (
-                          <span
-                            className="text-destructive font-bold"
-                            title={t`Missing punch`}
-                          >
-                            !
+                            })}
                           </span>
-                        ) : null}
-                      </button>
-                    ) : (
-                      <HStack className="gap-1">
-                        <span>
-                          {new Date(`${row.date}T12:00:00`).toLocaleDateString(
-                            locale,
-                            {
+                          {row.hasPunchError ? (
+                            <span
+                              className="text-destructive font-bold"
+                              title={t`Missing punch`}
+                            >
+                              !
+                            </span>
+                          ) : null}
+                        </button>
+                      ) : (
+                        <HStack className="gap-1">
+                          <span>
+                            {new Date(
+                              `${row.date}T12:00:00`
+                            ).toLocaleDateString(locale, {
                               weekday: "short",
                               month: "short",
                               day: "numeric"
-                            }
-                          )}
-                        </span>
-                        {row.hasPunchError ? (
-                          <span
-                            className="text-destructive font-bold"
-                            title={t`Missing punch`}
-                          >
-                            !
+                            })}
                           </span>
-                        ) : null}
-                      </HStack>
-                    )
-                  ) : null}
-                </Td>
-                {row.pairs.map((pair, i) => (
-                  <Fragment key={`${row.date}-${rowIndex}-pair-${i}`}>
-                    <PunchCell
-                      punch={pair.clockIn}
-                      locale={locale}
-                      canEdit={editable}
-                      onEdit={(punch) => {
-                        setAdding(false);
-                        setAddingDate(null);
-                        setEditing(punch);
-                      }}
-                      onDelete={deletePunch}
-                    />
-                    <PunchCell
-                      punch={pair.clockOut}
-                      locale={locale}
-                      canEdit={editable}
-                      onEdit={(punch) => {
-                        setAdding(false);
-                        setAddingDate(null);
-                        setEditing(punch);
-                      }}
-                      onDelete={deletePunch}
-                      missing={!!pair.clockIn && !pair.clockOut}
-                    />
-                  </Fragment>
-                ))}
-                <Td className="tabular-nums">
-                  {row.dayTotalMs == null
-                    ? null
-                    : formatDurationMs(row.dayTotalMs)}
-                </Td>
-              </Tr>
-            ))}
+                          {row.hasPunchError ? (
+                            <span
+                              className="text-destructive font-bold"
+                              title={t`Missing punch`}
+                            >
+                              !
+                            </span>
+                          ) : null}
+                        </HStack>
+                      )
+                    ) : null}
+                  </Td>
+                  {row.pairs.map((pair, i) => (
+                    <Fragment key={`${row.date}-${rowIndex}-pair-${i}`}>
+                      <PunchCell
+                        punch={pair.clockIn}
+                        locale={locale}
+                        canEdit={editable}
+                        onEdit={(punch) => {
+                          setAdding(false);
+                          setAddingDate(null);
+                          setEditing(punch);
+                        }}
+                        onDelete={deletePunch}
+                      />
+                      <PunchCell
+                        punch={pair.clockOut}
+                        locale={locale}
+                        canEdit={editable}
+                        onEdit={(punch) => {
+                          setAdding(false);
+                          setAddingDate(null);
+                          setEditing(punch);
+                        }}
+                        onDelete={deletePunch}
+                        missing={!!pair.clockIn && !pair.clockOut}
+                      />
+                    </Fragment>
+                  ))}
+                  <Td className="tabular-nums">
+                    {row.dayTotalMs == null
+                      ? null
+                      : formatDurationMs(row.dayTotalMs)}
+                  </Td>
+                  <Td className="tabular-nums font-medium">
+                    {week ? formatDurationMs(week.totalMs) : null}
+                  </Td>
+                  <Td className="tabular-nums">
+                    {week ? formatDurationMs(week.overtimeMs) : null}
+                  </Td>
+                </Tr>
+              );
+            })}
           </Tbody>
         </TableBase>
       </div>

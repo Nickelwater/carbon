@@ -116,4 +116,65 @@ describe("buildPunchGrid", () => {
     expect(day13[0]?.pairs[0].clockOut?.id).toBe("out");
     expect(day13[0]?.hasPunchError).toBe(false);
   });
+
+  it("totals each 7-day week and counts hours past 40 as overtime", () => {
+    const punches: GridPunch[] = [];
+    for (let day = 12; day <= 16; day += 1) {
+      const ymd = `2026-10-${day}`;
+      punches.push(
+        punch(`in-${ymd}`, `${ymd}T13:00:00.000Z`),
+        punch(`out-${ymd}`, `${ymd}T22:00:00.000Z`)
+      );
+    }
+
+    const { weeks } = buildPunchGrid({
+      punches,
+      periodStart: "2026-10-12",
+      periodEnd: "2026-10-18",
+      tz: "UTC",
+      businessDay
+    });
+
+    expect(weeks).toEqual([
+      {
+        start: "2026-10-12",
+        end: "2026-10-18",
+        totalMs: 40 * 3_600_000,
+        overtimeMs: 5 * 3_600_000
+      }
+    ]);
+  });
+
+  it("keeps a 40-hour week at zero overtime and splits a 14-day period", () => {
+    const punches: GridPunch[] = [];
+    for (let day = 12; day <= 16; day += 1) {
+      const ymd = `2026-10-${day}`;
+      punches.push(
+        punch(`in-${ymd}`, `${ymd}T08:00:00.000Z`),
+        punch(`out-${ymd}`, `${ymd}T16:00:00.000Z`)
+      );
+    }
+
+    const { weeks } = buildPunchGrid({
+      punches,
+      periodStart: "2026-10-12",
+      periodEnd: "2026-10-25",
+      tz: "UTC",
+      businessDay
+    });
+
+    expect(weeks).toHaveLength(2);
+    expect(weeks[0]).toMatchObject({
+      start: "2026-10-12",
+      end: "2026-10-18",
+      totalMs: 40 * 3_600_000,
+      overtimeMs: 0
+    });
+    expect(weeks[1]).toMatchObject({
+      start: "2026-10-19",
+      end: "2026-10-25",
+      totalMs: 0,
+      overtimeMs: 0
+    });
+  });
 });

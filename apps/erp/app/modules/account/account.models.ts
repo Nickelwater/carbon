@@ -33,9 +33,14 @@ export const accountLanguageValidator = z.object({
 
 export const accountPasswordValidator = z
   .object({
+    // Blank when the account was created by magic link: that password is a
+    // random value the user was never shown. A signed-in session is the proof.
     currentPassword: z
       .string()
-      .min(6, { message: "Current password is required" }),
+      .optional()
+      .refine((value) => !value || value.length >= 6, {
+        message: "Current password is too short"
+      }),
     password: z.string().min(6, { message: "Password is required" }),
     confirmPassword: z
       .string()

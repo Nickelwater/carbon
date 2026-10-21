@@ -10367,6 +10367,9 @@ msgstr "Оставьте пустым для встроенного"
 msgid "Leave blank to use the next revision automatically"
 msgstr "Оставить пусто, чтобы использовать следующую ревизию автоматически"
 
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
+
 msgid "Leave empty for exact match"
 msgstr "Оставьте пустым для точного совпадения"
 
@@ -15532,6 +15535,9 @@ msgid "Reprint"
 msgstr "Перепечать"
 
 msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
 msgstr ""
 
 msgid "Request a new invite"
@@ -21340,6 +21346,9 @@ msgstr "Неделя 8 переход"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "Неделя {0}"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "Еженедельно"

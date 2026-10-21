@@ -8,6 +8,9 @@ import { parseDate } from "@internationalized/date";
 /** Fixed In/Out column pairs per table row. Extra pairs spill to another day row. */
 export const PAIRS_PER_ROW = 2;
 
+/** FLSA-style weekly overtime threshold. */
+export const WEEKLY_OVERTIME_MS = 40 * 3_600_000;
+
 export type GridPunch = PunchLike & {
   source: string;
   note?: string | null;
@@ -29,6 +32,16 @@ export type PunchGridRow = {
   dayTotalMs: number | null;
   /** Missing Out (or other incomplete pair) on this calendar day. */
   hasPunchError: boolean;
+};
+
+/** One work week inside the pay period, aligned to the period start. */
+export type WeekTotal = {
+  start: string;
+  end: string;
+  /** Hours in the week, capped at 40. Overtime is not included. */
+  totalMs: number;
+  /** Hours past 40 in a full 7-day week. A short trailing week is 0. */
+  overtimeMs: number;
 };
 
 /** Inclusive YYYY-MM-DD range → UTC instant bounds in company TZ. */
@@ -87,6 +100,33 @@ function dayTotalMs(pairs: DayPairCell[]): number {
 }
 
 /**
+ * Split the period into 7-day work weeks starting at `periodStart` (the pay
+ * period anchor). Overtime is hours past 40 in a complete week.
+ */
+export function weekTotalsForDates(
+  dates: string[],
+  totalMsByDate: Map<string, number>
+): WeekTotal[] {
+  const weeks: WeekTotal[] = [];
+  for (let i = 0; i < dates.length; i += 7) {
+    const slice = dates.slice(i, i + 7);
+    const rawMs = slice.reduce(
+      (sum, date) => sum + (totalMsByDate.get(date) ?? 0),
+      0
+    );
+    const overtimeMs =
+      slice.length === 7 ? Math.max(0, rawMs - WEEKLY_OVERTIME_MS) : 0;
+    weeks.push({
+      start: slice[0]!,
+      end: slice[slice.length - 1]!,
+      totalMs: rawMs - overtimeMs,
+      overtimeMs
+    });
+  }
+  return weeks;
+}
+
+/**
  * Build a day grid for a pay period. Pairing is per business day so an open
  * In never crosses midnight. Columns are always In/Out 1–2; pairs 3+ become
  * extra rows for that day. Days with a missing Out are flagged.
@@ -97,7 +137,7 @@ export function buildPunchGrid(args: {
   periodEnd: string;
   tz: string;
   businessDay: (instant: string, tz: string) => { toString(): string };
-}): { rows: PunchGridRow[]; isOpen: boolean } {
+}): { rows: PunchGridRow[]; weeks: WeekTotal[]; isOpen: boolean } {
   const dates = eachDateInclusive(args.periodStart, args.periodEnd);
   const dateSet = new Set(dates);
 
@@ -140,7 +180,15 @@ export function buildPunchGrid(args: {
     });
   }
 
-  return { rows, isOpen };
+  const totalsByDate = new Map(
+    dates.map((date) => [date, dayTotalMs(byDate.get(date) ?? [])])
+  );
+
+  return {
+    rows,
+    weeks: weekTotalsForDates(dates, totalsByDate),
+    isOpen
+  };
 }
 
 export function formatDurationMs(ms: number): string {

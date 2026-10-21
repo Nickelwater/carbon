@@ -10367,6 +10367,9 @@ msgstr "बिल्ट-इन के लिए खाली छोड़ें"
 msgid "Leave blank to use the next revision automatically"
 msgstr "अगले रिवीजन को स्वचालित रूप से उपयोग करने के लिए खाली छोड़ें"
 
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
+
 msgid "Leave empty for exact match"
 msgstr "सटीक मिलान के लिए खाली छोड़ें"
 
@@ -15532,6 +15535,9 @@ msgid "Reprint"
 msgstr "दोबारा प्रिंट करें"
 
 msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
 msgstr ""
 
 msgid "Request a new invite"
@@ -21340,6 +21346,9 @@ msgstr "सप्ताह 8 कटओवर"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} का सप्ताह"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "साप्ताहिक"

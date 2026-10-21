@@ -10367,6 +10367,9 @@ msgstr "Yerleşik için boş bırakın"
 msgid "Leave blank to use the next revision automatically"
 msgstr "Sonraki revizyonu otomatik olarak kullanmak için boş bırakın"
 
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
+
 msgid "Leave empty for exact match"
 msgstr "Tam eşleşme için boş bırakın"
 
@@ -15532,6 +15535,9 @@ msgid "Reprint"
 msgstr "Yeniden Yazdır"
 
 msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
 msgstr ""
 
 msgid "Request a new invite"
@@ -21340,6 +21346,9 @@ msgstr "8. Hafta geçişi"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} haftası"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "Haftalık"

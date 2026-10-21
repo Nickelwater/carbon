@@ -47,7 +47,17 @@ const PasswordForm = () => {
         </CardHeader>
         <CardContent>
           <VStack spacing={4} className="my-4 max-w-[440px]">
-            <Password name="currentPassword" label={t`Current Password`} />
+            <p className="text-sm text-muted-foreground">
+              <Trans>
+                Leave current password blank if you signed in with a magic link
+                and have not set a password yet.
+              </Trans>
+            </p>
+            <Password
+              name="currentPassword"
+              label={t`Current Password`}
+              isRequired={false}
+            />
             <Password
               ref={passwordRef}
               onChange={onPasswordChange}

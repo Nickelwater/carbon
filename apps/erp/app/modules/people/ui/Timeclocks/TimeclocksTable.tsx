@@ -4,6 +4,7 @@
 
 import {
   Badge,
+  Button,
   HStack,
   MenuIcon,
   MenuItem,
@@ -17,6 +18,7 @@ import {
   LuDownload,
   LuHistory,
   LuRadar,
+  LuRefreshCw,
   LuToggleLeft,
   LuToggleRight
 } from "react-icons/lu";
@@ -49,10 +51,11 @@ type TimeClockPunch = {
 type TimeclocksTableProps = {
   devices: TimeClockDevice[];
   unmappedPunches: TimeClockPunch[];
+  unmappedCount: number;
 };
 
 const TimeclocksTable = memo(
-  ({ devices, unmappedPunches }: TimeclocksTableProps) => {
+  ({ devices, unmappedPunches, unmappedCount }: TimeclocksTableProps) => {
     const { t } = useLingui();
     const permissions = usePermissions();
     const fetcher = useFetcher();
@@ -179,23 +182,50 @@ const TimeclocksTable = memo(
     );
 
     return (
-      <div className="flex flex-col h-full">
-        <Table<TimeClockDevice>
-          data={devices}
-          columns={columns}
-          count={devices.length}
-          withSearch={false}
-          renderContextMenu={renderContextMenu}
-        />
+      <div className="flex h-full min-h-0 flex-col">
+        {/* The punch list must not be allowed to shrink this to nothing.
+            Table uses contain:strict, so its min-content height is 0 and a
+            tall sibling in this column collapses the device rows. */}
+        <div className="min-h-0 flex-1">
+          <Table<TimeClockDevice>
+            data={devices}
+            columns={columns}
+            count={devices.length}
+            withSearch={false}
+            renderContextMenu={renderContextMenu}
+          />
+        </div>
         {unmappedPunches.length > 0 && (
-          <div className="border-t p-4 space-y-2">
-            <button
-              type="button"
-              className="text-sm font-medium"
-              onClick={punchesOpen.onToggle}
-            >
-              <Trans>Unmapped punches</Trans> ({unmappedPunches.length})
-            </button>
+          <div className="max-h-72 shrink-0 space-y-2 overflow-y-auto border-t p-4">
+            <HStack className="justify-between gap-4">
+              <button
+                type="button"
+                className="text-sm font-medium"
+                onClick={punchesOpen.onToggle}
+              >
+                <Trans>Unmapped punches</Trans> ({unmappedCount})
+              </button>
+              {permissions.can("update", "people") && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  leftIcon={<LuRefreshCw />}
+                  isDisabled={fetcher.state !== "idle"}
+                  isLoading={
+                    fetcher.state !== "idle" &&
+                    fetcher.formData?.get("intent") === "reprocessAll"
+                  }
+                  onClick={() =>
+                    fetcher.submit(
+                      { intent: "reprocessAll" },
+                      { method: "post" }
+                    )
+                  }
+                >
+                  <Trans>Reprocess all</Trans>
+                </Button>
+              )}
+            </HStack>
             {punchesOpen.isOpen && (
               <ul className="space-y-2 text-sm">
                 {unmappedPunches.map((punch) => (

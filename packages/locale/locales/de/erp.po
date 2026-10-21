@@ -10367,6 +10367,9 @@ msgstr "Leer lassen für integriert"
 msgid "Leave blank to use the next revision automatically"
 msgstr "Lassen Sie das Feld leer, um die nächste Revision automatisch zu verwenden"
 
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
+
 msgid "Leave empty for exact match"
 msgstr "Leer lassen für exakte Übereinstimmung"
 
@@ -15532,6 +15535,9 @@ msgid "Reprint"
 msgstr "Erneut drucken"
 
 msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
 msgstr ""
 
 msgid "Request a new invite"
@@ -21340,6 +21346,9 @@ msgstr "Woche 8 Umstellung"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "Woche des {0}"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "Wöchentlich"

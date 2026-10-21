@@ -10367,6 +10367,9 @@ msgstr "Lascia vuoto per built-in"
 msgid "Leave blank to use the next revision automatically"
 msgstr "Lascia vuoto per usare la prossima revisione automaticamente"
 
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
+
 msgid "Leave empty for exact match"
 msgstr "Lascia vuoto per una corrispondenza esatta"
 
@@ -15532,6 +15535,9 @@ msgid "Reprint"
 msgstr "Ristampa"
 
 msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
 msgstr ""
 
 msgid "Request a new invite"
@@ -21340,6 +21346,9 @@ msgstr "Cutover della settimana 8"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "Settimana del {0}"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "Settimanale"

@@ -18,6 +18,7 @@ import {
   getTimeClockDevices,
   getTimeClockPunches,
   reprocessTimeClockPunch,
+  reprocessUnmappedTimeClockPunches,
   updateTimeClockDevice
 } from "~/modules/people";
 import { TimeclocksTable } from "~/modules/people/ui/Timeclocks";
@@ -71,7 +72,8 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   return {
     devices: devices.data ?? [],
-    unmappedPunches: punches.data ?? []
+    unmappedPunches: punches.data ?? [],
+    unmappedCount: punches.count ?? punches.data?.length ?? 0
   };
 }
 
@@ -176,6 +178,26 @@ export async function action({ request }: ActionFunctionArgs) {
     }
   }
 
+  if (intent === "reprocessAll") {
+    const result = await reprocessUnmappedTimeClockPunches(
+      client,
+      companyId,
+      userId
+    );
+    if (result.error || !result.data) {
+      return data(
+        { success: false },
+        await flash(request, error(result.error, "Failed to reprocess punches"))
+      );
+    }
+    const { processed, applied, stillUnmapped, failed } = result.data;
+    const summary =
+      processed === 0
+        ? "No unmapped punches"
+        : `Reprocessed ${processed} punches. ${applied} applied, ${stillUnmapped} still unmapped${failed > 0 ? `, ${failed} failed` : ""}.`;
+    return data({ success: true }, await flash(request, success(summary)));
+  }
+
   if (intent === "reprocess") {
     const punchId = String(formData.get("punchId") ?? "");
     const result = await reprocessTimeClockPunch(
@@ -203,11 +225,16 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function TimeclocksRoute() {
-  const { devices, unmappedPunches } = useLoaderData<typeof loader>();
+  const { devices, unmappedPunches, unmappedCount } =
+    useLoaderData<typeof loader>();
 
   return (
     <VStack spacing={0} className="h-full">
-      <TimeclocksTable devices={devices} unmappedPunches={unmappedPunches} />
+      <TimeclocksTable
+        devices={devices}
+        unmappedPunches={unmappedPunches}
+        unmappedCount={unmappedCount}
+      />
     </VStack>
   );
 }

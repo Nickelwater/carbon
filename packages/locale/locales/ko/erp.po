@@ -10367,6 +10367,9 @@ msgstr "내장 값을 사용하려면 비워두세요"
 msgid "Leave blank to use the next revision automatically"
 msgstr "다음 리비전을 자동으로 사용하려면 공백으로 두세요"
 
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
+
 msgid "Leave empty for exact match"
 msgstr "정확히 일치시키려면 비워두세요"
 
@@ -15532,6 +15535,9 @@ msgid "Reprint"
 msgstr "재출력"
 
 msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
 msgstr ""
 
 msgid "Request a new invite"
@@ -21340,6 +21346,9 @@ msgstr "8주차 전환"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} 주"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "매주"

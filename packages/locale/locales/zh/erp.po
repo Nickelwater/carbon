@@ -10367,6 +10367,9 @@ msgstr "留空以使用内置"
 msgid "Leave blank to use the next revision automatically"
 msgstr "留空以自动使用下一个修订版"
 
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
+
 msgid "Leave empty for exact match"
 msgstr "留空以精确匹配"
 
@@ -15532,6 +15535,9 @@ msgid "Reprint"
 msgstr "重新打印"
 
 msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
 msgstr ""
 
 msgid "Request a new invite"
@@ -21340,6 +21346,9 @@ msgstr "第8周切换"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} 的周"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "每周"

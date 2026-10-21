@@ -36,16 +36,18 @@ export async function action({ request }: ActionFunctionArgs) {
   const { currentPassword, password } = validation.data;
   const serviceRole = getCarbonServiceRole();
 
-  const confirmPassword = await serviceRole.auth.signInWithPassword({
-    email,
-    password: currentPassword
-  });
+  if (currentPassword) {
+    const confirmPassword = await serviceRole.auth.signInWithPassword({
+      email,
+      password: currentPassword
+    });
 
-  if (confirmPassword.error || !confirmPassword.data.user) {
-    return data(
-      {},
-      await flash(request, error(null, "Current password is invalid"))
-    );
+    if (confirmPassword.error || !confirmPassword.data.user) {
+      return data(
+        {},
+        await flash(request, error(null, "Current password is invalid"))
+      );
+    }
   }
 
   const updatePassword = await serviceRole.auth.admin.updateUserById(

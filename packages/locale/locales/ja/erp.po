@@ -10367,6 +10367,9 @@ msgstr "組み込みの場合は空白のままにしてください"
 msgid "Leave blank to use the next revision automatically"
 msgstr "空白のままにして、次のリビジョンを自動的に使用します"
 
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
+
 msgid "Leave empty for exact match"
 msgstr "正確な一致のために空のままにしてください"
 
@@ -15532,6 +15535,9 @@ msgid "Reprint"
 msgstr "再印刷"
 
 msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
 msgstr ""
 
 msgid "Request a new invite"
@@ -21340,6 +21346,9 @@ msgstr "第8週のカットオーバー"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} の週"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "毎週"

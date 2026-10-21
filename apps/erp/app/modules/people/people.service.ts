@@ -1500,6 +1500,65 @@ export async function reprocessTimeClockPunch(
   });
 }
 
+/**
+ * Re-apply every unmapped hardware punch for a company, oldest first so
+ * In/Out pairing sees punches in clock order. One failed punch does not
+ * stop the rest.
+ */
+export async function reprocessUnmappedTimeClockPunches(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  userId: string
+) {
+  const pageSize = 500;
+  const punchIds: string[] = [];
+
+  for (let from = 0; ; from += pageSize) {
+    const page = await client
+      .from("timeClockPunch")
+      .select("id")
+      .eq("companyId", companyId)
+      .eq("status", "unmapped")
+      .order("punchedAt", { ascending: true })
+      .range(from, from + pageSize - 1);
+
+    if (page.error) {
+      return { data: null, error: page.error };
+    }
+
+    punchIds.push(...page.data.map((row) => row.id));
+    if (page.data.length < pageSize) break;
+  }
+
+  let applied = 0;
+  let stillUnmapped = 0;
+  let failed = 0;
+
+  for (const punchId of punchIds) {
+    const result = await applyTimeClockPunchToggle(client, {
+      companyId,
+      punchId,
+      actorUserId: userId
+    });
+    if (result.error || !result.data) {
+      failed += 1;
+      continue;
+    }
+    if (result.data.status === "applied") applied += 1;
+    else stillUnmapped += 1;
+  }
+
+  return {
+    data: {
+      processed: punchIds.length,
+      applied,
+      stillUnmapped,
+      failed
+    },
+    error: null
+  };
+}
+
 /** @mcp read */
 export async function getTimeCardPunches(
   client: SupabaseClient<Database>,
