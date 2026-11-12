@@ -47,7 +47,18 @@ export const employeeJobValidator = z.object({
   locationId: z.string().min(1, { message: "Location is required" }),
   shiftId: zfd.text(z.string().optional()),
   departmentId: zfd.text(z.string().optional()),
-  managerId: zfd.text(z.string().optional())
+  managerId: zfd.text(z.string().optional()),
+  enrollId: zfd.text(z.string().optional())
+});
+
+export const timeClockDeviceUpdateValidator = z.object({
+  id: z.string().min(1),
+  name: zfd.text(z.string().optional()),
+  enabled: zfd.checkbox(),
+  autoPoll: zfd.checkbox(),
+  pollIntervalSeconds: zfd.numeric(
+    z.number().int().min(60).max(43200).optional()
+  )
 });
 
 export const holidayValidator = z.object({
@@ -107,4 +118,23 @@ export const updateTimeCardEntryValidator = z.object({
 export const deleteTimeCardEntryValidator = z.object({
   intent: z.literal("deleteEntry"),
   entryId: z.string().min(1)
+});
+
+export const createTimeCardPunchValidator = z.object({
+  intent: z.literal("createPunch"),
+  employeeId: z.string().min(1),
+  punchedAt: z.string().min(1, { message: "Punch time is required" }),
+  note: zfd.text(z.string().optional())
+});
+
+export const updateTimeCardPunchValidator = z.object({
+  intent: z.literal("updatePunch"),
+  punchId: z.string().min(1),
+  punchedAt: z.string().min(1, { message: "Punch time is required" }),
+  note: zfd.text(z.string().optional())
+});
+
+export const deleteTimeCardPunchValidator = z.object({
+  intent: z.literal("deletePunch"),
+  punchId: z.string().min(1)
 });

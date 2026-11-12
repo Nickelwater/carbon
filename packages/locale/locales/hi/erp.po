@@ -1526,11 +1526,14 @@ msgstr "ठेकेदार जोड़ें"
 msgid "Add cost center"
 msgstr "लागत केंद्र जोड़ें"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "कर्मचारी जोड़ें"
 
-msgid "Add Entry"
-msgstr "प्रविष्टि जोड़ें"
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "लाइब्रेरी से जोड़ें…"
@@ -1632,6 +1635,9 @@ msgstr "प्रिंटर जोड़ें"
 msgid "Add Property"
 msgstr "प्रॉपर्टी जोड़ें"
 
+msgid "Add punch"
+msgstr ""
+
 msgid "Add Question"
 msgstr "प्रश्न जोड़ें"
 
@@ -1703,6 +1709,9 @@ msgstr "भविष्य के उपयोग के लिए स्टॉ�
 
 msgid "Add tools"
 msgstr "उपकरण जोड़ें"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3001,6 +3010,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "ऑर्डर, जॉब, पार्ट्स और अन्य के लिए ऑटो-नंबरिंग फॉर्मेट"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "मांग और पुनः ऑर्डर बिंदुओं से स्वचालित रूप से खरीद सुझाएं"
 
@@ -3986,6 +3998,9 @@ msgstr "नाम बदलने के लिए क्लिक करें"
 msgid "Click to upload a PDF drawing"
 msgstr "PDF ड्राइंग अपलोड करने के लिए क्लिक करें"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "कार्य प्रारंभ"
 
@@ -4086,6 +4101,12 @@ msgstr "सेटअप को संक्षिप्त करें"
 
 msgid "Collapse subtree"
 msgstr "सबट्री को संक्षिप्त करें"
+
+msgid "Collect all punches"
+msgstr ""
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "कॉलम आयाम"
@@ -5013,6 +5034,10 @@ msgstr "इसके बजाय एक नया Stripe ग्राहक ब
 msgid "Create a new version"
 msgstr "एक नया संस्करण बनाएं"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "एक क्रय आदेश बनाएँ"
 
@@ -5251,6 +5276,9 @@ msgstr "वर्क सेंटर बनाया गया"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "उन भेजी गई मात्रा के लिए ड्राफ्ट आपूर्तिकर्ता क्रेडिट नोट बनाता है जो अभी तक क्रेडिट नहीं किए गए हैं।"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "एक वित्तीय वर्ष के लिए 12 मासिक अवधियों को बनाता है। जो अवधियां पहले से मौजूद हैं उन्हें रखा जाता है।"
@@ -5658,6 +5686,9 @@ msgstr "दिन {0}"
 
 msgid "Day off"
 msgstr "छुट्टी"
+
+msgid "Day total"
+msgstr ""
 
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "दिन-प्रतिदिन के प्रश्न और लॉन्च के बाद हाइपरकेयर"
@@ -6404,6 +6435,12 @@ msgstr "दिशा"
 
 msgid "Directions"
 msgstr "दिशाएं"
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
 
 msgid "Disabled"
 msgstr "अक्षम"
@@ -7223,6 +7260,9 @@ msgstr "ईमेल पता"
 msgid "Email Domains"
 msgstr "ईमेल डोमेन"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "ईमेल सूचनाएँ आपकी कंपनी की वर्तमान योजना में शामिल नहीं हैं; ईमेल प्राथमिकताएँ लागू होंगी यदि वे सक्षम हैं।"
 
@@ -7271,8 +7311,14 @@ msgstr "खाली सूची"
 msgid "Empty work centers"
 msgstr "खाली वर्क सेंटर"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "अपने डेटा में परिवर्तनों को ट्रैक करना शुरू करने के लिए सेटिंग्स में ऑडिट लॉगिंग सक्षम करें।"
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "अपनी कंपनी के लिए डिजिटल उद्धरण सक्षम करें। यह आपको अपने ग्राहकों को डिजिटल उद्धरण भेजने की अनुमति देगा, और उन्हें ऑनलाइन स्वीकार करने की अनुमति देगा।"
@@ -7411,6 +7457,9 @@ msgid "Engineering Contact"
 msgstr "इंजीनियरिंग संपर्क"
 
 msgid "Enroll"
+msgstr ""
+
+msgid "Enroll ID"
 msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
@@ -9506,6 +9555,9 @@ msgstr "इनपुट"
 msgid "Inputs"
 msgstr "इनपुट्स"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "टोकन डालें"
 
@@ -9732,8 +9784,16 @@ msgstr "इन्वेंटरी मूल्यांकन"
 msgid "Invite"
 msgstr "आमंत्रित करें"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "आमंत्रण समाप्त हो गया"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "आमंत्रित"
@@ -10247,6 +10307,9 @@ msgstr ""
 msgid "Last Run"
 msgstr "अंतिम रन"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "अंतिम सिंक: <0/>"
 
@@ -10303,6 +10366,9 @@ msgstr "बिल्ट-इन के लिए खाली छोड़ें"
 
 msgid "Leave blank to use the next revision automatically"
 msgstr "अगले रिवीजन को स्वचालित रूप से उपयोग करने के लिए खाली छोड़ें"
+
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
 
 msgid "Leave empty for exact match"
 msgstr "सटीक मिलान के लिए खाली छोड़ें"
@@ -11260,6 +11326,9 @@ msgstr "लापता जानकारी"
 msgid "Missing Operations"
 msgstr "ऑपरेशन गायब हैं"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "शिपिंग लागत अनुपलब्ध"
 
@@ -11871,6 +11940,9 @@ msgstr "अगली नियत तिथि"
 msgid "Next page"
 msgstr "अगला पृष्ठ"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "अगला अनुक्रम"
 
@@ -12064,6 +12136,9 @@ msgstr "अभी तक कोई कर्मचारी असाइन न�
 msgid "No employees found"
 msgstr "कोई कर्मचारी नहीं मिला"
 
+msgid "No employees found."
+msgstr ""
+
 msgid "No events found."
 msgstr "कोई ईवेंट नहीं मिला।"
 
@@ -12159,6 +12234,9 @@ msgstr "कोई सूची चर अपस्ट्रीम उपलब�
 
 msgid "No locations found."
 msgstr "कोई स्थान नहीं मिला।"
+
+msgid "No login"
+msgstr ""
 
 msgid "No logo uploaded"
 msgstr "कोई लोगो अपलोड नहीं किया गया"
@@ -12424,9 +12502,6 @@ msgstr "अभी तक कोई आपूर्तिकर्ता नह�
 
 msgid "No sync operations yet"
 msgstr "अभी तक कोई सिंक ऑपरेशन नहीं"
-
-msgid "No time entries for this week"
-msgstr "इस सप्ताह के लिए कोई समय प्रविष्टि नहीं"
 
 msgid "No tools"
 msgstr "कोई उपकरण नहीं"
@@ -12942,6 +13017,9 @@ msgstr "नेविगेशन खोलें"
 msgid "Open payables by supplier and age"
 msgstr "आपूर्तिकर्ता और आयु के अनुसार खुली देय राशि"
 
+msgid "Open person page"
+msgstr ""
+
 msgid "Open Purchase Invoices"
 msgstr "खुले क्रय चालान"
 
@@ -13131,6 +13209,9 @@ msgstr "IAS 21 के अनुसार इक्विटी शेष को 
 
 msgid "Optional pages & sections"
 msgstr "वैकल्पिक पृष्ठ और अनुभाग"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "वैकल्पिक। इस तारीख के बाद नई खरीद सुझाव बंद करता है।"
@@ -13483,6 +13564,9 @@ msgstr "पासकीज़"
 msgid "Passkeys are disabled"
 msgstr "पासकीज़ अक्षम हैं"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "अतिदेय"
 
@@ -13497,6 +13581,9 @@ msgstr "भुगतान करें"
 
 msgid "Pay expense"
 msgstr "व्यय का भुगतान करें"
+
+msgid "Pay period length"
+msgstr ""
 
 msgid "Pay Rate"
 msgstr "भुगतान दर"
@@ -13611,6 +13698,9 @@ msgstr "लॉट का प्रतिशत"
 
 msgid "Period"
 msgstr "अवधि"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "अवधि बंद"
@@ -14038,6 +14128,9 @@ msgstr "पिछला दिन"
 msgid "Previous page"
 msgstr "पिछला पृष्ठ"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "पिछला चरण"
 
@@ -14330,6 +14423,9 @@ msgstr "प्रस्तावित मेल जहां कार्बन
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "प्रस्तावित मेल जहां Carbon आयाम मान का नाम प्रदाता विकल्प नाम के बिल्कुल बराबर है।"
 
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
+
 msgid "Protect the go-live date"
 msgstr "गो-लाइव की तारीख की सुरक्षा करें"
 
@@ -14396,6 +14492,9 @@ msgstr "इन्वेंटरी से लें"
 
 msgid "Pull, map, and load your data"
 msgstr "अपना डेटा खींचें, मैप करें, और लोड करें"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "MRP से खरीद और निर्माण करें"
@@ -15435,6 +15534,12 @@ msgstr "आज के नियमों और लागतों के सा
 msgid "Reprint"
 msgstr "दोबारा प्रिंट करें"
 
+msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
+msgstr ""
+
 msgid "Request a new invite"
 msgstr "नया आमंत्रण का अनुरोध करें"
 
@@ -16244,6 +16349,12 @@ msgstr "आयाम सेटिंग्स सहेजें"
 msgid "Save Method"
 msgstr "विधि सहेजें"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "दर सहेजें"
 
@@ -16454,6 +16565,9 @@ msgstr "ग्राहकों और प्रकारों को खो�
 
 msgid "Search customers or types..."
 msgstr "ग्राहकों या प्रकारों को खोजें..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "कर्मचारियों को खोजें..."
@@ -16804,6 +16918,9 @@ msgstr "docs.carbon.ms पर स्व-सेवा संदर्भ"
 
 msgid "Send"
 msgstr "भेजें"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "आमंत्रण भेजें"
@@ -17346,6 +17463,9 @@ msgstr "जनरेट की गई PDF के हर पेज के पी�
 msgid "Shown to the user when this rule fails."
 msgstr "जब यह नियम विफल हो तब उपयोगकर्ता को दिखाया जाता है।"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Carbon में साइन इन करें"
 
@@ -17360,6 +17480,9 @@ msgstr "Outlook के साथ साइन इन करें"
 
 msgid "Sign in with Passkey"
 msgstr "पासकी के साथ साइन इन करें"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "साइन आउट"
@@ -19780,6 +19903,9 @@ msgstr "टाइमकार्ड अक्षम हैं"
 msgid "Timecards are enabled"
 msgstr "टाइमकार्ड सक्षम हैं"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "टाइमर चल रहा है"
 
@@ -20357,6 +20483,9 @@ msgid "Unmapped dimension values"
 msgstr "अनमैप्ड आयाम मान"
 
 msgid "Unmapped Extracted Lines"
+msgstr ""
+
+msgid "Unmapped punches"
 msgstr ""
 
 msgid "Unmapped values"
@@ -21217,6 +21346,9 @@ msgstr "सप्ताह 8 कटओवर"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} का सप्ताह"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "साप्ताहिक"

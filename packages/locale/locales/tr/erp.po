@@ -1526,11 +1526,14 @@ msgstr "Taşeron Ekle"
 msgid "Add cost center"
 msgstr "Maliyet Merkezi Ekle"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "Çalışan Ekle"
 
-msgid "Add Entry"
-msgstr "Giri Ekle"
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "Kütüphaneden ekle…"
@@ -1632,6 +1635,9 @@ msgstr "Yazıcı Ekle"
 msgid "Add Property"
 msgstr "Özellik Ekle"
 
+msgid "Add punch"
+msgstr ""
+
 msgid "Add Question"
 msgstr "Soru Ekle"
 
@@ -1703,6 +1709,9 @@ msgstr "Gelecekteki kullanım için stoğa ekle"
 
 msgid "Add tools"
 msgstr "Araç ekle"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3001,6 +3010,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "Siparisler, iş emirleri, parçalar ve daha fazlası için otomatik numaralandırma biçimleri"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "Talep ve yeniden sipariş noktalarından otomatik satın alma önerileri"
 
@@ -3986,6 +3998,9 @@ msgstr "Yeniden adlandırmak için tıklayın"
 msgid "Click to upload a PDF drawing"
 msgstr "PDF çizimi yüklemek için tıklayın"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "İş başlangıcı"
 
@@ -4086,6 +4101,12 @@ msgstr "Kurulumu Daralt"
 
 msgid "Collapse subtree"
 msgstr "Alt ağacı daralt"
+
+msgid "Collect all punches"
+msgstr ""
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "Sütun boyutu"
@@ -5013,6 +5034,10 @@ msgstr "Bunun yerine yeni bir Stripe müşterisi oluşturun"
 msgid "Create a new version"
 msgstr "Yeni bir sürüm oluşturun"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "Satın alma siparişi oluştur"
 
@@ -5251,6 +5276,9 @@ msgstr "İş merkezi oluşturuldu"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "Henüz ödenmemiş sevkiyat miktarları için taslak bir tedarikçi alacak dekontu oluşturur"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "Mali yıl için 12 aylık dönem oluşturur. Zaten mevcut olan dönemler korunur."
@@ -5658,6 +5686,9 @@ msgstr "Gün {0}"
 
 msgid "Day off"
 msgstr "Tatil"
+
+msgid "Day total"
+msgstr ""
 
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "Günlük sorular ve başlatmadan sonra hiper bakım"
@@ -6404,6 +6435,12 @@ msgstr "Yön"
 
 msgid "Directions"
 msgstr "Yönler"
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
 
 msgid "Disabled"
 msgstr "Devre Dışı"
@@ -7223,6 +7260,9 @@ msgstr "E-posta Adresi"
 msgid "Email Domains"
 msgstr "E-posta Etki Alanları"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "E-posta bildirimleri şirketinizin mevcut planına dahil değildir; e-posta tercihleriniz etkinleştirildiğinde uygulanacaktır."
 
@@ -7271,8 +7311,14 @@ msgstr "Boş liste"
 msgid "Empty work centers"
 msgstr "Boş iş merkezleri"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "Verilerinizi izlemeye başlamak için ayarlar'dan denetim günlüklemesini etkinleştirin."
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "Şirketiniz için dijital teklifleri etkinleştirin. Bu, müşterilerinize dijital teklifler göndermenizi ve onların bunları çevrimiçi olarak kabul etmesine olanak tanır."
@@ -7411,6 +7457,9 @@ msgid "Engineering Contact"
 msgstr "Mühendislik İlgili Kişi"
 
 msgid "Enroll"
+msgstr ""
+
+msgid "Enroll ID"
 msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
@@ -9506,6 +9555,9 @@ msgstr "Giriş"
 msgid "Inputs"
 msgstr "Girişler"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "Token ekle"
 
@@ -9732,8 +9784,16 @@ msgstr "Envanter Değerlemesi"
 msgid "Invite"
 msgstr "Davet et"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "Davet Süresi Doldu"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "Davetli"
@@ -10247,6 +10307,9 @@ msgstr ""
 msgid "Last Run"
 msgstr "Son Çalıştırma"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "Son senkronizasyon: <0/>"
 
@@ -10303,6 +10366,9 @@ msgstr "Yerleşik için boş bırakın"
 
 msgid "Leave blank to use the next revision automatically"
 msgstr "Sonraki revizyonu otomatik olarak kullanmak için boş bırakın"
+
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
 
 msgid "Leave empty for exact match"
 msgstr "Tam eşleşme için boş bırakın"
@@ -11260,6 +11326,9 @@ msgstr "Eksik Bilgi"
 msgid "Missing Operations"
 msgstr "Eksik operasyonlar"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "Eksik nakliye bedelleri"
 
@@ -11871,6 +11940,9 @@ msgstr "Sonraki Vade Tarihi"
 msgid "Next page"
 msgstr "Sonraki sayfa"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "Sonraki numaralandırma"
 
@@ -12064,6 +12136,9 @@ msgstr "Henüz çalışan atanmadı. Durumu görmek için gruplar ekleyin."
 msgid "No employees found"
 msgstr "Hiç çalışan bulunamadı"
 
+msgid "No employees found."
+msgstr ""
+
 msgid "No events found."
 msgstr "Olay bulunamadı."
 
@@ -12159,6 +12234,9 @@ msgstr "Yukarı akışta kullanılabilir liste değişkeni yok."
 
 msgid "No locations found."
 msgstr "Konum bulunamadı."
+
+msgid "No login"
+msgstr ""
 
 msgid "No logo uploaded"
 msgstr "Yüklenmiş logo yok"
@@ -12424,9 +12502,6 @@ msgstr "Henüz tedarikçi yok"
 
 msgid "No sync operations yet"
 msgstr "Henüz senkronizasyon operasyonu yok"
-
-msgid "No time entries for this week"
-msgstr "Bu hafta için zaman girişi yok"
 
 msgid "No tools"
 msgstr "Araç yok"
@@ -12942,6 +13017,9 @@ msgstr "Gezinmeyi aç"
 msgid "Open payables by supplier and age"
 msgstr "Tedarikçi ve yaşa göre açık borçlar"
 
+msgid "Open person page"
+msgstr ""
+
 msgid "Open Purchase Invoices"
 msgstr "Açık Alış faturaları"
 
@@ -13131,6 +13209,9 @@ msgstr "Özkaynak bakiyelerini IAS 21'e göre çevirirken kullanılan isteğe ba
 
 msgid "Optional pages & sections"
 msgstr "İsteğe bağlı sayfalar ve bölümler"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "İsteğe bağlı. Bu tarihten sonra yeni satın alma önerilerini durdurur."
@@ -13483,6 +13564,9 @@ msgstr "Geçiş Anahtarları"
 msgid "Passkeys are disabled"
 msgstr "Geçiş Anahtarları Devre Dışı Bırakılmış"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "Vadesi geçmiş"
 
@@ -13497,6 +13581,9 @@ msgstr "Öde"
 
 msgid "Pay expense"
 msgstr "Gider Öde"
+
+msgid "Pay period length"
+msgstr ""
 
 msgid "Pay Rate"
 msgstr "Ödeme Oranı"
@@ -13611,6 +13698,9 @@ msgstr "Lot Yüzdesi"
 
 msgid "Period"
 msgstr "Dönem"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "Dönem Kapanışı"
@@ -14038,6 +14128,9 @@ msgstr "Önceki Gün"
 msgid "Previous page"
 msgstr "Önceki sayfa"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "Önceki adım"
 
@@ -14330,6 +14423,9 @@ msgstr "Carbon hesap numarasının sağlayıcı hesap koduyla tam olarak eşleş
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "Carbon boyut değerinin adı sağlayıcı seçeneğinin adıyla tamamen eşleştiği önerilen eşlemeler."
 
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
+
 msgid "Protect the go-live date"
 msgstr "Go-live tarihini koruyun"
 
@@ -14396,6 +14492,9 @@ msgstr "Stoktan kullan"
 
 msgid "Pull, map, and load your data"
 msgstr "Verilerinizi çekin, eşleyin ve yükleyin"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "MRP'den satın al ve üretim yap"
@@ -15435,6 +15534,12 @@ msgstr "Bugünün kuralları ve maliyetleri ile yeniden fiyatlandırma <0>{0}</0
 msgid "Reprint"
 msgstr "Yeniden Yazdır"
 
+msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
+msgstr ""
+
 msgid "Request a new invite"
 msgstr "Yeni bir davet iste"
 
@@ -16244,6 +16349,12 @@ msgstr "Boyut ayarlarını kaydet"
 msgid "Save Method"
 msgstr "Yöntemi Kaydet"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "Kuru kaydet"
 
@@ -16454,6 +16565,9 @@ msgstr "Müşterileri ve türleri ara..."
 
 msgid "Search customers or types..."
 msgstr "Müşterileri veya türleri arayın..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "Çalışanları ara..."
@@ -16804,6 +16918,9 @@ msgstr "Kendi kendine yardım referansı docs.carbon.ms adresinde"
 
 msgid "Send"
 msgstr "Gönder"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "Davet Gönder"
@@ -17346,6 +17463,9 @@ msgstr "Oluşturulan PDF'lerin her sayfasının arkasında soluk bir arka plan o
 msgid "Shown to the user when this rule fails."
 msgstr "Bu kural başarısız olduğunda kullanıcıya gösterilir."
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Carbon'a giriş yapın"
 
@@ -17360,6 +17480,9 @@ msgstr "Outlook ile giriş yap"
 
 msgid "Sign in with Passkey"
 msgstr "Geçiş anahtarıyla giriş yapın"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Çıkış yap"
@@ -19780,6 +19903,9 @@ msgstr "Puantaj devre dışı"
 msgid "Timecards are enabled"
 msgstr "Puantaj etkin"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "Zamanlayıcı çalışıyor"
 
@@ -20357,6 +20483,9 @@ msgid "Unmapped dimension values"
 msgstr "Eşlenmemiş boyut değerleri"
 
 msgid "Unmapped Extracted Lines"
+msgstr ""
+
+msgid "Unmapped punches"
 msgstr ""
 
 msgid "Unmapped values"
@@ -21217,6 +21346,9 @@ msgstr "8. Hafta geçişi"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} haftası"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "Haftalık"

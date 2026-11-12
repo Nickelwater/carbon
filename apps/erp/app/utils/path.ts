@@ -1408,6 +1408,7 @@ export const path = {
     investigationType: (id: string) =>
       generatePath(`${x}/quality/investigation-types/${id}`),
     investigationTypes: `${x}/quality/investigation-types`,
+    invite: (code: string) => generatePath(`/invite/${code}`),
     invoicing: `${x}/invoicing`,
     invoicingPurchasing: `${x}/invoicing/purchasing`,
     invoicingSales: `${x}/invoicing/sales`,
@@ -1632,6 +1633,7 @@ export const path = {
     newAttributeCategory: `${x}/people/attributes/new`,
     newAttributeForCategory: (id: string) =>
       generatePath(`${x}/people/attributes/list/${id}/new`),
+    newBasicEmployee: `${x}/users/employees/new-basic`,
     newBatch: `${x}/inventory/batches/new`,
     newBulkJob: `${x}/job/bulk/new`,
     // Create form lives at its own top-level route (like /x/part/new and
@@ -1901,6 +1903,11 @@ export const path = {
     people: `${x}/people/employee`,
     peopleSettings: `${x}/settings/people`,
     peopleTimecard: `${x}/people/timecard`,
+    peopleTimeclockCollect: (id: string) =>
+      generatePath(`${x}/people/timeclocks/${id}/collect`),
+    peopleTimeclockReprocess: (id: string) =>
+      generatePath(`${x}/people/timeclocks/punch/${id}/reprocess`),
+    peopleTimeclocks: `${x}/people/timeclocks`,
     person: (id: string) => generatePath(`${x}/person/${id}`),
     personAbilities: (id: string) =>
       generatePath(`${x}/person/${id}/abilities`),
@@ -1961,6 +1968,8 @@ export const path = {
     profile: `${x}/account/profile`,
     project: (id: string) => generatePath(`${x}/accounting/projects/${id}`),
     projects: `${x}/accounting/projects`,
+    promoteBasicEmployee: (id: string) =>
+      generatePath(`${x}/person/${id}/promote`),
     purchaseInvoice: (id: string) =>
       generatePath(`${x}/purchase-invoice/${id}`),
     purchaseInvoiceDelivery: (id: string) =>
@@ -2088,10 +2097,10 @@ export const path = {
       generatePath(`${x}/quote/${quoteId}/${quoteLineId}/method/${methodId}`),
     quoteLineOrder: (quoteId: string) =>
       generatePath(`${x}/quote/${quoteId}/line-order`),
-    quoteLinePromoteToPart: (quoteId: string, lineId: string) =>
-      generatePath(`${x}/quote/${quoteId}/${lineId}/promote-to-part`),
     quoteLinePriceTrace: (quoteId: string, lineId: string) =>
       generatePath(`${x}/quote/${quoteId}/${lineId}/price-trace`),
+    quoteLinePromoteToPart: (quoteId: string, lineId: string) =>
+      generatePath(`${x}/quote/${quoteId}/${lineId}/promote-to-part`),
     quoteLineRecalculatePrice: (quoteId: string, lineId: string) =>
       generatePath(`${x}/quote/${quoteId}/${lineId}/recalculate-price`),
     quoteLinesReorder: (quoteId: string) =>

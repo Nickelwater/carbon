@@ -23,6 +23,7 @@ import {
   spawnAssembler,
   spawnEmailPreview,
   spawnStripeListener,
+  spawnTimeclockGateway,
   stopAuxApps,
   syncEnvSymlinks,
   whenAuxAppExits
@@ -280,6 +281,11 @@ export async function up(opts: UpOpts = {}) {
   if (process.env.CARBON_EDITION === "cloud") {
     stripeChild = spawnStripeListener(root);
     log.info("stripe listener spawned (CARBON_EDITION=cloud)");
+  }
+
+  const timeclockChild = spawnTimeclockGateway(root);
+  if (timeclockChild) {
+    log.info("timeclock gateway spawned (TIMECLOCK_COMPANY_ID set)");
   }
 
   if (selectedApps.includes("assembler")) {

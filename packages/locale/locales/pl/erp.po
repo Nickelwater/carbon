@@ -1526,11 +1526,14 @@ msgstr "Dodaj Pracownika zewnętrznego"
 msgid "Add cost center"
 msgstr "Dodaj miejsce powstawania kosztów"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "Dodaj Pracownika"
 
-msgid "Add Entry"
-msgstr "Dodaj wpis"
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "Dodaj z biblioteki…"
@@ -1632,6 +1635,9 @@ msgstr "Dodaj drukarkę"
 msgid "Add Property"
 msgstr "Dodaj właściwość"
 
+msgid "Add punch"
+msgstr ""
+
 msgid "Add Question"
 msgstr "Dodaj pytanie"
 
@@ -1703,6 +1709,9 @@ msgstr "Dodaj do zapasów do przyszłego użytku"
 
 msgid "Add tools"
 msgstr "Dodaj narzędzia"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3001,6 +3010,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "Formaty automatycznej numeracji dla zamówień, zleceń produkcyjnych, części i więcej"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "Automatyczne sugerowanie zakupów na podstawie zapotrzebowania i punktów zamawiania"
 
@@ -3986,6 +3998,9 @@ msgstr "Kliknij, aby zmienić nazwę"
 msgid "Click to upload a PDF drawing"
 msgstr "Kliknij, aby przesłać plik rysunku PDF"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "Rozpoczęcie pracy"
 
@@ -4086,6 +4101,12 @@ msgstr "Zwiń Setup"
 
 msgid "Collapse subtree"
 msgstr "Zwiń poddrzewo"
+
+msgid "Collect all punches"
+msgstr ""
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "Wymiar kolumny"
@@ -5013,6 +5034,10 @@ msgstr "Zamiast tego utwórz nowego klienta Stripe"
 msgid "Create a new version"
 msgstr "Utwórz nową wersję"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "Utwórz zamówienie zakupu"
 
@@ -5251,6 +5276,9 @@ msgstr "Utworzono stanowisko robocze"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "Tworzy Wersję roboczą Faktury korygującej dostawcy dla wysłanych ilości, które nie zostały jeszcze uwzględnione w rozliczeniu."
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "Tworzy 12 okresów miesięcznych dla Roku obrotowego. Okresy, które już istnieją, są zachowywane."
@@ -5658,6 +5686,9 @@ msgstr "Dzień {0}"
 
 msgid "Day off"
 msgstr "Dzień wolny"
+
+msgid "Day total"
+msgstr ""
 
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "Codzienne pytania i wsparcie po uruchomieniu"
@@ -6404,6 +6435,12 @@ msgstr "Kierunek"
 
 msgid "Directions"
 msgstr "Kierunki"
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
 
 msgid "Disabled"
 msgstr "Wyłączone"
@@ -7223,6 +7260,9 @@ msgstr "Adres e-mail"
 msgid "Email Domains"
 msgstr "Domeny e-mail"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "Powiadomienia e-mail nie są uwzględnione w bieżącym planie Twojej firmy; preferencje e-mail będą obowiązywać, jeśli zostaną włączone."
 
@@ -7271,8 +7311,14 @@ msgstr "Pusta lista"
 msgid "Empty work centers"
 msgstr "Puste stanowiska robocze"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "Włącz rejestrowanie audytu w ustawieniach, aby rozpocząć śledzenie zmian w Twoich danych."
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "Włącz cyfrowe oferty dla swojej firmy. Umożliwi to wysyłanie cyfrowych ofert do klientów i pozwoli im zaakceptować je online."
@@ -7411,6 +7457,9 @@ msgid "Engineering Contact"
 msgstr "Kontakt Inżynierski"
 
 msgid "Enroll"
+msgstr ""
+
+msgid "Enroll ID"
 msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
@@ -9506,6 +9555,9 @@ msgstr "Dane wejściowe"
 msgid "Inputs"
 msgstr "Dane wejściowe"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "Wstaw token"
 
@@ -9732,8 +9784,16 @@ msgstr "Wycena zapasów"
 msgid "Invite"
 msgstr "Zaproś"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "Zaproszenie wygasło"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "Zaproszony"
@@ -10247,6 +10307,9 @@ msgstr ""
 msgid "Last Run"
 msgstr "Ostatnie uruchomienie"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "Ostatnia synchronizacja: <0/>"
 
@@ -10303,6 +10366,9 @@ msgstr "Pozostaw puste dla wbudowanego"
 
 msgid "Leave blank to use the next revision automatically"
 msgstr "Pozostaw puste, aby automatycznie użyć następnej rewizji"
+
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
 
 msgid "Leave empty for exact match"
 msgstr "Pozostaw puste dla dokładnego dopasowania"
@@ -11260,6 +11326,9 @@ msgstr "Brakujące informacje"
 msgid "Missing Operations"
 msgstr "Brakujące operacje"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "Brakujące koszty wysyłki"
 
@@ -11871,6 +11940,9 @@ msgstr "Następny Termin"
 msgid "Next page"
 msgstr "Następna strona"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "Następna Numeracja"
 
@@ -12064,6 +12136,9 @@ msgstr "Brak przypisanych pracowników. Dodaj grupy, aby zobaczyć status."
 msgid "No employees found"
 msgstr "Nie znaleziono pracowników"
 
+msgid "No employees found."
+msgstr ""
+
 msgid "No events found."
 msgstr "Nie znaleziono zdarzeń."
 
@@ -12159,6 +12234,9 @@ msgstr "Brak zmiennych listy dostępnych w górę."
 
 msgid "No locations found."
 msgstr "Nie znaleziono lokalizacji."
+
+msgid "No login"
+msgstr ""
 
 msgid "No logo uploaded"
 msgstr "Nie przesłano logo"
@@ -12424,9 +12502,6 @@ msgstr "Brak dostawców"
 
 msgid "No sync operations yet"
 msgstr "Brak operacji synchronizacji"
-
-msgid "No time entries for this week"
-msgstr "Brak wpisów czasu pracy w tym tygodniu"
 
 msgid "No tools"
 msgstr "Brak narzędzi"
@@ -12942,6 +13017,9 @@ msgstr "Otwórz nawigację"
 msgid "Open payables by supplier and age"
 msgstr "Otwarte zobowiązania wg dostawcy i wieku"
 
+msgid "Open person page"
+msgstr ""
+
 msgid "Open Purchase Invoices"
 msgstr "Otwarte faktury zakupu"
 
@@ -13131,6 +13209,9 @@ msgstr "Opcjonalna stała stawka używana przy tłumaczeniu sald kapitału włas
 
 msgid "Optional pages & sections"
 msgstr "Opcjonalne strony i sekcje"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "Opcjonalnie. Wstrzymuje nowe propozycje zakupów po tej dacie."
@@ -13483,6 +13564,9 @@ msgstr "Klucze dostępu"
 msgid "Passkeys are disabled"
 msgstr "Klucze dostępu są wyłączone"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "Zaległy"
 
@@ -13497,6 +13581,9 @@ msgstr "Opłacić"
 
 msgid "Pay expense"
 msgstr "Opłacić wydatek"
+
+msgid "Pay period length"
+msgstr ""
 
 msgid "Pay Rate"
 msgstr "Kurs płatności"
@@ -13611,6 +13698,9 @@ msgstr "Procent partii"
 
 msgid "Period"
 msgstr "Okres"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "Zamknięcie okresu"
@@ -14038,6 +14128,9 @@ msgstr "Poprzedni dzień"
 msgid "Previous page"
 msgstr "Poprzednia strona"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "Poprzedni krok"
 
@@ -14330,6 +14423,9 @@ msgstr "Proponowane dopasowania, w których numer konta Carbon dokładnie odpowi
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "Proponowane dopasowania, gdzie nazwa wartości wymiaru Carbon dokładnie pasuje do nazwy opcji dostawcy."
 
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
+
 msgid "Protect the go-live date"
 msgstr "Chroń datę wdrożenia"
 
@@ -14396,6 +14492,9 @@ msgstr "Pobierz z magazynu"
 
 msgid "Pull, map, and load your data"
 msgstr "Pobierz, mapuj i załaduj swoje dane"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "Zakup i produkcja z MRP"
@@ -15435,6 +15534,12 @@ msgstr "Ponowna wycena z dzisiejszymi regułami i kosztami daje <0>{0}</0>."
 msgid "Reprint"
 msgstr "Wydruk ponownie"
 
+msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
+msgstr ""
+
 msgid "Request a new invite"
 msgstr "Poproś o nowe zaproszenie"
 
@@ -16244,6 +16349,12 @@ msgstr "Zapisz ustawienia wymiarów"
 msgid "Save Method"
 msgstr "Zapisz metodę"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "Zapisz kurs"
 
@@ -16454,6 +16565,9 @@ msgstr "Wyszukaj klientów i typy..."
 
 msgid "Search customers or types..."
 msgstr "Szukaj klientów lub typów..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "Szukaj pracowników..."
@@ -16804,6 +16918,9 @@ msgstr "Samodzielna dokumentacja na docs.carbon.ms"
 
 msgid "Send"
 msgstr "Wyslij"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "Wyślij zaproszenie"
@@ -17346,6 +17463,9 @@ msgstr "Wyświetlany jako delikatne tło za każdą stroną wygenerowanych plik�
 msgid "Shown to the user when this rule fails."
 msgstr "Wyświetlane użytkownikowi, gdy ta reguła się nie powiedzie."
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Zaloguj się do Carbon"
 
@@ -17360,6 +17480,9 @@ msgstr "Zaloguj się za pomocą Outlook"
 
 msgid "Sign in with Passkey"
 msgstr "Zaloguj się za pomocą klucza dostępu"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Wyloguj się"
@@ -19780,6 +19903,9 @@ msgstr "Karty czasu pracy są wyłączone"
 msgid "Timecards are enabled"
 msgstr "Karty czasu pracy są włączone"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "Czasomierz uruchomiony"
 
@@ -20357,6 +20483,9 @@ msgid "Unmapped dimension values"
 msgstr "Niezamapowane wartości wymiarów"
 
 msgid "Unmapped Extracted Lines"
+msgstr ""
+
+msgid "Unmapped punches"
 msgstr ""
 
 msgid "Unmapped values"
@@ -21217,6 +21346,9 @@ msgstr "Przejście w tygodniu 8"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "Tydzień z {0}"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "Co tydzień"

@@ -44,8 +44,21 @@ export const passwordLoginValidator = z.object({
     .min(1, { message: "Email is required" })
     .email("Must be a valid email"),
   password: z.string().min(6, { message: "Password is too short" }),
-  redirectTo: zfd.text(z.string().optional())
+  redirectTo: zfd.text(z.string().optional()),
+  botToken: zfd.text(z.string().optional()),
+  intent: zfd.text(z.string().optional())
 });
+
+/** Unauthenticated invite accept on on-prem: set password then sign in. */
+export const inviteSetPasswordValidator = z
+  .object({
+    password: z.string().min(6, { message: "Password is too short" }),
+    confirmPassword: z.string().min(6, { message: "Password is too short" })
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords must match",
+    path: ["confirmPassword"]
+  });
 
 export const resetPasswordValidator = z.object({
   password: z.string().min(6, { message: "Password is too short" })

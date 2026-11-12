@@ -1065,6 +1065,23 @@ export async function updateTimeCardSetting(
 }
 
 /** @mcp update */
+export async function updatePayPeriodSettings(
+  client: SupabaseClient<Database>,
+  companyId: string,
+  settings: {
+    payPeriodLengthDays: number;
+    payPeriodAnchorDate: string;
+  }
+) {
+  return client
+    .from("companySettings")
+    .update({
+      payPeriodLengthDays: settings.payPeriodLengthDays === 14 ? 14 : 7,
+      payPeriodAnchorDate: settings.payPeriodAnchorDate.slice(0, 10)
+    })
+    .eq("id", companyId);
+}
+/** @mcp update */
 export async function updateKanbanOutputSetting(
   client: SupabaseClient<Database>,
   companyId: string,

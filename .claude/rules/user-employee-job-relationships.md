@@ -16,23 +16,32 @@ is the separate `job` table from `20240909194622_jobs.sql`).
 
 ## Core tables (PK + key columns; newest migrations applied)
 
-- **`user`** — global identity, `id` matches Supabase `auth.users.id`. PK `id`.
+- **`user`** — global identity, `id` matches Supabase `auth.users.id` when they can log in. PK `id`.
   - `email`, `firstName`, `lastName`, `fullName` (GENERATED `firstName || ' ' || lastName`, STORED),
     `about` (default `''`), `avatarUrl`, `active` (default TRUE), `phone`, `admin`, `developer`,
     `isConsoleOperator`, `flags` JSONB, `acknowledgedITAR`, `externalId` JSONB, `createdAt`, `updatedAt`.
   - No FKs to other app tables. `fullName` is generated and never null when names are set;
     prefer it directly.
+  - **Basic / no-login employees** (`createBasicEmployee`): `isConsoleOperator = true`, synthetic
+    `{uuid}@console.internal` email (satisfies `email NOT NULL`), **no** `auth.users` row. Active
+    `employee` immediately (no invite). Used for timecard-only workers from People → Add without
+    email, and for MES console operators. Promote via `promoteBasicEmployeeToUser` /
+    `convertConsoleOperatorToUser` (real email + auth + invite; does not wipe `employeePin`).
+  - PIN for console/MES is hashed in **`employeePin`** via `@carbon/ee/console.server`
+    (`setEmployeePin` / `verifyEmployeePin`) — never plaintext on `employee`.
 - **`userToCompany`** — the membership join table. PK `(userId, companyId)`.
   `role "role"` where `CREATE TYPE "role" AS ENUM ('customer','employee','supplier')`.
   This is how a user belongs to multiple companies (one row per company, role can differ per company).
 - **`employee`** — per-company employee record. PK `(id, companyId)`; `id → user.id`.
   `employeeTypeId → employeeType.id` (RESTRICT), `companyId → company.id`,
-  `active BOOLEAN DEFAULT FALSE`, `pin` (console mode). Added in `20241208004151_invites.sql`.
+  `active BOOLEAN DEFAULT FALSE`. Added in `20241208004151_invites.sql`.
 - **`employeeJob`** — job title / org placement. PK `(id, companyId)`; `id → user.id`.
   `title`, `startDate DATE`, `locationId → location.id`, `departmentId → department.id`,
-  `shiftId → shift.id`, `managerId → user.id`, `tags TEXT[]`, `customFields` JSONB,
+  `shiftId → shift.id`, `managerId → user.id`, `enrollId` (ProPunch / timeclock enroll id;
+  unique per company when set), `tags TEXT[]`, `customFields` JSONB,
   `updatedAt`, `updatedBy → user.id`. Created `20230224035103_shifts.sql`; `departmentId`/`tags`
   added later. (`workCellId` existed briefly, then dropped in `20240819115702_work-centers.sql`.)
+  Hardware punches map `enrollId` → `employeeJob.id` (= `user.id`); no email/auth required.
 - **`employeeType`** — per-company role definition. PK `id`. `name`, `companyId → company.id`,
   `protected BOOLEAN`.
 - **`employeeTypePermission`** — permissions granted by an employee type. PK `(employeeTypeId, module)`.

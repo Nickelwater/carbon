@@ -735,6 +735,9 @@ importers:
       '@carbon/stripe':
         specifier: workspace:*
         version: link:../../packages/stripe
+      '@carbon/timeclock':
+        specifier: workspace:*
+        version: link:../../packages/timeclock
       '@carbon/utils':
         specifier: workspace:*
         version: link:../../packages/utils
@@ -3726,6 +3729,49 @@ importers:
       zod:
         specifier: 'catalog:'
         version: 4.5.4
+
+  packages/timeclock:
+    dependencies:
+      '@carbon/database':
+        specifier: workspace:*
+        version: link:../database
+      '@carbon/logger':
+        specifier: workspace:*
+        version: link:../logger
+      '@internationalized/date':
+        specifier: 'catalog:'
+        version: 3.12.0
+      '@supabase/supabase-js':
+        specifier: 'catalog:'
+        version: 2.117.2(@opentelemetry/api@1.9.0)
+      ws:
+        specifier: 8.21.0
+        version: 8.21.0
+      zod:
+        specifier: 'catalog:'
+        version: 4.5.4
+    devDependencies:
+      '@carbon/config':
+        specifier: workspace:*
+        version: link:../config
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.12.2
+      '@types/ws':
+        specifier: 8.18.1
+        version: 8.18.1
+      rimraf:
+        specifier: 'catalog:'
+        version: 5.0.10
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
+      typescript:
+        specifier: 'catalog:'
+        version: 5.8.3
+      vitest:
+        specifier: 'catalog:'
+        version: 4.1.6(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(vite@7.3.5(@types/node@24.12.2)(jiti@2.7.0)(lightningcss@1.33.0)(terser@5.48.0)(tsx@4.21.0)(yaml@2.9.1))
 
   packages/tiptap:
     dependencies:
@@ -25399,7 +25445,7 @@ snapshots:
     dependencies:
       '@types/node': 22.19.7
       tapable: 2.3.3
-      webpack: 5.108.4(esbuild@0.27.7)(lightningcss@1.33.0)(postcss@8.5.18)
+      webpack: 5.108.4(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.18)
     transitivePeerDependencies:
       - '@minify-html/node'
       - '@swc/core'
@@ -29717,7 +29763,7 @@ snapshots:
       jest-worker: 27.5.1
       schema-utils: 4.3.3
       terser: 5.48.0
-      webpack: 5.108.4(esbuild@0.27.7)(lightningcss@1.33.0)(postcss@8.5.18)
+      webpack: 5.108.4(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.18)
     optionalDependencies:
       esbuild: 0.25.0
       lightningcss: 1.33.0
@@ -33089,7 +33135,7 @@ snapshots:
 
   webpack-virtual-modules@0.6.2: {}
 
-  webpack@5.108.4(esbuild@0.27.7)(lightningcss@1.33.0)(postcss@8.5.18):
+  webpack@5.108.4(esbuild@0.28.2)(lightningcss@1.33.0)(postcss@8.5.18):
     dependencies:
       '@types/estree': 1.0.8
       '@types/json-schema': 7.0.15

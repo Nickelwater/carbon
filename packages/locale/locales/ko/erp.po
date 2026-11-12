@@ -1526,11 +1526,14 @@ msgstr "외주 인력 추가"
 msgid "Add cost center"
 msgstr "원가 센터 추가"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "직원 추가"
 
-msgid "Add Entry"
-msgstr "항목 추가"
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "라이브러리에서 추가…"
@@ -1632,6 +1635,9 @@ msgstr "프린터 추가"
 msgid "Add Property"
 msgstr "속성 추가"
 
+msgid "Add punch"
+msgstr ""
+
 msgid "Add Question"
 msgstr "질문 추가"
 
@@ -1703,6 +1709,9 @@ msgstr "향후 사용을 위해 재고에 추가"
 
 msgid "Add tools"
 msgstr "도구 추가"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3001,6 +3010,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "주문, 작업 지시, 부품 등의 자동 번호 지정 형식"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "소요량 및 재주문점에서 구매를 자동 제안합니다"
 
@@ -3986,6 +3998,9 @@ msgstr "클릭하여 이름 바꾸기"
 msgid "Click to upload a PDF drawing"
 msgstr "클릭하여 PDF 도면을 업로드하세요"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "작업 시작"
 
@@ -4086,6 +4101,12 @@ msgstr "셋업 접기"
 
 msgid "Collapse subtree"
 msgstr "하위 트리 접기"
+
+msgid "Collect all punches"
+msgstr ""
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "열 차원"
@@ -5013,6 +5034,10 @@ msgstr "대신 새 Stripe 고객을 생성합니다."
 msgid "Create a new version"
 msgstr "새 버전을 생성합니다."
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "발주서를 생성합니다."
 
@@ -5251,6 +5276,9 @@ msgstr "작업장 생성됨"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "아직 대변전표로 처리되지 않은 출하된 수량에 대한 공급업체 대변전표 초안을 생성합니다"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "회계연도의 12개월 기간을 생성합니다. 이미 존재하는 기간은 유지됩니다."
@@ -5658,6 +5686,9 @@ msgstr "일 {0}"
 
 msgid "Day off"
 msgstr "휴무일"
+
+msgid "Day total"
+msgstr ""
 
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "도입 후 일상적인 질문 대응 및 하이퍼케어"
@@ -6404,6 +6435,12 @@ msgstr "방향"
 
 msgid "Directions"
 msgstr "방향"
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
 
 msgid "Disabled"
 msgstr "비활성화됨"
@@ -7223,6 +7260,9 @@ msgstr "이메일 주소"
 msgid "Email Domains"
 msgstr "이메일 도메인"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "이메일 알림은 회사의 현재 요금제에 포함되어 있지 않습니다. 이메일 환경 설정이 활성화된 경우 적용됩니다."
 
@@ -7271,8 +7311,14 @@ msgstr "빈 목록"
 msgid "Empty work centers"
 msgstr "빈 작업장"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "데이터 변경 사항 추적을 시작하려면 설정에서 감사 로깅을 활성화하세요."
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "회사의 디지털 견적서를 활성화하세요. 이렇게 하면 고객에게 디지털 견적서를 보낼 수 있으며, 고객이 온라인에서 수락할 수 있습니다."
@@ -7412,6 +7458,9 @@ msgstr "엔지니어링 담당자"
 
 msgid "Enroll"
 msgstr "등록"
+
+msgid "Enroll ID"
+msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
 msgstr "만료일을 설정하기 전에 배치 번호를 입력하세요."
@@ -9506,6 +9555,9 @@ msgstr "입력"
 msgid "Inputs"
 msgstr "입력"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "토큰 삽입"
 
@@ -9732,8 +9784,16 @@ msgstr "재고 평가"
 msgid "Invite"
 msgstr "초대"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "초대권 만료됨"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "초대됨"
@@ -10247,6 +10307,9 @@ msgstr "지난 분기"
 msgid "Last Run"
 msgstr "마지막 실행"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "마지막 동기화: <0/>"
 
@@ -10303,6 +10366,9 @@ msgstr "내장 값을 사용하려면 비워두세요"
 
 msgid "Leave blank to use the next revision automatically"
 msgstr "다음 리비전을 자동으로 사용하려면 공백으로 두세요"
+
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
 
 msgid "Leave empty for exact match"
 msgstr "정확히 일치시키려면 비워두세요"
@@ -11260,6 +11326,9 @@ msgstr "누락된 정보"
 msgid "Missing Operations"
 msgstr "누락된 공정작업"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "누락된 운송비"
 
@@ -11871,6 +11940,9 @@ msgstr "다음 마감일"
 msgid "Next page"
 msgstr "다음 페이지"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "다음 채번 규칙"
 
@@ -12064,6 +12136,9 @@ msgstr "아직 배정된 직원이 없습니다. 그룹을 추가하면 상태�
 msgid "No employees found"
 msgstr "직원이 없습니다"
 
+msgid "No employees found."
+msgstr ""
+
 msgid "No events found."
 msgstr "이벤트를 찾을 수 없습니다."
 
@@ -12159,6 +12234,9 @@ msgstr "업스트림에서 사용 가능한 목록 변수가 없습니다."
 
 msgid "No locations found."
 msgstr "위치가 없습니다."
+
+msgid "No login"
+msgstr ""
 
 msgid "No logo uploaded"
 msgstr "업로드된 로고가 없습니다"
@@ -12424,9 +12502,6 @@ msgstr "아직 공급업체가 없습니다"
 
 msgid "No sync operations yet"
 msgstr "아직 동기화된 공정이 없습니다"
-
-msgid "No time entries for this week"
-msgstr "이번 주 시간 기록이 없습니다"
 
 msgid "No tools"
 msgstr "도구 없음"
@@ -12942,6 +13017,9 @@ msgstr "탐색 열기"
 msgid "Open payables by supplier and age"
 msgstr "공급업체 및 기간별 미결 매입채무"
 
+msgid "Open person page"
+msgstr ""
+
 msgid "Open Purchase Invoices"
 msgstr "미결 매입 송장"
 
@@ -13131,6 +13209,9 @@ msgstr "IAS 21에 따라 자본 잔액을 환산할 때 사용하는 선택적 �
 
 msgid "Optional pages & sections"
 msgstr "선택적 페이지 및 섹션"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "선택사항. 이 날짜 이후로 새로운 구매 제안을 중단합니다."
@@ -13483,6 +13564,9 @@ msgstr "패스키"
 msgid "Passkeys are disabled"
 msgstr "패스키가 비활성화되었습니다"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "기한 초과"
 
@@ -13497,6 +13581,9 @@ msgstr "지불"
 
 msgid "Pay expense"
 msgstr "비용 지불"
+
+msgid "Pay period length"
+msgstr ""
 
 msgid "Pay Rate"
 msgstr "급여율"
@@ -13611,6 +13698,9 @@ msgstr "로트 비율"
 
 msgid "Period"
 msgstr "기간"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "기간 종료"
@@ -14038,6 +14128,9 @@ msgstr "이전 날"
 msgid "Previous page"
 msgstr "이전 페이지"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "이전 단계"
 
@@ -14330,6 +14423,9 @@ msgstr "Carbon 계정 번호가 공급자 계정 코드와 정확히 일치하�
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "Carbon 차원 값의 이름이 제공자 옵션 이름과 정확히 일치하는 제안된 일치 항목입니다."
 
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
+
 msgid "Protect the go-live date"
 msgstr "도입일을 사수하세요"
 
@@ -14396,6 +14492,9 @@ msgstr "재고 사용"
 
 msgid "Pull, map, and load your data"
 msgstr "데이터를 가져와서 매핑하고 로드하세요"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "MRP 기반 구매 및 제조"
@@ -15435,6 +15534,12 @@ msgstr "오늘의 규칙 및 원가로 가격을 다시 책정하면 <0>{0}</0>�
 msgid "Reprint"
 msgstr "재출력"
 
+msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
+msgstr ""
+
 msgid "Request a new invite"
 msgstr "새 초대권 요청"
 
@@ -16244,6 +16349,12 @@ msgstr "차원 설정 저장"
 msgid "Save Method"
 msgstr "저장 방법"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "환율 저장"
 
@@ -16454,6 +16565,9 @@ msgstr "고객 및 유형 검색..."
 
 msgid "Search customers or types..."
 msgstr "고객 또는 유형 검색..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "직원 검색..."
@@ -16804,6 +16918,9 @@ msgstr "docs.carbon.ms에서 셀프서비스 참고자료 확인"
 
 msgid "Send"
 msgstr "전송"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "초대 보내기"
@@ -17346,6 +17463,9 @@ msgstr "생성된 PDF의 모든 페이지 배경에 옅게 표시됩니다"
 msgid "Shown to the user when this rule fails."
 msgstr "이 규칙이 실패할 때 사용자에게 표시됩니다."
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Carbon에 로그인"
 
@@ -17360,6 +17480,9 @@ msgstr "Outlook으로 로그인"
 
 msgid "Sign in with Passkey"
 msgstr "패스키로 로그인"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "로그아웃"
@@ -19780,6 +19903,9 @@ msgstr "타임카드가 비활성화됨"
 msgid "Timecards are enabled"
 msgstr "타임카드가 활성화됨"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "타이머 실행 중"
 
@@ -20358,6 +20484,9 @@ msgstr "매핑되지 않은 차원 값"
 
 msgid "Unmapped Extracted Lines"
 msgstr "매핑되지 않은 추출 라인"
+
+msgid "Unmapped punches"
+msgstr ""
 
 msgid "Unmapped values"
 msgstr "매핑되지 않은 값"
@@ -21217,6 +21346,9 @@ msgstr "8주차 전환"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} 주"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "매주"

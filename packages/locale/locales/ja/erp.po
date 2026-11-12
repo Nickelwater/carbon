@@ -1526,11 +1526,14 @@ msgstr "外部作業者を追加"
 msgid "Add cost center"
 msgstr "原価センターを追加"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "従業員を追加"
 
-msgid "Add Entry"
-msgstr "エントリを追加"
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "ライブラリから追加…"
@@ -1632,6 +1635,9 @@ msgstr "プリンターを追加"
 msgid "Add Property"
 msgstr "プロパティを追加"
 
+msgid "Add punch"
+msgstr ""
+
 msgid "Add Question"
 msgstr "質問を追加"
 
@@ -1703,6 +1709,9 @@ msgstr "将来の使用のためにストックに追加"
 
 msgid "Add tools"
 msgstr "ツールを追加"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3001,6 +3010,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "受注、製造指図、部品などの自動採番フォーマット"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "所要量および発注点から購買を自動提案"
 
@@ -3986,6 +3998,9 @@ msgstr "クリックして名前を変更"
 msgid "Click to upload a PDF drawing"
 msgstr "PDFドローイングをアップロードするにはクリック"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "作業開始"
 
@@ -4086,6 +4101,12 @@ msgstr "段取りを折りたたむ"
 
 msgid "Collapse subtree"
 msgstr "サブツリーを折りたたむ"
+
+msgid "Collect all punches"
+msgstr ""
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "列ディメンション"
@@ -5013,6 +5034,10 @@ msgstr "代わりに新しいStripe得意先を作成"
 msgid "Create a new version"
 msgstr "新しいバージョンを作成"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "発注書を作成"
 
@@ -5251,6 +5276,9 @@ msgstr "作業区を作成しました"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "まだクレジットされていない出荷数量に対して、仕入先クレジットメモの下書きを作成します"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "会計年度の12ヶ月間の期間を作成します。既に存在する期間は保持されます。"
@@ -5658,6 +5686,9 @@ msgstr "日 {0}"
 
 msgid "Day off"
 msgstr "休日"
+
+msgid "Day total"
+msgstr ""
 
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "日々の質問とローンチ後のハイパーケア"
@@ -6404,6 +6435,12 @@ msgstr "方向"
 
 msgid "Directions"
 msgstr "方向"
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
 
 msgid "Disabled"
 msgstr "無効"
@@ -7223,6 +7260,9 @@ msgstr "メールアドレス"
 msgid "Email Domains"
 msgstr "メールドメイン"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "メール通知はあなたの会社の現在のプランに含まれていません。メール設定が有効になっている場合は適用されます。"
 
@@ -7271,8 +7311,14 @@ msgstr "空のリスト"
 msgid "Empty work centers"
 msgstr "作業区がありません"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "設定で監査ログを有効にして、データへの変更の追跡を開始します。"
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "会社のデジタル見積を有効にします。これにより、デジタル見積を得意先に送信し、オンラインで承諾させることができます。"
@@ -7411,6 +7457,9 @@ msgid "Engineering Contact"
 msgstr "エンジニアリング担当者"
 
 msgid "Enroll"
+msgstr ""
+
+msgid "Enroll ID"
 msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
@@ -9506,6 +9555,9 @@ msgstr "入力"
 msgid "Inputs"
 msgstr "入力"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "トークンを挿入"
 
@@ -9732,8 +9784,16 @@ msgstr "在庫評価"
 msgid "Invite"
 msgstr "招待"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "招待が期限切れになりました"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "招待済み"
@@ -10247,6 +10307,9 @@ msgstr ""
 msgid "Last Run"
 msgstr "最終実行"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "最後に同期: <0/>"
 
@@ -10303,6 +10366,9 @@ msgstr "組み込みの場合は空白のままにしてください"
 
 msgid "Leave blank to use the next revision automatically"
 msgstr "空白のままにして、次のリビジョンを自動的に使用します"
+
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
 
 msgid "Leave empty for exact match"
 msgstr "正確な一致のために空のままにしてください"
@@ -11260,6 +11326,9 @@ msgstr "不足している情報"
 msgid "Missing Operations"
 msgstr "工程が不足しています"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "送料が不足しています"
 
@@ -11871,6 +11940,9 @@ msgstr "次の期日"
 msgid "Next page"
 msgstr "次のページ"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "次の採番"
 
@@ -12064,6 +12136,9 @@ msgstr "まだ従業員が割り当てられていません。グループを追
 msgid "No employees found"
 msgstr "従業員が見つかりません"
 
+msgid "No employees found."
+msgstr ""
+
 msgid "No events found."
 msgstr "イベントが見つかりません。"
 
@@ -12159,6 +12234,9 @@ msgstr "アップストリームで利用可能なリスト変数がありませ
 
 msgid "No locations found."
 msgstr "ロケーションが見つかりません。"
+
+msgid "No login"
+msgstr ""
 
 msgid "No logo uploaded"
 msgstr "ロゴがアップロードされていません"
@@ -12424,9 +12502,6 @@ msgstr "仕入先がまだありません"
 
 msgid "No sync operations yet"
 msgstr "まだ同期工程はありません"
-
-msgid "No time entries for this week"
-msgstr "今週のタイムエントリがありません"
 
 msgid "No tools"
 msgstr "ツールがありません"
@@ -12942,6 +13017,9 @@ msgstr "ナビゲーションを開く"
 msgid "Open payables by supplier and age"
 msgstr "仕入先・日数別オープン買掛金"
 
+msgid "Open person page"
+msgstr ""
+
 msgid "Open Purchase Invoices"
 msgstr "オープン仕入先請求書"
 
@@ -13131,6 +13209,9 @@ msgstr "IAS 21 に従って純資産残高を換算する際に使用するオ�
 
 msgid "Optional pages & sections"
 msgstr "オプションページとセクション"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "オプション。この日付以降、新規の購買提案が行われなくなります。"
@@ -13483,6 +13564,9 @@ msgstr "パスキー"
 msgid "Passkeys are disabled"
 msgstr "パスキーは無効です"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "期限切れ"
 
@@ -13497,6 +13581,9 @@ msgstr "支払う"
 
 msgid "Pay expense"
 msgstr "費用を支払う"
+
+msgid "Pay period length"
+msgstr ""
 
 msgid "Pay Rate"
 msgstr "支払レート"
@@ -13611,6 +13698,9 @@ msgstr "ロットの割合"
 
 msgid "Period"
 msgstr "期間"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "期間クローズ"
@@ -14038,6 +14128,9 @@ msgstr "前の日"
 msgid "Previous page"
 msgstr "前のページ"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "前のステップ"
 
@@ -14330,6 +14423,9 @@ msgstr "Carbon勘定科目番号がプロバイダー勘定科目コードと正
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "Carbonディメンション値の名前がプロバイダーオプション名と完全に一致する提案されたマッチ。"
 
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
+
 msgid "Protect the go-live date"
 msgstr "ゴーライブ日を保護する"
 
@@ -14396,6 +14492,9 @@ msgstr "在庫から引当"
 
 msgid "Pull, map, and load your data"
 msgstr "データをプル、マップ、ロードする"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "MRPから購入・製造"
@@ -15435,6 +15534,12 @@ msgstr "本日のルールとコストで再価格設定すると <0>{0}</0> に
 msgid "Reprint"
 msgstr "再印刷"
 
+msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
+msgstr ""
+
 msgid "Request a new invite"
 msgstr "新しい招待をリクエストする"
 
@@ -16244,6 +16349,12 @@ msgstr "ディメンション設定を保存"
 msgid "Save Method"
 msgstr "メソッドを保存"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "レートを保存"
 
@@ -16454,6 +16565,9 @@ msgstr "得意先とタイプを検索..."
 
 msgid "Search customers or types..."
 msgstr "得意先またはタイプを検索..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "従業員を検索..."
@@ -16804,6 +16918,9 @@ msgstr "セルフサービスリファレンス（docs.carbon.ms）"
 
 msgid "Send"
 msgstr "送信"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "招待を送信"
@@ -17346,6 +17463,9 @@ msgstr "生成されたPDFの各ページの背景に薄く表示されます"
 msgid "Shown to the user when this rule fails."
 msgstr "このルールが失敗したときにユーザーに表示されます。"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Carbonにサインイン"
 
@@ -17360,6 +17480,9 @@ msgstr "Outlookでサインイン"
 
 msgid "Sign in with Passkey"
 msgstr "パスキーでサインイン"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "ログアウト"
@@ -19780,6 +19903,9 @@ msgstr "タイムカードは無効です"
 msgid "Timecards are enabled"
 msgstr "タイムカードが有効です"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "タイマー実行中"
 
@@ -20357,6 +20483,9 @@ msgid "Unmapped dimension values"
 msgstr "マップされていないディメンション値"
 
 msgid "Unmapped Extracted Lines"
+msgstr ""
+
+msgid "Unmapped punches"
 msgstr ""
 
 msgid "Unmapped values"
@@ -21217,6 +21346,9 @@ msgstr "第8週のカットオーバー"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} の週"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "毎週"

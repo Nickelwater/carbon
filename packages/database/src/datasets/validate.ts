@@ -250,7 +250,9 @@ export const COVERAGE = {
   },
   approvalRequestType: {
     values: enumValues("approvalDocumentType", {
-      qualityDocument: "the seed requests approval for orders and suppliers"
+      qualityDocument: "the seed requests approval for orders and suppliers",
+      // Fork: inspectionDocument exists on the enum; datasets do not seed it yet.
+      inspectionDocument: OPTIONAL
     }),
     missing: (type) => `purchasing.approvalRequests: no ${type} request`
   },
@@ -363,15 +365,19 @@ export const COVERAGE = {
     values: enumValues("riskRegisterType"),
     missing: matrix("quality matrix", "riskRegister type")
   },
+  // Fork inspection enums — require coverage once datasets seed lot inspections.
   inspectionStatus: {
-    values: enumValues("inspectionStatusType", {
-      "In Progress": OPTIONAL,
-      Failed: NOT_AUTHORABLE
+    values: enumValues("inspectionStatus", {
+      Pass: OPTIONAL,
+      Fail: OPTIONAL
     }),
     missing: matrix("quality status matrix", "inspection lot with status")
   },
   inspectionSource: {
-    values: enumValues("inspectionSourceDocument"),
+    values: enumValues("inspectionSourceType", {
+      Receipt: OPTIONAL,
+      Job: OPTIONAL
+    }),
     missing: matrix("quality status matrix", "inspection lot with source")
   },
 

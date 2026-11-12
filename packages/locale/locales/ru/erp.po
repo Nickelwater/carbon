@@ -1526,11 +1526,14 @@ msgstr "Добавить подрядчика"
 msgid "Add cost center"
 msgstr "Добавить центр затрат"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "Добавить сотрудника"
 
-msgid "Add Entry"
-msgstr "Добавить запись"
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "Добавить из библиотеки…"
@@ -1632,6 +1635,9 @@ msgstr "Добавить принтер"
 msgid "Add Property"
 msgstr "Добавить свойство"
 
+msgid "Add punch"
+msgstr ""
+
 msgid "Add Question"
 msgstr "Добавить вопрос"
 
@@ -1703,6 +1709,9 @@ msgstr "Добавить в запас для будущего использо�
 
 msgid "Add tools"
 msgstr "Добавить инструменты"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3001,6 +3010,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "Форматы автонумерации для заказов, производственных заказов, деталей и прочего"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "Автоматическое предложение закупок на основе потребности и точки заказа"
 
@@ -3986,6 +3998,9 @@ msgstr "Нажмите, чтобы переименовать"
 msgid "Click to upload a PDF drawing"
 msgstr "Нажмите, чтобы загрузить чертеж PDF"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "Начало работы"
 
@@ -4086,6 +4101,12 @@ msgstr "Свернуть настройку"
 
 msgid "Collapse subtree"
 msgstr "Свернуть поддерево"
+
+msgid "Collect all punches"
+msgstr ""
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "Измерение столбца"
@@ -5013,6 +5034,10 @@ msgstr "Вместо этого создать нового покупателя
 msgid "Create a new version"
 msgstr "Создать новую версию"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "Создать заказ поставщику"
 
@@ -5251,6 +5276,9 @@ msgstr "Рабочий центр создан"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "Создает черновик кредит-ноты поставщика для отправленных количеств, которые еще не были скредитованы"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "Создает 12 ежемесячных периодов для финансового года. Уже существующие периоды сохраняются."
@@ -5658,6 +5686,9 @@ msgstr "День {0}"
 
 msgid "Day off"
 msgstr "Выходной"
+
+msgid "Day total"
+msgstr ""
 
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "Ежедневные вопросы и поддержка после запуска"
@@ -6404,6 +6435,12 @@ msgstr "Направление"
 
 msgid "Directions"
 msgstr "Направления"
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
 
 msgid "Disabled"
 msgstr "Отключено"
@@ -7223,6 +7260,9 @@ msgstr "Адрес электронной почты"
 msgid "Email Domains"
 msgstr "Домены электронной почты"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "Уведомления по электронной почте не включены в текущий план вашей организации; настройки электронной почты будут применяться, если они включены."
 
@@ -7271,8 +7311,14 @@ msgstr "Пустой список"
 msgid "Empty work centers"
 msgstr "Пустые рабочие центры"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "Включите аудит в настройках, чтобы начать отслеживать изменения ваших данных."
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "Включить цифровые коммерческие предложения для вашей организации. Это позволит вам отправлять цифровые коммерческие предложения вашим покупателям и позволит им принимать их онлайн."
@@ -7411,6 +7457,9 @@ msgid "Engineering Contact"
 msgstr "Контактное лицо инженерии"
 
 msgid "Enroll"
+msgstr ""
+
+msgid "Enroll ID"
 msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
@@ -9506,6 +9555,9 @@ msgstr "Ввод"
 msgid "Inputs"
 msgstr "Входные данные"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "Вставить токен"
 
@@ -9732,8 +9784,16 @@ msgstr "Оценка товарно-материального запаса"
 msgid "Invite"
 msgstr "Пригласить"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "Истек срок приглашения"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "Приглашено"
@@ -10247,6 +10307,9 @@ msgstr ""
 msgid "Last Run"
 msgstr "Последний запуск"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "Последняя синхронизация: <0/>"
 
@@ -10303,6 +10366,9 @@ msgstr "Оставьте пустым для встроенного"
 
 msgid "Leave blank to use the next revision automatically"
 msgstr "Оставить пусто, чтобы использовать следующую ревизию автоматически"
+
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
 
 msgid "Leave empty for exact match"
 msgstr "Оставьте пустым для точного совпадения"
@@ -11260,6 +11326,9 @@ msgstr "Отсутствует информация"
 msgid "Missing Operations"
 msgstr "Отсутствуют операции"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "Отсутствующие стоимости доставки"
 
@@ -11871,6 +11940,9 @@ msgstr "Следующий Срок выполнения"
 msgid "Next page"
 msgstr "Следующая страница"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "Следующая Нумерация"
 
@@ -12064,6 +12136,9 @@ msgstr "Сотрудники еще не назначены. Добавьте г
 msgid "No employees found"
 msgstr "Сотрудники не найдены"
 
+msgid "No employees found."
+msgstr ""
+
 msgid "No events found."
 msgstr "События не найдены."
 
@@ -12159,6 +12234,9 @@ msgstr "Нет доступных переменных списка выше."
 
 msgid "No locations found."
 msgstr "Локации не найдены."
+
+msgid "No login"
+msgstr ""
 
 msgid "No logo uploaded"
 msgstr "Логотип не загружен"
@@ -12424,9 +12502,6 @@ msgstr "Поставщиков еще нет"
 
 msgid "No sync operations yet"
 msgstr "Операции синхронизации еще не выполнены"
-
-msgid "No time entries for this week"
-msgstr "Нет записей о времени на эту неделю"
 
 msgid "No tools"
 msgstr "Нет инструментов"
@@ -12942,6 +13017,9 @@ msgstr "Открыть навигацию"
 msgid "Open payables by supplier and age"
 msgstr "Открытая кредиторская задолженность по поставщикам и срокам"
 
+msgid "Open person page"
+msgstr ""
+
 msgid "Open Purchase Invoices"
 msgstr "Открытые счета-фактуры полученные"
 
@@ -13131,6 +13209,9 @@ msgstr "Дополнительный фиксированный курс, исп
 
 msgid "Optional pages & sections"
 msgstr "Дополнительные страницы и разделы"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "Опционально. Останавливает новые предложения по закупкам после этой даты."
@@ -13483,6 +13564,9 @@ msgstr "Ключи доступа"
 msgid "Passkeys are disabled"
 msgstr "Ключи доступа отключены"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "Просрочено"
 
@@ -13497,6 +13581,9 @@ msgstr "Оплатить"
 
 msgid "Pay expense"
 msgstr "Оплатить расход"
+
+msgid "Pay period length"
+msgstr ""
 
 msgid "Pay Rate"
 msgstr "Курс платежа"
@@ -13611,6 +13698,9 @@ msgstr "Процент партии"
 
 msgid "Period"
 msgstr "Период"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "Закрытие периода"
@@ -14038,6 +14128,9 @@ msgstr "Предыдущий день"
 msgid "Previous page"
 msgstr "Предыдущая страница"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "Предыдущий шаг"
 
@@ -14330,6 +14423,9 @@ msgstr "Предложенные совпадения, где номер сче�
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "Предложенные совпадения, где название значения измерения Carbon точно совпадает с названием варианта поставщика."
 
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
+
 msgid "Protect the go-live date"
 msgstr "Защитите дату запуска"
 
@@ -14396,6 +14492,9 @@ msgstr "Со склада"
 
 msgid "Pull, map, and load your data"
 msgstr "Извлеките, сопоставьте и загрузите ваши данные"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "Закупка и производство из MRP"
@@ -15435,6 +15534,12 @@ msgstr "Переоценка с сегодняшними правилами и �
 msgid "Reprint"
 msgstr "Перепечать"
 
+msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
+msgstr ""
+
 msgid "Request a new invite"
 msgstr "Запросить новое приглашение"
 
@@ -16244,6 +16349,12 @@ msgstr "Сохранить настройки измерений"
 msgid "Save Method"
 msgstr "Сохранить метод"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "Сохранить курс"
 
@@ -16454,6 +16565,9 @@ msgstr "Поиск покупателей и типов..."
 
 msgid "Search customers or types..."
 msgstr "Поиск покупателей или типов..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "Поиск сотрудников..."
@@ -16804,6 +16918,9 @@ msgstr "Справочная информация для самостоятел�
 
 msgid "Send"
 msgstr "Отправить"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "Отправить приглашение"
@@ -17346,6 +17463,9 @@ msgstr "Отображается как бледный фон на каждой 
 msgid "Shown to the user when this rule fails."
 msgstr "Показано пользователю при ошибке этого правила."
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "Войти в Carbon"
 
@@ -17360,6 +17480,9 @@ msgstr "Войти через Outlook"
 
 msgid "Sign in with Passkey"
 msgstr "Вход с Ключом доступа"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Выход"
@@ -19780,6 +19903,9 @@ msgstr "Табели учета отключены"
 msgid "Timecards are enabled"
 msgstr "Табели учета рабочего времени включены"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "Таймер запущен"
 
@@ -20357,6 +20483,9 @@ msgid "Unmapped dimension values"
 msgstr "Неотображенные значения измерений"
 
 msgid "Unmapped Extracted Lines"
+msgstr ""
+
+msgid "Unmapped punches"
 msgstr ""
 
 msgid "Unmapped values"
@@ -21217,6 +21346,9 @@ msgstr "Неделя 8 переход"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "Неделя {0}"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "Еженедельно"

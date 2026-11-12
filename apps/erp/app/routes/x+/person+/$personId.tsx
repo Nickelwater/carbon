@@ -49,11 +49,16 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { personId } = params;
   if (!personId) throw new Error("Could not find personId");
 
-  const [employeeSummary, attributeCategories, companySettings] =
+  const [employeeSummary, attributeCategories, companySettings, userRow] =
     await Promise.all([
       getEmployeeSummary(client, personId, companyId),
       getAllAttributeCategories(client, personId, companyId),
-      getCompanySettings(client, companyId)
+      getCompanySettings(client, companyId),
+      client
+        .from("user")
+        .select("isConsoleOperator")
+        .eq("id", personId)
+        .maybeSingle()
     ]);
 
   if (employeeSummary.error) {
@@ -69,7 +74,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   return {
     employeeSummary: employeeSummary.data,
     attributeCategories: attributeCategories.data ?? [],
-    timeCardEnabled: companySettings.data?.timeCardEnabled ?? false
+    timeCardEnabled: companySettings.data?.timeCardEnabled ?? false,
+    isNoLoginEmployee: userRow.data?.isConsoleOperator === true
   };
 }
 

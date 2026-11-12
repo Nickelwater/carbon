@@ -8,17 +8,25 @@ import {
   error,
   getAppUrl,
   getPermissionCacheKey,
+  inviteSetPasswordValidator,
   success as successFlash
 } from "@carbon/auth";
+import {
+  isPasswordLoginPrimary,
+  signInWithEmail
+} from "@carbon/auth/auth.server";
 import { getCarbonServiceRole } from "@carbon/auth/client.server";
 import { setCompanyId } from "@carbon/auth/company.server";
 import {
   flash,
   getAuthSession,
+  setAuthSession,
   updateCompanySession
 } from "@carbon/auth/session.server";
+import { getUserByEmail } from "@carbon/auth/users.server";
 import { InviteEmail } from "@carbon/documents/email";
 import { insertAuditLogEntries } from "@carbon/ee/audit.server";
+import { Password, Submit, ValidatedForm, validator } from "@carbon/form";
 import { Ratelimit, redis } from "@carbon/kv";
 import { sendEmail } from "@carbon/lib/email.server";
 import { getLogger } from "@carbon/logger";
@@ -58,6 +66,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   if (!code) throw new Error("No code provided");
 
   const serviceRole = getCarbonServiceRole();
+  const authSession = await getAuthSession(request);
   const invite = await serviceRole
     .from("invite")
     .select("*, company(name)")
@@ -65,20 +74,34 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     .single();
 
   if (!invite.data || invite.data.acceptedAt || invite.data.revokedAt) {
-    return { success: false, expired: false, company: null };
+    return {
+      success: false,
+      expired: false,
+      company: null,
+      requirePassword: false
+    };
   }
 
   // Controlled environments expire invites 7 days after creation. Surface this
   // as a distinct state so the invitee can self-serve a fresh invite.
   if (isControlledInviteExpired(invite.data.createdAt)) {
-    return { success: false, expired: true, company: invite.data.company };
+    return {
+      success: false,
+      expired: true,
+      company: invite.data.company,
+      requirePassword: false
+    };
   }
+
+  const requirePassword =
+    isPasswordLoginPrimary() && !authSession && Boolean(invite.data.email);
 
   return {
     success: true,
     expired: false,
     company: invite.data.company,
-    controlledEnvironment: CONTROLLED_ENVIRONMENT
+    controlledEnvironment: CONTROLLED_ENVIRONMENT,
+    requirePassword
   };
 }
 
@@ -94,7 +117,135 @@ export async function action({ request, params }: ActionFunctionArgs) {
     return requestNewInvite(request, code, serviceRole);
   }
 
-  const authSession = await getAuthSession(request);
+  let authSession = await getAuthSession(request);
+
+  // On-prem: unauthenticated invitee sets a password, then we sign them in
+  // and accept — invite code is the proof (no magic link / SMTP required).
+  if (intent === "set-password" && isPasswordLoginPrimary() && !authSession) {
+    const validation = await validator(inviteSetPasswordValidator).validate(
+      formData
+    );
+    if (validation.error) {
+      throw redirect(
+        path.to.invite(code),
+        await flash(request, error(validation.error, "Invalid password"))
+      );
+    }
+
+    const invite = await serviceRole
+      .from("invite")
+      .select("email, acceptedAt, revokedAt, createdAt")
+      .eq("code", code)
+      .maybeSingle();
+
+    if (
+      invite.error ||
+      !invite.data ||
+      invite.data.acceptedAt ||
+      invite.data.revokedAt ||
+      isControlledInviteExpired(invite.data.createdAt)
+    ) {
+      throw redirect(
+        path.to.root,
+        await flash(request, error(null, "Invite not found or expired"))
+      );
+    }
+
+    const user = await getUserByEmail(invite.data.email);
+    if (!user.data?.id) {
+      throw redirect(
+        path.to.root,
+        await flash(request, error(null, "Invite user not found"))
+      );
+    }
+
+    const setPw = await serviceRole.auth.admin.updateUserById(user.data.id, {
+      password: validation.data.password
+    });
+    if (setPw.error) {
+      throw redirect(
+        path.to.invite(code),
+        await flash(request, error(setPw.error, "Failed to set password"))
+      );
+    }
+
+    const signedIn = await signInWithEmail(
+      invite.data.email,
+      validation.data.password
+    );
+    if (!signedIn) {
+      throw redirect(
+        path.to.invite(code),
+        await flash(
+          request,
+          error(null, "Failed to sign in after set password")
+        )
+      );
+    }
+
+    const accept = await acceptInvite(serviceRole, code, signedIn.email);
+    if (accept.error) {
+      throw redirect(
+        path.to.root,
+        await flash(
+          request,
+          error(accept.error, accept.error.message ?? "Failed to accept invite")
+        )
+      );
+    }
+
+    try {
+      await insertAuditLogEntries(serviceRole, accept.data.companyId, [
+        {
+          tableName: "invite",
+          entityType: "invite",
+          entityId: accept.data.id,
+          recordId: accept.data.id,
+          operation: "UPDATE",
+          actorId: null,
+          diff: { acceptedAt: { old: null, new: accept.data.acceptedAt } },
+          metadata: {
+            ipAddress: getClientIp(request) ?? undefined,
+            userAgent: request.headers.get("user-agent") ?? undefined
+          }
+        }
+      ]);
+    } catch (err) {
+      logger.warn("[invite] audit write skipped for accept", { error: err });
+    }
+
+    await redis.del(getPermissionCacheKey(signedIn.userId));
+
+    const { data: companyRecord } = await serviceRole
+      .from("company")
+      .select("companyGroupId")
+      .eq("id", accept.data.companyId)
+      .single();
+
+    const sessionCookie = await setAuthSession(request, {
+      authSession: {
+        ...signedIn,
+        companyId: accept.data.companyId,
+        companyGroupId: companyRecord?.companyGroupId ?? ""
+      }
+    });
+    const companyIdCookie = setCompanyId(accept.data.companyId);
+    throw redirect(path.to.authenticatedRoot, {
+      headers: [
+        ["Set-Cookie", sessionCookie],
+        ["Set-Cookie", companyIdCookie]
+      ]
+    });
+  }
+
+  // On-prem without a session: only set-password (above) may accept — do not
+  // fall through to magic-link handoff (SMTP may be unavailable).
+  if (!authSession && isPasswordLoginPrimary()) {
+    throw redirect(
+      path.to.invite(code),
+      await flash(request, error(null, "Set a password to accept this invite"))
+    );
+  }
 
   const accept = await acceptInvite(serviceRole, code, authSession?.email);
   if (accept.error) {
@@ -403,17 +554,40 @@ export default function Invite() {
           <Trans>Welcome to Carbon</Trans>
         </Heading>
 
-        <Form method="post">
-          <Button
-            {...fade}
-            transition={{ duration: 1.2, ease: "easeInOut", delay: 1.5 }}
-            size="lg"
-            type="submit"
-            autoFocus
+        {"requirePassword" in data && data.requirePassword ? (
+          <ValidatedForm
+            method="post"
+            validator={inviteSetPasswordValidator}
+            className="w-full max-w-sm"
           >
-            <Trans>Join {company?.name ?? "Company"}</Trans>
-          </Button>
-        </Form>
+            <input type="hidden" name="intent" value="set-password" />
+            <VStack spacing={3} className="items-stretch text-left">
+              <p className="text-sm text-muted-foreground text-center">
+                <Trans>
+                  Create a password to join {company?.name ?? "Company"}. You
+                  will use it to sign in.
+                </Trans>
+              </p>
+              <Password name="password" label={t`Password`} />
+              <Password name="confirmPassword" label={t`Confirm Password`} />
+              <Submit size="lg" className="w-full" withBlocker={false}>
+                <Trans>Join {company?.name ?? "Company"}</Trans>
+              </Submit>
+            </VStack>
+          </ValidatedForm>
+        ) : (
+          <Form method="post">
+            <Button
+              {...fade}
+              transition={{ duration: 1.2, ease: "easeInOut", delay: 1.5 }}
+              size="lg"
+              type="submit"
+              autoFocus
+            >
+              <Trans>Join {company?.name ?? "Company"}</Trans>
+            </Button>
+          </Form>
+        )}
 
         {controlledEnvironment ? (
           <p className="text-sm text-muted-foreground text-center max-w-md">

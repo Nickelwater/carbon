@@ -57,6 +57,11 @@ const PersonJob = ({ initialValues }: PersonJobProps) => {
             />
             <Department name="departmentId" label={t`Department`} />
             <Employee name="managerId" label={t`Manager`} />
+            <Input
+              name="enrollId"
+              label={t`Enroll ID`}
+              helperText={t`ProPunch / timeclock enroll id used on hardware punches`}
+            />
             <Hidden name="intent" value="job" />
             <CustomFormFields table="employeeJob" />
           </div>

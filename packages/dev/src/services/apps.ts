@@ -431,6 +431,20 @@ export function spawnStripeListener(root: string): ExecaChildProcess {
   });
 }
 
+/** ProPunch gateway — only when TIMECLOCK_COMPANY_ID is set in the environment. */
+export function spawnTimeclockGateway(root: string): ExecaChildProcess | null {
+  if (!process.env.TIMECLOCK_COMPANY_ID?.trim()) {
+    return null;
+  }
+  return execa("pnpm", ["--filter", "@carbon/timeclock", "start"], {
+    cwd: root,
+    detached: true,
+    stdio: "ignore",
+    reject: false,
+    env: { ...process.env }
+  });
+}
+
 // Skip when node_modules/.modules.yaml is newer than pnpm-lock.yaml (pnpm's
 // post-install marker). Returns true when install actually ran.
 export async function installDeps(root: string): Promise<boolean> {

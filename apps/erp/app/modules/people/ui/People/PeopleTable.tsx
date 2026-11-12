@@ -4,6 +4,7 @@
 
 import {
   Badge,
+  Button,
   Checkbox,
   HStack,
   MENU_ITEM_SHORTCUTS,
@@ -24,7 +25,7 @@ import {
   LuUserCheck,
   LuUsers
 } from "react-icons/lu";
-import { useNavigate } from "react-router";
+import { Link, useNavigate } from "react-router";
 import {
   Avatar,
   DateTime,
@@ -157,7 +158,13 @@ const PeopleTable = memo(
         {
           accessorKey: "email",
           header: t`Email`,
-          cell: (item) => item.getValue(),
+          cell: ({ row }) => {
+            const email = row.original.email;
+            if (email?.endsWith("@console.internal")) {
+              return <Badge variant="secondary">{t`No login`}</Badge>;
+            }
+            return email;
+          },
           meta: {
             icon: <LuMail />
           }
@@ -217,15 +224,23 @@ const PeopleTable = memo(
         {
           accessorKey: "status",
           header: t`Status`,
-          cell: (item) => {
-            const status = item.getValue<
-              "Active" | "Invited" | "Inactive" | null
-            >();
-            if (status === "Active")
-              return <Badge variant="green">{t`Active`}</Badge>;
-            if (status === "Invited")
-              return <Badge variant="yellow">{t`Invited`}</Badge>;
-            return <Badge variant="secondary">{t`Inactive`}</Badge>;
+          cell: ({ row, getValue }) => {
+            const status = getValue<"Active" | "Invited" | "Inactive" | null>();
+            const noLogin = row.original.email?.endsWith("@console.internal");
+            return (
+              <HStack className="gap-1">
+                {status === "Active" ? (
+                  <Badge variant="green">{t`Active`}</Badge>
+                ) : status === "Invited" ? (
+                  <Badge variant="yellow">{t`Invited`}</Badge>
+                ) : (
+                  <Badge variant="secondary">{t`Inactive`}</Badge>
+                )}
+                {noLogin ? (
+                  <Badge variant="secondary">{t`No login`}</Badge>
+                ) : null}
+              </HStack>
+            );
           },
           meta: {
             filter: {
@@ -310,10 +325,17 @@ const PeopleTable = memo(
           }}
           primaryAction={
             permissions.can("create", "users") && (
-              <New
-                label={t`Employee`}
-                to={`${path.to.newEmployee}?${params.toString()}`}
-              />
+              <HStack>
+                <New
+                  label={t`Employee`}
+                  to={`${path.to.newEmployee}?${params.toString()}`}
+                />
+                <Button variant="secondary" asChild>
+                  <Link to={`${path.to.newBasicEmployee}?${params.toString()}`}>
+                    <Trans>Add without email</Trans>
+                  </Link>
+                </Button>
+              </HStack>
             )
           }
           renderContextMenu={renderContextMenu}

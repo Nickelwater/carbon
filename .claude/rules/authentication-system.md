@@ -31,9 +31,29 @@ Export subpaths (`package.json`): `.` (`index.ts`), `./auth.server`, `./session.
   `SUPABASE_JWT_SECRET` and returns a user-scoped client (RLS enforced).
 - All clients set `db: { timeout: 25_000 }` and rely on supabase-js's built-in read retries, plus `storageReadFetch` for storage reads (see `database-patterns.md`).
 
-## Login (`apps/erp/app/routes/_public+/login.tsx`)
+## Login (`apps/erp/app/routes/_public+/login.tsx`, MES `login.tsx`)
 
-Magic link is the primary flow. The action rate-limits by IP (Upstash via `@carbon/kv`,
+**Edition gate.** `isPasswordLoginPrimary()` (`auth.server.ts`) is true when
+`CarbonEdition !== Cloud` (Community, Enterprise, Test). On those editions, ERP and
+MES show **email + password** first (`passwordLoginValidator` → `attemptPasswordLogin`
+→ `signInWithEmail`); magic link remains a secondary “Email me a magic link” path on
+the same page. Cloud stays magic-link-first (unchanged). SSO-required domains still
+refuse both password and magic link (`isSsoRequiredForEmail`).
+
+`attemptPasswordLogin` applies IP rate limit + `AccountLockout` (clears lockout on
+success), optional bot check, then `signInWithEmail`. Failures return a generic
+“Invalid email or password” (no user enumeration). Enrolled TOTP still challenges via
+the same session path as other first factors.
+
+**Invites (on-prem).** Unauthenticated accept of `/invite/:code` when password-primary
+shows set-password + confirm (`inviteSetPasswordValidator`); the action sets the
+invitee’s password via `auth.admin.updateUserById`, `signInWithEmail`, then
+`acceptInvite` (invite code is the proof — no SMTP required for first credential).
+Already-authenticated invitees keep one-click accept. Cloud invite accept unchanged
+(magic-link handoff when unauthenticated). After login, on-prem users change passwords
+via Account → Password (`x+/account+/password.tsx`, shown when `CarbonEdition !== Cloud`).
+
+Magic link (Cloud primary / on-prem secondary) rate-limits by IP (Upstash via `@carbon/kv`,
 `RATE_LIMIT` env default **5 / hour**), runs the bot check (`verifyBotProtection`), then:
 
 **Bot protection.** `botProtection` (`bot-protection.server.ts`, re-exported from

@@ -1526,11 +1526,14 @@ msgstr "添加外协人员"
 msgid "Add cost center"
 msgstr "添加成本中心"
 
+msgid "Add employee"
+msgstr ""
+
 msgid "Add Employee"
 msgstr "添加员工"
 
-msgid "Add Entry"
-msgstr "添加条目"
+msgid "Add employee without email"
+msgstr ""
 
 msgid "Add from library…"
 msgstr "从库中添加…"
@@ -1632,6 +1635,9 @@ msgstr "添加打印机"
 msgid "Add Property"
 msgstr "添加属性"
 
+msgid "Add punch"
+msgstr ""
+
 msgid "Add Question"
 msgstr "添加问题"
 
@@ -1703,6 +1709,9 @@ msgstr "添加到库存以供将来使用"
 
 msgid "Add tools"
 msgstr "添加工具"
+
+msgid "Add without email"
+msgstr ""
 
 #. placeholder {0}: copy.noun
 msgid "Add your first {0}"
@@ -3001,6 +3010,9 @@ msgstr ""
 msgid "Auto-numbering formats for orders, jobs, parts, and more"
 msgstr "订单、工单、零件等的自动编号格式"
 
+msgid "Auto-poll"
+msgstr ""
+
 msgid "Auto-suggest purchases from demand and reorder points"
 msgstr "根据需求和再订货点自动建议采购"
 
@@ -3986,6 +3998,9 @@ msgstr "单击以重命名"
 msgid "Click to upload a PDF drawing"
 msgstr "点击上传 PDF 图纸"
 
+msgid "Clock enroll ID"
+msgstr ""
+
 msgid "Clock In"
 msgstr "开工"
 
@@ -4086,6 +4101,12 @@ msgstr "收起换型"
 
 msgid "Collapse subtree"
 msgstr "折叠子树"
+
+msgid "Collect all punches"
+msgstr ""
+
+msgid "Collect Now"
+msgstr ""
 
 msgid "Column dimension"
 msgstr "列维度"
@@ -5013,6 +5034,10 @@ msgstr "改为创建新的Stripe客户"
 msgid "Create a new version"
 msgstr "创建新版本"
 
+#. placeholder {0}: company?.name ?? "Company"
+msgid "Create a password to join {0}. You will use it to sign in."
+msgstr ""
+
 msgid "Create a purchase order"
 msgstr "创建采购订单"
 
@@ -5251,6 +5276,9 @@ msgstr "已创建工作中心"
 
 msgid "Creates a draft supplier credit memo for the shipped quantities that have not been credited yet"
 msgstr "为尚未贷项的已发货数量创建供应商贷项备忘录草稿"
+
+msgid "Creates an active employee for timecards and shop floor use. They cannot log into ERP until you invite them with an email."
+msgstr ""
 
 msgid "Creates the 12 monthly periods for a fiscal year. Periods that already exist are kept."
 msgstr "为会计年度创建12个每月期间。已有期间保留不变。"
@@ -5658,6 +5686,9 @@ msgstr "第 {0} 天"
 
 msgid "Day off"
 msgstr "休息日"
+
+msgid "Day total"
+msgstr ""
 
 msgid "Day-to-day questions and hypercare after launch"
 msgstr "日常问题和上线后的超级护理"
@@ -6404,6 +6435,12 @@ msgstr "方向"
 
 msgid "Directions"
 msgstr "方向"
+
+msgid "Disable"
+msgstr ""
+
+msgid "Disable auto-poll"
+msgstr ""
 
 msgid "Disabled"
 msgstr "已禁用"
@@ -7223,6 +7260,9 @@ msgstr "电子邮件地址"
 msgid "Email Domains"
 msgstr "电子邮件域"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Email notifications are not included in your company's current plan; email preferences will apply if they are enabled."
 msgstr "电子邮件通知不包含在贵公司的当前计划中；如果启用电子邮件偏好设置，这些偏好将适用。"
 
@@ -7271,8 +7311,14 @@ msgstr "空列表"
 msgid "Empty work centers"
 msgstr "空的工作中心"
 
+msgid "Enable"
+msgstr ""
+
 msgid "Enable audit logging in settings to start tracking changes to your data."
 msgstr "在设置中启用审计日志以开始跟踪数据的更改。"
+
+msgid "Enable auto-poll"
+msgstr ""
 
 msgid "Enable digital quotes for your company. This will allow you to send digital quotes to your customers, and allow them to accept them online."
 msgstr "为您的公司启用数字报价。这将允许您向客户发送数字报价，并允许他们在线接受。"
@@ -7411,6 +7457,9 @@ msgid "Engineering Contact"
 msgstr "工程联系人"
 
 msgid "Enroll"
+msgstr ""
+
+msgid "Enroll ID"
 msgstr ""
 
 msgid "Enter a batch number before setting the expiration date"
@@ -9506,6 +9555,9 @@ msgstr "输入"
 msgid "Inputs"
 msgstr "输入"
 
+msgid "Insert punch"
+msgstr ""
+
 msgid "Insert token"
 msgstr "插入令牌"
 
@@ -9732,8 +9784,16 @@ msgstr "库存估价"
 msgid "Invite"
 msgstr "邀请"
 
+#. placeholder {0}: person.firstName
+#. placeholder {1}: person.lastName
+msgid "Invite <0>{0} {1}</0> with an email so they can log into ERP. Existing timeclock PIN (if any) is kept."
+msgstr ""
+
 msgid "Invite Expired"
 msgstr "邀请已过期"
+
+msgid "Invite to ERP"
+msgstr ""
 
 msgid "Invited"
 msgstr "已邀请"
@@ -10247,6 +10307,9 @@ msgstr ""
 msgid "Last Run"
 msgstr "最后运行"
 
+msgid "Last seen"
+msgstr ""
+
 msgid "Last synced: <0/>"
 msgstr "上次同步: <0/>"
 
@@ -10303,6 +10366,9 @@ msgstr "留空以使用内置"
 
 msgid "Leave blank to use the next revision automatically"
 msgstr "留空以自动使用下一个修订版"
+
+msgid "Leave current password blank if you signed in with a magic link and have not set a password yet."
+msgstr ""
 
 msgid "Leave empty for exact match"
 msgstr "留空以精确匹配"
@@ -11260,6 +11326,9 @@ msgstr "缺少信息"
 msgid "Missing Operations"
 msgstr "缺失的工序"
 
+msgid "Missing punch"
+msgstr ""
+
 msgid "Missing Shipping Costs"
 msgstr "缺少运费"
 
@@ -11871,6 +11940,9 @@ msgstr "下次到期日期"
 msgid "Next page"
 msgstr "下一页"
 
+msgid "Next pay period"
+msgstr ""
+
 msgid "Next Sequence"
 msgstr "下一个编号规则"
 
@@ -12064,6 +12136,9 @@ msgstr "尚未分配员工。添加群组以查看状态。"
 msgid "No employees found"
 msgstr "未找到员工"
 
+msgid "No employees found."
+msgstr ""
+
 msgid "No events found."
 msgstr "未找到事件。"
 
@@ -12159,6 +12234,9 @@ msgstr "上游没有可用的列表变量。"
 
 msgid "No locations found."
 msgstr "未找到位置。"
+
+msgid "No login"
+msgstr ""
 
 msgid "No logo uploaded"
 msgstr "未上传徽标"
@@ -12424,9 +12502,6 @@ msgstr "还没有供应商"
 
 msgid "No sync operations yet"
 msgstr "还没有同步操作"
-
-msgid "No time entries for this week"
-msgstr "本周没有时间条目"
 
 msgid "No tools"
 msgstr "没有工具"
@@ -12942,6 +13017,9 @@ msgstr "打开导航"
 msgid "Open payables by supplier and age"
 msgstr "按供应商和期限打开应付款项"
 
+msgid "Open person page"
+msgstr ""
+
 msgid "Open Purchase Invoices"
 msgstr "未结采购发票"
 
@@ -13131,6 +13209,9 @@ msgstr "在根据IAS 21转换所有者权益余额时使用的可选固定汇率
 
 msgid "Optional pages & sections"
 msgstr "可选页面和部分"
+
+msgid "Optional. Matches the enroll ID programmed on the timeclock."
+msgstr ""
 
 msgid "Optional. Stops new purchase suggestions after this date."
 msgstr "可选。在此日期之后停止新采购建议。"
@@ -13483,6 +13564,9 @@ msgstr "通行密钥"
 msgid "Passkeys are disabled"
 msgstr "通行密钥已禁用"
 
+msgid "Password"
+msgstr ""
+
 msgid "Past due"
 msgstr "逾期"
 
@@ -13497,6 +13581,9 @@ msgstr "支付"
 
 msgid "Pay expense"
 msgstr "支付费用"
+
+msgid "Pay period length"
+msgstr ""
 
 msgid "Pay Rate"
 msgstr "支付汇率"
@@ -13611,6 +13698,9 @@ msgstr "批次百分比"
 
 msgid "Period"
 msgstr "期间"
+
+msgid "Period anchor date"
+msgstr ""
 
 msgid "Period close"
 msgstr "期间关闭"
@@ -14038,6 +14128,9 @@ msgstr "前一天"
 msgid "Previous page"
 msgstr "上一页"
 
+msgid "Previous pay period"
+msgstr ""
+
 msgid "Previous step"
 msgstr "上一步骤"
 
@@ -14330,6 +14423,9 @@ msgstr "提议的匹配项，其中 Carbon 账户编号与提供商账户代码�
 msgid "Proposed matches where the Carbon dimension value's name equals a provider option name exactly."
 msgstr "建议的匹配，其中 Carbon 维度值的名称与提供商选项名称完全相同。"
 
+msgid "ProPunch / timeclock enroll id used on hardware punches"
+msgstr ""
+
 msgid "Protect the go-live date"
 msgstr "保护上线日期"
 
@@ -14396,6 +14492,9 @@ msgstr "从库存领用"
 
 msgid "Pull, map, and load your data"
 msgstr "拉取、映射和加载您的数据"
+
+msgid "Punch time"
+msgstr ""
 
 msgid "Purchase & manufacture from MRP"
 msgstr "从 MRP 采购和制造"
@@ -15435,6 +15534,12 @@ msgstr "使用今天的规则和成本重新定价得到<0>{0}</0>。"
 msgid "Reprint"
 msgstr "重新打印"
 
+msgid "Reprocess"
+msgstr ""
+
+msgid "Reprocess all"
+msgstr ""
+
 msgid "Request a new invite"
 msgstr "请求新邀请"
 
@@ -16244,6 +16349,12 @@ msgstr "保存维度设置"
 msgid "Save Method"
 msgstr "保存方法"
 
+msgid "Save pay period"
+msgstr ""
+
+msgid "Save punch"
+msgstr ""
+
 msgid "Save Rate"
 msgstr "保存汇率"
 
@@ -16454,6 +16565,9 @@ msgstr "搜索客户和类型..."
 
 msgid "Search customers or types..."
 msgstr "搜索客户或类型..."
+
+msgid "Search employees"
+msgstr ""
 
 msgid "Search employees..."
 msgstr "搜索员工..."
@@ -16804,6 +16918,9 @@ msgstr "自助参考文档，位于 docs.carbon.ms"
 
 msgid "Send"
 msgstr "发送"
+
+msgid "Send invite"
+msgstr ""
 
 msgid "Send Invite"
 msgstr "发送邀请"
@@ -17346,6 +17463,9 @@ msgstr "作为淡色背景显示在每个生成的PDF页面后面"
 msgid "Shown to the user when this rule fails."
 msgstr "当此规则失败时向用户显示。"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in to Carbon"
 msgstr "登录 Carbon"
 
@@ -17360,6 +17480,9 @@ msgstr "使用 Outlook 登录"
 
 msgid "Sign in with Passkey"
 msgstr "使用通行密钥登录"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "登出"
@@ -19780,6 +19903,9 @@ msgstr "工时记录已禁用"
 msgid "Timecards are enabled"
 msgstr "工时记录已启用"
 
+msgid "Timeclocks"
+msgstr ""
+
 msgid "Timer running"
 msgstr "计时器运行中"
 
@@ -20357,6 +20483,9 @@ msgid "Unmapped dimension values"
 msgstr "未映射的维度值"
 
 msgid "Unmapped Extracted Lines"
+msgstr ""
+
+msgid "Unmapped punches"
 msgstr ""
 
 msgid "Unmapped values"
@@ -21217,6 +21346,9 @@ msgstr "第8周切换"
 #. placeholder {0}: dateFormatter.format(parseDate(d.startDate).toDate(getLocalTimeZone()))
 msgid "Week of {0}"
 msgstr "{0} 的周"
+
+msgid "Week total"
+msgstr ""
 
 msgid "Weekly"
 msgstr "每周"

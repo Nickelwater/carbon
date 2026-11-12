@@ -572,6 +572,9 @@ msgstr "Minęło"
 msgid "Email Address"
 msgstr "Adres e-mail"
 
+msgid "Email me a magic link"
+msgstr ""
+
 msgid "Empty work centers"
 msgstr "Puste stanowiska robocze"
 
@@ -1268,6 +1271,9 @@ msgstr "Zaliczona kontrola"
 msgid "Passkey unlock failed"
 msgstr "Nieudane odblokowanie klucza dostępu"
 
+msgid "Password"
+msgstr ""
+
 msgid "Pause"
 msgstr "Wstrzymaj"
 
@@ -1661,6 +1667,9 @@ msgstr "Pokaż opis"
 msgid "Show keyboard shortcuts"
 msgstr "Pokaż skróty klawiaturowe"
 
+msgid "Sign in"
+msgstr ""
+
 msgid "Sign in with Google"
 msgstr "Zaloguj się przez Google"
 
@@ -1669,6 +1678,9 @@ msgstr "Zaloguj się przez Outlook"
 
 msgid "Sign in with Passkey"
 msgstr "Zaloguj się za pomocą klucza dostępu"
+
+msgid "Sign in with password"
+msgstr ""
 
 msgid "Sign out"
 msgstr "Wyloguj się"

@@ -6,7 +6,6 @@ import { assertIsPost, error, success } from "@carbon/auth";
 import { requirePermissions } from "@carbon/auth/auth.server";
 import { flash } from "@carbon/auth/session.server";
 import { validator } from "@carbon/form";
-import { useAction } from "@carbon/query";
 import {
   Badge,
   Button,
@@ -14,103 +13,40 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuIcon,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  HStack,
-  IconButton,
-  Input,
-  MENU_ITEM_SHORTCUTS,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-  Table as TableBase,
-  Tbody,
-  Td,
-  Th,
-  Thead,
-  Tr
+  HStack
 } from "@carbon/react";
+import { getPayPeriodContaining, shiftPayPeriod } from "@carbon/timeclock";
 import { datetime, redirect } from "@carbon/utils";
-import { parseDate } from "@internationalized/date";
 import { Trans, useLingui } from "@lingui/react/macro";
-import { useLocale } from "@react-aria/i18n";
-import { useEffect, useState } from "react";
-import {
-  LuChevronLeft,
-  LuChevronRight,
-  LuEllipsisVertical,
-  LuPencil,
-  LuPlay,
-  LuPlus,
-  LuTrash
-} from "react-icons/lu";
+import { LuChevronLeft, LuChevronRight, LuPlay } from "react-icons/lu";
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
-import { data, Link, useLoaderData, useParams } from "react-router";
+import {
+  data,
+  Link,
+  useLoaderData,
+  useParams,
+  useSearchParams
+} from "react-router";
 import { DateTime } from "~/components";
-import { ConfirmDelete } from "~/components/Modals";
-import { useDateFormatter } from "~/hooks";
 import {
   clockIn,
   clockInValidator,
   clockOut,
   clockOutValidator,
-  deleteTimeCardEntry,
-  deleteTimeCardEntryValidator,
+  createTimeCardPunch,
+  createTimeCardPunchValidator,
+  deleteTimeCardPunch,
+  deleteTimeCardPunchValidator,
   getOpenClockEntry,
-  getTimeCardEntries,
-  updateTimeCardEntry,
-  updateTimeCardEntryValidator
+  getTimeCardPunches,
+  updateTimeCardPunch,
+  updateTimeCardPunchValidator
 } from "~/modules/people";
+import { periodBoundsToInstants } from "~/modules/people/ui/Timecards/buildPunchGrid";
+import TimecardPunchGrid from "~/modules/people/ui/Timecards/TimecardPunchGrid";
 import { getCompanySettings } from "~/modules/settings";
 import { getCompanyTimeZone } from "~/modules/shared/timezone.server";
 import { path } from "~/utils/path";
-
-function formatDuration(clockIn: string, clockOut: string | null) {
-  const end = clockOut ? new Date(clockOut).getTime() : Date.now();
-  const ms = end - new Date(clockIn).getTime();
-  const hours = Math.floor(ms / 3600000);
-  const minutes = Math.floor((ms % 3600000) / 60000);
-  return `${hours}h ${minutes}m`;
-}
-
-function formatTotalHours(
-  entries: { clockIn: string; clockOut: string | null }[]
-) {
-  let totalMs = 0;
-  for (const entry of entries) {
-    const end = entry.clockOut
-      ? new Date(entry.clockOut).getTime()
-      : Date.now();
-    totalMs += end - new Date(entry.clockIn).getTime();
-  }
-  const hours = Math.floor(totalMs / 3600000);
-  const minutes = Math.floor((totalMs % 3600000) / 60000);
-  return `${hours}h ${minutes}m`;
-}
-
-function formatDay(dateStr: string, locale: string) {
-  return new Date(dateStr).toLocaleDateString(locale, {
-    weekday: "short",
-    month: "short",
-    day: "numeric"
-  });
-}
-
-/** Format a UTC date string to a local datetime-local input value */
-function toLocalDatetimeInput(dateStr: string) {
-  const d = new Date(dateStr);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  const hours = String(d.getHours()).padStart(2, "0");
-  const minutes = String(d.getMinutes()).padStart(2, "0");
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
 
 export async function loader({ request, params }: LoaderFunctionArgs) {
   const { client, companyId } = await requirePermissions(request, {
@@ -120,61 +56,51 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const { personId } = params;
   if (!personId) throw new Error("Could not find personId");
 
-  const url = new URL(request.url);
-  const weekOffset = parseInt(url.searchParams.get("week") ?? "0", 10);
-  // Week runs Monday → Sunday on the company calendar (one payroll boundary
-  // per books, not the server's zone).
-  const tz = await getCompanyTimeZone(client, companyId);
-  const { from, to } = datetime.weekBounds(tz, weekOffset);
-  // Calendar days of the window on the COMPANY calendar — the client renders
-  // these directly so the header and day picker never shift a day in a
-  // different browser tz.
-  const weekStart = datetime.businessDay(from, tz).toString();
-  const weekEnd = datetime.businessDay(to, tz).toString();
-
-  const [entries, openEntry, companySettings, employeeShift] =
-    await Promise.all([
-      getTimeCardEntries(client, {
-        employeeId: personId,
-        companyId,
-        from,
-        to
-      }),
-      getOpenClockEntry(client, personId, companyId),
-      getCompanySettings(client, companyId),
-      client
-        .from("employeeJob")
-        .select(
-          "shiftId, shift:shift(startTime, endTime, sunday, monday, tuesday, wednesday, thursday, friday, saturday)"
-        )
-        .eq("id", personId)
-        .eq("companyId", companyId)
-        .maybeSingle()
-    ]);
-
+  const companySettings = await getCompanySettings(client, companyId);
   if (!companySettings.data?.timeCardEnabled) {
     throw redirect(path.to.personDetails(personId));
   }
 
-  const shift = employeeShift?.data?.shift as {
-    startTime: string;
-    endTime: string;
-    sunday: boolean;
-    monday: boolean;
-    tuesday: boolean;
-    wednesday: boolean;
-    thursday: boolean;
-    friday: boolean;
-    saturday: boolean;
-  } | null;
+  const url = new URL(request.url);
+  const periodOffset = Number.parseInt(
+    url.searchParams.get("period") ?? "0",
+    10
+  );
+  const tz = await getCompanyTimeZone(client, companyId);
+  const todayYmd = datetime.today(tz).toString();
+  const length = companySettings.data.payPeriodLengthDays === 14 ? 14 : 7;
+  const base = getPayPeriodContaining(todayYmd, {
+    payPeriodLengthDays: length,
+    payPeriodAnchorDate: companySettings.data.payPeriodAnchorDate
+  });
+  const period = shiftPayPeriod(base, periodOffset, length);
+  const { from, to } = periodBoundsToInstants(period.start, period.end, tz);
+
+  const [punches, openEntry] = await Promise.all([
+    getTimeCardPunches(client, companyId, {
+      employeeId: personId,
+      startIso: from,
+      endIso: to
+    }),
+    getOpenClockEntry(client, personId, companyId)
+  ]);
+
+  if (punches.error) {
+    throw redirect(
+      path.to.personDetails(personId),
+      await flash(
+        request,
+        error(punches.error, "Failed to load timecard punches")
+      )
+    );
+  }
 
   return {
-    entries: entries.data ?? [],
+    punches: punches.data ?? [],
     openEntry: openEntry.data,
-    weekOffset,
-    weekStart,
-    weekEnd,
-    shift
+    period,
+    periodOffset,
+    tz
   };
 }
 
@@ -193,18 +119,16 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (intent === "clockIn") {
     const validation = await validator(clockInValidator).validate(formData);
     if (validation.error) return data({}, { status: 400 });
-
     const employeeId = validation.data.employeeId || personId;
     const result = await clockIn(client, {
       employeeId,
       companyId,
       createdBy: userId
     });
-
     if (result.error) {
       return data(
         {},
-        await flash(request, error(result.error, result.error.message))
+        await flash(request, error(result.error, "Failed to clock in"))
       );
     }
     return data({}, await flash(request, success("Clocked in")));
@@ -213,7 +137,6 @@ export async function action({ request, params }: ActionFunctionArgs) {
   if (intent === "clockOut") {
     const validation = await validator(clockOutValidator).validate(formData);
     if (validation.error) return data({}, { status: 400 });
-
     const employeeId = validation.data.employeeId || personId;
     const result = await clockOut(client, {
       employeeId,
@@ -221,192 +144,92 @@ export async function action({ request, params }: ActionFunctionArgs) {
       updatedBy: userId,
       note: validation.data.note
     });
-
     if (result.error) {
       return data(
         {},
-        await flash(request, error(result.error, result.error.message))
+        await flash(request, error(result.error, "Failed to clock out"))
       );
     }
     return data({}, await flash(request, success("Clocked out")));
   }
 
-  if (intent === "updateEntry") {
-    const validation = await validator(updateTimeCardEntryValidator).validate(
+  if (intent === "createPunch") {
+    const validation = await validator(createTimeCardPunchValidator).validate(
       formData
     );
     if (validation.error) return data({}, { status: 400 });
-
-    const result = await updateTimeCardEntry(client, {
-      entryId: validation.data.entryId,
-      clockIn: validation.data.clockIn,
-      clockOut: validation.data.clockOut || null,
-      note: validation.data.note || null,
-      updatedBy: userId
-    });
-
-    if (result.error) {
-      return data(
-        {},
-        await flash(request, error(result.error, "Failed to update entry"))
-      );
-    }
-    return data({}, await flash(request, success("Entry updated")));
-  }
-
-  if (intent === "deleteEntry") {
-    const validation = await validator(deleteTimeCardEntryValidator).validate(
-      formData
-    );
-    if (validation.error) return data({}, { status: 400 });
-
-    const result = await deleteTimeCardEntry(client, validation.data.entryId);
-    if (result.error) {
-      return data(
-        {},
-        await flash(request, error(result.error, "Failed to delete entry"))
-      );
-    }
-    return data({}, await flash(request, success("Entry deleted")));
-  }
-
-  if (intent === "addEntry") {
-    const clockInVal = formData.get("clockIn") as string;
-    const clockOutVal = formData.get("clockOut") as string | null;
-    if (!clockInVal) return data({}, { status: 400 });
-
-    const result = await client.from("timeCardEntry").insert({
-      employeeId: personId,
+    const result = await createTimeCardPunch(client, {
       companyId,
-      clockIn: clockInVal,
-      clockOut: clockOutVal || null,
+      employeeId: validation.data.employeeId || personId,
+      punchedAt: new Date(validation.data.punchedAt).toISOString(),
+      note: validation.data.note ?? null,
+      source: "manual",
       createdBy: userId
     });
-
     if (result.error) {
       return data(
         {},
-        await flash(request, error(result.error, "Failed to add entry"))
+        await flash(request, error(result.error, "Failed to add punch"))
       );
     }
-    return data({}, await flash(request, success("Entry added")));
+    return data({}, await flash(request, success("Punch added")));
+  }
+
+  if (intent === "updatePunch") {
+    const validation = await validator(updateTimeCardPunchValidator).validate(
+      formData
+    );
+    if (validation.error) return data({}, { status: 400 });
+    const result = await updateTimeCardPunch(client, {
+      companyId,
+      id: validation.data.punchId,
+      punchedAt: new Date(validation.data.punchedAt).toISOString(),
+      note: validation.data.note ?? null,
+      updatedBy: userId
+    });
+    if (result.error) {
+      return data(
+        {},
+        await flash(request, error(result.error, "Failed to update punch"))
+      );
+    }
+    return data({}, await flash(request, success("Punch updated")));
+  }
+
+  if (intent === "deletePunch") {
+    const validation = await validator(deleteTimeCardPunchValidator).validate(
+      formData
+    );
+    if (validation.error) return data({}, { status: 400 });
+    const result = await deleteTimeCardPunch(client, {
+      companyId,
+      id: validation.data.punchId,
+      actorUserId: userId
+    });
+    if (result.error) {
+      return data(
+        {},
+        await flash(request, error(result.error, "Failed to delete punch"))
+      );
+    }
+    return data({}, await flash(request, success("Punch deleted")));
   }
 
   return data({}, { status: 400 });
 }
 
-function getShiftTimesForDate(
-  dateStr: string,
-  shift: {
-    startTime: string;
-    endTime: string;
-    sunday: boolean;
-    monday: boolean;
-    tuesday: boolean;
-    wednesday: boolean;
-    thursday: boolean;
-    friday: boolean;
-    saturday: boolean;
-  } | null
-): { clockIn: string; clockOut: string } | null {
-  if (!shift) return null;
-  // Parse YYYY-MM-DD as local date (not UTC)
-  const [year, month, day2] = dateStr.split("-").map(Number);
-  const date = new Date(year, month - 1, day2);
-  const dayNames = [
-    "sunday",
-    "monday",
-    "tuesday",
-    "wednesday",
-    "thursday",
-    "friday",
-    "saturday"
-  ] as const;
-  const day = dayNames[date.getDay()];
-  if (!shift[day]) return null;
-
-  const [startH, startM] = shift.startTime.split(":").map(Number);
-  const [endH, endM] = shift.endTime.split(":").map(Number);
-
-  const clockIn = new Date(date);
-  clockIn.setHours(startH, startM, 0, 0);
-
-  const clockOut = new Date(date);
-  clockOut.setHours(endH, endM, 0, 0);
-  if (clockOut <= clockIn) clockOut.setDate(clockOut.getDate() + 1);
-
-  return {
-    clockIn: toLocalDatetimeInput(clockIn.toISOString()),
-    clockOut: toLocalDatetimeInput(clockOut.toISOString())
-  };
-}
-
 export default function PersonTimecardRoute() {
-  const { t } = useLingui();
-  const { locale } = useLocale();
-  const { formatDate } = useDateFormatter();
-  const { entries, openEntry, weekOffset, weekStart, weekEnd, shift } =
+  const { punches, openEntry, period, periodOffset, tz } =
     useLoaderData<typeof loader>();
   const { personId } = useParams();
-  const fetcher = useAction<typeof action>({
-    onSettled: (data) => {
-      if (data) {
-        setEditingId(null);
-        setShowAddForm(false);
-      }
-    }
-  });
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editClockIn, setEditClockIn] = useState("");
-  const [editClockOut, setEditClockOut] = useState("");
-  const [editNote, setEditNote] = useState("");
-  const [, setTick] = useState(0);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [addDate, setAddDate] = useState("");
-  const [addClockIn, setAddClockIn] = useState("");
-  const [addClockOut, setAddClockOut] = useState("");
-  const [deletingEntry, setDeletingEntry] = useState<{
-    id: string;
-    clockIn: string;
-  } | null>(null);
+  const [searchParams] = useSearchParams();
+  const { t } = useLingui();
 
-  // Update live durations every minute
-  useEffect(() => {
-    const interval = setInterval(() => setTick((t) => t + 1), 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const isCurrentWeek = weekOffset === 0;
-
-  // Auto-populate shift times when date is selected for new entry
-  useEffect(() => {
-    if (!addDate) return;
-    const shiftTimes = getShiftTimesForDate(addDate, shift ?? null);
-    if (shiftTimes) {
-      setAddClockIn(shiftTimes.clockIn);
-      setAddClockOut(shiftTimes.clockOut);
-    } else {
-      // No shift for this day, default 9am-5pm
-      const [y, m, dy] = addDate.split("-").map(Number);
-      const d = new Date(y, m - 1, dy);
-      d.setHours(9, 0, 0, 0);
-      setAddClockIn(toLocalDatetimeInput(d.toISOString()));
-      d.setHours(17, 0, 0, 0);
-      setAddClockOut(toLocalDatetimeInput(d.toISOString()));
-    }
-  }, [addDate, shift]);
-
-  function startEdit(entry: {
-    id: string;
-    clockIn: string;
-    clockOut: string | null;
-    note: string | null;
-  }) {
-    setEditingId(entry.id);
-    setEditClockIn(toLocalDatetimeInput(entry.clockIn));
-    setEditClockOut(entry.clockOut ? toLocalDatetimeInput(entry.clockOut) : "");
-    setEditNote(entry.note ?? "");
-  }
+  const periodLink = (offset: number) => {
+    const params = new URLSearchParams(searchParams);
+    params.set("period", String(offset));
+    return `${path.to.personTimecard(personId!)}?${params.toString()}`;
+  };
 
   return (
     <Card className="overflow-hidden">
@@ -415,368 +238,75 @@ export default function PersonTimecardRoute() {
           <CardTitle>
             <Trans>Timecards</Trans>
           </CardTitle>
-          <HStack className="gap-1">
-            <Button
-              variant="secondary"
-              leftIcon={<LuPlus />}
-              onClick={() => {
-                setShowAddForm(!showAddForm);
-                setAddDate("");
-                setAddClockIn("");
-                setAddClockOut("");
-              }}
-            >
-              <Trans>Add Entry</Trans>
-            </Button>
+          <HStack>
             {openEntry ? (
-              <fetcher.Form method="post">
+              <form method="post">
                 <input type="hidden" name="intent" value="clockOut" />
-                <Button
-                  variant="destructive"
-                  type="submit"
-                  disabled={fetcher.state !== "idle"}
-                >
+                <Button variant="destructive" type="submit">
                   <Trans>Clock Out</Trans>
                 </Button>
-              </fetcher.Form>
+              </form>
             ) : (
-              <fetcher.Form method="post">
+              <form method="post">
                 <input type="hidden" name="intent" value="clockIn" />
-                <Button
-                  leftIcon={<LuPlay />}
-                  type="submit"
-                  disabled={fetcher.state !== "idle"}
-                >
+                <Button leftIcon={<LuPlay />} type="submit">
                   <Trans>Clock In</Trans>
                 </Button>
-              </fetcher.Form>
+              </form>
             )}
           </HStack>
         </HStack>
-        {openEntry && (
+        {openEntry ? (
           <Badge variant="green" className="w-fit">
             <Trans>
               Clocked in since{" "}
               <DateTime value={openEntry.clockIn} variant="time" />
             </Trans>
           </Badge>
-        )}
+        ) : null}
       </CardHeader>
-      <CardContent>
-        <HStack className="justify-between items-center mb-4">
-          <Button variant="outline" asChild leftIcon={<LuChevronLeft />}>
-            <Link
-              to={`${path.to.personTimecard(personId!)}?week=${weekOffset - 1}`}
-            >
+      <CardContent className="space-y-4">
+        <HStack className="justify-between items-center">
+          <Button
+            aria-label={t`Previous pay period`}
+            leftIcon={<LuChevronLeft />}
+            variant="secondary"
+            asChild
+          >
+            <Link to={periodLink(periodOffset - 1)}>
               <Trans>Prev</Trans>
             </Link>
           </Button>
-          <span className="text-sm text-muted-foreground">
-            <DateTime
-              value={weekStart}
-              variant="date"
-              dateOptions={{ dateStyle: "medium" }}
-            />{" "}
-            —{" "}
-            <DateTime
-              value={weekEnd}
-              variant="date"
-              dateOptions={{ dateStyle: "medium" }}
-            />
+          <span className="text-sm tabular-nums">
+            {period.start} → {period.end}
           </span>
           <Button
-            variant="outline"
-            disabled={isCurrentWeek}
-            asChild={!isCurrentWeek}
+            aria-label={t`Next pay period`}
             rightIcon={<LuChevronRight />}
+            variant="secondary"
+            asChild
           >
-            {isCurrentWeek ? (
-              <span>
-                <Trans>Next</Trans>
-              </span>
-            ) : (
-              <Link
-                to={`${path.to.personTimecard(personId!)}?week=${weekOffset + 1}`}
-              >
-                <Trans>Next</Trans>
-              </Link>
-            )}
+            <Link to={periodLink(periodOffset + 1)}>
+              <Trans>Next</Trans>
+            </Link>
           </Button>
         </HStack>
 
-        <TableBase className="table-fixed w-full">
-          <colgroup>
-            <col className="w-[16%]" />
-            <col className="w-[28%]" />
-            <col className="w-[28%]" />
-            <col className="w-[12%]" />
-            <col className="w-[16%]" />
-          </colgroup>
-          <Thead>
-            <Tr>
-              <Th className="whitespace-nowrap">
-                <Trans>Date</Trans>
-              </Th>
-              <Th>
-                <Trans>Clock In</Trans>
-              </Th>
-              <Th>
-                <Trans>Clock Out</Trans>
-              </Th>
-              <Th className="text-center">
-                <Trans>Duration</Trans>
-              </Th>
-              <Th />
-            </Tr>
-          </Thead>
-          <Tbody>
-            {showAddForm && (
-              <Tr>
-                <Td>
-                  <Select
-                    value={addDate}
-                    onValueChange={(value) => setAddDate(value)}
-                  >
-                    <SelectTrigger size="sm">
-                      <SelectValue placeholder={t`Date`} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 7 }, (_, i) => {
-                        const val = parseDate(weekStart)
-                          .add({ days: i })
-                          .toString();
-                        return (
-                          <SelectItem key={val} value={val}>
-                            {formatDate(val, {
-                              weekday: "short",
-                              month: "short",
-                              day: "numeric"
-                            })}
-                          </SelectItem>
-                        );
-                      })}
-                    </SelectContent>
-                  </Select>
-                </Td>
-                <Td>
-                  <Input
-                    type="datetime-local"
-                    value={addClockIn}
-                    onChange={(e) => setAddClockIn(e.target.value)}
-                    className="h-8 text-xs w-full [&::-webkit-calendar-picker-indicator]:hidden"
-                  />
-                </Td>
-                <Td>
-                  <Input
-                    type="datetime-local"
-                    value={addClockOut}
-                    onChange={(e) => setAddClockOut(e.target.value)}
-                    className="h-8 text-xs w-full [&::-webkit-calendar-picker-indicator]:hidden"
-                  />
-                </Td>
-                <Td className="text-muted-foreground text-center">—</Td>
-                <Td className="text-center">
-                  <HStack className="justify-center">
-                    <fetcher.Form method="post">
-                      <input type="hidden" name="intent" value="addEntry" />
-                      <input
-                        type="hidden"
-                        name="clockIn"
-                        value={
-                          isNaN(new Date(addClockIn).getTime())
-                            ? ""
-                            : new Date(addClockIn).toISOString()
-                        }
-                      />
-                      {addClockOut &&
-                        !isNaN(new Date(addClockOut).getTime()) && (
-                          <input
-                            type="hidden"
-                            name="clockOut"
-                            value={new Date(addClockOut).toISOString()}
-                          />
-                        )}
-                      <Button
-                        isLoading={fetcher.state !== "idle"}
-                        variant="secondary"
-                        type="submit"
-                        disabled={isNaN(new Date(addClockIn).getTime())}
-                      >
-                        <Trans>Save</Trans>
-                      </Button>
-                    </fetcher.Form>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowAddForm(false)}
-                    >
-                      <Trans>Cancel</Trans>
-                    </Button>
-                  </HStack>
-                </Td>
-              </Tr>
-            )}
-            {entries.length === 0 && !showAddForm ? (
-              <Tr>
-                <Td
-                  colSpan={5}
-                  className="text-center text-muted-foreground py-8"
-                >
-                  <Trans>No time entries for this week</Trans>
-                </Td>
-              </Tr>
-            ) : (
-              entries.map((entry) =>
-                editingId === entry.id ? (
-                  <Tr key={entry.id}>
-                    <Td className="whitespace-nowrap">
-                      {formatDay(entry.clockIn, locale)}
-                    </Td>
-                    <Td>
-                      <Input
-                        type="datetime-local"
-                        value={editClockIn}
-                        onChange={(e) => setEditClockIn(e.target.value)}
-                        className="h-8 text-xs w-full [&::-webkit-calendar-picker-indicator]:hidden"
-                      />
-                    </Td>
-                    <Td>
-                      <Input
-                        type="datetime-local"
-                        value={editClockOut}
-                        onChange={(e) => setEditClockOut(e.target.value)}
-                        className="h-8 text-xs w-full [&::-webkit-calendar-picker-indicator]:hidden"
-                      />
-                    </Td>
-                    <Td className="text-muted-foreground text-center">—</Td>
-                    <Td className="text-center">
-                      <HStack className="justify-center">
-                        <fetcher.Form method="post">
-                          <input
-                            type="hidden"
-                            name="intent"
-                            value="updateEntry"
-                          />
-                          <input
-                            type="hidden"
-                            name="entryId"
-                            value={entry.id}
-                          />
-                          <input
-                            type="hidden"
-                            name="clockIn"
-                            value={
-                              isNaN(new Date(editClockIn).getTime())
-                                ? ""
-                                : new Date(editClockIn).toISOString()
-                            }
-                          />
-                          {editClockOut &&
-                            !isNaN(new Date(editClockOut).getTime()) && (
-                              <input
-                                type="hidden"
-                                name="clockOut"
-                                value={new Date(editClockOut).toISOString()}
-                              />
-                            )}
-                          <input type="hidden" name="note" value={editNote} />
-                          <Button
-                            isLoading={fetcher.state !== "idle"}
-                            variant="secondary"
-                            type="submit"
-                            disabled={isNaN(new Date(editClockIn).getTime())}
-                          >
-                            <Trans>Save</Trans>
-                          </Button>
-                        </fetcher.Form>
-                        <Button
-                          variant="ghost"
-                          onClick={() => setEditingId(null)}
-                        >
-                          <Trans>Cancel</Trans>
-                        </Button>
-                      </HStack>
-                    </Td>
-                  </Tr>
-                ) : (
-                  <Tr key={entry.id}>
-                    <Td className="whitespace-nowrap">
-                      {formatDay(entry.clockIn, locale)}
-                    </Td>
-                    <Td>
-                      <DateTime value={entry.clockIn} variant="time" />
-                    </Td>
-                    <Td>
-                      {entry.clockOut ? (
-                        <DateTime value={entry.clockOut} variant="time" />
-                      ) : (
-                        <Badge variant="green">
-                          <Trans>Active</Trans>
-                        </Badge>
-                      )}
-                    </Td>
-                    <Td className="text-center">
-                      {formatDuration(entry.clockIn, entry.clockOut)}
-                    </Td>
-                    <Td className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <IconButton
-                            aria-label={t`More options`}
-                            variant="ghost"
-                            icon={<LuEllipsisVertical />}
-                          />
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            shortcut={MENU_ITEM_SHORTCUTS.edit}
-                            onClick={() => startEdit(entry)}
-                          >
-                            <DropdownMenuIcon icon={<LuPencil />} />
-                            <Trans>Edit</Trans>
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            shortcut={MENU_ITEM_SHORTCUTS.delete}
-                            onClick={() =>
-                              setDeletingEntry({
-                                id: entry.id,
-                                clockIn: entry.clockIn
-                              })
-                            }
-                            className="text-destructive"
-                          >
-                            <DropdownMenuIcon icon={<LuTrash />} />
-                            <Trans>Delete</Trans>
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </Td>
-                  </Tr>
-                )
-              )
-            )}
-          </Tbody>
-        </TableBase>
-
-        {entries.length > 0 && (
-          <div className="mt-4 text-right text-sm font-medium">
-            <Trans>Total:</Trans> {formatTotalHours(entries)}
-          </div>
-        )}
-      </CardContent>
-      {deletingEntry && (
-        <ConfirmDelete
-          name={`Timecard (${new Date(deletingEntry.clockIn).toLocaleString(locale)})`}
-          text={t`Are you sure you want to delete this timecard? This cannot be undone.`}
-          onCancel={() => setDeletingEntry(null)}
-          onSubmit={() => {
-            const formData = new FormData();
-            formData.append("intent", "deleteEntry");
-            formData.append("entryId", deletingEntry.id);
-            fetcher.submit(formData, { method: "post" });
-            setDeletingEntry(null);
-          }}
+        <TimecardPunchGrid
+          punches={punches.map((p) => ({
+            id: p.id,
+            punchedAt: p.punchedAt,
+            source: p.source,
+            note: p.note
+          }))}
+          periodStart={period.start}
+          periodEnd={period.end}
+          tz={tz}
+          businessDay={datetime.businessDay}
+          employeeId={personId!}
+          canEdit
         />
-      )}
+      </CardContent>
     </Card>
   );
 }

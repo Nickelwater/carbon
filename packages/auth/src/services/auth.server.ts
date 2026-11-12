@@ -7,7 +7,7 @@ import {
   ApiKeyNotFoundError,
   checkApiKeyRateLimit
 } from "@carbon/database/ratelimit";
-import { redis } from "@carbon/kv";
+import { AccountLockout, Ratelimit, redis } from "@carbon/kv";
 import { getLogger } from "@carbon/logger";
 import { oncePerRequest } from "@carbon/logger/middleware.server";
 import { annotateRequestSpan } from "@carbon/logger/tracing.server";
@@ -20,6 +20,7 @@ import { createHash } from "crypto";
 import {
   CarbonEdition,
   IS_LOCAL_DEV,
+  RATE_LIMIT,
   REFRESH_ACCESS_TOKEN_THRESHOLD,
   STRIPE_BYPASS_COMPANY_IDS,
   SUPABASE_ANON_KEY,
@@ -36,6 +37,7 @@ import { path } from "../utils/path";
 import { error } from "../utils/result";
 import { type ApiKeyRecord, getApiKeyRecord } from "./api-key.server";
 import { logAuthEvent } from "./auth-events.server";
+import { verifyBotProtection } from "./bot-protection.server";
 import { getCompanyPlanId, isCarbonOwnedCompany } from "./company.server";
 import { resolveConsolePinIn } from "./console-pin.server";
 import {
@@ -44,7 +46,7 @@ import {
   requireAuthSession
 } from "./session.server";
 import { getCompaniesForUser } from "./users";
-import { getUserClaims } from "./users.server";
+import { getUserByEmail, getUserClaims } from "./users.server";
 
 const log = getLogger("auth");
 
@@ -570,6 +572,131 @@ export async function signInWithEmail(email: string, password: string) {
     companies?.[0] ?? "",
     companyRecord?.companyGroupId ?? ""
   );
+}
+
+/** On-prem (non-Cloud) editions use password as the primary login factor. */
+export function isPasswordLoginPrimary(): boolean {
+  return CarbonEdition !== Edition.Cloud;
+}
+
+export const PASSWORD_LOGIN_GENERIC_ERROR = "Invalid email or password";
+export const LOGIN_LOCKED_MESSAGE =
+  "For your security, sign-in for this account is temporarily paused. Please try again later.";
+
+export type PasswordLoginFailureReason =
+  | "rate_limited"
+  | "locked"
+  | "bot"
+  | "invalid";
+
+export type PasswordLoginResult =
+  | { ok: true; authSession: AuthSession; email: string }
+  | {
+      ok: false;
+      reason: PasswordLoginFailureReason;
+      message: string;
+    };
+
+/**
+ * Shared email+password login for ERP/MES on-prem. Applies IP rate limit,
+ * per-account lockout, optional bot check, then signInWithEmail. Success clears
+ * lockout; failures never reveal whether the account exists.
+ */
+export async function attemptPasswordLogin(args: {
+  email: string;
+  password: string;
+  ip: string;
+  botToken?: string;
+}): Promise<PasswordLoginResult> {
+  const email = args.email.trim().toLowerCase();
+  const ip = args.ip || "127.0.0.1";
+
+  const ratelimit = new Ratelimit({
+    redis,
+    limiter: Ratelimit.slidingWindow(RATE_LIMIT, "1 h"),
+    analytics: true
+  });
+  const { success } = await ratelimit.limit(ip);
+  if (!success) {
+    logAuthEvent("login_rate_limited", { ip });
+    return {
+      ok: false,
+      reason: "rate_limited",
+      message: "Rate limit exceeded"
+    };
+  }
+
+  const lockout = new AccountLockout({ redis });
+  const lockStatus = await lockout.status(email);
+  if (lockStatus.locked) {
+    logAuthEvent("login_locked", {
+      actor: email,
+      ip,
+      reason: "account temporarily locked",
+      retryAfterSeconds: lockStatus.retryAfterSeconds
+    });
+    return {
+      ok: false,
+      reason: "locked",
+      message: LOGIN_LOCKED_MESSAGE
+    };
+  }
+
+  const botError = await verifyBotProtection({
+    token: args.botToken,
+    ip,
+    actor: email
+  });
+  if (botError) {
+    return { ok: false, reason: "bot", message: botError };
+  }
+
+  const authSession = await signInWithEmail(email, args.password);
+  if (!authSession) {
+    const attempt = await lockout.recordFailure(email);
+    if (attempt.locked) {
+      logAuthEvent("login_locked", {
+        actor: email,
+        ip,
+        reason: "account temporarily locked",
+        retryAfterSeconds: attempt.retryAfterSeconds
+      });
+      return {
+        ok: false,
+        reason: "locked",
+        message: LOGIN_LOCKED_MESSAGE
+      };
+    }
+    logAuthEvent("login_failed", {
+      actor: email,
+      ip,
+      reason: "invalid password"
+    });
+    return {
+      ok: false,
+      reason: "invalid",
+      message: PASSWORD_LOGIN_GENERIC_ERROR
+    };
+  }
+
+  const user = await getUserByEmail(email);
+  if (!user.data?.active) {
+    await lockout.recordFailure(email);
+    logAuthEvent("login_failed", {
+      actor: email,
+      ip,
+      reason: "inactive or missing user"
+    });
+    return {
+      ok: false,
+      reason: "invalid",
+      message: PASSWORD_LOGIN_GENERIC_ERROR
+    };
+  }
+
+  await lockout.reset(email);
+  logAuthEvent("login_success", { actor: email, ip, method: "password" });
+  return { ok: true, authSession, email };
 }
 
 export async function refreshAccessToken(

@@ -284,13 +284,9 @@ export async function getEmployees(
 }
 
 /**
- * Gets console operators — users with @console.internal emails.
- * Uses the employees view (which joins user + employee) and filters
- * by the synthetic email pattern since there's no FK from employee to user
- * for PostgREST to use directly.
- *
- * TODO: After running db:generate, replace email pattern filter with
- * .eq("isConsoleOperator", true) once the column is in the employees view.
+ * Gets console / no-login operators (synthetic @console.internal emails).
+ * The employees view does not yet expose isConsoleOperator, so filter by
+ * the synthetic email domain shared with basic no-login employees.
  * @mcp read
  */
 export async function getConsoleOperators(
